@@ -1,23 +1,22 @@
-use bevy::prelude::*;
-use bevy::asset::{uuid_handle, load_internal_binary_asset};
+use bevy::asset::{load_internal_binary_asset, uuid_handle};
 use bevy::mesh::{MeshVertexAttribute, MeshVertexBufferLayoutRef};
+use bevy::prelude::*;
 use bevy::render::render_resource::{
-    AsBindGroup, BlendComponent, BlendFactor, BlendOperation, BlendState,
-    RenderPipelineDescriptor, SpecializedMeshPipelineError, VertexFormat,
+    AsBindGroup, BlendComponent, BlendFactor, BlendOperation, BlendState, RenderPipelineDescriptor,
+    SpecializedMeshPipelineError, VertexFormat,
 };
-use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dKey, Material2dPlugin};
 use bevy::shader::ShaderRef;
+use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dKey, Material2dPlugin};
+use spine2d::BlendMode;
+use std::collections::HashMap;
 
 pub const SPINE_SHADER_HANDLE: Handle<Shader> =
     uuid_handle!("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
 
 /// Custom vertex attribute for Spine's two-color tinting (dark color).
 /// Must match @location(10) in spine.wgsl.
-pub const DARK_COLOR_ATTRIBUTE: MeshVertexAttribute = MeshVertexAttribute::new(
-    "Vertex_DarkColor",
-    10,
-    VertexFormat::Float32x4,
-);
+pub const DARK_COLOR_ATTRIBUTE: MeshVertexAttribute =
+    MeshVertexAttribute::new("Vertex_DarkColor", 10, VertexFormat::Float32x4);
 
 // ---------------------------------------------------------------------------
 // Macro: generates one Material2d struct per blend mode / PMA combination.
@@ -73,117 +72,53 @@ macro_rules! spine_material {
     };
 }
 
-// ---------------------------------------------------------------------------
-// Non-premultiplied alpha variants
-// ---------------------------------------------------------------------------
+const fn spine_blend_state(src_color: BlendFactor, dst: BlendFactor) -> BlendState {
+    BlendState {
+        color: BlendComponent {
+            src_factor: src_color,
+            dst_factor: dst,
+            operation: BlendOperation::Add,
+        },
+        alpha: BlendComponent {
+            src_factor: BlendFactor::One,
+            dst_factor: dst,
+            operation: BlendOperation::Add,
+        },
+    }
+}
 
-spine_material!(SpineNormalMaterial, BlendState {
-    color: BlendComponent {
-        src_factor: BlendFactor::SrcAlpha,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-    alpha: BlendComponent {
-        src_factor: BlendFactor::One,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-});
-
-spine_material!(SpineAdditiveMaterial, BlendState {
-    color: BlendComponent {
-        src_factor: BlendFactor::SrcAlpha,
-        dst_factor: BlendFactor::One,
-        operation: BlendOperation::Add,
-    },
-    alpha: BlendComponent {
-        src_factor: BlendFactor::One,
-        dst_factor: BlendFactor::One,
-        operation: BlendOperation::Add,
-    },
-});
-
-spine_material!(SpineMultiplyMaterial, BlendState {
-    color: BlendComponent {
-        src_factor: BlendFactor::Dst,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-    alpha: BlendComponent {
-        src_factor: BlendFactor::OneMinusSrcAlpha,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-});
-
-spine_material!(SpineScreenMaterial, BlendState {
-    color: BlendComponent {
-        src_factor: BlendFactor::One,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-    alpha: BlendComponent {
-        src_factor: BlendFactor::OneMinusSrc,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-});
-
-// ---------------------------------------------------------------------------
-// Premultiplied alpha variants
-// ---------------------------------------------------------------------------
-
-spine_material!(SpineNormalPmaMaterial, BlendState {
-    color: BlendComponent {
-        src_factor: BlendFactor::One,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-    alpha: BlendComponent {
-        src_factor: BlendFactor::One,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-});
-
-spine_material!(SpineAdditivePmaMaterial, BlendState {
-    color: BlendComponent {
-        src_factor: BlendFactor::One,
-        dst_factor: BlendFactor::One,
-        operation: BlendOperation::Add,
-    },
-    alpha: BlendComponent {
-        src_factor: BlendFactor::One,
-        dst_factor: BlendFactor::One,
-        operation: BlendOperation::Add,
-    },
-});
-
-spine_material!(SpineMultiplyPmaMaterial, BlendState {
-    color: BlendComponent {
-        src_factor: BlendFactor::Dst,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-    alpha: BlendComponent {
-        src_factor: BlendFactor::OneMinusSrcAlpha,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-});
-
-spine_material!(SpineScreenPmaMaterial, BlendState {
-    color: BlendComponent {
-        src_factor: BlendFactor::One,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-    alpha: BlendComponent {
-        src_factor: BlendFactor::OneMinusSrc,
-        dst_factor: BlendFactor::OneMinusSrcAlpha,
-        operation: BlendOperation::Add,
-    },
-});
+spine_material!(
+    SpineNormalMaterial,
+    spine_blend_state(BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha)
+);
+spine_material!(
+    SpineAdditiveMaterial,
+    spine_blend_state(BlendFactor::SrcAlpha, BlendFactor::One)
+);
+spine_material!(
+    SpineMultiplyMaterial,
+    spine_blend_state(BlendFactor::Dst, BlendFactor::OneMinusSrcAlpha)
+);
+spine_material!(
+    SpineScreenMaterial,
+    spine_blend_state(BlendFactor::One, BlendFactor::OneMinusSrc)
+);
+spine_material!(
+    SpineNormalPmaMaterial,
+    spine_blend_state(BlendFactor::One, BlendFactor::OneMinusSrcAlpha)
+);
+spine_material!(
+    SpineAdditivePmaMaterial,
+    spine_blend_state(BlendFactor::One, BlendFactor::One)
+);
+spine_material!(
+    SpineMultiplyPmaMaterial,
+    spine_blend_state(BlendFactor::Dst, BlendFactor::OneMinusSrcAlpha)
+);
+spine_material!(
+    SpineScreenPmaMaterial,
+    spine_blend_state(BlendFactor::One, BlendFactor::OneMinusSrc)
+);
 
 // ---------------------------------------------------------------------------
 // Convenience enum so render_spines can pass a single typed material handle
@@ -191,6 +126,7 @@ spine_material!(SpineScreenPmaMaterial, BlendState {
 // ---------------------------------------------------------------------------
 
 /// A handle to whichever Spine material variant was chosen for a draw call.
+#[derive(Clone)]
 pub enum SpineMaterialHandle {
     Normal(Handle<SpineNormalMaterial>),
     Additive(Handle<SpineAdditiveMaterial>),
@@ -202,6 +138,74 @@ pub enum SpineMaterialHandle {
     ScreenPma(Handle<SpineScreenPmaMaterial>),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct SpineMaterialKey {
+    pub texture_path: String,
+    pub blend: BlendMode,
+    pub premultiplied_alpha: bool,
+}
+
+#[derive(Default, Resource)]
+pub struct SpineMaterialCache {
+    materials: HashMap<SpineMaterialKey, SpineMaterialHandle>,
+}
+
+#[allow(clippy::too_many_arguments)]
+impl SpineMaterialCache {
+    pub fn get_or_create(
+        &mut self,
+        key: SpineMaterialKey,
+        texture: Handle<Image>,
+        normal_mats: &mut Assets<SpineNormalMaterial>,
+        additive_mats: &mut Assets<SpineAdditiveMaterial>,
+        multiply_mats: &mut Assets<SpineMultiplyMaterial>,
+        screen_mats: &mut Assets<SpineScreenMaterial>,
+        normal_pma_mats: &mut Assets<SpineNormalPmaMaterial>,
+        additive_pma_mats: &mut Assets<SpineAdditivePmaMaterial>,
+        multiply_pma_mats: &mut Assets<SpineMultiplyPmaMaterial>,
+        screen_pma_mats: &mut Assets<SpineScreenPmaMaterial>,
+    ) -> SpineMaterialHandle {
+        if let Some(handle) = self.materials.get(&key) {
+            return handle.clone();
+        }
+
+        let handle = match (key.blend, key.premultiplied_alpha) {
+            (BlendMode::Normal, false) => {
+                SpineMaterialHandle::Normal(normal_mats.add(SpineNormalMaterial { texture }))
+            }
+            (BlendMode::Additive, false) => {
+                SpineMaterialHandle::Additive(additive_mats.add(SpineAdditiveMaterial { texture }))
+            }
+            (BlendMode::Multiply, false) => {
+                SpineMaterialHandle::Multiply(multiply_mats.add(SpineMultiplyMaterial { texture }))
+            }
+            (BlendMode::Screen, false) => {
+                SpineMaterialHandle::Screen(screen_mats.add(SpineScreenMaterial { texture }))
+            }
+            (BlendMode::Normal, true) => SpineMaterialHandle::NormalPma(
+                normal_pma_mats.add(SpineNormalPmaMaterial { texture }),
+            ),
+            (BlendMode::Additive, true) => SpineMaterialHandle::AdditivePma(
+                additive_pma_mats.add(SpineAdditivePmaMaterial { texture }),
+            ),
+            (BlendMode::Multiply, true) => SpineMaterialHandle::MultiplyPma(
+                multiply_pma_mats.add(SpineMultiplyPmaMaterial { texture }),
+            ),
+            (BlendMode::Screen, true) => SpineMaterialHandle::ScreenPma(
+                screen_pma_mats.add(SpineScreenPmaMaterial { texture }),
+            ),
+        };
+
+        self.materials.insert(key, handle.clone());
+        handle
+    }
+
+    #[cfg(test)]
+    pub fn len(&self) -> usize {
+        self.materials.len()
+    }
+}
+
 /// Adds the correct `MeshMaterial2d` component for a given `SpineMaterialHandle`
 /// to a `EntityCommands`.
 pub fn insert_spine_material(
@@ -210,14 +214,30 @@ pub fn insert_spine_material(
 ) {
     use bevy::sprite_render::MeshMaterial2d;
     match handle {
-        SpineMaterialHandle::Normal(h)      => { entity.insert(MeshMaterial2d(h)); }
-        SpineMaterialHandle::Additive(h)    => { entity.insert(MeshMaterial2d(h)); }
-        SpineMaterialHandle::Multiply(h)    => { entity.insert(MeshMaterial2d(h)); }
-        SpineMaterialHandle::Screen(h)      => { entity.insert(MeshMaterial2d(h)); }
-        SpineMaterialHandle::NormalPma(h)   => { entity.insert(MeshMaterial2d(h)); }
-        SpineMaterialHandle::AdditivePma(h) => { entity.insert(MeshMaterial2d(h)); }
-        SpineMaterialHandle::MultiplyPma(h) => { entity.insert(MeshMaterial2d(h)); }
-        SpineMaterialHandle::ScreenPma(h)   => { entity.insert(MeshMaterial2d(h)); }
+        SpineMaterialHandle::Normal(h) => {
+            entity.insert(MeshMaterial2d(h));
+        }
+        SpineMaterialHandle::Additive(h) => {
+            entity.insert(MeshMaterial2d(h));
+        }
+        SpineMaterialHandle::Multiply(h) => {
+            entity.insert(MeshMaterial2d(h));
+        }
+        SpineMaterialHandle::Screen(h) => {
+            entity.insert(MeshMaterial2d(h));
+        }
+        SpineMaterialHandle::NormalPma(h) => {
+            entity.insert(MeshMaterial2d(h));
+        }
+        SpineMaterialHandle::AdditivePma(h) => {
+            entity.insert(MeshMaterial2d(h));
+        }
+        SpineMaterialHandle::MultiplyPma(h) => {
+            entity.insert(MeshMaterial2d(h));
+        }
+        SpineMaterialHandle::ScreenPma(h) => {
+            entity.insert(MeshMaterial2d(h));
+        }
     }
 }
 
@@ -249,5 +269,6 @@ impl Plugin for SpineMaterialPlugin {
             Material2dPlugin::<SpineMultiplyPmaMaterial>::default(),
             Material2dPlugin::<SpineScreenPmaMaterial>::default(),
         ));
+        app.init_resource::<SpineMaterialCache>();
     }
 }

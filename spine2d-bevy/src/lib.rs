@@ -1,14 +1,15 @@
 mod asset_loader;
 mod components;
+mod materials;
 mod spine_world;
 mod systems;
-mod materials;
 
+use bevy::asset::AssetEventSystems;
 use bevy::prelude::*;
 
 pub use asset_loader::*;
 pub use components::*;
-pub use spine_world::*;
+pub(crate) use spine_world::*;
 
 pub struct Spine2dPlugin;
 
@@ -22,11 +23,20 @@ impl Plugin for Spine2dPlugin {
 
         app.insert_non_send_resource(SpineWorld::new());
 
-        app.add_systems(Update, (
-            systems::spawn_spine_instances,
-            systems::update_spine_animations,
-            systems::render_spines,
-        ).chain());
+        app.add_systems(
+            Update,
+            (
+                systems::cleanup_spine_instances,
+                systems::spawn_spine_instances,
+                systems::update_spine_animations,
+                systems::render_spines,
+            )
+                .chain(),
+        );
+        app.add_systems(
+            PostUpdate,
+            systems::reload_modified_spine_assets.after(AssetEventSystems),
+        );
 
         app.add_plugins(materials::SpineMaterialPlugin);
     }

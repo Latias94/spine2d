@@ -1292,10 +1292,7 @@ impl AnimationState {
 
                     // Match C# behavior: increment mixTime along the mixing chain.
                     let mut mix_id = next_id;
-                    loop {
-                        let Some(from_id) = self.entry(mix_id).and_then(|e| e.mixing_from) else {
-                            break;
-                        };
+                    while let Some(from_id) = self.entry(mix_id).and_then(|e| e.mixing_from) {
                         if let Some(entry) = self.entry_mut(mix_id) {
                             entry.mix_time += delta;
                         }

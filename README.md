@@ -28,6 +28,7 @@ Experimental, pure Rust runtime for Spine 4.3 (unofficial).
 
 - `spine2d`: core runtime + parsing + renderer-agnostic render output.
 - `spine2d-wgpu`: wgpu renderer integration built on top of `spine2d`.
+- `spine2d-bevy`: Bevy `Material2d` backend built on top of the core runtime.
 - `spine2d-web`: Trunk + wgpu web demo/viewer (`wasm32-unknown-unknown`).
 
 
@@ -76,6 +77,39 @@ These files are not committed here by default.
 - Then run: `cd spine2d-web && trunk serve`
   - The demo will auto-detect `assets/spine-runtimes/web_manifest.json` and populate the Example dropdown.
   - Optional URL params: `?example=spineboy&anim=run`
+
+### Bevy backend
+
+Run the built-in Bevy demo:
+
+- `cargo run -p spine2d-bevy --example basic`
+
+The Bevy integration is centered on a public `Spine` component plus optional
+runtime control components:
+
+```rust
+use bevy::prelude::*;
+use spine2d_bevy::{Spine, Spine2dPlugin};
+
+fn main() {
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_plugins(Spine2dPlugin)
+        .add_systems(Startup, setup)
+        .run();
+}
+
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(Spine::new(
+        asset_server.load("demo.json"),
+        asset_server.load("demo.atlas"),
+    ).with_animation("spin", true));
+}
+```
+
+Add `SpineAnimation` or `SpineSkin` only when you want ECS-driven runtime
+control after spawn. The plugin keeps its internal runtime handle private and
+cleans it up when `Spine` is removed or the entity is despawned.
 
 ## License
 

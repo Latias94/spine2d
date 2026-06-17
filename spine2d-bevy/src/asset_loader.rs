@@ -1,8 +1,8 @@
-use std::sync::Arc;
-use bevy::asset::{AssetLoader, LoadContext, AsyncReadExt};
-use bevy::prelude::*;
-use spine2d::{SkeletonData, Atlas};
 use anyhow::Result;
+use bevy::asset::{AssetLoader, LoadContext};
+use bevy::prelude::*;
+use spine2d::{Atlas, SkeletonData};
+use std::sync::Arc;
 
 #[derive(Asset, TypePath, Debug)]
 pub struct SpineSkeletonAsset {
@@ -89,9 +89,10 @@ impl AssetLoader for AtlasLoader {
 
         let directory = load_context
             .path()
-            .parent().map(|p| p.to_string())
+            .parent()
+            .map(|p| p.to_string())
             .unwrap_or("".to_owned())
-            .replace('\\', "/")  // normalise Windows separators
+            .replace('\\', "/") // normalise Windows separators
             .to_string();
 
         Ok(SpineAtlasAsset { atlas, directory })

@@ -37,7 +37,7 @@ pub struct SlotData {
     pub blend: BlendMode,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub enum BlendMode {
     #[default]
     Normal,

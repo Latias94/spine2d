@@ -1,36 +1,60 @@
-use bevy::prelude::*;
-use spine2d::{Skeleton, AnimationState, DrawList, Atlas, SkeletonData};
-use std::sync::Arc;
-use crate::SpineHandle;
+use std::collections::HashMap;
 
-pub struct SpineInstance {
+use bevy::prelude::*;
+use spine2d::{AnimationState, Atlas, DrawList, Skeleton};
+
+use crate::components::SpineInstanceId;
+
+pub(crate) struct SpineInstance {
     pub skeleton: Skeleton,
     pub animation_state: AnimationState,
     pub draw_list: DrawList,
     pub atlas: Atlas,
-    pub skeleton_data: Arc<SkeletonData>,   // changed from SkeletonData to Arc
+    pub atlas_directory: String,
+    pub animation_name: Option<String>,
+    pub loop_animation: bool,
+    pub time_scale: f32,
+    pub skin_name: Option<String>,
+}
+
+pub(crate) struct SpineInstanceParts {
+    pub skeleton: Skeleton,
+    pub animation_state: AnimationState,
+    pub atlas: Atlas,
+    pub atlas_directory: String,
+    pub animation_name: Option<String>,
+    pub loop_animation: bool,
+    pub time_scale: f32,
+    pub skin_name: Option<String>,
 }
 
 impl SpineInstance {
-    pub fn new(
-        skeleton: Skeleton,
-        animation_state: AnimationState,
-        atlas: Atlas,
-        skeleton_data: Arc<SkeletonData>,   // accept Arc
-    ) -> Self {
+    pub fn new(parts: SpineInstanceParts) -> Self {
         Self {
-            skeleton,
-            animation_state,
+            skeleton: parts.skeleton,
+            animation_state: parts.animation_state,
             draw_list: DrawList::default(),
-            atlas,
-            skeleton_data,
+            atlas: parts.atlas,
+            atlas_directory: parts.atlas_directory,
+            animation_name: parts.animation_name,
+            loop_animation: parts.loop_animation,
+            time_scale: parts.time_scale,
+            skin_name: parts.skin_name,
         }
     }
 }
 
-pub struct SpineWorld {
-    instances: Vec<Option<SpineInstance>>,
-    free_ids: Vec<u32>,
+#[derive(Default)]
+struct SpineWorldSlot {
+    generation: u32,
+    instance: Option<SpineInstance>,
+    owner: Option<Entity>,
+}
+
+pub(crate) struct SpineWorld {
+    slots: Vec<SpineWorldSlot>,
+    free: Vec<u32>,
+    by_owner: HashMap<Entity, SpineInstanceId>,
 }
 
 impl Default for SpineWorld {
@@ -42,32 +66,116 @@ impl Default for SpineWorld {
 impl SpineWorld {
     pub fn new() -> Self {
         Self {
-            instances: Vec::new(),
-            free_ids: Vec::new(),
+            slots: Vec::new(),
+            free: Vec::new(),
+            by_owner: HashMap::new(),
         }
     }
 
-    pub fn insert(&mut self, instance: SpineInstance) -> SpineHandle {
-        if let Some(id) = self.free_ids.pop() {
-            self.instances[id as usize] = Some(instance);
-            SpineHandle(id)
-        } else {
-            let id = self.instances.len() as u32;
-            self.instances.push(Some(instance));
-            SpineHandle(id)
+    pub fn insert(&mut self, owner: Entity, instance: SpineInstance) -> SpineInstanceId {
+        self.remove_by_owner(owner);
+
+        let index = self.free.pop().unwrap_or_else(|| {
+            let index = self.slots.len() as u32;
+            self.slots.push(SpineWorldSlot::default());
+            index
+        });
+        let slot = &mut self.slots[index as usize];
+        slot.generation = slot.generation.wrapping_add(1).max(1);
+        slot.instance = Some(instance);
+        slot.owner = Some(owner);
+
+        let id = SpineInstanceId {
+            index,
+            generation: slot.generation,
+        };
+        self.by_owner.insert(owner, id);
+        id
+    }
+
+    pub fn get(&self, id: SpineInstanceId) -> Option<&SpineInstance> {
+        let slot = self.slots.get(id.index as usize)?;
+        (slot.generation == id.generation)
+            .then_some(slot.instance.as_ref())
+            .flatten()
+    }
+
+    pub fn get_mut(&mut self, id: SpineInstanceId) -> Option<&mut SpineInstance> {
+        let slot = self.slots.get_mut(id.index as usize)?;
+        (slot.generation == id.generation)
+            .then_some(slot.instance.as_mut())
+            .flatten()
+    }
+
+    pub fn remove_by_owner(&mut self, owner: Entity) -> Option<SpineInstance> {
+        let id = self.by_owner.remove(&owner)?;
+        let slot = self.slots.get_mut(id.index as usize)?;
+        if slot.generation != id.generation {
+            return None;
         }
+        slot.owner = None;
+        let instance = slot.instance.take()?;
+        self.free.push(id.index);
+        Some(instance)
     }
 
-    pub fn get(&self, handle: SpineHandle) -> &SpineInstance {
-        self.instances[handle.0 as usize].as_ref().unwrap()
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.by_owner.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use spine2d::{AnimationStateData, SkeletonData};
+
+    fn demo_instance() -> SpineInstance {
+        let data = SkeletonData::from_json_str(include_str!("../../spine2d-web/assets/demo.json"))
+            .expect("parse demo skeleton");
+        let atlas = Atlas::from_str(include_str!("../../spine2d-web/assets/demo.atlas"))
+            .expect("parse demo atlas");
+
+        SpineInstance::new(SpineInstanceParts {
+            skeleton: Skeleton::new(data.clone()),
+            animation_state: AnimationState::new(AnimationStateData::new(data)),
+            atlas,
+            atlas_directory: String::new(),
+            animation_name: Some("spin".to_owned()),
+            loop_animation: true,
+            time_scale: 1.0,
+            skin_name: None,
+        })
     }
 
-    pub fn get_mut(&mut self, handle: SpineHandle) -> &mut SpineInstance {
-        self.instances[handle.0 as usize].as_mut().unwrap()
+    #[test]
+    fn replacing_owner_invalidates_previous_instance_key() {
+        let mut ecs_world = World::new();
+        let owner = ecs_world.spawn_empty().id();
+        let mut spine_world = SpineWorld::new();
+
+        let first = spine_world.insert(owner, demo_instance());
+        let second = spine_world.insert(owner, demo_instance());
+
+        assert_eq!(spine_world.len(), 1);
+        assert!(spine_world.get(first).is_none());
+        assert!(spine_world.get(second).is_some());
     }
 
-    pub fn remove(&mut self, handle: SpineHandle) {
-        self.instances[handle.0 as usize] = None;
-        self.free_ids.push(handle.0);
+    #[test]
+    fn removing_owner_reuses_slot_with_new_generation() {
+        let mut ecs_world = World::new();
+        let owner = ecs_world.spawn_empty().id();
+        let mut spine_world = SpineWorld::new();
+
+        let first = spine_world.insert(owner, demo_instance());
+        assert!(spine_world.remove_by_owner(owner).is_some());
+        assert_eq!(spine_world.len(), 0);
+        assert!(spine_world.get(first).is_none());
+
+        let second = spine_world.insert(owner, demo_instance());
+        assert_eq!(first.index, second.index);
+        assert_ne!(first.generation, second.generation);
+        assert!(spine_world.get(second).is_some());
     }
 }

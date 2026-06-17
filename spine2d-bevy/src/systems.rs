@@ -1,297 +1,620 @@
-use bevy::asset::RenderAssetUsages;
-use bevy::camera::visibility::RenderLayers;
-use bevy::mesh::Indices;
+mod render;
+
+use bevy::asset::AssetEvent;
+use bevy::ecs::lifecycle::RemovedComponents;
 use bevy::prelude::*;
-use bevy::render::render_resource::PrimitiveTopology;
-use spine2d::{AnimationState, AnimationStateData, BlendMode, Skeleton, build_draw_list_with_atlas};
+use spine2d::{AnimationState, AnimationStateData, Skeleton, build_draw_list_with_atlas};
+use std::collections::HashSet;
+
+use render::despawn_mesh_children;
+pub use render::render_spines;
 
 use crate::{
-    Spine, SpineAnimationPlayer, SpineAtlasAsset, SpineHandle, SpineInstance,
-    SpineSkeletonAsset, SpineSkin, SpineWorld,
-    materials::{
-        DARK_COLOR_ATTRIBUTE,
-        SpineNormalMaterial, SpineAdditiveMaterial, SpineMultiplyMaterial, SpineScreenMaterial,
-        SpineNormalPmaMaterial, SpineAdditivePmaMaterial, SpineMultiplyPmaMaterial, SpineScreenPmaMaterial,
-        insert_spine_material, SpineMaterialHandle,
-    },
+    Spine, SpineAnimation, SpineAtlasAsset, SpineDrawSignatureCache, SpineInstance,
+    SpineInstanceKey, SpineInstanceParts, SpineMeshChild, SpineSkeletonAsset, SpineSkin,
+    SpineWorld,
 };
 
-// ---------------------------------------------------------------------------
-// Components
-// ---------------------------------------------------------------------------
+type SpawnSpineQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        Entity,
+        &'static Spine,
+        Option<&'static SpineAnimation>,
+        Option<&'static SpineSkin>,
+        Option<&'static SpineDrawSignatureCache>,
+    ),
+    Or<(Without<SpineInstanceKey>, Changed<Spine>)>,
+>;
 
-/// Tracks how many mesh children the parent Spine entity currently has.
-/// Used to detect when the draw list count changes so we know whether to
-/// update in place or fall back to a full respawn.
-#[derive(Component, Default)]
-pub struct SpineDrawCount(pub usize);
+type UpdateSpineQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        Entity,
+        &'static SpineInstanceKey,
+        Option<Ref<'static, SpineAnimation>>,
+        Option<Ref<'static, SpineSkin>>,
+    ),
+>;
 
-/// Marks a child entity as a Spine mesh and stores the mesh asset handle so
-/// render_spines can write updated vertex data directly into it each frame.
-#[derive(Component)]
-pub struct SpineMeshChild {
-    pub mesh: Handle<Mesh>,
-}
-
-// ---------------------------------------------------------------------------
-// Helper: build vertex data from a draw and write it into an existing Mesh.
-// ---------------------------------------------------------------------------
-
-fn write_mesh_data(
-    mesh: &mut Mesh,
-    draw_list: &spine2d::DrawList,
-    draw: &spine2d::Draw,
-) {
-    let raw_indices = &draw_list.indices[draw.first_index..draw.first_index + draw.index_count];
-
-    let min_vertex = *raw_indices.iter().min().unwrap() as usize;
-    let max_vertex = *raw_indices.iter().max().unwrap() as usize;
-
-    let indices: Vec<u32> = raw_indices.iter()
-        .map(|&i| (i as usize - min_vertex) as u32)
-        .collect();
-
-    let vertex_slice = &draw_list.vertices[min_vertex..=max_vertex];
-
-    let positions: Vec<[f32; 3]> = vertex_slice.iter()
-        .map(|v| [v.position[0], -v.position[1], 0.0])
-        .collect();
-    let normals: Vec<[f32; 3]> = vec![[0.0, 0.0, 1.0]; vertex_slice.len()];
-    let uvs: Vec<[f32; 2]> = vertex_slice.iter().map(|v| v.uv).collect();
-    let colors: Vec<[f32; 4]> = vertex_slice.iter().map(|v| v.color).collect();
-    let dark_colors: Vec<[f32; 4]> = vertex_slice.iter().map(|v| v.dark_color).collect();
-
-    mesh.insert_indices(Indices::U32(indices));
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
-    mesh.insert_attribute(DARK_COLOR_ATTRIBUTE, dark_colors);
-}
-
-// ---------------------------------------------------------------------------
-// Helper: spawn all mesh children for a Spine entity from scratch.
-// ---------------------------------------------------------------------------
-
-fn spawn_mesh_children(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    normal_mats:       &mut Assets<SpineNormalMaterial>,
-    additive_mats:     &mut Assets<SpineAdditiveMaterial>,
-    multiply_mats:     &mut Assets<SpineMultiplyMaterial>,
-    screen_mats:       &mut Assets<SpineScreenMaterial>,
-    normal_pma_mats:   &mut Assets<SpineNormalPmaMaterial>,
-    additive_pma_mats: &mut Assets<SpineAdditivePmaMaterial>,
-    multiply_pma_mats: &mut Assets<SpineMultiplyPmaMaterial>,
-    screen_pma_mats:   &mut Assets<SpineScreenPmaMaterial>,
-    asset_server:      &AssetServer,
-    atlas_dir:         &str,
-    spine_entity:      Entity,
-    draw_list:         &spine2d::DrawList,
-    render_layers:     Option<&RenderLayers>,
-) {
-    commands.entity(spine_entity).with_children(|parent| {
-        for (draw_index, draw) in draw_list.draws.iter().enumerate() {
-            let mut mesh = Mesh::new(
-                PrimitiveTopology::TriangleList,
-                RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
-            );
-            write_mesh_data(&mut mesh, draw_list, draw);
-
-            let mesh_handle = meshes.add(mesh);
-
-            let texture_path = if atlas_dir.is_empty() {
-                draw.texture_path.clone()
-            } else {
-                format!("{}/{}", atlas_dir, draw.texture_path)
-            };
-            let texture: Handle<Image> = asset_server.load(texture_path);
-
-            let material_handle = match (draw.blend, draw.premultiplied_alpha) {
-                (BlendMode::Normal,   false) => SpineMaterialHandle::Normal(normal_mats.add(SpineNormalMaterial { texture })),
-                (BlendMode::Additive, false) => SpineMaterialHandle::Additive(additive_mats.add(SpineAdditiveMaterial { texture })),
-                (BlendMode::Multiply, false) => SpineMaterialHandle::Multiply(multiply_mats.add(SpineMultiplyMaterial { texture })),
-                (BlendMode::Screen,   false) => SpineMaterialHandle::Screen(screen_mats.add(SpineScreenMaterial { texture })),
-                (BlendMode::Normal,   true)  => SpineMaterialHandle::NormalPma(normal_pma_mats.add(SpineNormalPmaMaterial { texture })),
-                (BlendMode::Additive, true)  => SpineMaterialHandle::AdditivePma(additive_pma_mats.add(SpineAdditivePmaMaterial { texture })),
-                (BlendMode::Multiply, true)  => SpineMaterialHandle::MultiplyPma(multiply_pma_mats.add(SpineMultiplyPmaMaterial { texture })),
-                (BlendMode::Screen,   true)  => SpineMaterialHandle::ScreenPma(screen_pma_mats.add(SpineScreenPmaMaterial { texture })),
-            };
-
-            let z = draw_index as f32 * 0.001;
-
-            let mut child = parent.spawn((
-                SpineMeshChild { mesh: mesh_handle.clone() },
-                Mesh2d(mesh_handle),
-                Transform::from_xyz(0.0, 0.0, z),
-            ));
-
-            insert_spine_material(&mut child, material_handle);
-
-            if let Some(layers) = render_layers {
-                child.insert(layers.clone());
-            }
-        }
-    });
-}
-
-// ---------------------------------------------------------------------------
-// Systems
-// ---------------------------------------------------------------------------
+type SpineEntityQuery<'w, 's> =
+    Query<'w, 's, (Entity, &'static Spine, Option<&'static SpineInstanceKey>)>;
 
 pub fn spawn_spine_instances(
     mut commands: Commands,
     mut spine_world: NonSendMut<SpineWorld>,
     skeletons: Res<Assets<SpineSkeletonAsset>>,
     atlases: Res<Assets<SpineAtlasAsset>>,
-    query: Query<(Entity, &Spine), Without<SpineHandle>>,
+    query: SpawnSpineQuery,
 ) {
-    for (entity, spine) in query.iter() {
-        let Some(skeleton_asset) = skeletons.get(&spine.skeleton) else { continue };
-        let Some(atlas_asset) = atlases.get(&spine.atlas) else { continue };
+    for (entity, spine, animation, skin, draw_signature_cache) in &query {
+        let Some(skeleton_asset) = skeletons.get(&spine.skeleton) else {
+            continue;
+        };
+        let Some(atlas_asset) = atlases.get(&spine.atlas) else {
+            continue;
+        };
 
-        info!("Spawning SpineInstance for entity {:?}", entity);
+        let animation_component = animation.cloned().unwrap_or_else(|| SpineAnimation {
+            name: spine.animation.clone(),
+            loop_animation: spine.loop_animation,
+            time_scale: spine.time_scale,
+        });
+        let skin_component = skin.cloned().unwrap_or_else(|| SpineSkin {
+            name: spine.skin.clone(),
+        });
 
         let skeleton_data = skeleton_asset.data.clone();
         let mut skeleton = Skeleton::new(skeleton_data.clone());
-        let state_data = AnimationStateData::new(skeleton_data.clone());
-        let mut animation_state = AnimationState::new(state_data);
-
-        if !spine.animation.is_empty() {
-            let _ = animation_state.set_animation(0, &spine.animation, spine.loop_animation);
+        if let Err(err) = skeleton.set_skin(skin_component.name.as_deref()) {
+            warn!("Failed to set Spine skin for {entity:?}: {err}");
         }
-
         skeleton.update_world_transform();
 
-        let instance = SpineInstance::new(
+        let state_data = AnimationStateData::new(skeleton_data.clone());
+        let mut animation_state = AnimationState::new(state_data);
+        if let Some(animation_name) = animation_component.name.as_deref() {
+            if let Err(err) =
+                animation_state.set_animation(0, animation_name, animation_component.loop_animation)
+            {
+                warn!("Failed to set Spine animation for {entity:?}: {err}");
+            }
+        }
+
+        let mut instance = SpineInstance::new(SpineInstanceParts {
             skeleton,
             animation_state,
-            atlas_asset.atlas.clone(),
-            skeleton_data,
-        );
+            atlas: atlas_asset.atlas.clone(),
+            atlas_directory: atlas_asset.directory.clone(),
+            animation_name: animation_component.name.clone(),
+            loop_animation: animation_component.loop_animation,
+            time_scale: animation_component.time_scale,
+            skin_name: skin_component.name.clone(),
+        });
+        rebuild_pose(&mut instance, 0.0);
 
-        let handle = spine_world.insert(instance);
+        let id = spine_world.insert(entity, instance);
+        let mut entity_commands = commands.entity(entity);
+        entity_commands.insert(SpineInstanceKey(id));
+        if draw_signature_cache.is_none() {
+            entity_commands.insert(SpineDrawSignatureCache::default());
+        }
+    }
+}
 
-        commands.entity(entity)
-            .insert(SpineHandle(handle.0))
-            .insert(SpineDrawCount::default())
-            .insert(SpineAnimationPlayer {
-                animation_name: spine.animation.clone(),
-                loop_animation: spine.loop_animation,
-                time_scale: spine.time_scale,
-            })
-            .insert(SpineSkin {
-                skin_name: spine.skin.clone().unwrap_or_default(),
-            });
+pub fn cleanup_spine_instances(
+    mut commands: Commands,
+    mut spine_world: NonSendMut<SpineWorld>,
+    mut removed_spines: RemovedComponents<Spine>,
+    mut removed_instances: RemovedComponents<SpineInstanceKey>,
+    children_query: Query<&Children>,
+    mesh_child_query: Query<&SpineMeshChild>,
+) {
+    let mut removed = HashSet::new();
+    removed.extend(removed_spines.read());
+    removed.extend(removed_instances.read());
+
+    for entity in removed {
+        spine_world.remove_by_owner(entity);
+        despawn_mesh_children(&mut commands, &children_query, &mesh_child_query, entity);
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands
+                .remove::<SpineInstanceKey>()
+                .remove::<SpineDrawSignatureCache>();
+        }
+    }
+}
+
+pub fn reload_modified_spine_assets(
+    mut commands: Commands,
+    mut spine_world: NonSendMut<SpineWorld>,
+    mut skeleton_events: MessageReader<AssetEvent<SpineSkeletonAsset>>,
+    mut atlas_events: MessageReader<AssetEvent<SpineAtlasAsset>>,
+    spine_query: SpineEntityQuery,
+    children_query: Query<&Children>,
+    mesh_child_query: Query<&SpineMeshChild>,
+) {
+    let changed_skeletons = changed_asset_ids(skeleton_events.read());
+    let changed_atlases = changed_asset_ids(atlas_events.read());
+    if changed_skeletons.is_empty() && changed_atlases.is_empty() {
+        return;
+    }
+
+    for (entity, spine, key) in &spine_query {
+        if key.is_none() {
+            continue;
+        }
+        if !changed_skeletons.contains(&spine.skeleton.id())
+            && !changed_atlases.contains(&spine.atlas.id())
+        {
+            continue;
+        }
+
+        spine_world.remove_by_owner(entity);
+        despawn_mesh_children(&mut commands, &children_query, &mesh_child_query, entity);
+        commands
+            .entity(entity)
+            .remove::<SpineInstanceKey>()
+            .remove::<SpineDrawSignatureCache>();
     }
 }
 
 pub fn update_spine_animations(
     mut spine_world: NonSendMut<SpineWorld>,
-    query: Query<(&SpineHandle, &SpineAnimationPlayer, &SpineSkin)>,
+    query: UpdateSpineQuery,
     time: Res<Time>,
 ) {
-    for (handle, player, skin) in query.iter() {
-        let instance = spine_world.get_mut(*handle);
-
-        if !skin.skin_name.is_empty() {
-            let _ = instance.skeleton.set_skin(Some(&skin.skin_name));
-        }
-
-        instance.animation_state.update(time.delta().as_secs_f32() * player.time_scale);
-        instance.animation_state.apply(&mut instance.skeleton);
-        instance.skeleton.update_world_transform();
-
-        instance.draw_list = build_draw_list_with_atlas(&instance.skeleton, &instance.atlas);
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn render_spines(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut normal_mats:       ResMut<Assets<SpineNormalMaterial>>,
-    mut additive_mats:     ResMut<Assets<SpineAdditiveMaterial>>,
-    mut multiply_mats:     ResMut<Assets<SpineMultiplyMaterial>>,
-    mut screen_mats:       ResMut<Assets<SpineScreenMaterial>>,
-    mut normal_pma_mats:   ResMut<Assets<SpineNormalPmaMaterial>>,
-    mut additive_pma_mats: ResMut<Assets<SpineAdditivePmaMaterial>>,
-    mut multiply_pma_mats: ResMut<Assets<SpineMultiplyPmaMaterial>>,
-    mut screen_pma_mats:   ResMut<Assets<SpineScreenPmaMaterial>>,
-    asset_server: Res<AssetServer>,
-    atlases: Res<Assets<SpineAtlasAsset>>,
-    spine_world: NonSend<SpineWorld>,
-    mut spine_query: Query<(Entity, &SpineHandle, &Spine, &mut SpineDrawCount, Option<&RenderLayers>)>,
-    children_query: Query<&Children>,
-    mesh_child_query: Query<&SpineMeshChild>,
-) {
-    for (spine_entity, handle, spine_component, mut draw_count, render_layers) in spine_query.iter_mut() {
-        let instance = spine_world.get(*handle);
-        let draw_list = &instance.draw_list;
-
-        let atlas_dir = atlases
-            .get(&spine_component.atlas)
-            .map(|a| a.directory.as_str())
-            .unwrap_or("");
-
-        let new_count = draw_list.draws.len();
-        let old_count = draw_count.0;
-
-        if new_count == 0 {
-            // Nothing to render; if we had children before, despawn them.
-            if old_count > 0 {
-                despawn_mesh_children(&mut commands, &children_query, &mesh_child_query, spine_entity);
-                draw_count.0 = 0;
-            }
+    for (entity, key, animation_ref, skin_ref) in &query {
+        let Some(instance) = spine_world.get_mut(key.0) else {
+            warn!("Missing Spine runtime instance for {entity:?}");
             continue;
-        }
+        };
 
-        if new_count != old_count {
-            // Draw count changed — despawn stale children and respawn everything.
-            if old_count > 0 {
-                despawn_mesh_children(&mut commands, &children_query, &mesh_child_query, spine_entity);
-            }
-            spawn_mesh_children(
-                &mut commands, &mut meshes,
-                &mut normal_mats, &mut additive_mats, &mut multiply_mats, &mut screen_mats,
-                &mut normal_pma_mats, &mut additive_pma_mats, &mut multiply_pma_mats, &mut screen_pma_mats,
-                &asset_server, atlas_dir, spine_entity, draw_list, render_layers,
-            );
-            draw_count.0 = new_count;
-        } else {
-            // Draw count unchanged — update vertex data in existing mesh assets in place.
-            let Ok(children) = children_query.get(spine_entity) else { continue };
-
-            let mesh_children: Vec<Handle<Mesh>> = children
-                .iter()
-                .filter_map(|child| mesh_child_query.get(child).ok())
-                .map(|c| c.mesh.clone())
-                .collect();
-
-            for (draw, mesh_handle) in draw_list.draws.iter().zip(mesh_children.iter()) {
-                if let Some(mesh) = meshes.get_mut(mesh_handle) {
-                    write_mesh_data(mesh, draw_list, draw);
+        if let Some(skin_ref) = skin_ref
+            && skin_ref.is_changed()
+            && instance.skin_name != skin_ref.name
+        {
+            match instance.skeleton.set_skin(skin_ref.name.as_deref()) {
+                Ok(()) => {
+                    instance.skin_name = skin_ref.name.clone();
                 }
+                Err(err) => warn!("Failed to set Spine skin for {entity:?}: {err}"),
             }
         }
+
+        if let Some(animation_ref) = animation_ref {
+            instance.time_scale = animation_ref.time_scale;
+            if animation_ref.is_changed()
+                && (instance.animation_name != animation_ref.name
+                    || instance.loop_animation != animation_ref.loop_animation)
+            {
+                instance.animation_state.clear_tracks();
+                if let Some(animation_name) = animation_ref.name.as_deref()
+                    && let Err(err) = instance.animation_state.set_animation(
+                        0,
+                        animation_name,
+                        animation_ref.loop_animation,
+                    )
+                {
+                    warn!("Failed to set Spine animation for {entity:?}: {err}");
+                }
+                instance.animation_name = animation_ref.name.clone();
+                instance.loop_animation = animation_ref.loop_animation;
+            }
+        }
+
+        rebuild_pose(instance, time.delta().as_secs_f32() * instance.time_scale);
     }
 }
 
-// ---------------------------------------------------------------------------
-// Helper: despawn all SpineMeshChild entities under a parent.
-// ---------------------------------------------------------------------------
+fn changed_asset_ids<'a, A: Asset>(
+    events: impl Iterator<Item = &'a AssetEvent<A>>,
+) -> HashSet<AssetId<A>> {
+    events
+        .filter_map(|event| match event {
+            AssetEvent::Modified { id } | AssetEvent::Removed { id } => Some(*id),
+            AssetEvent::Added { .. }
+            | AssetEvent::Unused { .. }
+            | AssetEvent::LoadedWithDependencies { .. } => None,
+        })
+        .collect()
+}
 
-fn despawn_mesh_children(
-    commands: &mut Commands,
-    children_query: &Query<&Children>,
-    mesh_child_query: &Query<&SpineMeshChild>,
-    spine_entity: Entity,
-) {
-    if let Ok(children) = children_query.get(spine_entity) {
-        for child in children.iter() {
-            if mesh_child_query.get(child).is_ok() {
-                commands.entity(child).despawn();
-            }
-        }
+fn rebuild_pose(instance: &mut SpineInstance, delta: f32) {
+    instance.animation_state.update(delta.max(0.0));
+    instance.animation_state.apply(&mut instance.skeleton);
+    instance.skeleton.update_world_transform();
+    instance.draw_list = build_draw_list_with_atlas(&instance.skeleton, &instance.atlas);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::render::texture_asset_path;
+    use super::*;
+    use crate::{
+        SpineDrawSignature, SpineRenderSignature,
+        materials::{
+            SpineAdditiveMaterial, SpineAdditivePmaMaterial, SpineMaterialCache,
+            SpineMultiplyMaterial, SpineMultiplyPmaMaterial, SpineNormalMaterial,
+            SpineNormalPmaMaterial, SpineScreenMaterial, SpineScreenPmaMaterial,
+        },
+    };
+    use bevy::app::TaskPoolPlugin;
+    use bevy::asset::{AssetEventSystems, AssetMetaCheck, AssetPlugin, UnapprovedPathMode};
+    use bevy::camera::visibility::RenderLayers;
+    use spine2d::{Atlas, BlendMode, SkeletonData};
+
+    fn app_with_lifecycle_systems() -> App {
+        let mut app = App::new();
+        app.add_plugins((
+            TaskPoolPlugin::default(),
+            AssetPlugin {
+                meta_check: AssetMetaCheck::Never,
+                unapproved_path_mode: UnapprovedPathMode::Allow,
+                ..default()
+            },
+        ))
+        .init_asset::<SpineSkeletonAsset>()
+        .init_asset::<SpineAtlasAsset>()
+        .insert_non_send_resource(SpineWorld::new())
+        .add_systems(
+            Update,
+            (cleanup_spine_instances, spawn_spine_instances).chain(),
+        )
+        .add_systems(
+            PostUpdate,
+            reload_modified_spine_assets.after(AssetEventSystems),
+        );
+        app
+    }
+
+    fn app_with_render_systems() -> App {
+        let mut app = app_with_lifecycle_systems();
+        app.init_asset::<Image>()
+            .init_resource::<Assets<Mesh>>()
+            .init_resource::<Assets<SpineNormalMaterial>>()
+            .init_resource::<Assets<SpineAdditiveMaterial>>()
+            .init_resource::<Assets<SpineMultiplyMaterial>>()
+            .init_resource::<Assets<SpineScreenMaterial>>()
+            .init_resource::<Assets<SpineNormalPmaMaterial>>()
+            .init_resource::<Assets<SpineAdditivePmaMaterial>>()
+            .init_resource::<Assets<SpineMultiplyPmaMaterial>>()
+            .init_resource::<Assets<SpineScreenPmaMaterial>>()
+            .init_resource::<SpineMaterialCache>()
+            .add_systems(Update, render_spines);
+        app
+    }
+
+    fn demo_handles(app: &mut App) -> (Handle<SpineSkeletonAsset>, Handle<SpineAtlasAsset>) {
+        let skeleton_data =
+            SkeletonData::from_json_str(include_str!("../../spine2d-web/assets/demo.json"))
+                .expect("parse demo skeleton");
+        let atlas = Atlas::from_str(include_str!("../../spine2d-web/assets/demo.atlas"))
+            .expect("parse demo atlas");
+
+        let skeleton = app
+            .world_mut()
+            .resource_mut::<Assets<SpineSkeletonAsset>>()
+            .add(SpineSkeletonAsset {
+                data: skeleton_data,
+            });
+        let atlas = app
+            .world_mut()
+            .resource_mut::<Assets<SpineAtlasAsset>>()
+            .add(SpineAtlasAsset {
+                atlas,
+                directory: "spine2d-web/assets".to_owned(),
+            });
+
+        (skeleton, atlas)
+    }
+
+    #[test]
+    fn spawn_adds_only_internal_runtime_components_after_assets_are_ready() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = demo_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("spin", true))
+            .id();
+
+        app.update();
+
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+        assert!(app.world().get::<SpineInstanceKey>(entity).is_some());
+        assert!(app.world().get::<SpineDrawSignatureCache>(entity).is_some());
+        assert!(app.world().get::<SpineAnimation>(entity).is_none());
+        assert!(app.world().get::<SpineSkin>(entity).is_none());
+
+        let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        let spine_world = app.world().non_send_resource::<SpineWorld>();
+        let instance = spine_world.get(key.0).unwrap();
+        assert_eq!(instance.animation_name, Some("spin".to_owned()));
+        assert!(instance.loop_animation);
+        assert_eq!(instance.time_scale, 1.0);
+    }
+
+    #[test]
+    fn spawn_preserves_user_animation_and_skin_components() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = demo_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn((
+                Spine::new(skeleton, atlas)
+                    .with_animation("spin", true)
+                    .with_skin("default"),
+                SpineAnimation {
+                    name: None,
+                    loop_animation: false,
+                    time_scale: 2.0,
+                },
+                SpineSkin { name: None },
+            ))
+            .id();
+
+        app.update();
+
+        let animation = app.world().get::<SpineAnimation>(entity).unwrap();
+        assert_eq!(animation.name, None);
+        assert!(!animation.loop_animation);
+        assert_eq!(animation.time_scale, 2.0);
+        assert_eq!(app.world().get::<SpineSkin>(entity).unwrap().name, None);
+
+        let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        let spine_world = app.world().non_send_resource::<SpineWorld>();
+        let instance = spine_world.get(key.0).unwrap();
+        assert_eq!(instance.animation_name, None);
+        assert!(!instance.loop_animation);
+        assert_eq!(instance.skin_name, None);
+    }
+
+    #[test]
+    fn spawn_preserves_existing_draw_signature_cache() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = demo_handles(&mut app);
+        let signature = SpineDrawSignature {
+            texture_path: "old.png".to_owned(),
+            blend: BlendMode::Normal,
+            premultiplied_alpha: false,
+        };
+
+        let entity = app
+            .world_mut()
+            .spawn((
+                Spine::new(skeleton, atlas),
+                SpineDrawSignatureCache {
+                    signature: SpineRenderSignature {
+                        draws: vec![signature.clone()],
+                        render_layers: None,
+                    },
+                },
+            ))
+            .id();
+
+        app.update();
+
+        assert_eq!(
+            app.world()
+                .get::<SpineDrawSignatureCache>(entity)
+                .unwrap()
+                .signature
+                .draws,
+            vec![signature]
+        );
+    }
+
+    #[test]
+    fn texture_asset_path_includes_atlas_directory() {
+        assert_eq!(texture_asset_path("", "page.png"), "page.png");
+        assert_eq!(
+            texture_asset_path("spineboy/export", "page.png"),
+            "spineboy/export/page.png"
+        );
+    }
+
+    #[test]
+    fn render_signature_tracks_parent_render_layers() {
+        let mut app = app_with_render_systems();
+        let (skeleton, atlas) = demo_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn((
+                Spine::new(skeleton, atlas).with_animation("spin", true),
+                RenderLayers::layer(2),
+            ))
+            .id();
+
+        app.update();
+        app.update();
+
+        assert_eq!(
+            app.world()
+                .get::<SpineDrawSignatureCache>(entity)
+                .unwrap()
+                .signature
+                .render_layers,
+            Some(RenderLayers::layer(2))
+        );
+
+        app.world_mut()
+            .entity_mut(entity)
+            .insert(RenderLayers::layer(5));
+        app.update();
+
+        assert_eq!(
+            app.world()
+                .get::<SpineDrawSignatureCache>(entity)
+                .unwrap()
+                .signature
+                .render_layers,
+            Some(RenderLayers::layer(5))
+        );
+    }
+
+    #[test]
+    fn render_rebuilds_when_mesh_children_are_missing() {
+        let mut app = app_with_render_systems();
+        let (skeleton, atlas) = demo_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("spin", true))
+            .id();
+
+        app.update();
+        app.update();
+
+        let child = {
+            let children = app.world().get::<Children>(entity).unwrap();
+            children
+                .iter()
+                .find(|child| app.world().get::<SpineMeshChild>(*child).is_some())
+                .expect("spine mesh child exists")
+        };
+        app.world_mut().entity_mut(child).despawn();
+        app.update();
+
+        let mesh_child_count = app
+            .world()
+            .get::<Children>(entity)
+            .unwrap()
+            .iter()
+            .filter(|child| app.world().get::<SpineMeshChild>(*child).is_some())
+            .count();
+
+        assert_eq!(
+            mesh_child_count,
+            app.world()
+                .get::<SpineDrawSignatureCache>(entity)
+                .unwrap()
+                .signature
+                .draws
+                .len()
+        );
+    }
+
+    #[test]
+    fn render_reuses_materials_when_mesh_children_are_rebuilt() {
+        let mut app = app_with_render_systems();
+        let (skeleton, atlas) = demo_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("spin", true))
+            .id();
+
+        app.update();
+        app.update();
+
+        let cache_len = app.world().resource::<SpineMaterialCache>().len();
+        let normal_material_len = app.world().resource::<Assets<SpineNormalMaterial>>().len();
+        let child = {
+            let children = app.world().get::<Children>(entity).unwrap();
+            children
+                .iter()
+                .find(|child| app.world().get::<SpineMeshChild>(*child).is_some())
+                .expect("spine mesh child exists")
+        };
+
+        app.world_mut().entity_mut(child).despawn();
+        app.update();
+
+        assert_eq!(
+            app.world().resource::<SpineMaterialCache>().len(),
+            cache_len
+        );
+        assert_eq!(
+            app.world().resource::<Assets<SpineNormalMaterial>>().len(),
+            normal_material_len
+        );
+    }
+
+    #[test]
+    fn modified_spine_assets_rebuild_runtime_instance() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = demo_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton.clone(), atlas).with_animation("spin", true))
+            .id();
+        app.update();
+
+        let old_key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        let skeleton_data =
+            SkeletonData::from_json_str(include_str!("../../spine2d-web/assets/demo.json"))
+                .expect("parse demo skeleton");
+        app.world_mut()
+            .resource_mut::<Assets<SpineSkeletonAsset>>()
+            .insert(
+                skeleton.id(),
+                SpineSkeletonAsset {
+                    data: skeleton_data,
+                },
+            )
+            .expect("replace skeleton asset");
+
+        app.update();
+        assert!(app.world().get::<SpineInstanceKey>(entity).is_none());
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 0);
+
+        app.update();
+        let new_key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        assert_ne!(old_key, new_key);
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+    }
+
+    #[test]
+    fn removing_spine_component_releases_runtime_instance_without_touching_user_controls() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = demo_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn((
+                Spine::new(skeleton, atlas).with_animation("spin", true),
+                SpineAnimation {
+                    name: None,
+                    loop_animation: false,
+                    time_scale: 2.0,
+                },
+                SpineSkin { name: None },
+            ))
+            .id();
+        app.update();
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+
+        app.world_mut().entity_mut(entity).remove::<Spine>();
+        app.update();
+
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 0);
+        assert!(app.world().get::<SpineInstanceKey>(entity).is_none());
+        assert!(app.world().get::<SpineDrawSignatureCache>(entity).is_none());
+        assert!(app.world().get::<SpineAnimation>(entity).is_some());
+        assert!(app.world().get::<SpineSkin>(entity).is_some());
+    }
+
+    #[test]
+    fn despawning_spine_entity_releases_runtime_instance() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = demo_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("spin", true))
+            .id();
+        app.update();
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+
+        app.world_mut().entity_mut(entity).despawn();
+        app.update();
+
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 0);
     }
 }
