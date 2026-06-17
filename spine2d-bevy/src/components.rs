@@ -83,6 +83,26 @@ impl SpineSkin {
     }
 }
 
+#[derive(Component, Clone, Copy, Debug, PartialEq)]
+pub struct SpineBounds {
+    pub min: Vec2,
+    pub max: Vec2,
+}
+
+impl SpineBounds {
+    pub fn new(min: Vec2, max: Vec2) -> Self {
+        Self { min, max }
+    }
+
+    pub fn center(&self) -> Vec2 {
+        (self.min + self.max) * 0.5
+    }
+
+    pub fn size(&self) -> Vec2 {
+        self.max - self.min
+    }
+}
+
 #[derive(Component, Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SpineReady;
 

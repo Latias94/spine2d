@@ -12,9 +12,9 @@ pub use render::render_spines;
 
 use crate::{
     Spine, SpineAnimation, SpineAnimationCommand, SpineAnimationCommandKind, SpineAnimationEvent,
-    SpineAtlasAsset, SpineDrawSignatureCache, SpineInstance, SpineInstanceKey, SpineInstanceParts,
-    SpineLifecycleEvent, SpineLifecycleEventKind, SpineMeshChild, SpineReady, SpineReleaseReason,
-    SpineSkeletonAsset, SpineSkin, SpineWorld,
+    SpineAtlasAsset, SpineBounds, SpineDrawSignatureCache, SpineInstance, SpineInstanceKey,
+    SpineInstanceParts, SpineLifecycleEvent, SpineLifecycleEventKind, SpineMeshChild, SpineReady,
+    SpineReleaseReason, SpineSkeletonAsset, SpineSkin, SpineWorld,
 };
 
 type SpawnSpineQuery<'w, 's> = Query<
@@ -26,6 +26,7 @@ type SpawnSpineQuery<'w, 's> = Query<
         Option<&'static SpineAnimation>,
         Option<&'static SpineSkin>,
         Option<&'static SpineDrawSignatureCache>,
+        Option<&'static SpineBounds>,
     ),
     Or<(Without<SpineInstanceKey>, Changed<Spine>)>,
 >;
@@ -38,6 +39,7 @@ type UpdateSpineQuery<'w, 's> = Query<
         &'static SpineInstanceKey,
         Option<Ref<'static, SpineAnimation>>,
         Option<Ref<'static, SpineSkin>>,
+        Option<&'static mut SpineBounds>,
     ),
 >;
 
@@ -66,7 +68,7 @@ pub fn spawn_spine_instances(
     atlases: Res<Assets<SpineAtlasAsset>>,
     query: SpawnSpineQuery,
 ) {
-    for (entity, spine, animation, skin, draw_signature_cache) in &query {
+    for (entity, spine, animation, skin, draw_signature_cache, bounds) in &query {
         let Some(skeleton_asset) = skeletons.get(&spine.skeleton) else {
             continue;
         };
@@ -113,10 +115,14 @@ pub fn spawn_spine_instances(
         rebuild_pose(&mut instance, 0.0);
         let _ = instance.drain_events();
 
+        let new_bounds = draw_list_bounds(&instance.draw_list);
         let id = spine_world.insert(entity, instance);
         let mut entity_commands = commands.entity(entity);
         entity_commands.insert(SpineInstanceKey(id));
         entity_commands.insert(SpineReady);
+        if bounds.is_none() {
+            entity_commands.insert(new_bounds);
+        }
         if draw_signature_cache.is_none() {
             entity_commands.insert(SpineDrawSignatureCache::default());
         }
@@ -153,6 +159,7 @@ pub fn cleanup_spine_instances(
             entity_commands
                 .remove::<SpineInstanceKey>()
                 .remove::<SpineReady>()
+                .remove::<SpineBounds>()
                 .remove::<SpineDrawSignatureCache>();
         }
     }
@@ -194,6 +201,7 @@ pub fn reload_modified_spine_assets(
             .entity(entity)
             .remove::<SpineInstanceKey>()
             .remove::<SpineReady>()
+            .remove::<SpineBounds>()
             .remove::<SpineDrawSignatureCache>();
     }
 }
@@ -306,10 +314,10 @@ pub fn apply_spine_animation_commands(
 pub fn update_spine_animations(
     mut spine_world: NonSendMut<SpineWorld>,
     mut animation_events: MessageWriter<SpineAnimationEvent>,
-    query: UpdateSpineQuery,
+    mut query: UpdateSpineQuery,
     time: Res<Time>,
 ) {
-    for (entity, key, animation_ref, skin_ref) in &query {
+    for (entity, key, animation_ref, skin_ref, bounds) in &mut query {
         let Some(instance) = spine_world.get_mut(key.0) else {
             warn!("Missing Spine runtime instance for {entity:?}");
             continue;
@@ -349,6 +357,9 @@ pub fn update_spine_animations(
         }
 
         rebuild_pose(instance, time.delta().as_secs_f32() * instance.time_scale);
+        if let Some(mut bounds) = bounds {
+            *bounds = draw_list_bounds(&instance.draw_list);
+        }
         for event in instance.drain_events() {
             animation_events.write(SpineAnimationEvent {
                 entity,
@@ -379,6 +390,22 @@ fn rebuild_pose(instance: &mut SpineInstance, delta: f32) {
     instance.animation_state.apply(&mut instance.skeleton);
     instance.skeleton.update_world_transform();
     instance.draw_list = build_draw_list_with_atlas(&instance.skeleton, &instance.atlas);
+}
+
+fn draw_list_bounds(draw_list: &spine2d::DrawList) -> SpineBounds {
+    let Some(first) = draw_list.vertices.first() else {
+        return SpineBounds::new(Vec2::ZERO, Vec2::ZERO);
+    };
+    let mut min = Vec2::new(first.position[0], -first.position[1]);
+    let mut max = min;
+
+    for vertex in draw_list.vertices.iter().skip(1) {
+        let position = Vec2::new(vertex.position[0], -vertex.position[1]);
+        min = min.min(position);
+        max = max.max(position);
+    }
+
+    SpineBounds::new(min, max)
 }
 
 #[cfg(test)]
@@ -558,6 +585,10 @@ mod tests {
         assert!(app.world().get::<SpineInstanceKey>(entity).is_some());
         assert!(app.world().get::<SpineReady>(entity).is_some());
         assert!(app.world().get::<SpineDrawSignatureCache>(entity).is_some());
+        assert_eq!(
+            *app.world().get::<SpineBounds>(entity).unwrap(),
+            SpineBounds::new(Vec2::new(-128.0, -128.0), Vec2::new(128.0, 128.0))
+        );
         assert!(app.world().get::<SpineAnimation>(entity).is_none());
         assert!(app.world().get::<SpineSkin>(entity).is_none());
 
@@ -942,6 +973,7 @@ mod tests {
         app.update();
         assert!(app.world().get::<SpineInstanceKey>(entity).is_none());
         assert!(app.world().get::<SpineReady>(entity).is_none());
+        assert!(app.world().get::<SpineBounds>(entity).is_none());
         assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 0);
         assert!(drain_lifecycle_events(&mut app).iter().any(|event| {
             *event
@@ -954,6 +986,7 @@ mod tests {
         app.update();
         let new_key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
         assert!(app.world().get::<SpineReady>(entity).is_some());
+        assert!(app.world().get::<SpineBounds>(entity).is_some());
         assert_ne!(old_key, new_key);
         assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
     }
@@ -985,6 +1018,7 @@ mod tests {
         assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 0);
         assert!(app.world().get::<SpineInstanceKey>(entity).is_none());
         assert!(app.world().get::<SpineReady>(entity).is_none());
+        assert!(app.world().get::<SpineBounds>(entity).is_none());
         assert!(app.world().get::<SpineDrawSignatureCache>(entity).is_none());
         assert!(app.world().get::<SpineAnimation>(entity).is_some());
         assert!(app.world().get::<SpineSkin>(entity).is_some());

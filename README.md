@@ -117,6 +117,8 @@ Use the public `SpineReady` marker or `SpineLifecycleEvent` messages to observe
 when an entity has an active runtime instance. `SpineLifecycleEvent` also reports
 when that instance is released because the component was removed, the entity was
 despawned, or a skeleton/atlas asset reload invalidated the runtime.
+The backend maintains a public `SpineBounds` component with the current Bevy
+local-space bounds for camera fitting, hit areas, and gameplay queries.
 
 ## License
 
