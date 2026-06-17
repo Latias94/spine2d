@@ -89,8 +89,7 @@ impl AssetLoader for AtlasLoader {
 
         let directory = load_context
             .path()
-            .parent()
-            .and_then(|p| Some(p.to_string()))
+            .parent().map(|p| p.to_string())
             .unwrap_or("".to_owned())
             .replace('\\', "/")  // normalise Windows separators
             .to_string();
