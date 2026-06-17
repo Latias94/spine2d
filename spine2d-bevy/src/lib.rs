@@ -20,6 +20,7 @@ impl Plugin for Spine2dPlugin {
             .init_asset_loader::<asset_loader::JsonSkeletonLoader>()
             .init_asset_loader::<asset_loader::BinarySkeletonLoader>()
             .init_asset_loader::<asset_loader::AtlasLoader>();
+        app.add_message::<SpineLifecycleEvent>();
         app.add_message::<SpineAnimationEvent>();
         app.add_message::<SpineAnimationCommand>();
 

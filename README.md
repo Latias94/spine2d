@@ -113,6 +113,11 @@ messages to set, queue, or clear track animations without accessing internal
 runtime handles. Animation lifecycle and custom Spine timeline events are
 published as `SpineAnimationEvent` messages.
 
+Use the public `SpineReady` marker or `SpineLifecycleEvent` messages to observe
+when an entity has an active runtime instance. `SpineLifecycleEvent` also reports
+when that instance is released because the component was removed, the entity was
+despawned, or a skeleton/atlas asset reload invalidated the runtime.
+
 ## License
 
 Dual-licensed under `MIT OR Apache-2.0`. See `LICENSE-MIT` and `LICENSE-APACHE`.
