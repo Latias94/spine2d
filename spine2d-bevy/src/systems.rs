@@ -10,9 +10,9 @@ use render::despawn_mesh_children;
 pub use render::render_spines;
 
 use crate::{
-    Spine, SpineAnimation, SpineAtlasAsset, SpineDrawSignatureCache, SpineInstance,
-    SpineInstanceKey, SpineInstanceParts, SpineMeshChild, SpineSkeletonAsset, SpineSkin,
-    SpineWorld,
+    Spine, SpineAnimation, SpineAnimationEvent, SpineAtlasAsset, SpineDrawSignatureCache,
+    SpineInstance, SpineInstanceKey, SpineInstanceParts, SpineMeshChild, SpineSkeletonAsset,
+    SpineSkin, SpineWorld,
 };
 
 type SpawnSpineQuery<'w, 's> = Query<
@@ -73,19 +73,9 @@ pub fn spawn_spine_instances(
         }
         skeleton.update_world_transform();
 
-        let state_data = AnimationStateData::new(skeleton_data.clone());
-        let mut animation_state = AnimationState::new(state_data);
-        if let Some(animation_name) = animation_component.name.as_deref() {
-            if let Err(err) =
-                animation_state.set_animation(0, animation_name, animation_component.loop_animation)
-            {
-                warn!("Failed to set Spine animation for {entity:?}: {err}");
-            }
-        }
-
         let mut instance = SpineInstance::new(SpineInstanceParts {
             skeleton,
-            animation_state,
+            animation_state: AnimationState::new(AnimationStateData::new(skeleton_data.clone())),
             atlas: atlas_asset.atlas.clone(),
             atlas_directory: atlas_asset.directory.clone(),
             animation_name: animation_component.name.clone(),
@@ -93,7 +83,18 @@ pub fn spawn_spine_instances(
             time_scale: animation_component.time_scale,
             skin_name: skin_component.name.clone(),
         });
+        instance.attach_event_listener();
+        if let Some(animation_name) = animation_component.name.as_deref() {
+            if let Err(err) = instance.animation_state.set_animation(
+                0,
+                animation_name,
+                animation_component.loop_animation,
+            ) {
+                warn!("Failed to set Spine animation for {entity:?}: {err}");
+            }
+        }
         rebuild_pose(&mut instance, 0.0);
+        let _ = instance.drain_events();
 
         let id = spine_world.insert(entity, instance);
         let mut entity_commands = commands.entity(entity);
@@ -163,6 +164,7 @@ pub fn reload_modified_spine_assets(
 
 pub fn update_spine_animations(
     mut spine_world: NonSendMut<SpineWorld>,
+    mut animation_events: MessageWriter<SpineAnimationEvent>,
     query: UpdateSpineQuery,
     time: Res<Time>,
 ) {
@@ -206,6 +208,15 @@ pub fn update_spine_animations(
         }
 
         rebuild_pose(instance, time.delta().as_secs_f32() * instance.time_scale);
+        for event in instance.drain_events() {
+            animation_events.write(SpineAnimationEvent {
+                entity,
+                track_index: event.track_index,
+                animation_name: event.animation_name,
+                track_time: event.track_time,
+                kind: event.kind,
+            });
+        }
     }
 }
 
@@ -234,7 +245,7 @@ mod tests {
     use super::render::texture_asset_path;
     use super::*;
     use crate::{
-        SpineDrawSignature, SpineRenderSignature,
+        SpineAnimationEventKind, SpineDrawSignature, SpineRenderSignature,
         materials::{
             SpineAdditiveMaterial, SpineAdditivePmaMaterial, SpineMaterialCache,
             SpineMultiplyMaterial, SpineMultiplyPmaMaterial, SpineNormalMaterial,
@@ -244,7 +255,9 @@ mod tests {
     use bevy::app::TaskPoolPlugin;
     use bevy::asset::{AssetEventSystems, AssetMetaCheck, AssetPlugin, UnapprovedPathMode};
     use bevy::camera::visibility::RenderLayers;
+    use bevy::ecs::message::Messages;
     use spine2d::{Atlas, BlendMode, SkeletonData};
+    use std::time::Duration;
 
     fn app_with_lifecycle_systems() -> App {
         let mut app = App::new();
@@ -258,10 +271,17 @@ mod tests {
         ))
         .init_asset::<SpineSkeletonAsset>()
         .init_asset::<SpineAtlasAsset>()
+        .add_message::<SpineAnimationEvent>()
+        .init_resource::<Time>()
         .insert_non_send_resource(SpineWorld::new())
         .add_systems(
             Update,
-            (cleanup_spine_instances, spawn_spine_instances).chain(),
+            (
+                cleanup_spine_instances,
+                spawn_spine_instances,
+                update_spine_animations,
+            )
+                .chain(),
         )
         .add_systems(
             PostUpdate,
@@ -309,6 +329,66 @@ mod tests {
             });
 
         (skeleton, atlas)
+    }
+
+    fn event_handles(app: &mut App) -> (Handle<SpineSkeletonAsset>, Handle<SpineAtlasAsset>) {
+        let skeleton_data = SkeletonData::from_json_str(
+            r#"
+            {
+              "skeleton": { "spine": "4.3.00" },
+              "bones": [ { "name": "root" } ],
+              "slots": [ { "name": "slot0", "bone": "root", "attachment": "mesh0" } ],
+              "skins": {
+                "default": {
+                  "slot0": {
+                    "mesh0": {
+                      "type": "mesh",
+                      "path": "mesh0",
+                      "uvs": [0,0, 1,0, 1,1, 0,1],
+                      "vertices": [-1,-1, 1,-1, 1,1, -1,1],
+                      "triangles": [0,1,2, 2,3,0]
+                    }
+                  }
+                }
+              },
+              "events": { "hit": { "int": 7, "float": 1.5, "string": "default" } },
+              "animations": {
+                "first": {
+                  "events": [
+                    { "time": 0.1, "name": "hit", "string": "impact" }
+                  ]
+                },
+                "second": {}
+              }
+            }
+            "#,
+        )
+        .expect("parse event skeleton");
+        let atlas = Atlas::from_str(include_str!("../../spine2d-web/assets/demo.atlas"))
+            .expect("parse demo atlas");
+
+        let skeleton = app
+            .world_mut()
+            .resource_mut::<Assets<SpineSkeletonAsset>>()
+            .add(SpineSkeletonAsset {
+                data: skeleton_data,
+            });
+        let atlas = app
+            .world_mut()
+            .resource_mut::<Assets<SpineAtlasAsset>>()
+            .add(SpineAtlasAsset {
+                atlas,
+                directory: "spine2d-web/assets".to_owned(),
+            });
+
+        (skeleton, atlas)
+    }
+
+    fn drain_animation_events(app: &mut App) -> Vec<SpineAnimationEvent> {
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationEvent>>()
+            .drain()
+            .collect()
     }
 
     #[test]
@@ -533,6 +613,74 @@ mod tests {
             app.world().resource::<Assets<SpineNormalMaterial>>().len(),
             normal_material_len
         );
+    }
+
+    #[test]
+    fn update_writes_spine_animation_event_messages() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", false))
+            .id();
+
+        app.update();
+        assert!(drain_animation_events(&mut app).is_empty());
+
+        app.world_mut()
+            .resource_mut::<Time>()
+            .advance_by(Duration::from_millis(100));
+        app.update();
+
+        let events = drain_animation_events(&mut app);
+        assert!(events.iter().any(|event| {
+            event.entity == entity
+                && event.animation_name == "first"
+                && matches!(
+                    &event.kind,
+                    SpineAnimationEventKind::Event(spine_event)
+                        if spine_event.name == "hit"
+                            && spine_event.int_value == 7
+                            && spine_event.string == "impact"
+                )
+        }));
+    }
+
+    #[test]
+    fn animation_component_change_writes_control_messages() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+
+        app.update();
+        drain_animation_events(&mut app);
+
+        app.world_mut().entity_mut(entity).insert(SpineAnimation {
+            name: Some("second".to_owned()),
+            loop_animation: false,
+            time_scale: 1.0,
+        });
+        app.update();
+
+        let events = drain_animation_events(&mut app);
+        assert!(events.iter().any(|event| {
+            event.entity == entity
+                && event.animation_name == "first"
+                && matches!(
+                    event.kind,
+                    SpineAnimationEventKind::End | SpineAnimationEventKind::Dispose
+                )
+        }));
+        assert!(events.iter().any(|event| {
+            event.entity == entity
+                && event.animation_name == "second"
+                && matches!(event.kind, SpineAnimationEventKind::Start)
+        }));
     }
 
     #[test]

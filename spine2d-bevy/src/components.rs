@@ -83,6 +83,25 @@ impl SpineSkin {
     }
 }
 
+#[derive(Message, Clone, Debug)]
+pub struct SpineAnimationEvent {
+    pub entity: Entity,
+    pub track_index: usize,
+    pub animation_name: String,
+    pub track_time: f32,
+    pub kind: SpineAnimationEventKind,
+}
+
+#[derive(Clone, Debug)]
+pub enum SpineAnimationEventKind {
+    Start,
+    Interrupt,
+    End,
+    Dispose,
+    Complete,
+    Event(spine2d::Event),
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct SpineInstanceId {
     pub index: u32,
