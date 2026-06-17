@@ -124,8 +124,8 @@ def main(argv: list[str]) -> int:
     )
     ap.add_argument(
         "--rev",
-        default="4.3-beta",
-        help="Upstream commit/tag/branch to checkout (default: 4.3-beta).",
+        default="4.3",
+        help="Upstream commit/tag/branch to checkout (default: 4.3).",
     )
     ap.add_argument("--repo-url", default="", help="Override upstream repo URL (optional).")
     ap.add_argument("--depth", type=int, default=1)

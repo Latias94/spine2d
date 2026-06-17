@@ -379,7 +379,7 @@ def write_source(out_dir: Path, *, commit: str, fmt: str) -> None:
         "\n".join(
             [
                 "Source: https://github.com/EsotericSoftware/spine-runtimes",
-                "Branch: 4.3-beta",
+                "Branch: 4.3",
                 f"TargetCommit: {commit}",
                 f"RecordedAtUTC: {now}",
                 f"Format: {fmt}",
