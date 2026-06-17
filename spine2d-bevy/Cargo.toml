@@ -1,0 +1,15 @@
+[package]
+name = "spine2d-bevy"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+
+[dependencies]
+bevy = "0.18.1"
+spine2d = { path = "../spine2d", features = ["json", "binary"] }
+anyhow = "1.0"

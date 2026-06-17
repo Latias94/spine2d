@@ -4,6 +4,7 @@ members = [
     "spine2d",
     "spine2d-wgpu",
     "spine2d-web",
+    "spine2d-bevy",
 ]
 exclude = [
     "repo-ref/**",
