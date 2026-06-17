@@ -21,18 +21,30 @@ impl Plugin for Spine2dPlugin {
             .init_asset_loader::<asset_loader::BinarySkeletonLoader>()
             .init_asset_loader::<asset_loader::AtlasLoader>();
         app.add_message::<SpineAnimationEvent>();
+        app.add_message::<SpineAnimationCommand>();
 
         app.insert_non_send_resource(SpineWorld::new());
 
+        app.configure_sets(
+            Update,
+            (
+                SpineSystemSet::Cleanup,
+                SpineSystemSet::Spawn,
+                SpineSystemSet::Commands,
+                SpineSystemSet::Update,
+                SpineSystemSet::Render,
+            )
+                .chain(),
+        );
         app.add_systems(
             Update,
             (
-                systems::cleanup_spine_instances,
-                systems::spawn_spine_instances,
-                systems::update_spine_animations,
-                systems::render_spines,
-            )
-                .chain(),
+                systems::cleanup_spine_instances.in_set(SpineSystemSet::Cleanup),
+                systems::spawn_spine_instances.in_set(SpineSystemSet::Spawn),
+                systems::apply_spine_animation_commands.in_set(SpineSystemSet::Commands),
+                systems::update_spine_animations.in_set(SpineSystemSet::Update),
+                systems::render_spines.in_set(SpineSystemSet::Render),
+            ),
         );
         app.add_systems(
             PostUpdate,
