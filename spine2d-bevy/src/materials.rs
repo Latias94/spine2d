@@ -140,7 +140,7 @@ pub enum SpineMaterialHandle {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SpineMaterialKey {
-    pub texture_path: String,
+    pub texture: Handle<Image>,
     pub blend: BlendMode,
     pub premultiplied_alpha: bool,
 }
@@ -155,7 +155,6 @@ impl SpineMaterialCache {
     pub fn get_or_create(
         &mut self,
         key: SpineMaterialKey,
-        texture: Handle<Image>,
         normal_mats: &mut Assets<SpineNormalMaterial>,
         additive_mats: &mut Assets<SpineAdditiveMaterial>,
         multiply_mats: &mut Assets<SpineMultiplyMaterial>,
@@ -169,6 +168,7 @@ impl SpineMaterialCache {
             return handle.clone();
         }
 
+        let texture = key.texture.clone();
         let handle = match (key.blend, key.premultiplied_alpha) {
             (BlendMode::Normal, false) => {
                 SpineMaterialHandle::Normal(normal_mats.add(SpineNormalMaterial { texture }))
