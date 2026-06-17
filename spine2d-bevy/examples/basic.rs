@@ -15,7 +15,7 @@ fn main() {
         .add_plugins(
             DefaultPlugins
                 .set(AssetPlugin {
-                    file_path: "spine2d-web/assets".to_owned(),
+                    file_path: "../spine2d-web/assets".to_owned(),
                     ..default()
                 })
                 .set(WindowPlugin {

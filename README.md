@@ -83,6 +83,9 @@ These files are not committed here by default.
 Run the built-in Bevy demo:
 
 - `cargo run -p spine2d-bevy --example basic`
+- `cargo run -p spine2d-bevy --example metadata`
+- `cargo run -p spine2d-bevy --example bounds`
+- `cargo run -p spine2d-bevy --example multi_spine`
 
 The Bevy integration is centered on a public `Spine` component plus optional
 runtime control components:
