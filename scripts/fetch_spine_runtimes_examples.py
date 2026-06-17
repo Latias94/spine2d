@@ -236,8 +236,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--repo-url", default=UPSTREAM_DEFAULT_REPO)
     ap.add_argument(
         "--rev",
-        default="4.3-beta",
-        help="Commit/tag/branch to checkout (default: 4.3-beta).",
+        default="4.3",
+        help="Commit/tag/branch to checkout (default: 4.3).",
     )
     ap.add_argument("--cache", default=".cache/spine-runtimes", help="Local git checkout directory.")
     ap.add_argument(

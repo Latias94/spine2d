@@ -35,7 +35,7 @@ def find_examples_root() -> Path:
         if p.is_dir():
             return p
     raise SystemExit(
-        "Missing upstream Spine examples. Run `python3 ./scripts/prepare_spine_runtimes_web_assets.py --scope tests --rev 4.3-beta` "
+        "Missing upstream Spine examples. Run `python3 ./scripts/prepare_spine_runtimes_web_assets.py --scope tests --rev 4.3` "
         "or set SPINE2D_UPSTREAM_EXAMPLES_DIR."
     )
 
@@ -479,7 +479,7 @@ def update_golden_source(status: str, commit: Optional[str]) -> None:
     else:
         lines = [
             "Source: https://github.com/EsotericSoftware/spine-runtimes",
-            "Branch: 4.3-beta",
+            "Branch: 4.3",
         ]
 
     def upsert(prefix: str, value: str):
