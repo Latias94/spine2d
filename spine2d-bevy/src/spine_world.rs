@@ -1,9 +1,12 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use bevy::prelude::*;
-use spine2d::{AnimationState, Atlas, DrawList, Skeleton};
+use spine2d::{
+    AnimationState, AnimationStateEvent, AnimationStateListener, Atlas, DrawList, Skeleton,
+    TrackEntrySnapshot,
+};
 
-use crate::components::SpineInstanceId;
+use crate::{SpineAnimationEventKind, components::SpineInstanceId};
 
 pub(crate) struct SpineInstance {
     pub skeleton: Skeleton,
@@ -15,6 +18,7 @@ pub(crate) struct SpineInstance {
     pub loop_animation: bool,
     pub time_scale: f32,
     pub skin_name: Option<String>,
+    pending_events: SpineEventBuffer,
 }
 
 pub(crate) struct SpineInstanceParts {
@@ -40,7 +44,71 @@ impl SpineInstance {
             loop_animation: parts.loop_animation,
             time_scale: parts.time_scale,
             skin_name: parts.skin_name,
+            pending_events: SpineEventBuffer::default(),
         }
+    }
+
+    pub fn attach_event_listener(&mut self) {
+        self.animation_state
+            .set_listener(SpineEventListener::new(self.pending_events.clone()));
+    }
+
+    pub fn drain_events(&mut self) -> Vec<PendingSpineAnimationEvent> {
+        self.pending_events.drain()
+    }
+}
+
+#[derive(Clone, Default)]
+struct SpineEventBuffer(Rc<RefCell<Vec<PendingSpineAnimationEvent>>>);
+
+impl SpineEventBuffer {
+    fn push(&self, event: PendingSpineAnimationEvent) {
+        self.0.borrow_mut().push(event);
+    }
+
+    fn drain(&self) -> Vec<PendingSpineAnimationEvent> {
+        self.0.borrow_mut().drain(..).collect()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PendingSpineAnimationEvent {
+    pub track_index: usize,
+    pub animation_name: String,
+    pub track_time: f32,
+    pub kind: SpineAnimationEventKind,
+}
+
+struct SpineEventListener {
+    buffer: SpineEventBuffer,
+}
+
+impl SpineEventListener {
+    fn new(buffer: SpineEventBuffer) -> Self {
+        Self { buffer }
+    }
+}
+
+impl AnimationStateListener for SpineEventListener {
+    fn on_event(
+        &mut self,
+        _state: &mut AnimationState,
+        entry: &TrackEntrySnapshot,
+        event: &AnimationStateEvent,
+    ) {
+        self.buffer.push(PendingSpineAnimationEvent {
+            track_index: entry.track_index,
+            animation_name: entry.animation_name.clone(),
+            track_time: entry.track_time,
+            kind: match event {
+                AnimationStateEvent::Start => SpineAnimationEventKind::Start,
+                AnimationStateEvent::Interrupt => SpineAnimationEventKind::Interrupt,
+                AnimationStateEvent::End => SpineAnimationEventKind::End,
+                AnimationStateEvent::Dispose => SpineAnimationEventKind::Dispose,
+                AnimationStateEvent::Complete => SpineAnimationEventKind::Complete,
+                AnimationStateEvent::Event(event) => SpineAnimationEventKind::Event(event.clone()),
+            },
+        });
     }
 }
 
