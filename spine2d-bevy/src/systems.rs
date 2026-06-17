@@ -70,6 +70,22 @@ pub fn spawn_spine_instances(
     mesh_children: SpineMeshChildrenParam,
 ) {
     for (entity, spine, existing_key, animation, skin, draw_signature_cache) in &query {
+        if existing_key.is_some() {
+            if spine_world.remove_by_owner(entity).is_some() {
+                lifecycle_events.write(SpineLifecycleEvent {
+                    entity,
+                    kind: SpineLifecycleEventKind::Released(SpineReleaseReason::ComponentChanged),
+                });
+            }
+            mesh_children.despawn(&mut commands, entity);
+            commands
+                .entity(entity)
+                .remove::<SpineInstanceKey>()
+                .remove::<SpineReady>()
+                .remove::<SpineBounds>()
+                .remove::<SpineDrawSignatureCache>();
+        }
+
         let Some(skeleton_asset) = skeletons.get(&spine.skeleton) else {
             continue;
         };
@@ -85,16 +101,6 @@ pub fn spawn_spine_instances(
         let skin_component = skin.cloned().unwrap_or_else(|| SpineSkin {
             name: spine.skin.clone(),
         });
-
-        if existing_key.is_some() {
-            if spine_world.remove_by_owner(entity).is_some() {
-                lifecycle_events.write(SpineLifecycleEvent {
-                    entity,
-                    kind: SpineLifecycleEventKind::Released(SpineReleaseReason::ComponentChanged),
-                });
-            }
-            mesh_children.despawn(&mut commands, entity);
-        }
 
         let skeleton_data = skeleton_asset.data.clone();
         let mut skeleton = Skeleton::new(skeleton_data.clone());
@@ -147,12 +153,10 @@ pub fn cleanup_spine_instances(
     mut spine_world: NonSendMut<SpineWorld>,
     mut lifecycle_events: MessageWriter<SpineLifecycleEvent>,
     mut removed_spines: RemovedComponents<Spine>,
-    mut removed_instances: RemovedComponents<SpineInstanceKey>,
     mesh_children: SpineMeshChildrenParam,
 ) {
     let mut removed = HashSet::new();
     removed.extend(removed_spines.read());
-    removed.extend(removed_instances.read());
 
     for entity in removed {
         if spine_world.remove_by_owner(entity).is_some() {
@@ -919,6 +923,50 @@ mod tests {
                     kind: SpineLifecycleEventKind::Ready,
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn changing_spine_component_to_unloaded_assets_releases_old_runtime() {
+        let mut app = app_with_render_systems();
+        let (first_skeleton, first_atlas) = demo_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(first_skeleton, first_atlas).with_animation("spin", true))
+            .id();
+
+        app.update();
+        app.update();
+        drain_lifecycle_events(&mut app);
+
+        let old_mesh_children = mesh_child_entities(&app, entity);
+        assert!(!old_mesh_children.is_empty());
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+
+        app.world_mut().entity_mut(entity).insert(
+            Spine::new(
+                Handle::<SpineSkeletonAsset>::default(),
+                Handle::<SpineAtlasAsset>::default(),
+            )
+            .with_animation("missing", true),
+        );
+        app.update();
+
+        assert!(app.world().get::<SpineInstanceKey>(entity).is_none());
+        assert!(app.world().get::<SpineReady>(entity).is_none());
+        assert!(app.world().get::<SpineBounds>(entity).is_none());
+        assert!(app.world().get::<SpineDrawSignatureCache>(entity).is_none());
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 0);
+        for child in old_mesh_children {
+            assert!(app.world().get_entity(child).is_err());
+        }
+        assert_eq!(
+            drain_lifecycle_events(&mut app),
+            vec![SpineLifecycleEvent {
+                entity,
+                kind: SpineLifecycleEventKind::Released(SpineReleaseReason::ComponentChanged),
+            }]
         );
     }
 
