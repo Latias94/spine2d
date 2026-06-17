@@ -80,7 +80,19 @@ These files are not committed here by default.
 
 ### Bevy backend
 
-Run the built-in Bevy demo:
+The Bevy examples can run with bundled demo assets, but the interactive viewer
+needs local Spine example exports for the full example/animation/skin switcher.
+Prepare those assets first when you want to test with real upstream data:
+
+```sh
+python3 ./scripts/prepare_spine_runtimes_web_assets.py --scope tests
+```
+
+The script writes ignored files under `assets/spine-runtimes/`, including
+`assets/spine-runtimes/web_manifest.json`. Without that manifest, the viewer
+falls back to the bundled `demo` assets.
+
+Run the built-in Bevy examples:
 
 - `cargo run -p spine2d-bevy --example basic`
 - `cargo run -p spine2d-bevy --example metadata`
@@ -88,15 +100,7 @@ Run the built-in Bevy demo:
 - `cargo run -p spine2d-bevy --example multi_spine`
 - `cargo run -p spine2d-bevy --example viewer`
 
-The Bevy viewer falls back to the bundled `demo` assets by default. To populate
-it with local official example exports, first run:
-
-```sh
-python3 ./scripts/prepare_spine_runtimes_web_assets.py --scope tests
-```
-
-Then run `cargo run -p spine2d-bevy --example viewer`. The viewer reads
-`assets/spine-runtimes/web_manifest.json` and lets you switch examples,
+The viewer reads `assets/spine-runtimes/web_manifest.json` and lets you switch examples,
 animations, skins, playback state, speed, and camera fit from the keyboard.
 
 The Bevy integration is centered on a public `Spine` component plus optional

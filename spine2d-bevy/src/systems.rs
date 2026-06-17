@@ -409,11 +409,11 @@ fn draw_list_bounds(draw_list: &spine2d::DrawList) -> SpineBounds {
     let Some(first) = draw_list.vertices.first() else {
         return SpineBounds::new(Vec2::ZERO, Vec2::ZERO);
     };
-    let mut min = Vec2::new(first.position[0], -first.position[1]);
+    let mut min = Vec2::new(first.position[0], first.position[1]);
     let mut max = min;
 
     for vertex in draw_list.vertices.iter().skip(1) {
-        let position = Vec2::new(vertex.position[0], -vertex.position[1]);
+        let position = Vec2::new(vertex.position[0], vertex.position[1]);
         min = min.min(position);
         max = max.max(position);
     }
@@ -721,6 +721,33 @@ mod tests {
         assert_eq!(
             texture_asset_path("spineboy/export", "page.png"),
             "spineboy/export/page.png"
+        );
+    }
+
+    #[test]
+    fn draw_list_bounds_preserve_spine_y_axis() {
+        let draw_list = spine2d::DrawList {
+            vertices: vec![
+                spine2d::Vertex {
+                    position: [1.0, 2.0],
+                    uv: [0.0, 0.0],
+                    color: [1.0; 4],
+                    dark_color: [0.0; 4],
+                },
+                spine2d::Vertex {
+                    position: [4.0, 5.0],
+                    uv: [1.0, 1.0],
+                    color: [1.0; 4],
+                    dark_color: [0.0; 4],
+                },
+            ],
+            indices: vec![0, 1],
+            draws: Vec::new(),
+        };
+
+        assert_eq!(
+            draw_list_bounds(&draw_list),
+            SpineBounds::new(Vec2::new(1.0, 2.0), Vec2::new(4.0, 5.0))
         );
     }
 

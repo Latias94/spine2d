@@ -475,6 +475,8 @@ struct AttachmentDef {
     #[serde(default)]
     parent: Option<String>,
     #[serde(default)]
+    source: Option<String>,
+    #[serde(default)]
     skin: Option<String>,
     #[serde(default)]
     timelines: Option<bool>,
@@ -781,436 +783,437 @@ impl SkeletonData {
 
             let mut pending_linked_meshes: Vec<PendingLinkedMesh> = Vec::new();
 
-            let mut add_skin =
-                |skin_name: String,
-                 skin_slots: BTreeMap<String, BTreeMap<String, AttachmentDef>>,
-                 skin_bones: Vec<String>,
-                 skin_ik: Vec<String>,
-                 skin_transform: Vec<String>,
-                 skin_path: Vec<String>,
-                 skin_physics: Vec<String>,
-                 skin_slider: Vec<String>|
-                 -> Result<(), Error> {
-                    let mut attachments = vec![HashMap::new(); slots.len()];
-                    for (slot_name, slot_attachments) in skin_slots {
-                        let s_index = *slot_index.get(&slot_name).ok_or_else(|| {
-                            Error::JsonUnknownSkinSlot {
+            let mut add_skin = |skin_name: String,
+                                skin_slots: BTreeMap<String, BTreeMap<String, AttachmentDef>>,
+                                skin_bones: Vec<String>,
+                                skin_ik: Vec<String>,
+                                skin_transform: Vec<String>,
+                                skin_path: Vec<String>,
+                                skin_physics: Vec<String>,
+                                skin_slider: Vec<String>|
+             -> Result<(), Error> {
+                let mut attachments = vec![HashMap::new(); slots.len()];
+                for (slot_name, slot_attachments) in skin_slots {
+                    let s_index =
+                        *slot_index
+                            .get(&slot_name)
+                            .ok_or_else(|| Error::JsonUnknownSkinSlot {
                                 skin: skin_name.clone(),
                                 slot: slot_name.clone(),
-                            }
-                        })?;
-                        for (attachment_name, attachment_def) in slot_attachments {
-                            let attachment_type = attachment_def
-                                .attachment_type
-                                .as_deref()
-                                .unwrap_or("region");
-                            if attachment_type != "region"
-                                && attachment_type != "mesh"
-                                && attachment_type != "linkedmesh"
-                                && attachment_type != "point"
-                                && attachment_type != "path"
-                                && attachment_type != "boundingbox"
-                                && attachment_type != "clipping"
-                            {
-                                return Err(Error::JsonUnsupportedAttachmentType {
-                                    skin: skin_name.clone(),
-                                    slot: slot_name.clone(),
-                                    attachment: attachment_name.clone(),
-                                    attachment_type: attachment_type.to_string(),
-                                });
-                            }
-
-                            let internal_name = attachment_def
-                                .name
-                                .clone()
-                                .unwrap_or_else(|| attachment_name.clone());
-                            let path = attachment_def
-                                .path
-                                .clone()
-                                .unwrap_or_else(|| internal_name.clone());
-                            let sequence = attachment_def.sequence.as_ref().map(|s| {
-                                let id = crate::ids::next_sequence_id();
-                                crate::SequenceDef {
-                                    id,
-                                    count: s.count,
-                                    start: s.start,
-                                    digits: s.digits,
-                                    setup_index: s.setup_index,
-                                }
+                            })?;
+                    for (attachment_name, attachment_def) in slot_attachments {
+                        let attachment_type = attachment_def
+                            .attachment_type
+                            .as_deref()
+                            .unwrap_or("region");
+                        if attachment_type != "region"
+                            && attachment_type != "mesh"
+                            && attachment_type != "linkedmesh"
+                            && attachment_type != "point"
+                            && attachment_type != "path"
+                            && attachment_type != "boundingbox"
+                            && attachment_type != "clipping"
+                        {
+                            return Err(Error::JsonUnsupportedAttachmentType {
+                                skin: skin_name.clone(),
+                                slot: slot_name.clone(),
+                                attachment: attachment_name.clone(),
+                                attachment_type: attachment_type.to_string(),
                             });
-                            let attachment_color = attachment_def
-                                .color
-                                .as_deref()
-                                .map(|s| parse_hex_color_rgba(s, "attachment color"))
-                                .transpose()?
-                                .unwrap_or([1.0, 1.0, 1.0, 1.0]);
-                            let attachment = match attachment_type {
-                                "region" => AttachmentData::Region(RegionAttachmentData {
+                        }
+
+                        let internal_name = attachment_def
+                            .name
+                            .clone()
+                            .unwrap_or_else(|| attachment_name.clone());
+                        let path = attachment_def
+                            .path
+                            .clone()
+                            .unwrap_or_else(|| internal_name.clone());
+                        let sequence = attachment_def.sequence.as_ref().map(|s| {
+                            let id = crate::ids::next_sequence_id();
+                            crate::SequenceDef {
+                                id,
+                                count: s.count,
+                                start: s.start,
+                                digits: s.digits,
+                                setup_index: s.setup_index,
+                            }
+                        });
+                        let attachment_color = attachment_def
+                            .color
+                            .as_deref()
+                            .map(|s| parse_hex_color_rgba(s, "attachment color"))
+                            .transpose()?
+                            .unwrap_or([1.0, 1.0, 1.0, 1.0]);
+                        let attachment = match attachment_type {
+                            "region" => AttachmentData::Region(RegionAttachmentData {
+                                name: internal_name.clone(),
+                                path,
+                                sequence: sequence.clone(),
+                                color: attachment_color,
+                                x: attachment_def.x * scale,
+                                y: attachment_def.y * scale,
+                                rotation: attachment_def.rotation,
+                                scale_x: attachment_def.scale_x,
+                                scale_y: attachment_def.scale_y,
+                                width: attachment_def.width * scale,
+                                height: attachment_def.height * scale,
+                            }),
+                            "point" => AttachmentData::Point(PointAttachmentData {
+                                name: internal_name.clone(),
+                                x: attachment_def.x * scale,
+                                y: attachment_def.y * scale,
+                                rotation: attachment_def.rotation,
+                            }),
+                            "mesh" => {
+                                let uvs = attachment_def.uvs.ok_or_else(|| {
+                                    Error::JsonInvalidMeshData {
+                                        skin: skin_name.clone(),
+                                        slot: slot_name.clone(),
+                                        attachment: attachment_name.clone(),
+                                        message: "missing 'uvs'".to_string(),
+                                    }
+                                })?;
+                                let vertices = attachment_def.vertices.ok_or_else(|| {
+                                    Error::JsonInvalidMeshData {
+                                        skin: skin_name.clone(),
+                                        slot: slot_name.clone(),
+                                        attachment: attachment_name.clone(),
+                                        message: "missing 'vertices'".to_string(),
+                                    }
+                                })?;
+                                let triangles = attachment_def.triangles.ok_or_else(|| {
+                                    Error::JsonInvalidMeshData {
+                                        skin: skin_name.clone(),
+                                        slot: slot_name.clone(),
+                                        attachment: attachment_name.clone(),
+                                        message: "missing 'triangles'".to_string(),
+                                    }
+                                })?;
+
+                                if uvs.len() % 2 != 0 {
+                                    return Err(Error::JsonInvalidMeshData {
+                                        skin: skin_name.clone(),
+                                        slot: slot_name.clone(),
+                                        attachment: attachment_name.clone(),
+                                        message: "uvs length must be even".to_string(),
+                                    });
+                                }
+                                let vertex_count = uvs.len() / 2;
+                                let packed_vertices = if vertices.len() == vertex_count * 2 {
+                                    let mut packed = Vec::with_capacity(vertex_count);
+                                    for i in 0..vertex_count {
+                                        packed.push([
+                                            vertices[i * 2] * scale,
+                                            vertices[i * 2 + 1] * scale,
+                                        ]);
+                                    }
+                                    crate::MeshVertices::Unweighted(packed)
+                                } else {
+                                    let weights = parse_weighted_mesh_vertices(
+                                        &vertices,
+                                        vertex_count,
+                                        bones.len(),
+                                        scale,
+                                        skin_name.as_str(),
+                                        slot_name.as_str(),
+                                        attachment_name.as_str(),
+                                    )?;
+                                    crate::MeshVertices::Weighted(weights)
+                                };
+
+                                let mut packed_uvs = Vec::with_capacity(vertex_count);
+                                for i in 0..vertex_count {
+                                    packed_uvs.push([uvs[i * 2], uvs[i * 2 + 1]]);
+                                }
+
+                                if triangles.iter().any(|&i| i as usize >= vertex_count) {
+                                    return Err(Error::JsonInvalidMeshData {
+                                        skin: skin_name.clone(),
+                                        slot: slot_name.clone(),
+                                        attachment: attachment_name.clone(),
+                                        message: "triangle index out of range".to_string(),
+                                    });
+                                }
+
+                                AttachmentData::Mesh(MeshAttachmentData {
+                                    vertex_id: crate::ids::next_vertex_attachment_id(),
                                     name: internal_name.clone(),
                                     path,
+                                    timeline_skin: skin_name.clone(),
+                                    timeline_attachment: attachment_name.clone(),
                                     sequence: sequence.clone(),
                                     color: attachment_color,
-                                    x: attachment_def.x * scale,
-                                    y: attachment_def.y * scale,
-                                    rotation: attachment_def.rotation,
-                                    scale_x: attachment_def.scale_x,
-                                    scale_y: attachment_def.scale_y,
-                                    width: attachment_def.width * scale,
-                                    height: attachment_def.height * scale,
-                                }),
-                                "point" => AttachmentData::Point(PointAttachmentData {
-                                    name: internal_name.clone(),
-                                    x: attachment_def.x * scale,
-                                    y: attachment_def.y * scale,
-                                    rotation: attachment_def.rotation,
-                                }),
-                                "mesh" => {
-                                    let uvs = attachment_def.uvs.ok_or_else(|| {
-                                        Error::JsonInvalidMeshData {
-                                            skin: skin_name.clone(),
-                                            slot: slot_name.clone(),
-                                            attachment: attachment_name.clone(),
-                                            message: "missing 'uvs'".to_string(),
-                                        }
-                                    })?;
-                                    let vertices = attachment_def.vertices.ok_or_else(|| {
-                                        Error::JsonInvalidMeshData {
-                                            skin: skin_name.clone(),
-                                            slot: slot_name.clone(),
-                                            attachment: attachment_name.clone(),
-                                            message: "missing 'vertices'".to_string(),
-                                        }
-                                    })?;
-                                    let triangles = attachment_def.triangles.ok_or_else(|| {
-                                        Error::JsonInvalidMeshData {
-                                            skin: skin_name.clone(),
-                                            slot: slot_name.clone(),
-                                            attachment: attachment_name.clone(),
-                                            message: "missing 'triangles'".to_string(),
-                                        }
-                                    })?;
-
-                                    if uvs.len() % 2 != 0 {
-                                        return Err(Error::JsonInvalidMeshData {
-                                            skin: skin_name.clone(),
-                                            slot: slot_name.clone(),
-                                            attachment: attachment_name.clone(),
-                                            message: "uvs length must be even".to_string(),
-                                        });
-                                    }
-                                    let vertex_count = uvs.len() / 2;
-                                    let packed_vertices = if vertices.len() == vertex_count * 2 {
-                                        let mut packed = Vec::with_capacity(vertex_count);
-                                        for i in 0..vertex_count {
-                                            packed.push([
-                                                vertices[i * 2] * scale,
-                                                vertices[i * 2 + 1] * scale,
-                                            ]);
-                                        }
-                                        crate::MeshVertices::Unweighted(packed)
-                                    } else {
-                                        let weights = parse_weighted_mesh_vertices(
-                                            &vertices,
-                                            vertex_count,
-                                            bones.len(),
-                                            scale,
-                                            skin_name.as_str(),
-                                            slot_name.as_str(),
-                                            attachment_name.as_str(),
-                                        )?;
-                                        crate::MeshVertices::Weighted(weights)
-                                    };
-
-                                    let mut packed_uvs = Vec::with_capacity(vertex_count);
-                                    for i in 0..vertex_count {
-                                        packed_uvs.push([uvs[i * 2], uvs[i * 2 + 1]]);
-                                    }
-
-                                    if triangles.iter().any(|&i| i as usize >= vertex_count) {
-                                        return Err(Error::JsonInvalidMeshData {
-                                            skin: skin_name.clone(),
-                                            slot: slot_name.clone(),
-                                            attachment: attachment_name.clone(),
-                                            message: "triangle index out of range".to_string(),
-                                        });
-                                    }
-
-                                    AttachmentData::Mesh(MeshAttachmentData {
-                                        vertex_id: crate::ids::next_vertex_attachment_id(),
-                                        name: internal_name.clone(),
-                                        path,
-                                        timeline_skin: skin_name.clone(),
-                                        timeline_attachment: attachment_name.clone(),
-                                        sequence: sequence.clone(),
-                                        color: attachment_color,
-                                        vertices: packed_vertices,
-                                        uvs: packed_uvs,
-                                        triangles,
-                                    })
-                                }
-                                "path" => {
-                                    let vertex_count =
-                                        attachment_def.vertex_count.ok_or_else(|| {
-                                            Error::JsonInvalidPathData {
-                                                skin: skin_name.clone(),
-                                                slot: slot_name.clone(),
-                                                attachment: attachment_name.clone(),
-                                                message: "missing 'vertexCount'".to_string(),
-                                            }
-                                        })?;
-                                    let vertices = attachment_def.vertices.ok_or_else(|| {
+                                    vertices: packed_vertices,
+                                    uvs: packed_uvs,
+                                    triangles,
+                                })
+                            }
+                            "path" => {
+                                let vertex_count =
+                                    attachment_def.vertex_count.ok_or_else(|| {
                                         Error::JsonInvalidPathData {
                                             skin: skin_name.clone(),
                                             slot: slot_name.clone(),
                                             attachment: attachment_name.clone(),
-                                            message: "missing 'vertices'".to_string(),
+                                            message: "missing 'vertexCount'".to_string(),
                                         }
                                     })?;
-
-                                    let packed_vertices = if vertices.len() == vertex_count * 2 {
-                                        let mut packed = Vec::with_capacity(vertex_count);
-                                        for i in 0..vertex_count {
-                                            packed.push([
-                                                vertices[i * 2] * scale,
-                                                vertices[i * 2 + 1] * scale,
-                                            ]);
-                                        }
-                                        crate::MeshVertices::Unweighted(packed)
-                                    } else {
-                                        let weights = parse_weighted_mesh_vertices(
-                                            &vertices,
-                                            vertex_count,
-                                            bones.len(),
-                                            scale,
-                                            skin_name.as_str(),
-                                            slot_name.as_str(),
-                                            attachment_name.as_str(),
-                                        )?;
-                                        crate::MeshVertices::Weighted(weights)
-                                    };
-
-                                    AttachmentData::Path(PathAttachmentData {
-                                        vertex_id: crate::ids::next_vertex_attachment_id(),
-                                        name: internal_name.clone(),
-                                        vertices: packed_vertices,
-                                        lengths: attachment_def
-                                            .lengths
-                                            .unwrap_or_default()
-                                            .into_iter()
-                                            .map(|v| v * scale)
-                                            .collect(),
-                                        closed: attachment_def.closed,
-                                        constant_speed: attachment_def.constant_speed,
-                                    })
-                                }
-                                "boundingbox" => {
-                                    let vertex_count =
-                                        attachment_def.vertex_count.ok_or_else(|| {
-                                            Error::JsonInvalidPathData {
-                                                skin: skin_name.clone(),
-                                                slot: slot_name.clone(),
-                                                attachment: attachment_name.clone(),
-                                                message: "missing 'vertexCount'".to_string(),
-                                            }
-                                        })?;
-                                    let vertices = attachment_def.vertices.ok_or_else(|| {
-                                        Error::JsonInvalidPathData {
-                                            skin: skin_name.clone(),
-                                            slot: slot_name.clone(),
-                                            attachment: attachment_name.clone(),
-                                            message: "missing 'vertices'".to_string(),
-                                        }
-                                    })?;
-
-                                    let packed_vertices = if vertices.len() == vertex_count * 2 {
-                                        let mut packed = Vec::with_capacity(vertex_count);
-                                        for i in 0..vertex_count {
-                                            packed.push([
-                                                vertices[i * 2] * scale,
-                                                vertices[i * 2 + 1] * scale,
-                                            ]);
-                                        }
-                                        crate::MeshVertices::Unweighted(packed)
-                                    } else {
-                                        let weights = parse_weighted_mesh_vertices(
-                                            &vertices,
-                                            vertex_count,
-                                            bones.len(),
-                                            scale,
-                                            skin_name.as_str(),
-                                            slot_name.as_str(),
-                                            attachment_name.as_str(),
-                                        )?;
-                                        crate::MeshVertices::Weighted(weights)
-                                    };
-
-                                    AttachmentData::BoundingBox(BoundingBoxAttachmentData {
-                                        vertex_id: crate::ids::next_vertex_attachment_id(),
-                                        name: internal_name.clone(),
-                                        vertices: packed_vertices,
-                                    })
-                                }
-                                "clipping" => {
-                                    let vertex_count =
-                                        attachment_def.vertex_count.ok_or_else(|| {
-                                            Error::JsonInvalidPathData {
-                                                skin: skin_name.clone(),
-                                                slot: slot_name.clone(),
-                                                attachment: attachment_name.clone(),
-                                                message: "missing 'vertexCount'".to_string(),
-                                            }
-                                        })?;
-                                    let vertices = attachment_def.vertices.ok_or_else(|| {
-                                        Error::JsonInvalidPathData {
-                                            skin: skin_name.clone(),
-                                            slot: slot_name.clone(),
-                                            attachment: attachment_name.clone(),
-                                            message: "missing 'vertices'".to_string(),
-                                        }
-                                    })?;
-
-                                    let end_slot = match attachment_def.end.as_deref() {
-                                        None => None,
-                                        Some(end_name) => {
-                                            Some(*slot_index.get(end_name).ok_or_else(|| {
-                                                Error::JsonInvalidPathData {
-                                                    skin: skin_name.clone(),
-                                                    slot: slot_name.clone(),
-                                                    attachment: attachment_name.clone(),
-                                                    message: format!(
-                                                        "unknown clipping end slot: {end_name}"
-                                                    ),
-                                                }
-                                            })?)
-                                        }
-                                    };
-
-                                    let packed_vertices = if vertices.len() == vertex_count * 2 {
-                                        let mut packed = Vec::with_capacity(vertex_count);
-                                        for i in 0..vertex_count {
-                                            packed.push([
-                                                vertices[i * 2] * scale,
-                                                vertices[i * 2 + 1] * scale,
-                                            ]);
-                                        }
-                                        crate::MeshVertices::Unweighted(packed)
-                                    } else {
-                                        let weights = parse_weighted_mesh_vertices(
-                                            &vertices,
-                                            vertex_count,
-                                            bones.len(),
-                                            scale,
-                                            skin_name.as_str(),
-                                            slot_name.as_str(),
-                                            attachment_name.as_str(),
-                                        )?;
-                                        crate::MeshVertices::Weighted(weights)
-                                    };
-
-                                    AttachmentData::Clipping(ClippingAttachmentData {
-                                        vertex_id: crate::ids::next_vertex_attachment_id(),
-                                        name: internal_name.clone(),
-                                        vertices: packed_vertices,
-                                        end_slot,
-                                    })
-                                }
-                                "linkedmesh" => {
-                                    let Some(parent) = attachment_def.parent.clone() else {
-                                        return Err(Error::JsonInvalidMeshData {
-                                            skin: skin_name.clone(),
-                                            slot: slot_name.clone(),
-                                            attachment: attachment_name.clone(),
-                                            message: "linkedmesh missing 'parent'".to_string(),
-                                        });
-                                    };
-                                    let parent_skin = attachment_def
-                                        .skin
-                                        .as_deref()
-                                        .filter(|s| !s.is_empty())
-                                        .unwrap_or("default")
-                                        .to_string();
-                                    let inherit_deform = attachment_def.timelines.unwrap_or(true);
-                                    pending_linked_meshes.push(PendingLinkedMesh {
+                                let vertices = attachment_def.vertices.ok_or_else(|| {
+                                    Error::JsonInvalidPathData {
                                         skin: skin_name.clone(),
-                                        slot_index: s_index,
-                                        attachment_name: attachment_name.clone(),
-                                        parent: parent.clone(),
-                                        parent_skin: Some(parent_skin.clone()),
-                                        inherit_deform,
+                                        slot: slot_name.clone(),
+                                        attachment: attachment_name.clone(),
+                                        message: "missing 'vertices'".to_string(),
+                                    }
+                                })?;
+
+                                let packed_vertices = if vertices.len() == vertex_count * 2 {
+                                    let mut packed = Vec::with_capacity(vertex_count);
+                                    for i in 0..vertex_count {
+                                        packed.push([
+                                            vertices[i * 2] * scale,
+                                            vertices[i * 2 + 1] * scale,
+                                        ]);
+                                    }
+                                    crate::MeshVertices::Unweighted(packed)
+                                } else {
+                                    let weights = parse_weighted_mesh_vertices(
+                                        &vertices,
+                                        vertex_count,
+                                        bones.len(),
+                                        scale,
+                                        skin_name.as_str(),
+                                        slot_name.as_str(),
+                                        attachment_name.as_str(),
+                                    )?;
+                                    crate::MeshVertices::Weighted(weights)
+                                };
+
+                                AttachmentData::Path(PathAttachmentData {
+                                    vertex_id: crate::ids::next_vertex_attachment_id(),
+                                    name: internal_name.clone(),
+                                    vertices: packed_vertices,
+                                    lengths: attachment_def
+                                        .lengths
+                                        .unwrap_or_default()
+                                        .into_iter()
+                                        .map(|v| v * scale)
+                                        .collect(),
+                                    closed: attachment_def.closed,
+                                    constant_speed: attachment_def.constant_speed,
+                                })
+                            }
+                            "boundingbox" => {
+                                let vertex_count =
+                                    attachment_def.vertex_count.ok_or_else(|| {
+                                        Error::JsonInvalidPathData {
+                                            skin: skin_name.clone(),
+                                            slot: slot_name.clone(),
+                                            attachment: attachment_name.clone(),
+                                            message: "missing 'vertexCount'".to_string(),
+                                        }
+                                    })?;
+                                let vertices = attachment_def.vertices.ok_or_else(|| {
+                                    Error::JsonInvalidPathData {
+                                        skin: skin_name.clone(),
+                                        slot: slot_name.clone(),
+                                        attachment: attachment_name.clone(),
+                                        message: "missing 'vertices'".to_string(),
+                                    }
+                                })?;
+
+                                let packed_vertices = if vertices.len() == vertex_count * 2 {
+                                    let mut packed = Vec::with_capacity(vertex_count);
+                                    for i in 0..vertex_count {
+                                        packed.push([
+                                            vertices[i * 2] * scale,
+                                            vertices[i * 2 + 1] * scale,
+                                        ]);
+                                    }
+                                    crate::MeshVertices::Unweighted(packed)
+                                } else {
+                                    let weights = parse_weighted_mesh_vertices(
+                                        &vertices,
+                                        vertex_count,
+                                        bones.len(),
+                                        scale,
+                                        skin_name.as_str(),
+                                        slot_name.as_str(),
+                                        attachment_name.as_str(),
+                                    )?;
+                                    crate::MeshVertices::Weighted(weights)
+                                };
+
+                                AttachmentData::BoundingBox(BoundingBoxAttachmentData {
+                                    vertex_id: crate::ids::next_vertex_attachment_id(),
+                                    name: internal_name.clone(),
+                                    vertices: packed_vertices,
+                                })
+                            }
+                            "clipping" => {
+                                let vertex_count =
+                                    attachment_def.vertex_count.ok_or_else(|| {
+                                        Error::JsonInvalidPathData {
+                                            skin: skin_name.clone(),
+                                            slot: slot_name.clone(),
+                                            attachment: attachment_name.clone(),
+                                            message: "missing 'vertexCount'".to_string(),
+                                        }
+                                    })?;
+                                let vertices = attachment_def.vertices.ok_or_else(|| {
+                                    Error::JsonInvalidPathData {
+                                        skin: skin_name.clone(),
+                                        slot: slot_name.clone(),
+                                        attachment: attachment_name.clone(),
+                                        message: "missing 'vertices'".to_string(),
+                                    }
+                                })?;
+
+                                let end_slot = match attachment_def.end.as_deref() {
+                                    None => None,
+                                    Some(end_name) => {
+                                        Some(*slot_index.get(end_name).ok_or_else(|| {
+                                            Error::JsonInvalidPathData {
+                                                skin: skin_name.clone(),
+                                                slot: slot_name.clone(),
+                                                attachment: attachment_name.clone(),
+                                                message: format!(
+                                                    "unknown clipping end slot: {end_name}"
+                                                ),
+                                            }
+                                        })?)
+                                    }
+                                };
+
+                                let packed_vertices = if vertices.len() == vertex_count * 2 {
+                                    let mut packed = Vec::with_capacity(vertex_count);
+                                    for i in 0..vertex_count {
+                                        packed.push([
+                                            vertices[i * 2] * scale,
+                                            vertices[i * 2 + 1] * scale,
+                                        ]);
+                                    }
+                                    crate::MeshVertices::Unweighted(packed)
+                                } else {
+                                    let weights = parse_weighted_mesh_vertices(
+                                        &vertices,
+                                        vertex_count,
+                                        bones.len(),
+                                        scale,
+                                        skin_name.as_str(),
+                                        slot_name.as_str(),
+                                        attachment_name.as_str(),
+                                    )?;
+                                    crate::MeshVertices::Weighted(weights)
+                                };
+
+                                AttachmentData::Clipping(ClippingAttachmentData {
+                                    vertex_id: crate::ids::next_vertex_attachment_id(),
+                                    name: internal_name.clone(),
+                                    vertices: packed_vertices,
+                                    end_slot,
+                                })
+                            }
+                            "linkedmesh" => {
+                                let Some(parent) = attachment_def
+                                    .parent
+                                    .clone()
+                                    .or_else(|| attachment_def.source.clone())
+                                else {
+                                    return Err(Error::JsonInvalidMeshData {
+                                        skin: skin_name.clone(),
+                                        slot: slot_name.clone(),
+                                        attachment: attachment_name.clone(),
+                                        message: "linkedmesh missing 'parent'/'source'".to_string(),
                                     });
+                                };
+                                let parent_skin =
+                                    attachment_def.skin.clone().filter(|skin| !skin.is_empty());
+                                let inherit_deform = attachment_def.timelines.unwrap_or(true);
+                                pending_linked_meshes.push(PendingLinkedMesh {
+                                    skin: skin_name.clone(),
+                                    slot_index: s_index,
+                                    attachment_name: attachment_name.clone(),
+                                    parent: parent.clone(),
+                                    parent_skin: parent_skin.clone(),
+                                    inherit_deform,
+                                });
 
-                                    AttachmentData::Mesh(MeshAttachmentData {
-                                        vertex_id: crate::ids::next_vertex_attachment_id(),
-                                        name: internal_name.clone(),
-                                        path,
-                                        timeline_skin: if inherit_deform {
-                                            parent_skin
-                                        } else {
-                                            skin_name.clone()
-                                        },
-                                        timeline_attachment: if inherit_deform {
-                                            parent.clone()
-                                        } else {
-                                            attachment_name.clone()
-                                        },
-                                        sequence: sequence.clone(),
-                                        color: attachment_color,
-                                        vertices: crate::MeshVertices::Unweighted(Vec::new()),
-                                        uvs: Vec::new(),
-                                        triangles: Vec::new(),
-                                    })
-                                }
-                                _ => unreachable!(),
-                            };
+                                AttachmentData::Mesh(MeshAttachmentData {
+                                    vertex_id: crate::ids::next_vertex_attachment_id(),
+                                    name: internal_name.clone(),
+                                    path,
+                                    timeline_skin: if inherit_deform {
+                                        parent_skin.clone().unwrap_or_else(|| "default".to_string())
+                                    } else {
+                                        skin_name.clone()
+                                    },
+                                    timeline_attachment: if inherit_deform {
+                                        parent.clone()
+                                    } else {
+                                        attachment_name.clone()
+                                    },
+                                    sequence: sequence.clone(),
+                                    color: attachment_color,
+                                    vertices: crate::MeshVertices::Unweighted(Vec::new()),
+                                    uvs: Vec::new(),
+                                    triangles: Vec::new(),
+                                })
+                            }
+                            _ => unreachable!(),
+                        };
 
-                            attachments[s_index].insert(attachment_name, attachment);
-                        }
+                        attachments[s_index].insert(attachment_name, attachment);
                     }
+                }
 
-                    let mut bones_in_skin = Vec::with_capacity(skin_bones.len());
-                    for bone_name in skin_bones {
-                        let idx = *bone_index.get(&bone_name).ok_or_else(|| {
-                            Error::JsonUnknownSkinBone {
+                let mut bones_in_skin = Vec::with_capacity(skin_bones.len());
+                for bone_name in skin_bones {
+                    let idx =
+                        *bone_index
+                            .get(&bone_name)
+                            .ok_or_else(|| Error::JsonUnknownSkinBone {
                                 skin: skin_name.clone(),
                                 bone: bone_name.clone(),
-                            }
-                        })?;
-                        bones_in_skin.push(idx);
-                    }
+                            })?;
+                    bones_in_skin.push(idx);
+                }
 
-                    let skin_name_key = skin_name.clone();
-                    skins.insert(
-                        skin_name_key.clone(),
-                        SkinData {
-                            name: skin_name,
-                            attachments,
-                            bones: bones_in_skin,
-                            ik_constraints: Vec::new(),
-                            transform_constraints: Vec::new(),
-                            path_constraints: Vec::new(),
-                            physics_constraints: Vec::new(),
-                            slider_constraints: Vec::new(),
+                let skin_name_key = skin_name.clone();
+                skins.insert(
+                    skin_name_key.clone(),
+                    SkinData {
+                        name: skin_name,
+                        attachments,
+                        bones: bones_in_skin,
+                        ik_constraints: Vec::new(),
+                        transform_constraints: Vec::new(),
+                        path_constraints: Vec::new(),
+                        physics_constraints: Vec::new(),
+                        slider_constraints: Vec::new(),
+                    },
+                );
+                if !skin_ik.is_empty()
+                    || !skin_transform.is_empty()
+                    || !skin_path.is_empty()
+                    || !skin_physics.is_empty()
+                    || !skin_slider.is_empty()
+                {
+                    pending_skin_constraints.insert(
+                        skin_name_key,
+                        PendingSkinConstraints {
+                            ik: skin_ik,
+                            transform: skin_transform,
+                            path: skin_path,
+                            physics: skin_physics,
+                            slider: skin_slider,
                         },
                     );
-                    if !skin_ik.is_empty()
-                        || !skin_transform.is_empty()
-                        || !skin_path.is_empty()
-                        || !skin_physics.is_empty()
-                        || !skin_slider.is_empty()
-                    {
-                        pending_skin_constraints.insert(
-                            skin_name_key,
-                            PendingSkinConstraints {
-                                ik: skin_ik,
-                                transform: skin_transform,
-                                path: skin_path,
-                                physics: skin_physics,
-                                slider: skin_slider,
-                            },
-                        );
-                    }
-                    Ok(())
-                };
+                }
+                Ok(())
+            };
 
             match skins_def {
                 SkinsDef::Map(map) => {
@@ -1251,13 +1254,27 @@ impl SkeletonData {
                 let mut resolved_any = false;
 
                 for pending in remaining {
-                    let parent_skin_name = pending
-                        .parent_skin
-                        .as_deref()
-                        .filter(|s| !s.is_empty())
-                        .unwrap_or("default")
-                        .to_string();
-
+                    let Some((parent_skin_name, parent_attachment_name)) =
+                        resolve_linked_mesh_parent(
+                            &skins,
+                            pending.slot_index,
+                            pending.parent_skin.as_deref(),
+                            pending.parent.as_str(),
+                        )
+                    else {
+                        return Err(Error::JsonInvalidMeshData {
+                            skin: pending.skin.clone(),
+                            slot: slots
+                                .get(pending.slot_index)
+                                .map(|s| s.name.clone())
+                                .unwrap_or_else(|| "<unknown>".to_string()),
+                            attachment: pending.attachment_name.clone(),
+                            message: format!(
+                                "linkedmesh parent attachment not found: {}",
+                                pending.parent
+                            ),
+                        });
+                    };
                     let Some(parent_skin) = skins.get(&parent_skin_name) else {
                         return Err(Error::JsonInvalidMeshData {
                             skin: pending.skin.clone(),
@@ -1272,7 +1289,7 @@ impl SkeletonData {
                         });
                     };
                     let Some(parent_attachment) =
-                        parent_skin.attachment(pending.slot_index, &pending.parent)
+                        parent_skin.attachment(pending.slot_index, &parent_attachment_name)
                     else {
                         return Err(Error::JsonInvalidMeshData {
                             skin: pending.skin.clone(),
@@ -1283,7 +1300,7 @@ impl SkeletonData {
                             attachment: pending.attachment_name.clone(),
                             message: format!(
                                 "linkedmesh parent attachment not found: {}",
-                                pending.parent
+                                parent_attachment_name
                             ),
                         });
                     };
@@ -1324,8 +1341,13 @@ impl SkeletonData {
                     linked_mesh.vertices = parent_vertices;
                     linked_mesh.uvs = parent_uvs;
                     linked_mesh.triangles = parent_triangles;
-
-                    let _inherit_deform = pending.inherit_deform;
+                    if pending.inherit_deform {
+                        linked_mesh.timeline_skin = parent_skin_name;
+                        linked_mesh.timeline_attachment = parent_attachment_name;
+                    } else {
+                        linked_mesh.timeline_skin = pending.skin.clone();
+                        linked_mesh.timeline_attachment = pending.attachment_name.clone();
+                    }
                     resolved_any = true;
                 }
 
@@ -3358,6 +3380,76 @@ fn parse_weighted_mesh_vertices(
     }
 
     Ok(out)
+}
+
+fn resolve_linked_mesh_parent(
+    skins: &HashMap<String, SkinData>,
+    slot_index: usize,
+    explicit_skin: Option<&str>,
+    source: &str,
+) -> Option<(String, String)> {
+    if let Some(parent_skin_name) = explicit_skin.filter(|skin| !skin.is_empty()) {
+        return skins
+            .get(parent_skin_name)
+            .and_then(|skin| {
+                find_linked_mesh_attachment_name(skin, slot_index, source).map(
+                    |(attachment_name, _)| (parent_skin_name.to_string(), attachment_name.clone()),
+                )
+            })
+            .or_else(|| Some((parent_skin_name.to_string(), source.to_string())));
+    }
+
+    if let Some(default_skin) = skins.get("default")
+        && default_skin.attachment(slot_index, source).is_some()
+    {
+        return Some(("default".to_string(), source.to_string()));
+    }
+
+    let mut prefix_matches = skins
+        .keys()
+        .filter_map(|skin_name| {
+            source
+                .strip_prefix(skin_name)
+                .and_then(|rest| rest.strip_prefix('/'))
+                .map(|attachment_name| (skin_name.as_str(), attachment_name))
+        })
+        .collect::<Vec<_>>();
+    prefix_matches.sort_unstable_by(|a, b| b.0.len().cmp(&a.0.len()).then_with(|| a.0.cmp(b.0)));
+    for (skin_name, attachment_name) in prefix_matches {
+        if skins
+            .get(skin_name)
+            .and_then(|skin| skin.attachment(slot_index, attachment_name))
+            .is_some()
+        {
+            return Some((skin_name.to_string(), attachment_name.to_string()));
+        }
+    }
+
+    let mut name_matches = skins
+        .iter()
+        .filter_map(|(skin_name, skin)| {
+            find_linked_mesh_attachment_name(skin, slot_index, source)
+                .map(|(attachment_name, _)| (skin_name.as_str(), attachment_name.as_str()))
+        })
+        .collect::<Vec<_>>();
+    name_matches.sort_unstable();
+    name_matches.first().map(|(skin_name, attachment_name)| {
+        ((*skin_name).to_string(), (*attachment_name).to_string())
+    })
+}
+
+fn find_linked_mesh_attachment_name<'a>(
+    skin: &'a SkinData,
+    slot_index: usize,
+    source: &str,
+) -> Option<(&'a String, &'a AttachmentData)> {
+    skin.attachments.get(slot_index).and_then(|slot_map| {
+        slot_map.get_key_value(source).or_else(|| {
+            slot_map
+                .iter()
+                .find(|(_, attachment)| attachment.name() == source)
+        })
+    })
 }
 
 fn validate_spine_version(value: &str) -> Result<(), Error> {

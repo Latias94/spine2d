@@ -201,7 +201,7 @@ fn write_mesh_data(mesh: &mut Mesh, draw_list: &spine2d::DrawList, draw: &spine2
 
     let positions = vertex_slice
         .iter()
-        .map(|v| [v.position[0], -v.position[1], 0.0])
+        .map(|v| [v.position[0], v.position[1], 0.0])
         .collect::<Vec<_>>();
     let normals = vec![[0.0, 0.0, 1.0]; vertex_slice.len()];
     let uvs = vertex_slice.iter().map(|v| v.uv).collect::<Vec<_>>();
@@ -320,5 +320,54 @@ fn sync_mesh_child_render_layers(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bevy::mesh::VertexAttributeValues;
+    use spine2d::{BlendMode, Draw, DrawList, Vertex};
+
+    #[test]
+    fn write_mesh_data_preserves_spine_y_axis() {
+        let draw_list = DrawList {
+            vertices: vec![
+                Vertex {
+                    position: [1.0, 2.0],
+                    uv: [0.0, 0.0],
+                    color: [1.0; 4],
+                    dark_color: [0.0; 4],
+                },
+                Vertex {
+                    position: [4.0, 5.0],
+                    uv: [1.0, 1.0],
+                    color: [1.0; 4],
+                    dark_color: [0.0; 4],
+                },
+            ],
+            indices: vec![0, 1],
+            draws: Vec::new(),
+        };
+        let draw = Draw {
+            texture_path: "page.png".to_owned(),
+            blend: BlendMode::Normal,
+            premultiplied_alpha: false,
+            first_index: 0,
+            index_count: 2,
+        };
+        let mut mesh = Mesh::new(
+            PrimitiveTopology::TriangleList,
+            RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
+        );
+
+        write_mesh_data(&mut mesh, &draw_list, &draw);
+
+        let Some(VertexAttributeValues::Float32x3(positions)) =
+            mesh.attribute(Mesh::ATTRIBUTE_POSITION)
+        else {
+            panic!("position attribute should be Float32x3");
+        };
+        assert_eq!(positions, &vec![[1.0, 2.0, 0.0], [4.0, 5.0, 0.0]]);
     }
 }

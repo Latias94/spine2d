@@ -20,6 +20,8 @@ const DEMO_SKELETON: &str = "spine2d-web/assets/demo.json";
 const DEMO_ATLAS: &str = "spine2d-web/assets/demo.atlas";
 const FIT_MARGIN: f32 = 1.25;
 const MIN_CAMERA_SCALE: f32 = 0.1;
+const AUTO_OPTION_COUNT: usize = 1;
+const SKIN_NONE_OPTION_COUNT: usize = 1;
 
 #[derive(Component)]
 struct ViewerSpine;
@@ -142,20 +144,25 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, state: Res<View
 }
 
 fn load_examples() -> Vec<ExampleEntry> {
-    let mut examples = manifest_examples().unwrap_or_else(|err| {
-        info!("Using bundled demo assets; manifest unavailable: {err}");
-        Vec::new()
-    });
+    match manifest_examples() {
+        Ok(examples) if !examples.is_empty() => examples,
+        Ok(_) => {
+            info!("Using bundled demo assets; manifest did not contain examples");
+            vec![demo_example()]
+        }
+        Err(err) => {
+            info!("Using bundled demo assets; manifest unavailable: {err}");
+            vec![demo_example()]
+        }
+    }
+}
 
-    examples.insert(
-        0,
-        ExampleEntry {
-            name: "demo".to_owned(),
-            skeleton: DEMO_SKELETON.to_owned(),
-            atlas: DEMO_ATLAS.to_owned(),
-        },
-    );
-    examples
+fn demo_example() -> ExampleEntry {
+    ExampleEntry {
+        name: "demo".to_owned(),
+        skeleton: DEMO_SKELETON.to_owned(),
+        atlas: DEMO_ATLAS.to_owned(),
+    }
 }
 
 fn manifest_examples() -> Result<Vec<ExampleEntry>, String> {
@@ -219,22 +226,24 @@ fn handle_keyboard(
     let skins = sorted_names(asset.skins());
 
     if keyboard.just_pressed(KeyCode::KeyA) {
-        state.animation_index = wrap_next(state.animation_index, animations.len());
+        state.animation_index =
+            wrap_next(state.animation_index, animation_option_count(&animations));
     }
     if keyboard.just_pressed(KeyCode::KeyZ) {
-        state.animation_index = wrap_prev(state.animation_index, animations.len());
+        state.animation_index =
+            wrap_prev(state.animation_index, animation_option_count(&animations));
     }
     if keyboard.just_pressed(KeyCode::KeyS) {
-        state.skin_index = wrap_next(state.skin_index, skins.len() + 1);
+        state.skin_index = wrap_next(state.skin_index, skin_option_count(&skins));
         state.fit_pending = true;
     }
     if keyboard.just_pressed(KeyCode::KeyX) {
-        state.skin_index = wrap_prev(state.skin_index, skins.len() + 1);
+        state.skin_index = wrap_prev(state.skin_index, skin_option_count(&skins));
         state.fit_pending = true;
     }
 
     if keyboard.just_pressed(KeyCode::KeyR) {
-        let Some(animation) = selected_animation(&state, &animations) else {
+        let Some(animation) = selected_animation(&state, asset, &animations) else {
             return;
         };
         for entity in &ready_query {
@@ -271,8 +280,8 @@ fn sync_viewer_selection(
 
     let animations = sorted_names(asset.animations());
     let skins = sorted_names(asset.skins());
-    let animation_name = selected_animation(&state, &animations).map(str::to_owned);
-    let skin_name = selected_skin(&state, &skins).map(str::to_owned);
+    let animation_name = selected_animation(&state, asset, &animations).map(str::to_owned);
+    let skin_name = selected_skin(&state, example, asset, &skins).map(str::to_owned);
     let speed = if state.playing { state.speed } else { 0.0 };
 
     if animation.name != animation_name
@@ -359,9 +368,11 @@ fn update_status_text(
 
     let animations = sorted_names(asset.animations());
     let skins = sorted_names(asset.skins());
-    let animation = selected_animation(&state, &animations).unwrap_or("<none>");
-    let skin = selected_skin(&state, &skins).unwrap_or("<setup/default>");
+    let animation = selected_animation_label(&state, asset, &animations);
+    let skin = selected_skin_label(&state, example, asset, &skins);
     let playback = if state.playing { "playing" } else { "paused" };
+    let animation_count = animation_option_count(&animations);
+    let skin_count = skin_option_count(&skins);
 
     **text = format!(
         "Example: {} ({}/{})\nAnimation: {} ({}/{})    Skin: {} ({}/{})\nPlayback: {}    Speed: {:.2}x\n\nQ/E or Left/Right: example    A/Z: animation    S/X: skin\nSpace: play/pause    R: restart    -/=: speed    F: fit",
@@ -369,11 +380,11 @@ fn update_status_text(
         state.example_index + 1,
         state.examples.len(),
         animation,
-        selected_display_index(state.animation_index, animations.len()),
-        animations.len(),
+        selected_display_index(state.animation_index, animation_count),
+        animation_count,
         skin,
-        selected_display_index(state.skin_index, skins.len() + 1),
-        skins.len() + 1,
+        selected_display_index(state.skin_index, skin_count),
+        skin_count,
         playback,
         state.speed,
     );
@@ -391,16 +402,119 @@ fn current_skeleton_asset<'a>(
     (path == expected.skeleton).then_some(asset)
 }
 
-fn selected_animation<'a>(state: &ViewerState, animations: &'a [&'a str]) -> Option<&'a str> {
-    animations.get(state.animation_index).copied()
+fn selected_animation<'a>(
+    state: &ViewerState,
+    asset: &'a SpineSkeletonAsset,
+    animations: &'a [&'a str],
+) -> Option<&'a str> {
+    if state.animation_index == 0 {
+        auto_animation(asset, animations)
+    } else {
+        animations
+            .get(state.animation_index - AUTO_OPTION_COUNT)
+            .copied()
+    }
 }
 
-fn selected_skin<'a>(state: &ViewerState, skins: &'a [&'a str]) -> Option<&'a str> {
-    if state.skin_index == 0 {
-        None
-    } else {
-        skins.get(state.skin_index - 1).copied()
+fn selected_animation_label(
+    state: &ViewerState,
+    asset: &SpineSkeletonAsset,
+    animations: &[&str],
+) -> String {
+    match state.animation_index {
+        0 => selected_animation(state, asset, animations)
+            .map(|name| format!("auto: {name}"))
+            .unwrap_or_else(|| "auto: <none>".to_owned()),
+        _ => selected_animation(state, asset, animations)
+            .map(str::to_owned)
+            .unwrap_or_else(|| "<none>".to_owned()),
     }
+}
+
+fn selected_skin<'a>(
+    state: &ViewerState,
+    example: &ExampleEntry,
+    asset: &'a SpineSkeletonAsset,
+    skins: &'a [&'a str],
+) -> Option<&'a str> {
+    match state.skin_index {
+        0 => auto_skin(example, asset),
+        1 => None,
+        _ => skins
+            .get(state.skin_index - AUTO_OPTION_COUNT - SKIN_NONE_OPTION_COUNT)
+            .copied(),
+    }
+}
+
+fn selected_skin_label(
+    state: &ViewerState,
+    example: &ExampleEntry,
+    asset: &SpineSkeletonAsset,
+    skins: &[&str],
+) -> String {
+    match state.skin_index {
+        0 => selected_skin(state, example, asset, skins)
+            .map(|name| format!("auto: {name}"))
+            .unwrap_or_else(|| "auto: <none>".to_owned()),
+        1 => "<none>".to_owned(),
+        _ => selected_skin(state, example, asset, skins)
+            .map(str::to_owned)
+            .unwrap_or_else(|| "<none>".to_owned()),
+    }
+}
+
+fn auto_animation<'a>(asset: &'a SpineSkeletonAsset, animations: &'a [&'a str]) -> Option<&'a str> {
+    [
+        "dance",
+        "flying",
+        "animation",
+        "run",
+        "walk",
+        "idle",
+        "spin",
+    ]
+    .into_iter()
+    .find(|name| asset.has_animation(name))
+    .or_else(|| animations.first().copied())
+}
+
+fn auto_skin<'a>(example: &ExampleEntry, asset: &'a SpineSkeletonAsset) -> Option<&'a str> {
+    recommended_skin(example, asset)
+        .or_else(|| asset.data.skin("default").map(|skin| skin.name.as_str()))
+        .or_else(|| {
+            asset
+                .data
+                .skins
+                .iter()
+                .filter_map(|(name, skin)| {
+                    let attachment_count = skin
+                        .attachments
+                        .iter()
+                        .map(std::collections::HashMap::len)
+                        .sum::<usize>();
+                    (attachment_count > 0).then_some((name.as_str(), attachment_count))
+                })
+                .max_by_key(|(_, attachment_count)| *attachment_count)
+                .map(|(name, _)| name)
+        })
+}
+
+fn recommended_skin<'a>(example: &ExampleEntry, asset: &'a SpineSkeletonAsset) -> Option<&'a str> {
+    let name = match example.name.as_str() {
+        "goblins" => "goblin",
+        "mix-and-match" => "full-skins/girl-blue-cape",
+        "chibi-stickers" => "spineboy",
+        _ => return None,
+    };
+    asset.data.skin(name).map(|skin| skin.name.as_str())
+}
+
+fn animation_option_count(animations: &[&str]) -> usize {
+    animations.len() + AUTO_OPTION_COUNT
+}
+
+fn skin_option_count(skins: &[&str]) -> usize {
+    skins.len() + AUTO_OPTION_COUNT + SKIN_NONE_OPTION_COUNT
 }
 
 fn sorted_names<'a>(names: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
