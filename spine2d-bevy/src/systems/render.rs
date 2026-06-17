@@ -1,5 +1,6 @@
 use bevy::asset::RenderAssetUsages;
 use bevy::camera::visibility::RenderLayers;
+use bevy::ecs::system::SystemParam;
 use bevy::mesh::Indices;
 use bevy::prelude::*;
 use bevy::render::render_resource::PrimitiveTopology;
@@ -14,20 +15,30 @@ use crate::{
     },
 };
 
-#[allow(clippy::too_many_arguments)]
+#[derive(SystemParam)]
+pub(crate) struct SpineRenderAssets<'w> {
+    meshes: ResMut<'w, Assets<Mesh>>,
+    normal_mats: ResMut<'w, Assets<SpineNormalMaterial>>,
+    additive_mats: ResMut<'w, Assets<SpineAdditiveMaterial>>,
+    multiply_mats: ResMut<'w, Assets<SpineMultiplyMaterial>>,
+    screen_mats: ResMut<'w, Assets<SpineScreenMaterial>>,
+    normal_pma_mats: ResMut<'w, Assets<SpineNormalPmaMaterial>>,
+    additive_pma_mats: ResMut<'w, Assets<SpineAdditivePmaMaterial>>,
+    multiply_pma_mats: ResMut<'w, Assets<SpineMultiplyPmaMaterial>>,
+    screen_pma_mats: ResMut<'w, Assets<SpineScreenPmaMaterial>>,
+    material_cache: ResMut<'w, SpineMaterialCache>,
+    asset_server: Res<'w, AssetServer>,
+}
+
+#[derive(SystemParam)]
+pub(crate) struct SpineMeshChildren<'w, 's> {
+    children: Query<'w, 's, &'static Children>,
+    mesh_children: Query<'w, 's, &'static SpineMeshChild>,
+}
+
 pub fn render_spines(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut normal_mats: ResMut<Assets<SpineNormalMaterial>>,
-    mut additive_mats: ResMut<Assets<SpineAdditiveMaterial>>,
-    mut multiply_mats: ResMut<Assets<SpineMultiplyMaterial>>,
-    mut screen_mats: ResMut<Assets<SpineScreenMaterial>>,
-    mut normal_pma_mats: ResMut<Assets<SpineNormalPmaMaterial>>,
-    mut additive_pma_mats: ResMut<Assets<SpineAdditivePmaMaterial>>,
-    mut multiply_pma_mats: ResMut<Assets<SpineMultiplyPmaMaterial>>,
-    mut screen_pma_mats: ResMut<Assets<SpineScreenPmaMaterial>>,
-    mut material_cache: ResMut<SpineMaterialCache>,
-    asset_server: Res<AssetServer>,
+    mut render_assets: SpineRenderAssets,
     spine_world: NonSend<SpineWorld>,
     mut spine_query: Query<(
         Entity,
@@ -35,8 +46,7 @@ pub fn render_spines(
         &mut SpineDrawSignatureCache,
         Option<&RenderLayers>,
     )>,
-    children_query: Query<&Children>,
-    mesh_child_query: Query<&SpineMeshChild>,
+    mesh_children: SpineMeshChildren,
 ) {
     for (spine_entity, key, mut signature_cache, render_layers) in &mut spine_query {
         let Some(instance) = spine_world.get(key.0) else {
@@ -61,8 +71,8 @@ pub fn render_spines(
             if !signature_cache.signature.draws.is_empty() {
                 despawn_mesh_children(
                     &mut commands,
-                    &children_query,
-                    &mesh_child_query,
+                    &mesh_children.children,
+                    &mesh_children.mesh_children,
                     spine_entity,
                 );
                 signature_cache.signature = SpineRenderSignature::default();
@@ -73,23 +83,13 @@ pub fn render_spines(
         if geometry_changed {
             despawn_mesh_children(
                 &mut commands,
-                &children_query,
-                &mesh_child_query,
+                &mesh_children.children,
+                &mesh_children.mesh_children,
                 spine_entity,
             );
             spawn_mesh_children(
                 &mut commands,
-                &mut meshes,
-                &mut normal_mats,
-                &mut additive_mats,
-                &mut multiply_mats,
-                &mut screen_mats,
-                &mut normal_pma_mats,
-                &mut additive_pma_mats,
-                &mut multiply_pma_mats,
-                &mut screen_pma_mats,
-                &mut material_cache,
-                &asset_server,
+                &mut render_assets,
                 &instance.atlas_directory,
                 spine_entity,
                 draw_list,
@@ -102,22 +102,14 @@ pub fn render_spines(
             continue;
         }
 
-        let Some(mesh_children) =
-            collect_mesh_children(&children_query, &mesh_child_query, spine_entity)
-        else {
+        let Some(mesh_child_handles) = collect_mesh_children(
+            &mesh_children.children,
+            &mesh_children.mesh_children,
+            spine_entity,
+        ) else {
             spawn_mesh_children(
                 &mut commands,
-                &mut meshes,
-                &mut normal_mats,
-                &mut additive_mats,
-                &mut multiply_mats,
-                &mut screen_mats,
-                &mut normal_pma_mats,
-                &mut additive_pma_mats,
-                &mut multiply_pma_mats,
-                &mut screen_pma_mats,
-                &mut material_cache,
-                &asset_server,
+                &mut render_assets,
                 &instance.atlas_directory,
                 spine_entity,
                 draw_list,
@@ -130,30 +122,20 @@ pub fn render_spines(
             continue;
         };
 
-        let stale_meshes = mesh_children.len() != draw_list.draws.len()
-            || mesh_children
+        let stale_meshes = mesh_child_handles.len() != draw_list.draws.len()
+            || mesh_child_handles
                 .iter()
-                .any(|mesh_handle| !meshes.contains(mesh_handle.id()));
+                .any(|mesh_handle| !render_assets.meshes.contains(mesh_handle.id()));
         if stale_meshes {
             despawn_mesh_children(
                 &mut commands,
-                &children_query,
-                &mesh_child_query,
+                &mesh_children.children,
+                &mesh_children.mesh_children,
                 spine_entity,
             );
             spawn_mesh_children(
                 &mut commands,
-                &mut meshes,
-                &mut normal_mats,
-                &mut additive_mats,
-                &mut multiply_mats,
-                &mut screen_mats,
-                &mut normal_pma_mats,
-                &mut additive_pma_mats,
-                &mut multiply_pma_mats,
-                &mut screen_pma_mats,
-                &mut material_cache,
-                &asset_server,
+                &mut render_assets,
                 &instance.atlas_directory,
                 spine_entity,
                 draw_list,
@@ -169,16 +151,16 @@ pub fn render_spines(
         if render_layers_changed {
             sync_mesh_child_render_layers(
                 &mut commands,
-                &children_query,
-                &mesh_child_query,
+                &mesh_children.children,
+                &mesh_children.mesh_children,
                 spine_entity,
                 render_layers,
             );
             signature_cache.signature.render_layers = new_render_layers;
         }
 
-        for (draw, mesh_handle) in draw_list.draws.iter().zip(mesh_children.iter()) {
-            if let Some(mesh) = meshes.get_mut(mesh_handle) {
+        for (draw, mesh_handle) in draw_list.draws.iter().zip(mesh_child_handles.iter()) {
+            if let Some(mesh) = render_assets.meshes.get_mut(mesh_handle) {
                 write_mesh_data(mesh, draw_list, draw);
             }
         }
@@ -237,20 +219,9 @@ fn write_mesh_data(mesh: &mut Mesh, draw_list: &spine2d::DrawList, draw: &spine2
     mesh.insert_attribute(DARK_COLOR_ATTRIBUTE, dark_colors);
 }
 
-#[allow(clippy::too_many_arguments)]
 fn spawn_mesh_children(
     commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    normal_mats: &mut Assets<SpineNormalMaterial>,
-    additive_mats: &mut Assets<SpineAdditiveMaterial>,
-    multiply_mats: &mut Assets<SpineMultiplyMaterial>,
-    screen_mats: &mut Assets<SpineScreenMaterial>,
-    normal_pma_mats: &mut Assets<SpineNormalPmaMaterial>,
-    additive_pma_mats: &mut Assets<SpineAdditivePmaMaterial>,
-    multiply_pma_mats: &mut Assets<SpineMultiplyPmaMaterial>,
-    screen_pma_mats: &mut Assets<SpineScreenPmaMaterial>,
-    material_cache: &mut SpineMaterialCache,
-    asset_server: &AssetServer,
+    render_assets: &mut SpineRenderAssets,
     atlas_dir: &str,
     spine_entity: Entity,
     draw_list: &spine2d::DrawList,
@@ -264,24 +235,24 @@ fn spawn_mesh_children(
             );
             write_mesh_data(&mut mesh, draw_list, draw);
 
-            let mesh_handle = meshes.add(mesh);
+            let mesh_handle = render_assets.meshes.add(mesh);
             let texture_path = texture_asset_path(atlas_dir, draw.texture_path.as_str());
-            let texture = asset_server.load(texture_path.clone());
-            let material_handle = material_cache.get_or_create(
+            let texture = render_assets.asset_server.load(texture_path.clone());
+            let material_handle = render_assets.material_cache.get_or_create(
                 SpineMaterialKey {
                     texture_path,
                     blend: draw.blend,
                     premultiplied_alpha: draw.premultiplied_alpha,
                 },
                 texture,
-                normal_mats,
-                additive_mats,
-                multiply_mats,
-                screen_mats,
-                normal_pma_mats,
-                additive_pma_mats,
-                multiply_pma_mats,
-                screen_pma_mats,
+                &mut render_assets.normal_mats,
+                &mut render_assets.additive_mats,
+                &mut render_assets.multiply_mats,
+                &mut render_assets.screen_mats,
+                &mut render_assets.normal_pma_mats,
+                &mut render_assets.additive_pma_mats,
+                &mut render_assets.multiply_pma_mats,
+                &mut render_assets.screen_pma_mats,
             );
 
             let mut child = parent.spawn((
