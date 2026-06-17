@@ -7,7 +7,6 @@ use bevy::render::render_resource::{
 };
 use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dKey, Material2dPlugin};
 use bevy::shader::ShaderRef;
-use spine2d::BlendMode;
 
 pub const SPINE_SHADER_HANDLE: Handle<Shader> =
     uuid_handle!("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
