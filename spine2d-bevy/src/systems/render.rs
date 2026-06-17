@@ -43,21 +43,21 @@ pub fn render_spines(
             continue;
         };
         let draw_list = &instance.draw_list;
-        let new_signature = SpineRenderSignature {
-            draws: draw_list
-                .draws
-                .iter()
-                .map(|draw| {
-                    SpineDrawSignature::from_draw(
-                        draw,
-                        texture_asset_path(&instance.atlas_directory, &draw.texture_path),
-                    )
-                })
-                .collect(),
-            render_layers: render_layers.cloned(),
-        };
+        let new_render_layers = render_layers.cloned();
+        let new_draws = draw_list
+            .draws
+            .iter()
+            .map(|draw| {
+                SpineDrawSignature::from_draw(
+                    draw,
+                    texture_asset_path(&instance.atlas_directory, &draw.texture_path),
+                )
+            })
+            .collect::<Vec<_>>();
+        let geometry_changed = new_draws != signature_cache.signature.draws;
+        let render_layers_changed = new_render_layers != signature_cache.signature.render_layers;
 
-        if new_signature.draws.is_empty() {
+        if new_draws.is_empty() {
             if !signature_cache.signature.draws.is_empty() {
                 despawn_mesh_children(
                     &mut commands,
@@ -70,7 +70,7 @@ pub fn render_spines(
             continue;
         }
 
-        if new_signature != signature_cache.signature {
+        if geometry_changed {
             despawn_mesh_children(
                 &mut commands,
                 &children_query,
@@ -95,68 +95,91 @@ pub fn render_spines(
                 draw_list,
                 render_layers,
             );
-            signature_cache.signature = new_signature;
-        } else {
-            let Some(mesh_children) =
-                collect_mesh_children(&children_query, &mesh_child_query, spine_entity)
-            else {
-                spawn_mesh_children(
-                    &mut commands,
-                    &mut meshes,
-                    &mut normal_mats,
-                    &mut additive_mats,
-                    &mut multiply_mats,
-                    &mut screen_mats,
-                    &mut normal_pma_mats,
-                    &mut additive_pma_mats,
-                    &mut multiply_pma_mats,
-                    &mut screen_pma_mats,
-                    &mut material_cache,
-                    &asset_server,
-                    &instance.atlas_directory,
-                    spine_entity,
-                    draw_list,
-                    render_layers,
-                );
-                continue;
+            signature_cache.signature = SpineRenderSignature {
+                draws: new_draws,
+                render_layers: new_render_layers,
             };
+            continue;
+        }
 
-            let stale_meshes = mesh_children.len() != draw_list.draws.len()
-                || mesh_children
-                    .iter()
-                    .any(|mesh_handle| !meshes.contains(mesh_handle.id()));
-            if stale_meshes {
-                despawn_mesh_children(
-                    &mut commands,
-                    &children_query,
-                    &mesh_child_query,
-                    spine_entity,
-                );
-                spawn_mesh_children(
-                    &mut commands,
-                    &mut meshes,
-                    &mut normal_mats,
-                    &mut additive_mats,
-                    &mut multiply_mats,
-                    &mut screen_mats,
-                    &mut normal_pma_mats,
-                    &mut additive_pma_mats,
-                    &mut multiply_pma_mats,
-                    &mut screen_pma_mats,
-                    &mut material_cache,
-                    &asset_server,
-                    &instance.atlas_directory,
-                    spine_entity,
-                    draw_list,
-                    render_layers,
-                );
-                continue;
-            }
+        let Some(mesh_children) =
+            collect_mesh_children(&children_query, &mesh_child_query, spine_entity)
+        else {
+            spawn_mesh_children(
+                &mut commands,
+                &mut meshes,
+                &mut normal_mats,
+                &mut additive_mats,
+                &mut multiply_mats,
+                &mut screen_mats,
+                &mut normal_pma_mats,
+                &mut additive_pma_mats,
+                &mut multiply_pma_mats,
+                &mut screen_pma_mats,
+                &mut material_cache,
+                &asset_server,
+                &instance.atlas_directory,
+                spine_entity,
+                draw_list,
+                render_layers,
+            );
+            signature_cache.signature = SpineRenderSignature {
+                draws: new_draws,
+                render_layers: new_render_layers,
+            };
+            continue;
+        };
 
-            for (draw, mesh_handle) in draw_list.draws.iter().zip(mesh_children.iter()) {
-                if let Some(mesh) = meshes.get_mut(mesh_handle) {
-                    write_mesh_data(mesh, draw_list, draw);
-                }
+        let stale_meshes = mesh_children.len() != draw_list.draws.len()
+            || mesh_children
+                .iter()
+                .any(|mesh_handle| !meshes.contains(mesh_handle.id()));
+        if stale_meshes {
+            despawn_mesh_children(
+                &mut commands,
+                &children_query,
+                &mesh_child_query,
+                spine_entity,
+            );
+            spawn_mesh_children(
+                &mut commands,
+                &mut meshes,
+                &mut normal_mats,
+                &mut additive_mats,
+                &mut multiply_mats,
+                &mut screen_mats,
+                &mut normal_pma_mats,
+                &mut additive_pma_mats,
+                &mut multiply_pma_mats,
+                &mut screen_pma_mats,
+                &mut material_cache,
+                &asset_server,
+                &instance.atlas_directory,
+                spine_entity,
+                draw_list,
+                render_layers,
+            );
+            signature_cache.signature = SpineRenderSignature {
+                draws: new_draws,
+                render_layers: new_render_layers,
+            };
+            continue;
+        }
+
+        if render_layers_changed {
+            sync_mesh_child_render_layers(
+                &mut commands,
+                &children_query,
+                &mesh_child_query,
+                spine_entity,
+                render_layers,
+            );
+            signature_cache.signature.render_layers = new_render_layers;
+        }
+
+        for (draw, mesh_handle) in draw_list.draws.iter().zip(mesh_children.iter()) {
+            if let Some(mesh) = meshes.get_mut(mesh_handle) {
+                write_mesh_data(mesh, draw_list, draw);
             }
         }
     }
@@ -299,6 +322,33 @@ pub(super) fn despawn_mesh_children(
             && let Ok(mut entity_commands) = commands.get_entity(child)
         {
             entity_commands.despawn();
+        }
+    }
+}
+
+fn sync_mesh_child_render_layers(
+    commands: &mut Commands,
+    children_query: &Query<&Children>,
+    mesh_child_query: &Query<&SpineMeshChild>,
+    spine_entity: Entity,
+    render_layers: Option<&RenderLayers>,
+) {
+    let Ok(children) = children_query.get(spine_entity) else {
+        return;
+    };
+
+    for child in children.iter() {
+        if mesh_child_query.get(child).is_ok()
+            && let Ok(mut entity_commands) = commands.get_entity(child)
+        {
+            match render_layers {
+                Some(layers) => {
+                    entity_commands.insert(layers.clone());
+                }
+                None => {
+                    entity_commands.remove::<RenderLayers>();
+                }
+            }
         }
     }
 }

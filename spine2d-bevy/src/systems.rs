@@ -569,6 +569,29 @@ mod tests {
             .collect()
     }
 
+    fn mesh_child_entities(app: &App, entity: Entity) -> Vec<Entity> {
+        app.world()
+            .get::<Children>(entity)
+            .map(|children| {
+                children
+                    .iter()
+                    .filter(|child| app.world().get::<SpineMeshChild>(*child).is_some())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    fn mesh_child_handles(app: &App, entity: Entity) -> Vec<Handle<Mesh>> {
+        mesh_child_entities(app, entity)
+            .into_iter()
+            .filter_map(|child| {
+                app.world()
+                    .get::<SpineMeshChild>(child)
+                    .map(|mesh_child| mesh_child.mesh.clone())
+            })
+            .collect()
+    }
+
     #[test]
     fn spawn_adds_only_internal_runtime_components_after_assets_are_ready() {
         let mut app = app_with_lifecycle_systems();
@@ -712,6 +735,14 @@ mod tests {
                 .render_layers,
             Some(RenderLayers::layer(2))
         );
+        let mesh_handles_before = mesh_child_handles(&app, entity);
+        assert!(!mesh_handles_before.is_empty());
+        for child in mesh_child_entities(&app, entity) {
+            assert_eq!(
+                app.world().get::<RenderLayers>(child),
+                Some(&RenderLayers::layer(2))
+            );
+        }
 
         app.world_mut()
             .entity_mut(entity)
@@ -726,6 +757,29 @@ mod tests {
                 .render_layers,
             Some(RenderLayers::layer(5))
         );
+        assert_eq!(mesh_child_handles(&app, entity), mesh_handles_before);
+        for child in mesh_child_entities(&app, entity) {
+            assert_eq!(
+                app.world().get::<RenderLayers>(child),
+                Some(&RenderLayers::layer(5))
+            );
+        }
+
+        app.world_mut().entity_mut(entity).remove::<RenderLayers>();
+        app.update();
+
+        assert_eq!(
+            app.world()
+                .get::<SpineDrawSignatureCache>(entity)
+                .unwrap()
+                .signature
+                .render_layers,
+            None
+        );
+        assert_eq!(mesh_child_handles(&app, entity), mesh_handles_before);
+        for child in mesh_child_entities(&app, entity) {
+            assert!(app.world().get::<RenderLayers>(child).is_none());
+        }
     }
 
     #[test]
