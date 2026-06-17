@@ -102,6 +102,120 @@ pub enum SpineAnimationEventKind {
     Event(spine2d::Event),
 }
 
+#[derive(Message, Clone, Debug)]
+pub struct SpineAnimationCommand {
+    pub entity: Entity,
+    pub command: SpineAnimationCommandKind,
+}
+
+impl SpineAnimationCommand {
+    pub fn set(
+        entity: Entity,
+        track_index: usize,
+        animation: impl Into<String>,
+        loop_animation: bool,
+    ) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::Set {
+                track_index,
+                animation: animation.into(),
+                loop_animation,
+            },
+        }
+    }
+
+    pub fn add(
+        entity: Entity,
+        track_index: usize,
+        animation: impl Into<String>,
+        loop_animation: bool,
+        delay: f32,
+    ) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::Add {
+                track_index,
+                animation: animation.into(),
+                loop_animation,
+                delay,
+            },
+        }
+    }
+
+    pub fn set_empty(entity: Entity, track_index: usize, mix_duration: f32) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::SetEmpty {
+                track_index,
+                mix_duration,
+            },
+        }
+    }
+
+    pub fn add_empty(entity: Entity, track_index: usize, mix_duration: f32, delay: f32) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::AddEmpty {
+                track_index,
+                mix_duration,
+                delay,
+            },
+        }
+    }
+
+    pub fn clear_track(entity: Entity, track_index: usize) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::ClearTrack { track_index },
+        }
+    }
+
+    pub fn clear_tracks(entity: Entity) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::ClearTracks,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum SpineAnimationCommandKind {
+    Set {
+        track_index: usize,
+        animation: String,
+        loop_animation: bool,
+    },
+    Add {
+        track_index: usize,
+        animation: String,
+        loop_animation: bool,
+        delay: f32,
+    },
+    SetEmpty {
+        track_index: usize,
+        mix_duration: f32,
+    },
+    AddEmpty {
+        track_index: usize,
+        mix_duration: f32,
+        delay: f32,
+    },
+    ClearTrack {
+        track_index: usize,
+    },
+    ClearTracks,
+}
+
+#[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SpineSystemSet {
+    Cleanup,
+    Spawn,
+    Commands,
+    Update,
+    Render,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct SpineInstanceId {
     pub index: u32,

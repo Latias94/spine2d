@@ -107,9 +107,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 ```
 
-Add `SpineAnimation` or `SpineSkin` only when you want ECS-driven runtime
-control after spawn. The plugin keeps its internal runtime handle private and
-cleans it up when `Spine` is removed or the entity is despawned.
+Add `SpineAnimation` or `SpineSkin` only when you want component-driven runtime
+control after spawn. Gameplay systems can also write `SpineAnimationCommand`
+messages to set, queue, or clear track animations without accessing internal
+runtime handles. Animation lifecycle and custom Spine timeline events are
+published as `SpineAnimationEvent` messages.
 
 ## License
 

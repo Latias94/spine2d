@@ -10,9 +10,9 @@ use render::despawn_mesh_children;
 pub use render::render_spines;
 
 use crate::{
-    Spine, SpineAnimation, SpineAnimationEvent, SpineAtlasAsset, SpineDrawSignatureCache,
-    SpineInstance, SpineInstanceKey, SpineInstanceParts, SpineMeshChild, SpineSkeletonAsset,
-    SpineSkin, SpineWorld,
+    Spine, SpineAnimation, SpineAnimationCommand, SpineAnimationCommandKind, SpineAnimationEvent,
+    SpineAtlasAsset, SpineDrawSignatureCache, SpineInstance, SpineInstanceKey, SpineInstanceParts,
+    SpineMeshChild, SpineSkeletonAsset, SpineSkin, SpineWorld,
 };
 
 type SpawnSpineQuery<'w, 's> = Query<
@@ -41,6 +41,8 @@ type UpdateSpineQuery<'w, 's> = Query<
 
 type SpineEntityQuery<'w, 's> =
     Query<'w, 's, (Entity, &'static Spine, Option<&'static SpineInstanceKey>)>;
+
+type SpineKeyQuery<'w, 's> = Query<'w, 's, &'static SpineInstanceKey>;
 
 pub fn spawn_spine_instances(
     mut commands: Commands,
@@ -162,6 +164,111 @@ pub fn reload_modified_spine_assets(
     }
 }
 
+pub fn apply_spine_animation_commands(
+    mut spine_world: NonSendMut<SpineWorld>,
+    mut commands: MessageReader<SpineAnimationCommand>,
+    key_query: SpineKeyQuery,
+) {
+    for message in commands.read() {
+        let Ok(key) = key_query.get(message.entity) else {
+            continue;
+        };
+        let Some(instance) = spine_world.get_mut(key.0) else {
+            warn!("Missing Spine runtime instance for {:?}", message.entity);
+            continue;
+        };
+
+        match &message.command {
+            SpineAnimationCommandKind::Set {
+                track_index,
+                animation,
+                loop_animation,
+            } => {
+                if let Err(err) =
+                    instance
+                        .animation_state
+                        .set_animation(*track_index, animation, *loop_animation)
+                {
+                    warn!(
+                        "Failed to set Spine animation for {:?}: {err}",
+                        message.entity
+                    );
+                    continue;
+                }
+                if *track_index == 0 {
+                    instance.animation_name = Some(animation.clone());
+                    instance.loop_animation = *loop_animation;
+                }
+            }
+            SpineAnimationCommandKind::Add {
+                track_index,
+                animation,
+                loop_animation,
+                delay,
+            } => {
+                if let Err(err) = instance.animation_state.add_animation(
+                    *track_index,
+                    animation,
+                    *loop_animation,
+                    *delay,
+                ) {
+                    warn!(
+                        "Failed to queue Spine animation for {:?}: {err}",
+                        message.entity
+                    );
+                }
+            }
+            SpineAnimationCommandKind::SetEmpty {
+                track_index,
+                mix_duration,
+            } => {
+                if let Err(err) = instance
+                    .animation_state
+                    .set_empty_animation(*track_index, *mix_duration)
+                {
+                    warn!(
+                        "Failed to set empty Spine animation for {:?}: {err}",
+                        message.entity
+                    );
+                    continue;
+                }
+                if *track_index == 0 {
+                    instance.animation_name = None;
+                    instance.loop_animation = false;
+                }
+            }
+            SpineAnimationCommandKind::AddEmpty {
+                track_index,
+                mix_duration,
+                delay,
+            } => {
+                if let Err(err) = instance.animation_state.add_empty_animation(
+                    *track_index,
+                    *mix_duration,
+                    *delay,
+                ) {
+                    warn!(
+                        "Failed to queue empty Spine animation for {:?}: {err}",
+                        message.entity
+                    );
+                }
+            }
+            SpineAnimationCommandKind::ClearTrack { track_index } => {
+                instance.animation_state.clear_track(*track_index);
+                if *track_index == 0 {
+                    instance.animation_name = None;
+                    instance.loop_animation = false;
+                }
+            }
+            SpineAnimationCommandKind::ClearTracks => {
+                instance.animation_state.clear_tracks();
+                instance.animation_name = None;
+                instance.loop_animation = false;
+            }
+        }
+    }
+}
+
 pub fn update_spine_animations(
     mut spine_world: NonSendMut<SpineWorld>,
     mut animation_events: MessageWriter<SpineAnimationEvent>,
@@ -272,6 +379,7 @@ mod tests {
         .init_asset::<SpineSkeletonAsset>()
         .init_asset::<SpineAtlasAsset>()
         .add_message::<SpineAnimationEvent>()
+        .add_message::<SpineAnimationCommand>()
         .init_resource::<Time>()
         .insert_non_send_resource(SpineWorld::new())
         .add_systems(
@@ -279,6 +387,7 @@ mod tests {
             (
                 cleanup_spine_instances,
                 spawn_spine_instances,
+                apply_spine_animation_commands,
                 update_spine_animations,
             )
                 .chain(),
@@ -680,6 +789,77 @@ mod tests {
             event.entity == entity
                 && event.animation_name == "second"
                 && matches!(event.kind, SpineAnimationEventKind::Start)
+        }));
+    }
+
+    #[test]
+    fn animation_command_sets_animation_without_public_runtime_handle() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app.world_mut().spawn(Spine::new(skeleton, atlas)).id();
+        app.update();
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(SpineAnimationCommand::set(entity, 0, "first", true));
+        app.update();
+
+        let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        let spine_world = app.world().non_send_resource::<SpineWorld>();
+        let instance = spine_world.get(key.0).unwrap();
+        assert_eq!(instance.animation_name, Some("first".to_owned()));
+        assert!(instance.loop_animation);
+
+        let events = drain_animation_events(&mut app);
+        assert!(events.iter().any(|event| {
+            event.entity == entity
+                && event.animation_name == "first"
+                && matches!(event.kind, SpineAnimationEventKind::Start)
+        }));
+    }
+
+    #[test]
+    fn animation_commands_can_queue_and_clear_tracks() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+        app.update();
+        drain_animation_events(&mut app);
+
+        {
+            let mut messages = app
+                .world_mut()
+                .resource_mut::<Messages<SpineAnimationCommand>>();
+            messages.write(SpineAnimationCommand::add(entity, 1, "second", false, 0.0));
+            messages.write(SpineAnimationCommand::clear_track(entity, 0));
+        }
+        app.update();
+
+        let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        let spine_world = app.world().non_send_resource::<SpineWorld>();
+        let instance = spine_world.get(key.0).unwrap();
+        assert_eq!(instance.animation_name, None);
+
+        let events = drain_animation_events(&mut app);
+        assert!(events.iter().any(|event| {
+            event.entity == entity
+                && event.track_index == 1
+                && event.animation_name == "second"
+                && matches!(event.kind, SpineAnimationEventKind::Start)
+        }));
+        assert!(events.iter().any(|event| {
+            event.entity == entity
+                && event.track_index == 0
+                && event.animation_name == "first"
+                && matches!(
+                    event.kind,
+                    SpineAnimationEventKind::End | SpineAnimationEventKind::Dispose
+                )
         }));
     }
 
