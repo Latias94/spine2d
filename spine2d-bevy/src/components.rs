@@ -83,6 +83,28 @@ impl SpineSkin {
     }
 }
 
+#[derive(Component, Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SpineReady;
+
+#[derive(Message, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SpineLifecycleEvent {
+    pub entity: Entity,
+    pub kind: SpineLifecycleEventKind,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SpineLifecycleEventKind {
+    Ready,
+    Released(SpineReleaseReason),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SpineReleaseReason {
+    ComponentRemoved,
+    EntityDespawned,
+    AssetReload,
+}
+
 #[derive(Message, Clone, Debug)]
 pub struct SpineAnimationEvent {
     pub entity: Entity,
