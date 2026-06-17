@@ -240,11 +240,10 @@ fn spawn_mesh_children(
             let texture = render_assets.asset_server.load(texture_path.clone());
             let material_handle = render_assets.material_cache.get_or_create(
                 SpineMaterialKey {
-                    texture_path,
+                    texture,
                     blend: draw.blend,
                     premultiplied_alpha: draw.premultiplied_alpha,
                 },
-                texture,
                 &mut render_assets.normal_mats,
                 &mut render_assets.additive_mats,
                 &mut render_assets.multiply_mats,
