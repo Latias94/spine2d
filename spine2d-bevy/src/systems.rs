@@ -23,10 +23,10 @@ type SpawnSpineQuery<'w, 's> = Query<
     (
         Entity,
         &'static Spine,
+        Option<&'static SpineInstanceKey>,
         Option<&'static SpineAnimation>,
         Option<&'static SpineSkin>,
         Option<&'static SpineDrawSignatureCache>,
-        Option<&'static SpineBounds>,
     ),
     Or<(Without<SpineInstanceKey>, Changed<Spine>)>,
 >;
@@ -67,8 +67,9 @@ pub fn spawn_spine_instances(
     skeletons: Res<Assets<SpineSkeletonAsset>>,
     atlases: Res<Assets<SpineAtlasAsset>>,
     query: SpawnSpineQuery,
+    mesh_children: SpineMeshChildrenParam,
 ) {
-    for (entity, spine, animation, skin, draw_signature_cache, bounds) in &query {
+    for (entity, spine, existing_key, animation, skin, draw_signature_cache) in &query {
         let Some(skeleton_asset) = skeletons.get(&spine.skeleton) else {
             continue;
         };
@@ -84,6 +85,16 @@ pub fn spawn_spine_instances(
         let skin_component = skin.cloned().unwrap_or_else(|| SpineSkin {
             name: spine.skin.clone(),
         });
+
+        if existing_key.is_some() {
+            if spine_world.remove_by_owner(entity).is_some() {
+                lifecycle_events.write(SpineLifecycleEvent {
+                    entity,
+                    kind: SpineLifecycleEventKind::Released(SpineReleaseReason::ComponentChanged),
+                });
+            }
+            mesh_children.despawn(&mut commands, entity);
+        }
 
         let skeleton_data = skeleton_asset.data.clone();
         let mut skeleton = Skeleton::new(skeleton_data.clone());
@@ -120,10 +131,8 @@ pub fn spawn_spine_instances(
         let mut entity_commands = commands.entity(entity);
         entity_commands.insert(SpineInstanceKey(id));
         entity_commands.insert(SpineReady);
-        if bounds.is_none() {
-            entity_commands.insert(new_bounds);
-        }
-        if draw_signature_cache.is_none() {
+        entity_commands.insert(new_bounds);
+        if existing_key.is_some() || draw_signature_cache.is_none() {
             entity_commands.insert(SpineDrawSignatureCache::default());
         }
         lifecycle_events.write(SpineLifecycleEvent {
@@ -857,6 +866,59 @@ mod tests {
         assert_eq!(
             app.world().resource::<Assets<SpineNormalMaterial>>().len(),
             normal_material_len
+        );
+    }
+
+    #[test]
+    fn changing_spine_component_rebuilds_runtime_instance_and_mesh_children() {
+        let mut app = app_with_render_systems();
+        let (first_skeleton, first_atlas) = demo_handles(&mut app);
+        let (second_skeleton, second_atlas) = demo_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(first_skeleton, first_atlas).with_animation("spin", true))
+            .id();
+
+        app.update();
+        app.update();
+        drain_lifecycle_events(&mut app);
+
+        let old_key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        let old_mesh_children = mesh_child_entities(&app, entity);
+        assert!(!old_mesh_children.is_empty());
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+
+        app.world_mut().entity_mut(entity).insert(
+            Spine::new(second_skeleton, second_atlas)
+                .with_animation("spin", true)
+                .with_skin("default"),
+        );
+        app.update();
+        app.update();
+
+        let new_key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        let new_mesh_children = mesh_child_entities(&app, entity);
+        assert_ne!(old_key, new_key);
+        assert!(!new_mesh_children.is_empty());
+        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+        for child in old_mesh_children {
+            assert!(app.world().get_entity(child).is_err());
+        }
+
+        let lifecycle_events = drain_lifecycle_events(&mut app);
+        assert_eq!(
+            lifecycle_events,
+            vec![
+                SpineLifecycleEvent {
+                    entity,
+                    kind: SpineLifecycleEventKind::Released(SpineReleaseReason::ComponentChanged),
+                },
+                SpineLifecycleEvent {
+                    entity,
+                    kind: SpineLifecycleEventKind::Ready,
+                },
+            ]
         );
     }
 
