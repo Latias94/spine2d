@@ -4900,6 +4900,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bevy",
+ "serde",
+ "serde_json",
  "spine2d",
 ]
 

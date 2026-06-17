@@ -37,10 +37,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let skeleton = asset_server.load("demo.json");
     let atlas = asset_server.load("demo.atlas");
 
-    for (x, scale) in [(-260.0, 0.8), (0.0, 1.2), (260.0, 1.6)] {
+    for (x, z, scale) in [(-320.0, 0.0, 0.8), (0.0, 1.0, 1.2), (320.0, 2.0, 1.6)] {
         commands.spawn((
             Spine::new(skeleton.clone(), atlas.clone()).with_animation("spin", true),
-            Transform::from_xyz(x, 0.0, 0.0).with_scale(Vec3::splat(scale)),
+            Transform::from_xyz(x, 0.0, z).with_scale(Vec3::splat(scale)),
             ToggleableSpine,
         ));
     }

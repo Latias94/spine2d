@@ -86,6 +86,18 @@ Run the built-in Bevy demo:
 - `cargo run -p spine2d-bevy --example metadata`
 - `cargo run -p spine2d-bevy --example bounds`
 - `cargo run -p spine2d-bevy --example multi_spine`
+- `cargo run -p spine2d-bevy --example viewer`
+
+The Bevy viewer falls back to the bundled `demo` assets by default. To populate
+it with local official example exports, first run:
+
+```sh
+python3 ./scripts/prepare_spine_runtimes_web_assets.py --scope tests
+```
+
+Then run `cargo run -p spine2d-bevy --example viewer`. The viewer reads
+`assets/spine-runtimes/web_manifest.json` and lets you switch examples,
+animations, skins, playback state, speed, and camera fit from the keyboard.
 
 The Bevy integration is centered on a public `Spine` component plus optional
 runtime control components:
