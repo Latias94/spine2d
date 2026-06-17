@@ -9,6 +9,73 @@ pub struct SpineSkeletonAsset {
     pub data: Arc<SkeletonData>,
 }
 
+impl SpineSkeletonAsset {
+    pub fn info(&self) -> SpineSkeletonInfo<'_> {
+        let mut animations = self
+            .data
+            .animations
+            .iter()
+            .map(|animation| animation.name.as_str())
+            .collect::<Vec<_>>();
+        let mut skins = self
+            .data
+            .skins
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>();
+        let mut events = self
+            .data
+            .events
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>();
+
+        animations.sort_unstable();
+        skins.sort_unstable();
+        events.sort_unstable();
+
+        SpineSkeletonInfo {
+            animations,
+            skins,
+            events,
+        }
+    }
+
+    pub fn animations(&self) -> impl Iterator<Item = &str> {
+        self.data
+            .animations
+            .iter()
+            .map(|animation| animation.name.as_str())
+    }
+
+    pub fn skins(&self) -> impl Iterator<Item = &str> {
+        self.data.skins.keys().map(String::as_str)
+    }
+
+    pub fn events(&self) -> impl Iterator<Item = &str> {
+        self.data.events.keys().map(String::as_str)
+    }
+
+    pub fn has_animation(&self, name: &str) -> bool {
+        self.data.animation(name).is_some()
+    }
+
+    pub fn has_skin(&self, name: &str) -> bool {
+        self.data.skin(name).is_some()
+    }
+
+    pub fn has_event(&self, name: &str) -> bool {
+        self.data.events.contains_key(name)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SpineSkeletonInfo<'a> {
+    pub animations: Vec<&'a str>,
+    pub skins: Vec<&'a str>,
+    pub events: Vec<&'a str>,
+}
+
 #[derive(Asset, TypePath, Debug)]
 pub struct SpineAtlasAsset {
     pub atlas: Atlas,
@@ -100,5 +167,59 @@ impl AssetLoader for AtlasLoader {
 
     fn extensions(&self) -> &[&str] {
         &["atlas"]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn skeleton_asset() -> SpineSkeletonAsset {
+        SpineSkeletonAsset {
+            data: SkeletonData::from_json_str(
+                r#"
+                {
+                  "skeleton": { "spine": "4.3.00" },
+                  "bones": [ { "name": "root" } ],
+                  "slots": [ { "name": "slot0", "bone": "root", "attachment": "mesh0" } ],
+                  "skins": {
+                    "default": {
+                      "slot0": {
+                        "mesh0": {
+                          "type": "mesh",
+                          "path": "mesh0",
+                          "uvs": [0,0, 1,0, 1,1, 0,1],
+                          "vertices": [-1,-1, 1,-1, 1,1, -1,1],
+                          "triangles": [0,1,2, 2,3,0]
+                        }
+                      }
+                    }
+                  },
+                  "events": { "hit": { "int": 7 } },
+                  "animations": {
+                    "idle": {},
+                    "attack": {}
+                  }
+                }
+                "#,
+            )
+            .expect("parse skeleton"),
+        }
+    }
+
+    #[test]
+    fn skeleton_asset_reports_available_runtime_names() {
+        let asset = skeleton_asset();
+        let info = asset.info();
+
+        assert_eq!(info.animations, vec!["attack", "idle"]);
+        assert!(info.skins.contains(&"default"));
+        assert!(info.events.contains(&"hit"));
+        assert!(asset.has_animation("idle"));
+        assert!(asset.has_skin("default"));
+        assert!(asset.has_event("hit"));
+        assert!(!asset.has_animation("missing"));
+        assert!(!asset.has_skin("missing"));
+        assert!(!asset.has_event("missing"));
     }
 }
