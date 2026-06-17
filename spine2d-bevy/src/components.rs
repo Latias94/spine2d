@@ -122,6 +122,7 @@ pub enum SpineLifecycleEventKind {
 pub enum SpineReleaseReason {
     ComponentRemoved,
     EntityDespawned,
+    ComponentChanged,
     AssetReload,
 }
 
