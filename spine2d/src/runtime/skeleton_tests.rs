@@ -29,6 +29,7 @@ fn update_world_transform_root_and_child() {
                 shear_y: 0.0,
                 inherit: Inherit::Normal,
                 skin_required: false,
+                ..Default::default()
             },
             BoneData {
                 name: "child".to_string(),
@@ -43,6 +44,7 @@ fn update_world_transform_root_and_child() {
                 shear_y: 0.0,
                 inherit: Inherit::Normal,
                 skin_required: false,
+                ..Default::default()
             },
         ],
         slots: Vec::new(),
@@ -96,6 +98,7 @@ fn update_world_transform_parent_rotation_affects_child_translation() {
                 shear_y: 0.0,
                 inherit: Inherit::Normal,
                 skin_required: false,
+                ..Default::default()
             },
             BoneData {
                 name: "child".to_string(),
@@ -110,6 +113,7 @@ fn update_world_transform_parent_rotation_affects_child_translation() {
                 shear_y: 0.0,
                 inherit: Inherit::Normal,
                 skin_required: false,
+                ..Default::default()
             },
         ],
         slots: Vec::new(),

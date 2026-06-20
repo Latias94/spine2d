@@ -12,8 +12,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from upstream_baseline import load_baseline
 
-UPSTREAM_DEFAULT_REPO = "https://github.com/EsotericSoftware/spine-runtimes"
+UPSTREAM_BASELINE = load_baseline()
+UPSTREAM_DEFAULT_REPO = UPSTREAM_BASELINE.repo
+UPSTREAM_DEFAULT_REV = UPSTREAM_BASELINE.rev
+UPSTREAM_BASELINE_COMMIT = UPSTREAM_BASELINE.commit
 SPARSE_CHECKOUT_DIRS = [
     "examples",
     "spine-c",
@@ -31,12 +35,16 @@ TEST_JSON_FILES = [
     "owl/export/owl-pro.json",
     "raptor/export/raptor-pro.json",
     "spinosaurus/export/spinosaurus-ess.json",
+    "stretchyman/export/stretchyman-pro.json",
     "speedy/export/speedy-ess.json",
     "windmill/export/windmill-ess.json",
     "celestial-circus/export/celestial-circus-pro.json",
     "chibi-stickers/export/chibi-stickers.json",
     "cloud-pot/export/cloud-pot.json",
     "coin/export/coin-pro.json",
+    "6-arcs/export/6-arcs-pro.json",
+    "8-follow-through/export/8-follow-through-pro-ball.json",
+    "food-app/export/food-app-search-ess.json",
     "goblins/export/goblins-pro.json",
     "powerup/export/powerup-pro.json",
     "snowglobe/export/snowglobe-pro.json",
@@ -236,8 +244,11 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--repo-url", default=UPSTREAM_DEFAULT_REPO)
     ap.add_argument(
         "--rev",
-        default="4.3",
-        help="Commit/tag/branch to checkout (default: 4.3).",
+        default=UPSTREAM_DEFAULT_REV,
+        help=(
+            "Commit/tag/branch to checkout "
+            f"(default: {UPSTREAM_DEFAULT_REV}; current baseline commit: {UPSTREAM_BASELINE_COMMIT})."
+        ),
     )
     ap.add_argument("--cache", default=".cache/spine-runtimes", help="Local git checkout directory.")
     ap.add_argument(

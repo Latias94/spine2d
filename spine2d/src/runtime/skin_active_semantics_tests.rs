@@ -1,5 +1,6 @@
 use crate::runtime::{AnimationState, AnimationStateData};
-use crate::{AttachmentData, Skeleton, SkeletonData, SkinData};
+use crate::{AttachmentData, RegionAttachmentData, Skeleton, SkeletonData, SkinData};
+use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -293,4 +294,200 @@ fn mix_and_match_add_skin_composition_matches_upstream_demo_semantics() {
         skeleton.slots[slot_index].attachment_skin.as_deref(),
         Some("custom-girl")
     );
+}
+
+#[test]
+fn set_skin_from_skin_to_skin_replaces_shared_attachments_and_preserves_missing_ones() {
+    let path = example_json_path("mix-and-match/export/mix-and-match-pro.json");
+    let json = std::fs::read_to_string(&path).expect("read mix-and-match-pro.json");
+    let data = SkeletonData::from_json_str(&json).expect("parse mix-and-match-pro.json");
+
+    let mut skeleton = Skeleton::new(data.clone());
+    skeleton.set_to_setup_pose();
+    skeleton
+        .set_skin(Some("full-skins/boy"))
+        .expect("set boy skin");
+
+    let mouth_slot = slot_index(&data, "mouth");
+    let zip_slot = slot_index(&data, "zip-boy");
+
+    assert_eq!(
+        skeleton.slots[mouth_slot].attachment.as_deref(),
+        Some("mouth-smile")
+    );
+    assert_eq!(
+        skeleton.slots[mouth_slot].attachment_skin.as_deref(),
+        Some("full-skins/boy")
+    );
+    assert_eq!(
+        skeleton.slots[zip_slot].attachment.as_deref(),
+        Some("zip-boy")
+    );
+    assert_eq!(
+        skeleton.slots[zip_slot].attachment_skin.as_deref(),
+        Some("full-skins/boy")
+    );
+
+    skeleton
+        .set_skin(Some("full-skins/girl"))
+        .expect("set girl skin");
+
+    assert_eq!(
+        skeleton.slots[mouth_slot].attachment.as_deref(),
+        Some("mouth-smile")
+    );
+    assert_eq!(
+        skeleton.slots[mouth_slot].attachment_skin.as_deref(),
+        Some("full-skins/girl")
+    );
+    assert_eq!(
+        skeleton.slots[zip_slot].attachment.as_deref(),
+        Some("zip-boy")
+    );
+    assert_eq!(
+        skeleton.slots[zip_slot].attachment_skin.as_deref(),
+        Some("full-skins/boy")
+    );
+}
+
+#[test]
+fn add_skin_is_idempotent_for_lists_and_last_write_wins_for_attachments() {
+    let mut base = SkinData::new("base", 2);
+    base.bones = vec![1, 2];
+    base.ik_constraints = vec![3];
+    base.transform_constraints = vec![4];
+    base.path_constraints = vec![5];
+    base.physics_constraints = vec![6];
+    base.slider_constraints = vec![7];
+    base.attachments[0].insert(
+        "key".to_string(),
+        AttachmentData::Region(RegionAttachmentData {
+            name: "base".to_string(),
+            path: "base.png".to_string(),
+            sequence: None,
+            color: [1.0, 0.0, 0.0, 1.0],
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            width: 0.0,
+            height: 0.0,
+        }),
+    );
+
+    let mut overlay = SkinData::new("overlay", 2);
+    overlay.bones = vec![2, 3];
+    overlay.ik_constraints = vec![3, 8];
+    overlay.transform_constraints = vec![4, 9];
+    overlay.path_constraints = vec![5, 10];
+    overlay.physics_constraints = vec![6, 11];
+    overlay.slider_constraints = vec![7, 12];
+    overlay.attachments[0].insert(
+        "key".to_string(),
+        AttachmentData::Region(RegionAttachmentData {
+            name: "overlay".to_string(),
+            path: "overlay.png".to_string(),
+            sequence: None,
+            color: [0.0, 1.0, 0.0, 1.0],
+            x: 1.0,
+            y: 2.0,
+            rotation: 3.0,
+            scale_x: 0.5,
+            scale_y: 0.75,
+            width: 4.0,
+            height: 5.0,
+        }),
+    );
+    overlay.attachments[1].insert(
+        "other".to_string(),
+        AttachmentData::Region(RegionAttachmentData {
+            name: "other".to_string(),
+            path: "other.png".to_string(),
+            sequence: None,
+            color: [0.0, 0.0, 1.0, 1.0],
+            x: 6.0,
+            y: 7.0,
+            rotation: 8.0,
+            scale_x: 1.5,
+            scale_y: 2.0,
+            width: 9.0,
+            height: 10.0,
+        }),
+    );
+
+    base.add_skin(&overlay);
+    base.add_skin(&overlay);
+
+    assert_eq!(base.bones, vec![1, 2, 3]);
+    assert_eq!(base.ik_constraints, vec![3, 8]);
+    assert_eq!(base.transform_constraints, vec![4, 9]);
+    assert_eq!(base.path_constraints, vec![5, 10]);
+    assert_eq!(base.physics_constraints, vec![6, 11]);
+    assert_eq!(base.slider_constraints, vec![7, 12]);
+
+    let key = base.attachment(0, "key").expect("merged attachment");
+    let AttachmentData::Region(region) = key else {
+        panic!("expected region attachment");
+    };
+    assert_eq!(region.name, "overlay");
+    assert_eq!(region.path, "overlay.png");
+    assert_eq!(region.x, 1.0);
+    assert_eq!(region.y, 2.0);
+    assert_eq!(region.rotation, 3.0);
+    assert_eq!(region.scale_x, 0.5);
+    assert_eq!(region.scale_y, 0.75);
+
+    let other = base.attachment(1, "other").expect("second slot attachment");
+    let AttachmentData::Region(region) = other else {
+        panic!("expected region attachment");
+    };
+    assert_eq!(region.name, "other");
+    assert_eq!(region.path, "other.png");
+    assert_eq!(region.x, 6.0);
+    assert_eq!(region.y, 7.0);
+    assert_eq!(region.rotation, 8.0);
+    assert_eq!(region.scale_x, 1.5);
+    assert_eq!(region.scale_y, 2.0);
+}
+
+#[test]
+fn skin_attachment_iteration_preserves_insertion_order() {
+    let mut skin = SkinData::new("ordered", 1);
+    skin.attachments[0] = IndexMap::new();
+    skin.attachments[0].insert(
+        "first".to_string(),
+        AttachmentData::Region(RegionAttachmentData {
+            name: "first".to_string(),
+            path: "first.png".to_string(),
+            sequence: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            width: 0.0,
+            height: 0.0,
+        }),
+    );
+    skin.attachments[0].insert(
+        "second".to_string(),
+        AttachmentData::Region(RegionAttachmentData {
+            name: "second".to_string(),
+            path: "second.png".to_string(),
+            sequence: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            width: 0.0,
+            height: 0.0,
+        }),
+    );
+
+    let keys = skin.attachments[0].keys().cloned().collect::<Vec<_>>();
+    assert_eq!(keys, vec!["first".to_string(), "second".to_string()]);
 }

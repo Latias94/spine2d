@@ -6,6 +6,13 @@ pub use animation::*;
 pub use animation_state::*;
 pub use skeleton::*;
 
+pub(crate) fn finalize_animation(mut animation: crate::Animation) -> crate::Animation {
+    if animation.timeline_order.is_empty() {
+        animation.timeline_order = crate::model::timeline_order_for_animation(&animation);
+    }
+    animation
+}
+
 #[cfg(all(test, feature = "json"))]
 mod animation_state_tests;
 
@@ -24,7 +31,7 @@ mod animation_tests;
 #[cfg(test)]
 mod pose_integration_tests;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "json"))]
 mod animation_state_mixing_semantics_tests;
 
 #[cfg(all(test, feature = "json"))]
@@ -89,3 +96,6 @@ mod upstream_libgdx_physics_demo_tests;
 
 #[cfg(all(test, feature = "json", feature = "upstream-smoke"))]
 mod upstream_ik_demo_tests;
+
+#[cfg(all(test, feature = "binary", feature = "upstream-smoke"))]
+mod upstream_ik_demo_skel_tests;

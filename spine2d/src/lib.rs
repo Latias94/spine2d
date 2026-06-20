@@ -49,5 +49,8 @@ mod json_physics_defaults_tests;
 #[cfg(all(test, feature = "json"))]
 mod json_transform_constraint_tests;
 
+#[cfg(all(test, feature = "json"))]
+mod json_timeline_order_tests;
+
 #[cfg(all(test, feature = "json", feature = "upstream-smoke"))]
 mod render_oracle_parity_tests;

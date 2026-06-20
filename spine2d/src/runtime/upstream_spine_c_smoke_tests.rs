@@ -150,7 +150,7 @@ fn run_each_animation_sample_smoke(path: &std::path::Path, example_label: &str) 
     let data: Arc<SkeletonData> =
         SkeletonData::from_json_str(&json).unwrap_or_else(|e| panic!("parse {path:?}: {e}"));
 
-    // This suite is intended to exercise the current 4.3-beta baseline exports.
+    // This suite is intended to exercise the current pinned 4.3 baseline exports.
     if data
         .spine_version
         .as_deref()
@@ -274,7 +274,7 @@ fn run_multitrack_overlay_smoke(data: Arc<SkeletonData>, example_label: &str) {
         let e = state
             .set_animation(2, name, true)
             .unwrap_or_else(|e| panic!("set track2 {name} ({example_label}): {e}"));
-        e.set_mix_blend(&mut state, crate::MixBlend::Add);
+        e.set_additive(&mut state, true);
         e.set_alpha(&mut state, 0.5);
     }
 

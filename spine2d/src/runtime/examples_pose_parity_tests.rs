@@ -605,38 +605,38 @@ fn example_spineboy_run_to_walk_mixing_mid_pose_matches_spine_cpp_lite() {
             BoneExpected {
                 name: "rear-thigh",
                 world: [
-                    -0.452598125,
-                    0.891714573,
-                    -0.891714513,
-                    -0.452598125,
-                    -11.4685535,
-                    221.984695,
+                    -0.452343047,
+                    0.891843915,
+                    -0.891843915,
+                    -0.452343196,
+                    -11.4685526,
+                    221.98468,
                 ],
-                applied: [-8.63562012, -7.46277809, -110.661903, 1.0, 1.0, 0.0, 0.0],
+                applied: [-8.63562012, -7.46277905, -110.645523, 1.0, 1.0, 0.0, 0.0],
             },
             BoneExpected {
                 name: "rear-shin",
                 world: [
-                    -0.466269016,
-                    0.884642959,
-                    -0.884642899,
-                    -0.466269046,
-                    -51.619072,
-                    145.807922,
+                    -0.46644792,
+                    0.884548545,
+                    -0.884548604,
+                    -0.466448128,
+                    -51.5972786,
+                    145.796417,
                 ],
-                applied: [86.1000061, -1.32533264, -0.881881714, 1.0, 1.0, 0.0, 0.0],
+                applied: [86.0999985, -1.32533264, -0.909856796, 1.0, 1.0, 0.0, 0.0],
             },
             BoneExpected {
                 name: "rear-foot",
                 world: [
-                    -0.752569377,
-                    0.65851289,
-                    -0.65851289,
-                    -0.752569437,
-                    -108.919739,
-                    38.7121735,
+                    -0.75257051,
+                    0.658511579,
+                    -0.658511519,
+                    -0.752570689,
+                    -108.919601,
+                    38.7122498,
                 ],
-                applied: [121.459038, -0.755193472, -21.0210571, 1.0, 1.0, 0.0, 0.0],
+                applied: [121.459038, -0.755193472, -21.0095711, 1.0, 1.0, 0.0, 0.0],
             },
             BoneExpected {
                 name: "gun",
@@ -1021,17 +1021,16 @@ fn example_spineboy_run_plus_aim_pose_matches_spine_cpp_lite_0p2() {
 // Scenario:
 //   mix(aim->shoot)=0.2
 //   set 0 run (loop)
-//   set 1 aim (loop), mixBlend=add
+//   set 1 aim (loop), additive=true
 //   step 0.3
-//   set 1 shoot (non-loop), mixBlend=add
+//   set 1 shoot (non-loop), additive=true
 //   step 0.1
 //
 // Notes:
-// - This specifically exercises the `applyMixingFrom` branch where `blend==Add` and
-//   `direction==Out`, which should be a no-op for attachment timelines (matching spine-cpp).
+// - Latest spine-cpp mixes out the outgoing aim attachment timeline to setup, so crosshair clears.
 // - The `shoot` animation uses the upstream JSON key `rgba` for slot color timelines.
 #[test]
-fn example_spineboy_aim_to_shoot_additive_mixing_keeps_crosshair_and_rgba_colors() {
+fn example_spineboy_aim_to_shoot_additive_mixing_clears_crosshair_and_keeps_rgba_colors() {
     let mut h = SpineboyHarness::new(|state_data| {
         state_data.set_mix("aim", "shoot", 0.2).expect("set mix");
     });
@@ -1039,14 +1038,14 @@ fn example_spineboy_aim_to_shoot_additive_mixing_keeps_crosshair_and_rgba_colors
 
     h.state.set_animation(0, "run", true).expect("set run");
     let aim = h.state.set_animation(1, "aim", true).expect("set aim");
-    aim.set_mix_blend(&mut h.state, crate::MixBlend::Add);
+    aim.set_additive(&mut h.state, true);
     h.step(0.3);
 
     let shoot = h.state.set_animation(1, "shoot", false).expect("set shoot");
-    shoot.set_mix_blend(&mut h.state, crate::MixBlend::Add);
+    shoot.set_additive(&mut h.state, true);
     h.step(0.1);
 
-    assert_slot_attachment(&h, "crosshair", Some("crosshair"));
+    assert_slot_attachment(&h, "crosshair", None);
     assert_slot_attachment(&h, "muzzle-glow", Some("muzzle-glow"));
-    assert_slot_color_approx(&h, "muzzle-glow", [1.0, 0.883061, 0.826801, 0.5]);
+    assert_slot_color_approx(&h, "muzzle-glow", [1.0, 0.883626, 0.826886, 0.5]);
 }

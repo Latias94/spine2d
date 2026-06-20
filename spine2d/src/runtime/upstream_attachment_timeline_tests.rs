@@ -3,6 +3,7 @@ use crate::{
     Animation, AttachmentData, AttachmentFrame, AttachmentTimeline, BlendMode, BoneData,
     RegionAttachmentData, Skeleton, SkeletonData, SkinData, SlotData,
 };
+use indexmap::IndexMap;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -20,6 +21,7 @@ fn build_data() -> Arc<SkeletonData> {
         shear_y: 0.0,
         inherit: Default::default(),
         skin_required: false,
+        ..Default::default()
     }];
 
     let slots = vec![SlotData {
@@ -30,9 +32,10 @@ fn build_data() -> Arc<SkeletonData> {
         has_dark: false,
         dark_color: [0.0, 0.0, 0.0],
         blend: BlendMode::Normal,
+        ..Default::default()
     }];
 
-    let animation = Animation {
+    let animation = crate::runtime::finalize_animation(Animation {
         name: "animation".to_string(),
         duration: 1.0,
         event_timeline: None,
@@ -65,12 +68,14 @@ fn build_data() -> Arc<SkeletonData> {
         slider_time_timelines: Vec::new(),
         slider_mix_timelines: Vec::new(),
         draw_order_timeline: None,
-    };
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    });
 
     let mut animation_index = HashMap::new();
     animation_index.insert(animation.name.clone(), 0usize);
 
-    let mut attachments = vec![HashMap::new()];
+    let mut attachments = vec![IndexMap::new()];
     for name in ["attachment1", "attachment2"] {
         attachments[0].insert(
             name.to_string(),

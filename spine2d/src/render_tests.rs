@@ -1258,3 +1258,55 @@ fn build_draw_list_clipping_attachment_clips_region_geometry() {
     assert!(max_x <= 1.0 + eps, "max_x={max_x}");
     assert!(max_y <= 1.0 + eps, "max_y={max_y}");
 }
+
+#[test]
+fn build_draw_list_inverse_clipping_attachment_keeps_outer_region_geometry() {
+    let data = SkeletonData::from_json_str(
+        r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [ { "name": "root" } ],
+  "slots": [
+    { "name": "slot0", "bone": "root", "attachment": "clip" },
+    { "name": "slot1", "bone": "root", "attachment": "region0" }
+  ],
+  "skins": {
+    "default": {
+      "slot0": {
+        "clip": {
+          "type": "clipping",
+          "inverse": true,
+          "end": "slot1",
+          "vertexCount": 4,
+          "vertices": [-1,-1, 1,-1, 1,1, -1,1]
+        }
+      },
+      "slot1": {
+        "region0": { "type": "region", "path": "page.png", "width": 4, "height": 4 }
+      }
+    }
+  },
+  "animations": {}
+}
+"#,
+    )
+    .unwrap();
+    let mut skeleton = crate::Skeleton::new(data);
+    skeleton.set_to_setup_pose();
+    skeleton.update_world_transform();
+
+    let draw_list = build_draw_list(&skeleton);
+    assert_eq!(draw_list.draws.len(), 1);
+    assert_eq!(draw_list.draws[0].texture_path, "page.png");
+    assert!(draw_list.vertices.len() > 4);
+
+    let eps = 1.0e-4;
+    assert!(
+        draw_list
+            .vertices
+            .iter()
+            .any(|v| { v.position[0].abs() > 1.0 + eps || v.position[1].abs() > 1.0 + eps }),
+        "expected inverse clipping to keep vertices outside the clip polygon: {:?}",
+        draw_list.vertices
+    );
+}

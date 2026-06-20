@@ -10,6 +10,12 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from upstream_baseline import load_baseline
+
+UPSTREAM_BASELINE = load_baseline()
+UPSTREAM_DEFAULT_REV = UPSTREAM_BASELINE.rev
+UPSTREAM_BASELINE_COMMIT = UPSTREAM_BASELINE.commit
+
 
 @dataclass(frozen=True)
 class ExampleEntry:
@@ -124,8 +130,11 @@ def main(argv: list[str]) -> int:
     )
     ap.add_argument(
         "--rev",
-        default="4.3",
-        help="Upstream commit/tag/branch to checkout (default: 4.3).",
+        default=UPSTREAM_DEFAULT_REV,
+        help=(
+            "Upstream commit/tag/branch to checkout "
+            f"(default: {UPSTREAM_DEFAULT_REV}; current baseline commit: {UPSTREAM_BASELINE_COMMIT})."
+        ),
     )
     ap.add_argument("--repo-url", default="", help="Override upstream repo URL (optional).")
     ap.add_argument("--depth", type=int, default=1)

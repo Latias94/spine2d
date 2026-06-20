@@ -5,19 +5,21 @@
 use crate::{
     AlphaFrame, AlphaTimeline, Animation, AttachmentData, AttachmentFrame, AttachmentTimeline,
     BlendMode, BoneData, BoneTimeline, BoundingBoxAttachmentData, ClippingAttachmentData,
-    ColorFrame, ColorTimeline, Curve, DeformFrame, DeformTimeline, Error, Event, EventTimeline,
-    FloatFrame, IkConstraintData, IkConstraintTimeline, IkFrame, Inherit, InheritFrame,
-    InheritTimeline, MeshAttachmentData, MeshVertices, PathAttachmentData, PathConstraintData,
-    PathConstraintMixTimeline, PathConstraintPositionTimeline, PathConstraintSpacingTimeline,
-    PathConstraintTimeline, PathMixFrame, PointAttachmentData, PositionMode, RegionAttachmentData,
-    Rgb2Frame, Rgb2Timeline, RgbFrame, RgbTimeline, Rgba2Frame, Rgba2Timeline, RotateFrame,
-    RotateMode, RotateTimeline, ScaleTimeline, ScaleXTimeline, ScaleYTimeline, SequenceDef,
-    SequenceFrame, SequenceMode, SequenceTimeline, ShearTimeline, ShearXTimeline, ShearYTimeline,
-    SkinData, SlotData, SpacingMode, TransformConstraintData, TransformConstraintTimeline,
+    ColorFrame, ColorTimeline, Curve, DeformFrame, DeformTimeline, DrawOrderFolderFrame,
+    DrawOrderFolderTimeline, Error, Event, EventTimeline, FloatFrame, IkConstraintData,
+    IkConstraintTimeline, IkFrame, Inherit, InheritFrame, InheritTimeline, MeshAttachmentData,
+    MeshVertices, PathAttachmentData, PathConstraintData, PathConstraintMixTimeline,
+    PathConstraintPositionTimeline, PathConstraintSpacingTimeline, PathConstraintTimeline,
+    PathMixFrame, PointAttachmentData, PositionMode, RegionAttachmentData, Rgb2Frame, Rgb2Timeline,
+    RgbFrame, RgbTimeline, Rgba2Frame, Rgba2Timeline, RotateFrame, RotateMode, RotateTimeline,
+    ScaleTimeline, ScaleXTimeline, ScaleYTimeline, SequenceDef, SequenceFrame, SequenceMode,
+    SequenceTimeline, ShearTimeline, ShearXTimeline, ShearYTimeline, SkinData, SlotData,
+    SpacingMode, TimelineKind, TransformConstraintData, TransformConstraintTimeline,
     TransformFrame, TranslateTimeline, TranslateXTimeline, TranslateYTimeline, Vec2Frame,
     VertexWeight,
 };
 use byteorder::{BigEndian, ByteOrder};
+use indexmap::IndexMap;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -68,6 +70,19 @@ const CONSTRAINT_PATH: u8 = 1;
 const CONSTRAINT_TRANSFORM: u8 = 2;
 const CONSTRAINT_PHYSICS: u8 = 3;
 const CONSTRAINT_SLIDER: u8 = 4;
+
+fn decode_path_constraint_position_mode(flags: u8) -> PositionMode {
+    if ((flags >> 1) & 1) != 0 {
+        PositionMode::Percent
+    } else {
+        PositionMode::Fixed
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn decode_path_constraint_position_mode_for_test(flags: u8) -> PositionMode {
+    decode_path_constraint_position_mode(flags)
+}
 
 // Spine 4.3 binary format stores constraints in a single ordered list (mixed types). Animation
 // timelines reference constraints by that combined index, so we need a mapping to our per-type
@@ -241,6 +256,7 @@ struct PendingLinkedMesh {
     skin_name: String,
     slot_index: usize,
     attachment_key: String,
+    source_slot_index: usize,
     parent_skin_index: usize,
     parent_key: String,
     inherit_timelines: bool,
@@ -338,9 +354,27 @@ fn read_vertices(
         });
     }
 
+    let bones_buffer_len = input.read_varint(true)? as usize;
+    if bones_buffer_len < vertex_count {
+        return Err(Error::BinaryParse {
+            message: format!(
+                "invalid weighted vertices buffer length {bones_buffer_len} for {vertex_count} vertices"
+            ),
+        });
+    }
+
     let mut weights_per_vertex = Vec::with_capacity(vertex_count);
-    for _ in 0..vertex_count {
+    let mut consumed_bones = 0usize;
+    while consumed_bones < bones_buffer_len {
         let bone_count = input.read_varint(true)? as usize;
+        consumed_bones = consumed_bones.saturating_add(1);
+        if consumed_bones + bone_count > bones_buffer_len {
+            return Err(Error::BinaryParse {
+                message: format!(
+                    "weighted vertex bone count exceeds buffer length: consumed={consumed_bones} count={bone_count} len={bones_buffer_len}"
+                ),
+            });
+        }
         let mut weights = Vec::with_capacity(bone_count);
         for _ in 0..bone_count {
             let bone = input.read_varint(true)? as usize;
@@ -348,14 +382,38 @@ fn read_vertices(
             let y = input.read_f32_be()? * scale;
             let weight = input.read_f32_be()?;
             weights.push(VertexWeight { bone, x, y, weight });
+            consumed_bones += 1;
         }
         weights_per_vertex.push(weights);
+    }
+    if weights_per_vertex.len() != vertex_count {
+        return Err(Error::BinaryParse {
+            message: format!(
+                "weighted vertices decoded {} vertices, expected {vertex_count}",
+                weights_per_vertex.len()
+            ),
+        });
     }
 
     Ok(ReadVertices {
         vertices: MeshVertices::Weighted(weights_per_vertex),
         world_vertices_length,
     })
+}
+
+#[cfg(test)]
+pub(crate) fn read_vertices_for_test(
+    bytes: &[u8],
+    weighted: bool,
+    scale: f32,
+) -> Result<(MeshVertices, usize, usize), Error> {
+    let mut input = BinaryInput::new(bytes);
+    let vertices = read_vertices(&mut input, weighted, scale)?;
+    Ok((
+        vertices.vertices,
+        vertices.world_vertices_length,
+        input.cursor,
+    ))
 }
 
 fn attachment_deform_setup(vertices: &MeshVertices) -> (usize, Option<Vec<f32>>) {
@@ -516,11 +574,17 @@ fn read_attachment(
                 triangles.push(idx as u32);
             }
 
+            let timeline_slot_count = input.read_varint(true)? as usize;
+            let mut timeline_slots = Vec::with_capacity(timeline_slot_count);
+            for _ in 0..timeline_slot_count {
+                timeline_slots.push(input.read_varint(true)? as usize);
+            }
+
             if nonessential {
                 let edges_count = input.read_varint(true)? as usize;
                 if trace_binary {
                     eprintln!(
-                        "    [binary] mesh {name:?} hull={hull_length} worldLen={} triIdx={} edges={edges_count} weighted={weighted} cursorAfterTriangles={}",
+                        "    [binary] mesh {name:?} hull={hull_length} worldLen={} triIdx={} timelineSlots={timeline_slot_count} edges={edges_count} weighted={weighted} cursorAfterTriangles={}",
                         v.world_vertices_length, triangle_index_count, input.cursor
                     );
                 }
@@ -542,6 +606,7 @@ fn read_attachment(
                 path,
                 timeline_skin: skin_name.to_string(),
                 timeline_attachment: attachment_key.to_string(),
+                timeline_slots,
                 sequence,
                 color,
                 vertices: v.vertices,
@@ -569,6 +634,7 @@ fn read_attachment(
                 None
             };
             let inherit_timelines = (flags & 128) != 0;
+            let source_slot_index = input.read_varint(true)? as usize;
             let parent_skin_index = input.read_varint(true)? as usize;
             let parent_key = input
                 .read_string_ref(strings)?
@@ -584,6 +650,7 @@ fn read_attachment(
                 skin_name: skin_name.to_string(),
                 slot_index,
                 attachment_key: attachment_key.to_string(),
+                source_slot_index,
                 parent_skin_index,
                 parent_key: parent_key.clone(),
                 inherit_timelines,
@@ -595,6 +662,7 @@ fn read_attachment(
                 path,
                 timeline_skin: skin_name.to_string(),
                 timeline_attachment: attachment_key.to_string(),
+                timeline_slots: Vec::new(),
                 sequence,
                 color,
                 vertices: MeshVertices::Unweighted(Vec::new()),
@@ -653,6 +721,8 @@ fn read_attachment(
                 name,
                 vertices: v.vertices,
                 end_slot: Some(end_slot_index),
+                convex: (flags & 32) != 0,
+                inverse: (flags & 64) != 0,
             }))
         }
         _ => Err(Error::BinaryParse {
@@ -819,10 +889,17 @@ impl crate::SkeletonData {
             let inherit = map_inherit(input.read_u8()? as i32);
             let length = input.read_f32_be()? * scale;
             let skin_required = input.read_bool()?;
+            let mut color = [0.61, 0.61, 0.61, 1.0];
+            let mut icon = String::new();
+            let mut icon_size = 1.0f32;
+            let mut icon_rotation = 0.0f32;
+            let mut visible = true;
             if nonessential {
-                let _ = input.read_color_rgba()?;
-                let _ = input.read_string()?;
-                let _ = input.read_bool()?;
+                color = input.read_color_rgba()?;
+                icon = input.read_string()?.unwrap_or_default();
+                icon_size = input.read_f32_be()?;
+                icon_rotation = input.read_f32_be()?;
+                visible = input.read_bool()?;
             }
             bones.push(BoneData {
                 name,
@@ -837,6 +914,11 @@ impl crate::SkeletonData {
                 shear_y,
                 inherit,
                 skin_required,
+                color,
+                icon,
+                icon_size,
+                icon_rotation,
+                visible,
             });
         }
 
@@ -861,8 +943,9 @@ impl crate::SkeletonData {
 
             let attachment = input.read_string_ref(&strings)?;
             let blend = map_blend(input.read_varint(true)?);
+            let mut visible = true;
             if nonessential {
-                let _ = input.read_bool()?;
+                visible = input.read_bool()?;
             }
             slots.push(SlotData {
                 name,
@@ -872,6 +955,7 @@ impl crate::SkeletonData {
                 has_dark,
                 dark_color,
                 blend,
+                visible,
             });
         }
 
@@ -897,7 +981,11 @@ impl crate::SkeletonData {
                     let target = input.read_varint(true)? as usize;
                     let flags = input.read_u8()?;
                     let skin_required = (flags & 1) != 0;
-                    let uniform = (flags & 2) != 0;
+                    let scale_y_mode = if (flags & 2) != 0 {
+                        crate::ScaleYMode::from_binary(input.read_u8()?)
+                    } else {
+                        crate::ScaleYMode::None
+                    };
                     let bend_direction = if (flags & 4) != 0 { -1 } else { 1 };
                     let compress = (flags & 8) != 0;
                     let stretch = (flags & 16) != 0;
@@ -927,7 +1015,7 @@ impl crate::SkeletonData {
                         softness,
                         compress,
                         stretch,
-                        uniform,
+                        scale_y_mode,
                         bend_direction,
                     });
                     constraint_refs.push(ConstraintRef::Ik(idx));
@@ -1087,14 +1175,7 @@ impl crate::SkeletonData {
                     let target = input.read_varint(true)? as usize; // slot index
                     let flags = input.read_u8()?;
                     let skin_required = (flags & 1) != 0;
-                    // NOTE: spine-cpp (4.3) decodes PositionMode from the packed flags using
-                    // `((flags >> 1) & 2)` (see SkeletonBinary.cpp). This is intentionally not
-                    // equivalent to `(flags & 2)`, and affects parity for some `.skel` exports.
-                    let position_mode = if ((flags >> 1) & 2) != 0 {
-                        PositionMode::Percent
-                    } else {
-                        PositionMode::Fixed
-                    };
+                    let position_mode = decode_path_constraint_position_mode(flags);
                     let spacing_mode = match (flags >> 2) & 3 {
                         0 => SpacingMode::Length,
                         1 => SpacingMode::Fixed,
@@ -1163,10 +1244,19 @@ impl crate::SkeletonData {
                     } else {
                         0.0
                     };
-                    let scale_x = if (flags & 16) != 0 {
+                    let mut scale_x = if (flags & 16) != 0 {
                         input.read_f32_be()?
                     } else {
                         0.0
+                    };
+                    let scale_y_mode = if scale_x < -2.0 {
+                        scale_x = -2.0 - scale_x;
+                        crate::ScaleYMode::Volume
+                    } else if scale_x < 0.0 {
+                        scale_x = -1.0 - scale_x;
+                        crate::ScaleYMode::Uniform
+                    } else {
+                        crate::ScaleYMode::None
                     };
                     let shear_x = if (flags & 32) != 0 {
                         input.read_f32_be()?
@@ -1215,6 +1305,7 @@ impl crate::SkeletonData {
                         y,
                         rotate,
                         scale_x,
+                        scale_y_mode,
                         shear_x,
                         limit,
                         step,
@@ -1321,7 +1412,7 @@ impl crate::SkeletonData {
             .is_some_and(|v| v == "1");
         let default_slot_count = input.read_varint(true)? as usize;
         if default_slot_count != 0 {
-            let mut attachments = vec![HashMap::new(); slots.len()];
+            let mut attachments = vec![IndexMap::new(); slots.len()];
             for _ in 0..default_slot_count {
                 let slot_entry_offset = input.cursor;
                 let slot_index = input.read_varint(true)? as usize;
@@ -1415,7 +1506,7 @@ impl crate::SkeletonData {
             }
 
             let slot_count = input.read_varint(true)? as usize;
-            let mut attachments = vec![HashMap::new(); slots.len()];
+            let mut attachments = vec![IndexMap::new(); slots.len()];
             for _ in 0..slot_count {
                 let slot_index = input.read_varint(true)? as usize;
                 let count = input.read_varint(true)? as usize;
@@ -1486,7 +1577,7 @@ impl crate::SkeletonData {
                     });
                 };
                 let Some(parent_attachment) =
-                    parent_skin.attachment(pending.slot_index, pending.parent_key.as_str())
+                    parent_skin.attachment(pending.source_slot_index, pending.parent_key.as_str())
                 else {
                     return Err(Error::BinaryParse {
                         message: format!(
@@ -1509,27 +1600,55 @@ impl crate::SkeletonData {
                 let parent_uvs = parent_mesh.uvs.clone();
                 let parent_triangles = parent_mesh.triangles.clone();
 
-                let Some(linked_skin) = skins_map.get_mut(&pending.skin_name) else {
-                    continue;
-                };
-                let Some(slot_map) = linked_skin.attachments.get_mut(pending.slot_index) else {
-                    continue;
-                };
-                let Some(linked_attachment) = slot_map.get_mut(&pending.attachment_key) else {
-                    continue;
-                };
-                let AttachmentData::Mesh(linked_mesh) = linked_attachment else {
-                    continue;
-                };
-                linked_mesh.vertices = parent_vertices;
-                linked_mesh.uvs = parent_uvs;
-                linked_mesh.triangles = parent_triangles;
-                if pending.inherit_timelines {
-                    linked_mesh.timeline_skin = parent_skin_name;
-                    linked_mesh.timeline_attachment = pending.parent_key.clone();
+                let timeline_skin = if pending.inherit_timelines {
+                    parent_skin_name.clone()
                 } else {
-                    linked_mesh.timeline_skin = pending.skin_name.clone();
-                    linked_mesh.timeline_attachment = pending.attachment_key.clone();
+                    pending.skin_name.clone()
+                };
+                let timeline_attachment = if pending.inherit_timelines {
+                    pending.parent_key.clone()
+                } else {
+                    pending.attachment_key.clone()
+                };
+
+                {
+                    let Some(linked_skin) = skins_map.get_mut(&pending.skin_name) else {
+                        continue;
+                    };
+                    let Some(slot_map) = linked_skin.attachments.get_mut(pending.slot_index) else {
+                        continue;
+                    };
+                    let Some(linked_attachment) = slot_map.get_mut(&pending.attachment_key) else {
+                        continue;
+                    };
+                    let AttachmentData::Mesh(linked_mesh) = linked_attachment else {
+                        continue;
+                    };
+                    linked_mesh.vertices = parent_vertices;
+                    linked_mesh.uvs = parent_uvs;
+                    linked_mesh.triangles = parent_triangles;
+                    linked_mesh.timeline_skin = timeline_skin.clone();
+                    linked_mesh.timeline_attachment = timeline_attachment.clone();
+                }
+
+                if pending.inherit_timelines && pending.slot_index != pending.source_slot_index {
+                    let Some(parent_skin) = skins_map.get_mut(&timeline_skin) else {
+                        continue;
+                    };
+                    let Some(parent_slot_map) =
+                        parent_skin.attachments.get_mut(pending.source_slot_index)
+                    else {
+                        continue;
+                    };
+                    let Some(parent_attachment) = parent_slot_map.get_mut(&timeline_attachment)
+                    else {
+                        continue;
+                    };
+                    if let AttachmentData::Mesh(parent_mesh) = parent_attachment {
+                        if !parent_mesh.timeline_slots.contains(&pending.slot_index) {
+                            parent_mesh.timeline_slots.push(pending.slot_index);
+                        }
+                    }
                 }
                 resolved_any = true;
             }
@@ -1607,6 +1726,7 @@ impl crate::SkeletonData {
                 &path_constraints,
                 &event_defs,
                 scale,
+                nonessential,
             )?;
             if trace_anim {
                 eprintln!("[binary] animation[{ai}] endOffset={}", input.cursor);
@@ -1654,6 +1774,7 @@ fn read_animation(
     path_constraints: &[PathConstraintData],
     event_defs: &[crate::EventData],
     scale: f32,
+    nonessential: bool,
 ) -> Result<Animation, Error> {
     let trace_anim = std::env::var("SPINE2D_BINARY_TRACE_ANIM")
         .ok()
@@ -1667,6 +1788,7 @@ fn read_animation(
     let _num_timelines = input.read_varint(true)?;
 
     let mut duration = 0.0f32;
+    let mut timeline_order = Vec::<TimelineKind>::new();
 
     // Slot timelines
     let slot_timeline_slot_count = input.read_varint(true)? as usize;
@@ -1694,6 +1816,9 @@ fn read_animation(
                         frames.push(AttachmentFrame { time, name });
                     }
                     slot_attachment_timelines.push(AttachmentTimeline { slot_index, frames });
+                    timeline_order.push(TimelineKind::SlotAttachment(
+                        slot_attachment_timelines.len() - 1,
+                    ));
                 }
                 SLOT_RGBA => {
                     let _bezier_count = input.read_varint(true)? as usize;
@@ -1747,6 +1872,7 @@ fn read_animation(
                         a = a2;
                     }
                     slot_color_timelines.push(ColorTimeline { slot_index, frames });
+                    timeline_order.push(TimelineKind::SlotColor(slot_color_timelines.len() - 1));
                 }
                 SLOT_RGB => {
                     let _bezier_count = input.read_varint(true)? as usize;
@@ -1796,6 +1922,7 @@ fn read_animation(
                         b = b2;
                     }
                     slot_rgb_timelines.push(RgbTimeline { slot_index, frames });
+                    timeline_order.push(TimelineKind::SlotRgb(slot_rgb_timelines.len() - 1));
                 }
                 SLOT_RGBA2 => {
                     let _bezier_count = input.read_varint(true)? as usize;
@@ -1861,6 +1988,7 @@ fn read_animation(
                         b2 = nb2;
                     }
                     slot_rgba2_timelines.push(Rgba2Timeline { slot_index, frames });
+                    timeline_order.push(TimelineKind::SlotRgba2(slot_rgba2_timelines.len() - 1));
                 }
                 SLOT_RGB2 => {
                     let _bezier_count = input.read_varint(true)? as usize;
@@ -1923,6 +2051,7 @@ fn read_animation(
                         b2 = nb2;
                     }
                     slot_rgb2_timelines.push(Rgb2Timeline { slot_index, frames });
+                    timeline_order.push(TimelineKind::SlotRgb2(slot_rgb2_timelines.len() - 1));
                 }
                 SLOT_ALPHA => {
                     let _bezier_count = input.read_varint(true)? as usize;
@@ -1951,6 +2080,7 @@ fn read_animation(
                         a = a2;
                     }
                     slot_alpha_timelines.push(AlphaTimeline { slot_index, frames });
+                    timeline_order.push(TimelineKind::SlotAlpha(slot_alpha_timelines.len() - 1));
                 }
                 other => {
                     let type_offset = input.cursor.saturating_sub(1);
@@ -2000,6 +2130,7 @@ fn read_animation(
                     bone_index,
                     frames,
                 }));
+                timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 continue;
             }
             let _bezier_count = input.read_varint(true)? as usize;
@@ -2011,6 +2142,7 @@ fn read_animation(
                     }
                     bone_timelines
                         .push(BoneTimeline::Rotate(RotateTimeline { bone_index, frames }));
+                    timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 }
                 BONE_TRANSLATE => {
                     let frames = read_curve_timeline2(input, frame_count, scale)?;
@@ -2021,6 +2153,7 @@ fn read_animation(
                         bone_index,
                         frames,
                     }));
+                    timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 }
                 BONE_TRANSLATEX => {
                     let frames = read_curve_timeline1(input, frame_count, scale)?;
@@ -2031,6 +2164,7 @@ fn read_animation(
                         bone_index,
                         frames,
                     }));
+                    timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 }
                 BONE_TRANSLATEY => {
                     let frames = read_curve_timeline1(input, frame_count, scale)?;
@@ -2041,6 +2175,7 @@ fn read_animation(
                         bone_index,
                         frames,
                     }));
+                    timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 }
                 BONE_SCALE => {
                     let frames = read_curve_timeline2(input, frame_count, 1.0)?;
@@ -2048,6 +2183,7 @@ fn read_animation(
                         duration = duration.max(last.time);
                     }
                     bone_timelines.push(BoneTimeline::Scale(ScaleTimeline { bone_index, frames }));
+                    timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 }
                 BONE_SCALEX => {
                     let frames = read_curve_timeline1(input, frame_count, 1.0)?;
@@ -2056,6 +2192,7 @@ fn read_animation(
                     }
                     bone_timelines
                         .push(BoneTimeline::ScaleX(ScaleXTimeline { bone_index, frames }));
+                    timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 }
                 BONE_SCALEY => {
                     let frames = read_curve_timeline1(input, frame_count, 1.0)?;
@@ -2064,6 +2201,7 @@ fn read_animation(
                     }
                     bone_timelines
                         .push(BoneTimeline::ScaleY(ScaleYTimeline { bone_index, frames }));
+                    timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 }
                 BONE_SHEAR => {
                     let frames = read_curve_timeline2(input, frame_count, 1.0)?;
@@ -2071,6 +2209,7 @@ fn read_animation(
                         duration = duration.max(last.time);
                     }
                     bone_timelines.push(BoneTimeline::Shear(ShearTimeline { bone_index, frames }));
+                    timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 }
                 BONE_SHEARX => {
                     let frames = read_curve_timeline1(input, frame_count, 1.0)?;
@@ -2079,6 +2218,7 @@ fn read_animation(
                     }
                     bone_timelines
                         .push(BoneTimeline::ShearX(ShearXTimeline { bone_index, frames }));
+                    timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 }
                 BONE_SHEARY => {
                     let frames = read_curve_timeline1(input, frame_count, 1.0)?;
@@ -2087,6 +2227,7 @@ fn read_animation(
                     }
                     bone_timelines
                         .push(BoneTimeline::ShearY(ShearYTimeline { bone_index, frames }));
+                    timeline_order.push(TimelineKind::Bone(bone_timelines.len() - 1));
                 }
                 other => {
                     return Err(Error::BinaryParse {
@@ -2200,6 +2341,9 @@ fn read_animation(
             constraint_index,
             frames,
         });
+        timeline_order.push(TimelineKind::IkConstraint(
+            ik_constraint_timelines.len() - 1,
+        ));
     }
 
     // Transform constraint timelines
@@ -2297,6 +2441,9 @@ fn read_animation(
             constraint_index,
             frames,
         });
+        timeline_order.push(TimelineKind::TransformConstraint(
+            transform_constraint_timelines.len() - 1,
+        ));
     }
 
     // Path constraint timelines
@@ -2349,6 +2496,9 @@ fn read_animation(
                             frames,
                         },
                     ));
+                    timeline_order.push(TimelineKind::PathConstraint(
+                        path_constraint_timelines.len() - 1,
+                    ));
                 }
                 PATH_SPACING => {
                     let value_scale =
@@ -2366,6 +2516,9 @@ fn read_animation(
                             constraint_index,
                             frames,
                         },
+                    ));
+                    timeline_order.push(TimelineKind::PathConstraint(
+                        path_constraint_timelines.len() - 1,
                     ));
                 }
                 PATH_MIX => {
@@ -2423,6 +2576,9 @@ fn read_animation(
                             frames,
                         },
                     ));
+                    timeline_order.push(TimelineKind::PathConstraint(
+                        path_constraint_timelines.len() - 1,
+                    ));
                 }
                 other => {
                     return Err(Error::BinaryParse {
@@ -2476,6 +2632,9 @@ fn read_animation(
                     constraint_index,
                     frames,
                 });
+                timeline_order.push(TimelineKind::PhysicsReset(
+                    physics_reset_timelines.len() - 1,
+                ));
                 continue;
             }
 
@@ -2536,6 +2695,9 @@ fn read_animation(
                 }
             };
             physics_constraint_timelines.push(wrapped);
+            timeline_order.push(TimelineKind::PhysicsConstraint(
+                physics_constraint_timelines.len() - 1,
+            ));
         }
     }
 
@@ -2573,8 +2735,14 @@ fn read_animation(
                 frames,
             };
             match ty {
-                SLIDER_TIME => slider_time_timelines.push(timeline),
-                SLIDER_MIX => slider_mix_timelines.push(timeline),
+                SLIDER_TIME => {
+                    slider_time_timelines.push(timeline);
+                    timeline_order.push(TimelineKind::SliderTime(slider_time_timelines.len() - 1));
+                }
+                SLIDER_MIX => {
+                    slider_mix_timelines.push(timeline);
+                    timeline_order.push(TimelineKind::SliderMix(slider_mix_timelines.len() - 1));
+                }
                 other => {
                     return Err(Error::BinaryParse {
                         message: format!("unsupported slider timeline type {other}"),
@@ -2695,6 +2863,7 @@ fn read_animation(
                             setup_vertices,
                             frames,
                         });
+                        timeline_order.push(TimelineKind::Deform(deform_timelines.len() - 1));
                     }
                     ATTACHMENT_SEQUENCE => {
                         let mut frames = Vec::with_capacity(frame_count);
@@ -2718,6 +2887,7 @@ fn read_animation(
                             attachment: attachment_key,
                             frames,
                         });
+                        timeline_order.push(TimelineKind::Sequence(sequence_timelines.len() - 1));
                     }
                     other => {
                         return Err(Error::BinaryParse {
@@ -2750,53 +2920,54 @@ fn read_animation(
         for _ in 0..draw_order_count {
             let time = input.read_f32_be()?;
             duration = duration.max(time);
-            let offset_count = input.read_varint(true)? as usize;
-            if offset_count == 0 {
-                frames.push(crate::DrawOrderFrame {
-                    time,
-                    draw_order_to_setup_index: None,
-                });
-                continue;
-            }
-
-            let slot_count = slots.len();
-            let mut draw_order = vec![usize::MAX; slot_count];
-            let mut unchanged = Vec::with_capacity(slot_count.saturating_sub(offset_count));
-            let mut original_index = 0usize;
-            for _ in 0..offset_count {
-                let slot_index = input.read_varint(true)? as usize;
-                while original_index != slot_index {
-                    unchanged.push(original_index);
-                    original_index += 1;
-                }
-                let offset = input.read_varint(true)? as isize;
-                let dst = (original_index as isize + offset) as usize;
-                draw_order[dst] = original_index;
-                original_index += 1;
-            }
-            while original_index < slot_count {
-                unchanged.push(original_index);
-                original_index += 1;
-            }
-            let mut unchanged_index = unchanged.len();
-            for i in (0..slot_count).rev() {
-                if draw_order[i] == usize::MAX {
-                    unchanged_index -= 1;
-                    draw_order[i] = unchanged[unchanged_index];
-                }
-            }
+            let draw_order = read_draw_order_offsets(input, slots.len())?;
             frames.push(crate::DrawOrderFrame {
                 time,
-                draw_order_to_setup_index: Some(draw_order),
+                draw_order_to_setup_index: draw_order,
             });
         }
         Some(crate::DrawOrderTimeline { frames })
     };
+    if draw_order_timeline.is_some() {
+        timeline_order.push(TimelineKind::DrawOrder);
+    }
+
+    let draw_order_folder_count = input.read_varint(true)? as usize;
+    let mut draw_order_folder_timelines = Vec::with_capacity(draw_order_folder_count);
+    for _ in 0..draw_order_folder_count {
+        let folder_slot_count = input.read_varint(true)? as usize;
+        let mut folder_slots = Vec::with_capacity(folder_slot_count);
+        for _ in 0..folder_slot_count {
+            folder_slots.push(input.read_varint(true)? as usize);
+        }
+
+        let key_count = input.read_varint(true)? as usize;
+        let mut frames = Vec::with_capacity(key_count);
+        for _ in 0..key_count {
+            let time = input.read_f32_be()?;
+            duration = duration.max(time);
+            let folder_draw_order = read_draw_order_offsets(input, folder_slot_count)?;
+            frames.push(DrawOrderFolderFrame {
+                time,
+                folder_draw_order,
+            });
+        }
+        draw_order_folder_timelines.push(DrawOrderFolderTimeline {
+            slots: folder_slots,
+            frames,
+        });
+        timeline_order.push(TimelineKind::DrawOrderFolder(
+            draw_order_folder_timelines.len() - 1,
+        ));
+    }
 
     // Event timeline
     let event_timeline = read_event_timeline(input, event_defs, &mut duration, trace_anim, name)?;
+    if nonessential {
+        let _ = input.read_color_rgba()?;
+    }
 
-    Ok(Animation {
+    let animation = Animation {
         name: name.to_string(),
         duration,
         event_timeline,
@@ -2817,7 +2988,10 @@ fn read_animation(
         slider_time_timelines,
         slider_mix_timelines,
         draw_order_timeline,
-    })
+        draw_order_folder_timelines,
+        timeline_order,
+    };
+    Ok(crate::runtime::finalize_animation(animation))
 }
 
 fn read_event_timeline(
@@ -2878,6 +3052,57 @@ fn read_event_timeline(
         });
     }
     Ok(Some(EventTimeline { events }))
+}
+
+fn read_draw_order_offsets(
+    input: &mut BinaryInput<'_>,
+    slot_count: usize,
+) -> Result<Option<Vec<usize>>, Error> {
+    let offset_count = input.read_varint(true)? as usize;
+    if offset_count == 0 {
+        return Ok(None);
+    }
+
+    let mut draw_order = vec![usize::MAX; slot_count];
+    let mut unchanged = Vec::with_capacity(slot_count.saturating_sub(offset_count));
+    let mut original_index = 0usize;
+    for _ in 0..offset_count {
+        let slot_index = input.read_varint(true)? as usize;
+        while original_index != slot_index {
+            if original_index >= slot_count {
+                return Err(Error::BinaryParse {
+                    message: "drawOrder offset slot index out of range".to_string(),
+                });
+            }
+            unchanged.push(original_index);
+            original_index += 1;
+        }
+        let offset = input.read_varint(true)? as isize;
+        let dst = original_index as isize + offset;
+        if dst < 0 || dst >= slot_count as isize {
+            return Err(Error::BinaryParse {
+                message: "drawOrder offset target out of range".to_string(),
+            });
+        }
+        draw_order[dst as usize] = original_index;
+        original_index += 1;
+    }
+    while original_index < slot_count {
+        unchanged.push(original_index);
+        original_index += 1;
+    }
+    let mut unchanged_index = unchanged.len();
+    for i in (0..slot_count).rev() {
+        if draw_order[i] == usize::MAX {
+            unchanged_index = unchanged_index
+                .checked_sub(1)
+                .ok_or_else(|| Error::BinaryParse {
+                    message: "drawOrder failed to fill unchanged slots".to_string(),
+                })?;
+            draw_order[i] = unchanged[unchanged_index];
+        }
+    }
+    Ok(Some(draw_order))
 }
 
 fn read_rotate_timeline(
@@ -2947,6 +3172,42 @@ mod tests {
         let mut duration = 0.0f32;
         read_event_timeline(&mut input, event_defs, &mut duration, false, "<test>")
             .expect("read_event_timeline")
+    }
+
+    #[test]
+    fn binary_rotate_timeline_preserves_curve_data() {
+        let mut bytes = Vec::new();
+
+        // frame 0
+        push_f32_be(&mut bytes, 0.0);
+        push_f32_be(&mut bytes, 10.0);
+        // frame 1
+        push_f32_be(&mut bytes, 0.5);
+        push_f32_be(&mut bytes, 30.0);
+        bytes.push(2);
+        push_f32_be(&mut bytes, 0.25);
+        push_f32_be(&mut bytes, 5.0);
+        push_f32_be(&mut bytes, 0.75);
+        push_f32_be(&mut bytes, 20.0);
+
+        let mut input = BinaryInput::new(&bytes);
+        let frames = super::read_rotate_timeline(&mut input, 2).expect("read rotate timeline");
+
+        assert_eq!(frames.len(), 2);
+        assert_eq!(frames[0].time, 0.0);
+        assert_eq!(frames[0].angle, 10.0);
+        assert_eq!(frames[1].time, 0.5);
+        assert_eq!(frames[1].angle, 30.0);
+        match frames[0].curve {
+            crate::Curve::Bezier { cx1, cy1, cx2, cy2 } => {
+                assert_eq!(cx1, 0.25);
+                assert_eq!(cy1, 5.0);
+                assert_eq!(cx2, 0.75);
+                assert_eq!(cy2, 20.0);
+            }
+            other => panic!("expected bezier curve, got {other:?}"),
+        }
+        assert_eq!(frames[1].curve, crate::Curve::Linear);
     }
 
     #[test]

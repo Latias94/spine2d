@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <cctype>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -52,8 +53,7 @@ static void usage() {
          "  --entry-alpha-attachment-threshold <threshold>\n"
          "  --entry-mix-attachment-threshold <threshold>\n"
          "  --entry-mix-draw-order-threshold <threshold>\n"
-         "  --entry-hold-previous <0|1>\n"
-         "  --entry-mix-blend <setup|first|replace|add>\n"
+         "  --entry-additive <0|1>\n"
          "  --entry-reverse <0|1>\n"
          "  --entry-shortest-rotation <0|1>\n"
          "  --entry-reset-rotation-directions\n"
@@ -74,6 +74,72 @@ static std::string json_escape(const char *s) {
     else out += static_cast<char>(c);
   }
   return out;
+}
+
+static bool debug_bone_name_enabled(const char *name, const char *filter) {
+  if (!name || !filter || !filter[0]) return false;
+  const std::string needle(name);
+  std::string current;
+  for (const char *p = filter;; ++p) {
+    if (*p == ',' || *p == '\0') {
+      size_t start = 0;
+      while (start < current.size() && std::isspace(static_cast<unsigned char>(current[start]))) start++;
+      size_t end = current.size();
+      while (end > start && std::isspace(static_cast<unsigned char>(current[end - 1]))) end--;
+      if (current.substr(start, end - start) == needle) return true;
+      current.clear();
+      if (*p == '\0') return false;
+    } else {
+      current.push_back(*p);
+    }
+  }
+}
+
+static void debug_dump_bones(const char *label, spine_skeleton skeleton, float total_time) {
+  const char *filter = std::getenv("SPINE2D_DEBUG_BONES");
+  if (!filter || !filter[0]) return;
+
+  spine_array_bone bones = spine_skeleton_get_bones(skeleton);
+  const size_t nb = spine_array_bone_size(bones);
+  spine_bone *bones_buf = spine_array_bone_buffer(bones);
+  std::cerr << std::setprecision(std::numeric_limits<float>::max_digits10);
+  std::cerr << "[DEBUG-runwalk] " << label << " t=" << total_time << "\n";
+  for (size_t i = 0; i < nb; i++) {
+    spine_bone bone = bones_buf[i];
+    spine_bone_data bd = spine_bone_get_data(bone);
+    const char *name = bd ? spine_bone_data_get_name(bd) : "<unknown>";
+    if (!debug_bone_name_enabled(name, filter)) continue;
+    spine_bone_pose pose = spine_bone_get_pose(bone);
+    spine_bone_pose applied = spine_bone_get_applied_pose(bone);
+    std::cerr << "[DEBUG-runwalk] bone[" << i << "] " << name
+              << " pose x=" << spine_bone_pose_get_x(pose)
+              << " y=" << spine_bone_pose_get_y(pose)
+              << " rot=" << spine_bone_pose_get_rotation(pose)
+              << " sx=" << spine_bone_pose_get_scale_x(pose)
+              << " sy=" << spine_bone_pose_get_scale_y(pose)
+              << " shx=" << spine_bone_pose_get_shear_x(pose)
+              << " shy=" << spine_bone_pose_get_shear_y(pose)
+              << " world a=" << spine_bone_pose_get_a(pose)
+              << " b=" << spine_bone_pose_get_b(pose)
+              << " c=" << spine_bone_pose_get_c(pose)
+              << " d=" << spine_bone_pose_get_d(pose)
+              << " x=" << spine_bone_pose_get_world_x(pose)
+              << " y=" << spine_bone_pose_get_world_y(pose)
+              << " applied x=" << spine_bone_pose_get_x(applied)
+              << " y=" << spine_bone_pose_get_y(applied)
+              << " rot=" << spine_bone_pose_get_rotation(applied)
+              << " sx=" << spine_bone_pose_get_scale_x(applied)
+              << " sy=" << spine_bone_pose_get_scale_y(applied)
+              << " shx=" << spine_bone_pose_get_shear_x(applied)
+              << " shy=" << spine_bone_pose_get_shear_y(applied)
+              << " world a=" << spine_bone_pose_get_a(applied)
+              << " b=" << spine_bone_pose_get_b(applied)
+              << " c=" << spine_bone_pose_get_c(applied)
+              << " d=" << spine_bone_pose_get_d(applied)
+              << " x=" << spine_bone_pose_get_world_x(applied)
+              << " y=" << spine_bone_pose_get_world_y(applied)
+              << "\n";
+  }
 }
 
 struct AttachmentTypeInfo {
@@ -385,33 +451,12 @@ int main(int argc, char **argv) {
         continue;
       }
 
-      if (std::strcmp(arg, "--entry-hold-previous") == 0 && i + 1 < argc) {
+      if (std::strcmp(arg, "--entry-additive") == 0 && i + 1 < argc) {
         if (!last_entry) {
-          std::cerr << "--entry-hold-previous requires a preceding --set/--add command\n";
+          std::cerr << "--entry-additive requires a preceding --set/--add command\n";
           return 2;
         }
-        const bool hold = std::atoi(argv[i + 1]) ? true : false;
-        spine_track_entry_set_hold_previous(last_entry, hold);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-mix-blend") == 0 && i + 1 < argc) {
-        if (!last_entry) {
-          std::cerr << "--entry-mix-blend requires a preceding --set/--add command\n";
-          return 2;
-        }
-        const char *blend = argv[i + 1];
-        spine_mix_blend mix_blend = SPINE_MIX_BLEND_REPLACE;
-        if (std::strcmp(blend, "setup") == 0) mix_blend = SPINE_MIX_BLEND_SETUP;
-        else if (std::strcmp(blend, "first") == 0) mix_blend = SPINE_MIX_BLEND_FIRST;
-        else if (std::strcmp(blend, "replace") == 0) mix_blend = SPINE_MIX_BLEND_REPLACE;
-        else if (std::strcmp(blend, "add") == 0) mix_blend = SPINE_MIX_BLEND_ADD;
-        else {
-          std::cerr << "invalid mix blend: " << blend << "\n";
-          return 2;
-        }
-        spine_track_entry_set_mix_blend(last_entry, mix_blend);
+        spine_track_entry_set_additive(last_entry, std::atoi(argv[i + 1]) != 0);
         i += 1;
         continue;
       }
@@ -451,8 +496,10 @@ int main(int argc, char **argv) {
         const float dt = std::strtof(argv[i + 1], nullptr);
         spine_animation_state_update(state, dt);
         spine_animation_state_apply(state, skeleton);
+        debug_dump_bones("after-apply-before-world", skeleton, total_time + dt);
         spine_skeleton_update(skeleton, dt);
         spine_skeleton_update_world_transform(skeleton, physics);
+        debug_dump_bones("after-world", skeleton, total_time + dt);
         total_time += dt;
         i += 1;
         continue;
@@ -532,7 +579,8 @@ int main(int argc, char **argv) {
   }
 
   // Draw order as slot data indices.
-  spine_array_slot draw_order = spine_skeleton_get_draw_order(skeleton);
+  spine_draw_order draw_order_obj = spine_skeleton_get_draw_order(skeleton);
+  spine_array_slot draw_order = spine_draw_order_get_applied_pose(draw_order_obj);
   const size_t nd = spine_array_slot_size(draw_order);
   spine_slot *draw_buf = spine_array_slot_buffer(draw_order);
   std::cout << "],\"drawOrder\":[";

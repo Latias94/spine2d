@@ -190,62 +190,40 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     let dark_color = slot_dark_color_rgba(slot, premultiplied_alpha, light_alpha);
 
                     if !clipper.is_clipping() {
-                        let base = out.vertices.len() as u32;
-
-                        out.vertices.push(Vertex {
-                            position: [world[0].0, world[0].1],
-                            uv: uvs[0],
-                            color,
-                            dark_color,
-                        });
-                        out.vertices.push(Vertex {
-                            position: [world[1].0, world[1].1],
-                            uv: uvs[1],
-                            color,
-                            dark_color,
-                        });
-                        out.vertices.push(Vertex {
-                            position: [world[2].0, world[2].1],
-                            uv: uvs[2],
-                            color,
-                            dark_color,
-                        });
-                        out.vertices.push(Vertex {
-                            position: [world[3].0, world[3].1],
-                            uv: uvs[3],
-                            color,
-                            dark_color,
-                        });
-
-                        let first_index = out.indices.len();
-                        out.indices.extend_from_slice(&[
-                            base,
-                            base + 1,
-                            base + 2,
-                            base + 2,
-                            base + 3,
-                            base,
-                        ]);
-
-                        if let Some(last) = out.draws.last_mut() {
-                            let expected = last.first_index + last.index_count;
-                            if last.texture_path == texture_path
-                                && last.blend == blend
-                                && last.premultiplied_alpha == premultiplied_alpha
-                                && expected == first_index
-                            {
-                                last.index_count += 6;
-                                break 'process_slot;
-                            }
-                        }
-
-                        out.draws.push(Draw {
-                            texture_path,
+                        let vertices = vec![
+                            Vertex {
+                                position: [world[0].0, world[0].1],
+                                uv: uvs[0],
+                                color,
+                                dark_color,
+                            },
+                            Vertex {
+                                position: [world[1].0, world[1].1],
+                                uv: uvs[1],
+                                color,
+                                dark_color,
+                            },
+                            Vertex {
+                                position: [world[2].0, world[2].1],
+                                uv: uvs[2],
+                                color,
+                                dark_color,
+                            },
+                            Vertex {
+                                position: [world[3].0, world[3].1],
+                                uv: uvs[3],
+                                color,
+                                dark_color,
+                            },
+                        ];
+                        append_indexed(
+                            out,
+                            &texture_path,
                             blend,
                             premultiplied_alpha,
-                            first_index,
-                            index_count: 6,
-                        });
+                            vertices,
+                            &[0_u32, 1, 2, 2, 3, 0],
+                        );
                     } else {
                         let positions: [f32; 8] = [
                             world[0].0, world[0].1, world[1].0, world[1].1, world[2].0, world[2].1,
@@ -320,7 +298,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                         polygon_flat.push(p[1]);
                     }
 
-                    if clipper.clip_start(&polygon_flat) {
+                    if clipper.clip_start(&polygon_flat, clip.convex, clip.inverse) {
                         clip_end_slot = clip.end_slot;
                     }
                 }
@@ -420,15 +398,14 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     };
 
                     if !clipper.is_clipping() {
-                        let base = out.vertices.len() as u32;
-
+                        let mut vertices = Vec::with_capacity(world_positions.len());
                         for (i, pos) in world_positions.iter().enumerate() {
                             let uv = mesh.uvs.get(i).copied().unwrap_or([0.0, 0.0]);
                             let uv = atlas_region_and_page
                                 .map(|(r, p)| map_mesh_uv_to_page(uv, r, p))
                                 .unwrap_or(uv);
 
-                            out.vertices.push(Vertex {
+                            vertices.push(Vertex {
                                 position: [pos[0], pos[1]],
                                 uv,
                                 color,
@@ -436,30 +413,14 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                             });
                         }
 
-                        let first_index = out.indices.len();
-                        for &idx in &mesh.triangles {
-                            out.indices.push(base + idx);
-                        }
-
-                        if let Some(last) = out.draws.last_mut() {
-                            let expected = last.first_index + last.index_count;
-                            if last.texture_path == texture_path
-                                && last.blend == blend
-                                && last.premultiplied_alpha == premultiplied_alpha
-                                && expected == first_index
-                            {
-                                last.index_count += mesh.triangles.len();
-                                break 'process_slot;
-                            }
-                        }
-
-                        out.draws.push(Draw {
-                            texture_path,
+                        append_indexed(
+                            out,
+                            &texture_path,
                             blend,
                             premultiplied_alpha,
-                            first_index,
-                            index_count: mesh.triangles.len(),
-                        });
+                            vertices,
+                            &mesh.triangles,
+                        );
                     } else {
                         let mut positions: Vec<f32> = Vec::with_capacity(world_positions.len() * 2);
                         let mut uvs_flat: Vec<f32> = Vec::with_capacity(world_positions.len() * 2);
@@ -532,6 +493,25 @@ fn append_indexed_u16(
     vertices: Vec<Vertex>,
     indices: &[u16],
 ) {
+    let indices = indices.iter().map(|&idx| idx as u32).collect::<Vec<_>>();
+    append_indexed(
+        out,
+        texture_path,
+        blend,
+        premultiplied_alpha,
+        vertices,
+        &indices,
+    );
+}
+
+fn append_indexed(
+    out: &mut DrawList,
+    texture_path: &str,
+    blend: BlendMode,
+    premultiplied_alpha: bool,
+    vertices: Vec<Vertex>,
+    indices: &[u32],
+) {
     if vertices.is_empty() || indices.is_empty() {
         return;
     }
@@ -540,15 +520,25 @@ fn append_indexed_u16(
     out.vertices.extend(vertices);
 
     let first_index = out.indices.len();
-    out.indices
-        .extend(indices.iter().map(|&idx| base + idx as u32));
+    out.indices.extend(indices.iter().map(|&idx| base + idx));
 
     if let Some(last) = out.draws.last_mut() {
         let expected = last.first_index + last.index_count;
+        let last_first_index = out.indices[last.first_index] as usize;
+        let first_new_index = base as usize;
+        let colors_match = out
+            .vertices
+            .get(last_first_index)
+            .zip(out.vertices.get(first_new_index))
+            .map(|(last, new)| last.color == new.color && last.dark_color == new.dark_color)
+            .unwrap_or(false);
+
         if last.texture_path == texture_path
             && last.blend == blend
             && last.premultiplied_alpha == premultiplied_alpha
             && expected == first_index
+            && colors_match
+            && last.index_count + indices.len() < 0xffff
         {
             last.index_count += indices.len();
             return;
@@ -815,5 +805,133 @@ fn attachment_world_positions(
                 })
                 .collect()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn quad_vertices(color: [f32; 4], dark_color: [f32; 4]) -> Vec<Vertex> {
+        vec![
+            Vertex {
+                position: [0.0, 0.0],
+                uv: [0.0, 0.0],
+                color,
+                dark_color,
+            };
+            4
+        ]
+    }
+
+    fn quad_indices() -> Vec<u32> {
+        vec![0, 1, 2, 2, 3, 0]
+    }
+
+    #[test]
+    fn append_indexed_batches_when_texture_blend_pma_and_first_colors_match() {
+        let mut out = DrawList::default();
+        let color = [0.25, 0.5, 0.75, 1.0];
+        let dark_color = [0.1, 0.2, 0.3, 0.4];
+
+        append_indexed(
+            &mut out,
+            "page.png",
+            BlendMode::Normal,
+            false,
+            quad_vertices(color, dark_color),
+            &quad_indices(),
+        );
+        append_indexed(
+            &mut out,
+            "page.png",
+            BlendMode::Normal,
+            false,
+            quad_vertices(color, dark_color),
+            &quad_indices(),
+        );
+
+        assert_eq!(out.draws.len(), 1);
+        assert_eq!(out.draws[0].first_index, 0);
+        assert_eq!(out.draws[0].index_count, 12);
+    }
+
+    #[test]
+    fn append_indexed_splits_when_first_vertex_color_differs() {
+        let mut out = DrawList::default();
+        let dark_color = [0.1, 0.2, 0.3, 0.4];
+
+        append_indexed(
+            &mut out,
+            "page.png",
+            BlendMode::Normal,
+            false,
+            quad_vertices([1.0, 0.0, 0.0, 1.0], dark_color),
+            &quad_indices(),
+        );
+        append_indexed(
+            &mut out,
+            "page.png",
+            BlendMode::Normal,
+            false,
+            quad_vertices([0.0, 1.0, 0.0, 1.0], dark_color),
+            &quad_indices(),
+        );
+
+        assert_eq!(out.draws.len(), 2);
+    }
+
+    #[test]
+    fn append_indexed_splits_when_first_vertex_dark_color_differs() {
+        let mut out = DrawList::default();
+        let color = [0.25, 0.5, 0.75, 1.0];
+
+        append_indexed(
+            &mut out,
+            "page.png",
+            BlendMode::Normal,
+            false,
+            quad_vertices(color, [0.1, 0.2, 0.3, 0.4]),
+            &quad_indices(),
+        );
+        append_indexed(
+            &mut out,
+            "page.png",
+            BlendMode::Normal,
+            false,
+            quad_vertices(color, [0.4, 0.3, 0.2, 0.1]),
+            &quad_indices(),
+        );
+
+        assert_eq!(out.draws.len(), 2);
+    }
+
+    #[test]
+    fn append_indexed_splits_before_16bit_index_limit() {
+        let mut out = DrawList::default();
+        let color = [0.25, 0.5, 0.75, 1.0];
+        let dark_color = [0.1, 0.2, 0.3, 0.4];
+        let large_indices: Vec<u32> = (0..65532).map(|i| (i % 4) as u32).collect();
+
+        append_indexed(
+            &mut out,
+            "page.png",
+            BlendMode::Normal,
+            false,
+            quad_vertices(color, dark_color),
+            &large_indices,
+        );
+        append_indexed(
+            &mut out,
+            "page.png",
+            BlendMode::Normal,
+            false,
+            quad_vertices(color, dark_color),
+            &quad_indices(),
+        );
+
+        assert_eq!(out.draws.len(), 2);
+        assert_eq!(out.draws[0].index_count, 65532);
+        assert_eq!(out.draws[1].index_count, 6);
     }
 }

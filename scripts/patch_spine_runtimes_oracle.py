@@ -15,6 +15,13 @@ def patch_spine_cpp_slider_cpp(text: str) -> str:
     if PATCH_MARKER in text:
         return text
 
+    # Newer 4.3 runtimes already contain the slot timeline dispatch this script used to patch in.
+    # Keep the oracle build path idempotent across both older beta snapshots and latest 4.3.
+    if "SlotTimeline *asSlotTimeline(Timeline *timeline)" in text and (
+        "SlotTimeline *slotTimeline = asSlotTimeline(t)" in text
+    ):
+        return text
+
     if "#include <spine/SlotTimeline.h>" not in text:
         raise RuntimeError("Unexpected Slider.cpp: missing include <spine/SlotTimeline.h>")
 
@@ -82,4 +89,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

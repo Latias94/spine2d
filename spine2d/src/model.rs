@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
@@ -14,6 +15,35 @@ pub struct BoneData {
     pub shear_y: f32,
     pub inherit: Inherit,
     pub skin_required: bool,
+    pub color: [f32; 4],
+    pub icon: String,
+    pub icon_size: f32,
+    pub icon_rotation: f32,
+    pub visible: bool,
+}
+
+impl Default for BoneData {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            parent: None,
+            length: 0.0,
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            shear_x: 0.0,
+            shear_y: 0.0,
+            inherit: Inherit::Normal,
+            skin_required: false,
+            color: [0.61, 0.61, 0.61, 1.0],
+            icon: String::new(),
+            icon_size: 1.0,
+            icon_rotation: 0.0,
+            visible: true,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
@@ -35,6 +65,22 @@ pub struct SlotData {
     pub has_dark: bool,
     pub dark_color: [f32; 3],
     pub blend: BlendMode,
+    pub visible: bool,
+}
+
+impl Default for SlotData {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            bone: 0,
+            attachment: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            has_dark: false,
+            dark_color: [0.0, 0.0, 0.0],
+            blend: BlendMode::Normal,
+            visible: true,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
@@ -53,12 +99,39 @@ pub struct IkConstraintData {
     pub skin_required: bool,
     pub bones: Vec<usize>,
     pub target: usize,
+    pub scale_y_mode: ScaleYMode,
     pub mix: f32,
     pub softness: f32,
     pub compress: bool,
     pub stretch: bool,
-    pub uniform: bool,
     pub bend_direction: i32,
+}
+
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+pub enum ScaleYMode {
+    #[default]
+    None,
+    Uniform,
+    Volume,
+}
+
+impl ScaleYMode {
+    pub(crate) fn from_name(name: &str) -> Self {
+        match name {
+            "uniform" => Self::Uniform,
+            "volume" => Self::Volume,
+            _ => Self::None,
+        }
+    }
+
+    #[cfg(feature = "binary")]
+    pub(crate) fn from_binary(value: u8) -> Self {
+        match value {
+            1 => Self::Uniform,
+            2 => Self::Volume,
+            _ => Self::None,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -199,6 +272,7 @@ pub struct PhysicsConstraintData {
     pub y: f32,
     pub rotate: f32,
     pub scale_x: f32,
+    pub scale_y_mode: ScaleYMode,
     pub shear_x: f32,
     pub limit: f32,
     pub step: f32,
@@ -383,6 +457,7 @@ pub struct MeshAttachmentData {
     /// This stores the `(skin, attachmentKey)` of the mesh used as the deform timeline target.
     pub timeline_skin: String,
     pub timeline_attachment: String,
+    pub timeline_slots: Vec<usize>,
     pub sequence: Option<SequenceDef>,
     pub color: [f32; 4],
     pub vertices: MeshVertices,
@@ -458,12 +533,14 @@ pub struct ClippingAttachmentData {
     pub name: String,
     pub vertices: MeshVertices,
     pub end_slot: Option<usize>,
+    pub convex: bool,
+    pub inverse: bool,
 }
 
 #[derive(Clone, Debug)]
 pub struct SkinData {
     pub name: String,
-    pub attachments: Vec<HashMap<String, AttachmentData>>,
+    pub attachments: Vec<IndexMap<String, AttachmentData>>,
     pub bones: Vec<usize>,
     pub ik_constraints: Vec<usize>,
     pub transform_constraints: Vec<usize>,
@@ -479,7 +556,7 @@ impl SkinData {
     pub fn new(name: impl Into<String>, slot_count: usize) -> Self {
         Self {
             name: name.into(),
-            attachments: (0..slot_count).map(|_| HashMap::new()).collect(),
+            attachments: (0..slot_count).map(|_| IndexMap::new()).collect(),
             bones: Vec::new(),
             ik_constraints: Vec::new(),
             transform_constraints: Vec::new(),
@@ -513,7 +590,7 @@ impl SkinData {
 
         if self.attachments.len() < other.attachments.len() {
             self.attachments.extend(
-                (0..(other.attachments.len() - self.attachments.len())).map(|_| HashMap::new()),
+                (0..(other.attachments.len() - self.attachments.len())).map(|_| IndexMap::new()),
             );
         }
         for (slot_index, slot_map) in other.attachments.iter().enumerate() {
@@ -635,6 +712,18 @@ pub struct DrawOrderFrame {
 #[derive(Clone, Debug)]
 pub struct DrawOrderTimeline {
     pub frames: Vec<DrawOrderFrame>,
+}
+
+#[derive(Clone, Debug)]
+pub struct DrawOrderFolderFrame {
+    pub time: f32,
+    pub folder_draw_order: Option<Vec<usize>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct DrawOrderFolderTimeline {
+    pub slots: Vec<usize>,
+    pub frames: Vec<DrawOrderFolderFrame>,
 }
 
 #[derive(Clone, Debug)]
@@ -806,6 +895,28 @@ pub enum BoneTimeline {
     Inherit(InheritTimeline),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TimelineKind {
+    SlotAttachment(usize),
+    Deform(usize),
+    Sequence(usize),
+    Bone(usize),
+    SlotColor(usize),
+    SlotRgb(usize),
+    SlotAlpha(usize),
+    SlotRgba2(usize),
+    SlotRgb2(usize),
+    IkConstraint(usize),
+    TransformConstraint(usize),
+    PathConstraint(usize),
+    PhysicsConstraint(usize),
+    PhysicsReset(usize),
+    SliderTime(usize),
+    SliderMix(usize),
+    DrawOrder,
+    DrawOrderFolder(usize),
+}
+
 #[derive(Clone, Debug)]
 pub struct Animation {
     pub name: String,
@@ -828,6 +939,8 @@ pub struct Animation {
     pub slider_time_timelines: Vec<SliderConstraintTimeline>,
     pub slider_mix_timelines: Vec<SliderConstraintTimeline>,
     pub draw_order_timeline: Option<DrawOrderTimeline>,
+    pub draw_order_folder_timelines: Vec<DrawOrderFolderTimeline>,
+    pub timeline_order: Vec<TimelineKind>,
 }
 
 #[derive(Clone, Debug)]
@@ -856,4 +969,39 @@ impl SkeletonData {
     pub fn skin(&self, name: &str) -> Option<&SkinData> {
         self.skins.get(name)
     }
+}
+
+pub(crate) fn timeline_order_for_animation(animation: &Animation) -> Vec<TimelineKind> {
+    let mut timeline_order = Vec::new();
+    timeline_order
+        .extend((0..animation.slot_attachment_timelines.len()).map(TimelineKind::SlotAttachment));
+    timeline_order.extend((0..animation.slot_color_timelines.len()).map(TimelineKind::SlotColor));
+    timeline_order.extend((0..animation.slot_rgb_timelines.len()).map(TimelineKind::SlotRgb));
+    timeline_order.extend((0..animation.slot_rgba2_timelines.len()).map(TimelineKind::SlotRgba2));
+    timeline_order.extend((0..animation.slot_rgb2_timelines.len()).map(TimelineKind::SlotRgb2));
+    timeline_order.extend((0..animation.slot_alpha_timelines.len()).map(TimelineKind::SlotAlpha));
+    timeline_order.extend((0..animation.bone_timelines.len()).map(TimelineKind::Bone));
+    timeline_order
+        .extend((0..animation.ik_constraint_timelines.len()).map(TimelineKind::IkConstraint));
+    timeline_order.extend(
+        (0..animation.transform_constraint_timelines.len()).map(TimelineKind::TransformConstraint),
+    );
+    timeline_order
+        .extend((0..animation.path_constraint_timelines.len()).map(TimelineKind::PathConstraint));
+    timeline_order.extend(
+        (0..animation.physics_constraint_timelines.len()).map(TimelineKind::PhysicsConstraint),
+    );
+    timeline_order
+        .extend((0..animation.physics_reset_timelines.len()).map(TimelineKind::PhysicsReset));
+    timeline_order.extend((0..animation.slider_time_timelines.len()).map(TimelineKind::SliderTime));
+    timeline_order.extend((0..animation.slider_mix_timelines.len()).map(TimelineKind::SliderMix));
+    timeline_order.extend((0..animation.deform_timelines.len()).map(TimelineKind::Deform));
+    timeline_order.extend((0..animation.sequence_timelines.len()).map(TimelineKind::Sequence));
+    if animation.draw_order_timeline.is_some() {
+        timeline_order.push(TimelineKind::DrawOrder);
+    }
+    timeline_order.extend(
+        (0..animation.draw_order_folder_timelines.len()).map(TimelineKind::DrawOrderFolder),
+    );
+    timeline_order
 }

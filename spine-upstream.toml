@@ -1,0 +1,6 @@
+[spine_runtimes]
+repo = "https://github.com/EsotericSoftware/spine-runtimes"
+ref_kind = "tag"
+rev = "spine-flutter-4.3.4"
+commit = "80dc680a4345ac09cdc5d4c1a77ec572a3f295d1"
+description = "Latest verified Spine 4.3 runtime baseline. Runtime-specific tags are auxiliary release markers; parity work pins the latest reproducible tag commit."

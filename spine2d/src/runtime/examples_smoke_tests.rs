@@ -30,7 +30,19 @@ or set SPINE2D_UPSTREAM_EXAMPLES_DIR to <spine-runtimes>/examples."
 }
 
 fn example_json_path(relative: &str) -> PathBuf {
-    upstream_examples_root().join(relative)
+    let candidate = upstream_examples_root().join(relative);
+    if candidate.is_file() {
+        return candidate;
+    }
+
+    let cache = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../.cache/spine-runtimes/examples")
+        .join(relative);
+    if cache.is_file() {
+        return cache;
+    }
+
+    candidate
 }
 
 fn assert_skeleton_finite(skeleton: &Skeleton) {
@@ -79,7 +91,7 @@ fn smoke_example(relative: &str) {
         let a1 = data.animations[1].name.as_str();
         state.set_animation(0, a0, true).expect("set track0");
         let entry = state.set_animation(1, a1, true).expect("set track1");
-        entry.set_mix_blend(&mut state, MixBlend::Add);
+        entry.set_additive(&mut state, true);
 
         let dt = 0.2;
         state.update(dt);
@@ -167,6 +179,11 @@ fn example_spinosaurus_ess_smoke() {
 }
 
 #[test]
+fn example_stretchyman_pro_smoke() {
+    smoke_example("stretchyman/export/stretchyman-pro.json");
+}
+
+#[test]
 fn example_speedy_ess_smoke() {
     smoke_example("speedy/export/speedy-ess.json");
 }
@@ -194,6 +211,21 @@ fn example_cloud_pot_smoke() {
 #[test]
 fn example_coin_pro_smoke() {
     smoke_example("coin/export/coin-pro.json");
+}
+
+#[test]
+fn example_6_arcs_pro_smoke() {
+    smoke_example("6-arcs/export/6-arcs-pro.json");
+}
+
+#[test]
+fn example_8_follow_through_pro_ball_smoke() {
+    smoke_example("8-follow-through/export/8-follow-through-pro-ball.json");
+}
+
+#[test]
+fn example_food_app_search_smoke() {
+    smoke_example("food-app/export/food-app-search-ess.json");
 }
 
 #[test]

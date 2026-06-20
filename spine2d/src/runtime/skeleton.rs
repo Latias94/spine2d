@@ -1,6 +1,30 @@
 use crate::SkeletonData;
 use std::sync::Arc;
 
+fn atan2_degrees(y: f32, x: f32) -> f32 {
+    atan2_radians(y, x).to_degrees()
+}
+
+fn atan2_radians(y: f32, x: f32) -> f32 {
+    (y as f64).atan2(x as f64) as f32
+}
+
+fn sqrt_f32(v: f32) -> f32 {
+    (v as f64).sqrt() as f32
+}
+
+fn acos_f32(v: f32) -> f32 {
+    (v as f64).acos() as f32
+}
+
+fn sin_f32(v: f32) -> f32 {
+    (v as f64).sin() as f32
+}
+
+fn cos_f32(v: f32) -> f32 {
+    (v as f64).cos() as f32
+}
+
 fn estimate_path_attachment_scratch_capacities(
     data: &SkeletonData,
     target_slot_index: usize,
@@ -80,8 +104,6 @@ pub struct Bone {
     pub world_x: f32,
     pub world_y: f32,
 
-    applied_valid: bool,
-
     world_epoch: u32,
     local_epoch: u32,
 }
@@ -124,11 +146,11 @@ pub struct IkConstraint {
     data_index: usize,
     pub bones: Vec<usize>,
     pub target: usize,
+    pub scale_y_mode: crate::ScaleYMode,
     pub mix: f32,
     pub softness: f32,
     pub compress: bool,
     pub stretch: bool,
-    pub uniform: bool,
     pub bend_direction: i32,
     pub active: bool,
 }
@@ -185,6 +207,7 @@ pub struct PhysicsConstraint {
     pub wind: f32,
     pub gravity: f32,
     pub mix: f32,
+    pub scale_y_mode: crate::ScaleYMode,
 
     pub reset: bool,
     pub ux: f32,
@@ -274,7 +297,7 @@ impl crate::PointAttachmentData {
     }
 
     pub fn compute_world_rotation(&self, bone: &Bone) -> f32 {
-        bone.c.atan2(bone.a).to_degrees() + self.rotation
+        atan2_degrees(bone.c, bone.a) + self.rotation
     }
 }
 
@@ -365,7 +388,6 @@ impl Skeleton {
             if self.bones[child].world_epoch == epoch {
                 self.bones[child].world_epoch = 0;
                 self.bones[child].local_epoch = 0;
-                self.bones[child].applied_valid = true;
                 self.reset_world_children_if_updated(child, epoch);
             }
         }
@@ -378,7 +400,6 @@ impl Skeleton {
         let epoch = self.update_epoch;
         self.bones[bone_index].world_epoch = epoch;
         self.bones[bone_index].local_epoch = epoch;
-        self.bones[bone_index].applied_valid = false;
         self.reset_world_children_if_updated(bone_index, epoch);
     }
 
@@ -387,11 +408,10 @@ impl Skeleton {
             return;
         }
         let epoch = self.update_epoch;
-        if self.bones[bone_index].local_epoch == epoch || !self.bones[bone_index].applied_valid {
+        if self.bones[bone_index].local_epoch == epoch {
             self.update_applied_transform(bone_index);
         }
         self.bones[bone_index].local_epoch = 0;
-        self.bones[bone_index].applied_valid = true;
         self.bones[bone_index].world_epoch = 0;
         self.reset_world_children_if_updated(bone_index, epoch);
     }
@@ -425,7 +445,6 @@ impl Skeleton {
                 d: 1.0,
                 world_x: 0.0,
                 world_y: 0.0,
-                applied_valid: true,
                 world_epoch: 0,
                 local_epoch: 0,
             })
@@ -466,11 +485,11 @@ impl Skeleton {
                 data_index,
                 bones: ik.bones.clone(),
                 target: ik.target,
+                scale_y_mode: ik.scale_y_mode,
                 mix: ik.mix,
                 softness: ik.softness,
                 compress: ik.compress,
                 stretch: ik.stretch,
-                uniform: ik.uniform,
                 bend_direction: ik.bend_direction,
                 active: true,
             })
@@ -525,6 +544,7 @@ impl Skeleton {
                 wind: c.wind,
                 gravity: c.gravity,
                 mix: c.mix,
+                scale_y_mode: c.scale_y_mode,
                 reset: true,
                 ux: 0.0,
                 uy: 0.0,
@@ -827,26 +847,6 @@ impl Skeleton {
                         .unwrap_or("<unknown>");
                     format!("slider {}", name)
                 }
-            })
-            .collect()
-    }
-
-    #[doc(hidden)]
-    pub fn debug_invalid_applied_bones(&self) -> Vec<String> {
-        self.bones
-            .iter()
-            .enumerate()
-            .filter_map(|(i, b)| {
-                if b.applied_valid {
-                    return None;
-                }
-                let name = self
-                    .data
-                    .bones
-                    .get(i)
-                    .map(|d| d.name.as_str())
-                    .unwrap_or("<unknown>");
-                Some(name.to_string())
             })
             .collect()
     }
@@ -1351,7 +1351,7 @@ impl Skeleton {
                 ik.softness = data.softness;
                 ik.compress = data.compress;
                 ik.stretch = data.stretch;
-                ik.uniform = data.uniform;
+                ik.scale_y_mode = data.scale_y_mode;
                 ik.bend_direction = data.bend_direction;
             }
         }
@@ -1515,7 +1515,6 @@ impl Skeleton {
             bone.ascale_y = bone.scale_y;
             bone.ashear_x = bone.shear_x;
             bone.ashear_y = bone.shear_y;
-            bone.applied_valid = true;
             bone.local_epoch = 0;
         }
     }
@@ -1851,7 +1850,6 @@ impl Skeleton {
         };
         let target_x = target.world_x;
         let target_y = target.world_y;
-
         match ik.bones.as_slice() {
             [bone] => {
                 self.bone_modify_local(*bone);
@@ -1861,7 +1859,7 @@ impl Skeleton {
                     target_y,
                     ik.compress,
                     ik.stretch,
-                    ik.uniform,
+                    ik.scale_y_mode,
                     mix,
                 );
                 true
@@ -1877,7 +1875,7 @@ impl Skeleton {
                     ik.bend_direction,
                     ik.softness,
                     ik.stretch,
-                    ik.uniform,
+                    ik.scale_y_mode,
                     mix,
                 );
                 true
@@ -2117,15 +2115,12 @@ impl Skeleton {
                     continue;
                 }
 
-                // Match upstream: after mutating world transforms, mark the bone as updated for this
-                // epoch and invalidate local/applied values.
-                self.bone_modify_world(bone_index);
-
-                {
-                    let bone = &mut self.bones[bone_index];
-                    bone.world_x += (bone_x - bone.world_x) * mix_x;
-                    bone.world_y += (bone_y - bone.world_y) * mix_y;
-                }
+                let (mut a, mut b, mut c0, mut d, world_x, world_y) = {
+                    let bone = &self.bones[bone_index];
+                    (bone.a, bone.b, bone.c, bone.d, bone.world_x, bone.world_y)
+                };
+                let new_world_x = world_x + (bone_x - world_x) * mix_x;
+                let new_world_y = world_y + (bone_y - world_y) * mix_y;
 
                 let x = *positions.get(p).unwrap_or(&bone_x);
                 let y = *positions.get(p + 1).unwrap_or(&bone_y);
@@ -2136,9 +2131,8 @@ impl Skeleton {
                     let length = *lengths.get(i).unwrap_or(&0.0);
                     if length >= EPSILON {
                         let s = (((dx * dx + dy * dy).sqrt() / length) - 1.0) * mix_rotate + 1.0;
-                        let bone = &mut self.bones[bone_index];
-                        bone.a *= s;
-                        bone.c *= s;
+                        a *= s;
+                        c0 *= s;
                     }
                 }
 
@@ -2146,10 +2140,6 @@ impl Skeleton {
                 bone_y = y;
 
                 if mix_rotate > 0.0 {
-                    let (a, b, c0, d) = {
-                        let bone = &self.bones[bone_index];
-                        (bone.a, bone.b, bone.c, bone.d)
-                    };
                     let mut r = if tangents {
                         *positions.get(p - 1).unwrap_or(&0.0)
                     } else if *spaces.get(i + 1).unwrap_or(&0.0) < EPSILON {
@@ -2173,15 +2163,30 @@ impl Skeleton {
                         r += offset_rotation;
                     }
 
-                    r = wrap_pi(r) * mix_rotate;
+                    let r = wrap_pi(r) * mix_rotate;
                     let cos = r.cos();
                     let sin = r.sin();
-                    let bone = &mut self.bones[bone_index];
-                    bone.a = cos * a - sin * c0;
-                    bone.b = cos * b - sin * d;
-                    bone.c = sin * a + cos * c0;
-                    bone.d = sin * b + cos * d;
+                    let rotated_a = cos * a - sin * c0;
+                    let rotated_b = cos * b - sin * d;
+                    let rotated_c = sin * a + cos * c0;
+                    let rotated_d = sin * b + cos * d;
+                    a = rotated_a;
+                    b = rotated_b;
+                    c0 = rotated_c;
+                    d = rotated_d;
                 }
+
+                {
+                    let bone = &mut self.bones[bone_index];
+                    bone.world_x = new_world_x;
+                    bone.world_y = new_world_y;
+                    bone.a = a;
+                    bone.b = b;
+                    bone.c = c0;
+                    bone.d = d;
+                }
+
+                self.bone_modify_world(bone_index);
 
                 applied = true;
                 p += 3;
@@ -2247,11 +2252,9 @@ impl Skeleton {
             if local {
                 // Match upstream: `validateLocalTransform` on the applied pose before reading local
                 // properties (local values may be stale after world-space constraints).
-                if bone.local_epoch == self.update_epoch || !bone.applied_valid {
+                if bone.local_epoch == self.update_epoch {
                     self.update_applied_transform(bone_index);
-                    let bone = &mut self.bones[bone_index];
-                    bone.local_epoch = 0;
-                    bone.applied_valid = true;
+                    self.bones[bone_index].local_epoch = 0;
                 }
             }
 
@@ -2269,7 +2272,7 @@ impl Skeleton {
                         };
                         let sx = self.scale_x;
                         let sy = self.scale_y;
-                        let mut value = (c / sy).atan2(a / sx).to_degrees();
+                        let mut value = atan2_degrees(c / sy, a / sx);
                         if value < 0.0 {
                             value += 360.0;
                         }
@@ -2386,7 +2389,7 @@ impl Skeleton {
         target_y: f32,
         compress: bool,
         stretch: bool,
-        uniform: bool,
+        scale_y_mode: crate::ScaleYMode,
         alpha: f32,
     ) {
         fn signum(v: f32) -> f32 {
@@ -2440,18 +2443,18 @@ impl Skeleton {
                 (target_y - world_y) * signum(self.scale_y),
             ),
             crate::Inherit::NoRotationOrReflection => {
-                let denom = (pa * pa + pc * pc).max(1.0e-4);
+                let denom = (pa * pa + pc * pc).max(1.0e-5);
                 let s = (pa * pd - pb * pc).abs() / denom;
                 let sa = pa / self.scale_x;
                 let sc = pc / self.scale_y;
                 pb = -sc * s * self.scale_x;
                 pd = sa * s * self.scale_y;
-                rotation_ik += sc.atan2(sa).to_degrees();
+                rotation_ik += atan2_degrees(sc, sa);
                 // fallthrough to default branch with adjusted pb/pd.
                 let x = target_x - pwx;
                 let y = target_y - pwy;
                 let det = pa * pd - pb * pc;
-                if det.abs() <= 1.0e-4 {
+                if det.abs() <= 1.0e-5 {
                     (0.0, 0.0)
                 } else {
                     ((x * pd - y * pb) / det - ax, (y * pa - x * pc) / det - ay)
@@ -2461,7 +2464,7 @@ impl Skeleton {
                 let x = target_x - pwx;
                 let y = target_y - pwy;
                 let det = pa * pd - pb * pc;
-                if det.abs() <= 1.0e-4 {
+                if det.abs() <= 1.0e-5 {
                     (0.0, 0.0)
                 } else {
                     ((x * pd - y * pb) / det - ax, (y * pa - x * pc) / det - ay)
@@ -2469,7 +2472,7 @@ impl Skeleton {
             }
         };
 
-        rotation_ik += ty.atan2(tx).to_degrees();
+        rotation_ik += atan2_degrees(ty, tx);
         if sx < 0.0 {
             rotation_ik += 180.0;
         }
@@ -2490,13 +2493,19 @@ impl Skeleton {
                 .map(|d| d.length)
                 .unwrap_or(0.0);
             let b = length * sx;
-            if b > 1.0e-4 {
+            if b > 1.0e-5 {
                 let dd = tx * tx + ty * ty;
                 if (compress && dd < b * b) || (stretch && dd > b * b) {
                     let s = (dd.sqrt() / b - 1.0) * alpha + 1.0;
                     sx *= s;
-                    if uniform {
-                        sy *= s;
+                    match scale_y_mode {
+                        crate::ScaleYMode::Uniform => {
+                            sy *= s;
+                        }
+                        crate::ScaleYMode::Volume => {
+                            sy /= if s < 0.7 { 0.25 + 0.642857 * s } else { s };
+                        }
+                        crate::ScaleYMode::None => {}
                     }
                 }
             }
@@ -2522,10 +2531,10 @@ impl Skeleton {
         bend_direction: i32,
         softness: f32,
         stretch: bool,
-        uniform: bool,
+        scale_y_mode: crate::ScaleYMode,
         alpha: f32,
     ) {
-        const EPSILON: f32 = 1.0e-4;
+        const EPSILON: f32 = 1.0e-5;
         const PI: f32 = std::f32::consts::PI;
         const RAD_DEG: f32 = 180.0 / PI;
 
@@ -2552,9 +2561,6 @@ impl Skeleton {
             let p = &self.bones[parent_index];
             (p.ax, p.ay, p.arotation, p.ascale_x, p.ascale_y)
         };
-        let mut sx = psx0;
-        let mut sy = psy0;
-
         let mut psx = psx0;
         let mut psy = psy0;
         let mut os1 = 0.0f32;
@@ -2616,7 +2622,7 @@ impl Skeleton {
         let dx = (x * pp_d - y * pp_b) * id - px;
         let dy = (y * pp_a - x * pp_c) * id - py;
 
-        let l1 = (dx * dx + dy * dy).sqrt();
+        let l1 = sqrt_f32(dx * dx + dy * dy);
         if l1 < EPSILON {
             self.apply_ik_one(
                 parent_index,
@@ -2624,7 +2630,7 @@ impl Skeleton {
                 target_y,
                 false,
                 stretch,
-                false,
+                crate::ScaleYMode::None,
                 alpha,
             );
             let child = &mut self.bones[child_index];
@@ -2653,12 +2659,12 @@ impl Skeleton {
         let mut dd = tx * tx + ty * ty;
 
         if softness != 0.0 {
-            let softness = softness.max(0.0) * psx * (csx + 1.0) * 0.5;
-            let td = dd.sqrt();
+            let softness = softness * psx * (csx + 1.0) * 0.5;
+            let td = sqrt_f32(dd);
             let sd = td - l1 - l2 * psx + softness;
             if sd > 0.0 {
                 let mut p = (sd / (softness * 2.0)).min(1.0) - 1.0;
-                p = (sd - softness * (1.0 - p * p)) / td.max(EPSILON);
+                p = (sd - softness * (1.0 - p * p)) / td;
                 tx -= p * tx;
                 ty -= p * ty;
                 dd = tx * tx + ty * ty;
@@ -2666,7 +2672,9 @@ impl Skeleton {
         }
 
         let bend_dir = if bend_direction >= 0 { 1.0 } else { -1.0 };
-        let (mut a1, mut a2);
+        let mut a1 = 0.0f32;
+        let mut a2 = 0.0f32;
+        let mut solved = false;
 
         if u {
             let l2u = l2 * psx;
@@ -2678,31 +2686,40 @@ impl Skeleton {
                 cos = 1.0;
                 a2 = 0.0;
                 if stretch {
-                    let s = (dd.sqrt() / (l1 + l2u) - 1.0) * alpha + 1.0;
-                    sx *= s;
-                    if uniform {
-                        sy *= s;
+                    let s = (sqrt_f32(dd) / (l1 + l2u) - 1.0) * alpha + 1.0;
+                    {
+                        let parent = &mut self.bones[parent_index];
+                        parent.ascale_x *= s;
+                        match scale_y_mode {
+                            crate::ScaleYMode::Uniform => {
+                                parent.ascale_y *= s;
+                            }
+                            crate::ScaleYMode::Volume => {
+                                parent.ascale_y /= if s < 0.7 { 0.25 + 0.642857 * s } else { s };
+                            }
+                            crate::ScaleYMode::None => {}
+                        }
                     }
                 }
             } else {
-                a2 = cos.acos() * bend_dir;
+                a2 = acos_f32(cos) * bend_dir;
             }
             let aa = l1 + l2u * cos;
-            let bb = l2u * a2.sin();
-            a1 = (ty * aa - tx * bb).atan2(tx * aa + ty * bb);
+            let bb = l2u * sin_f32(a2);
+            a1 = atan2_radians(ty * aa - tx * bb, tx * aa + ty * bb);
         } else {
             let a = psx * l2;
             let b = psy * l2;
             let aa = a * a;
             let bb = b * b;
-            let ta = ty.atan2(tx);
+            let ta = atan2_radians(ty, tx);
             let mut c = bb * l1 * l1 + aa * dd - aa * bb;
             let c1 = -2.0 * bb * l1;
             let c2 = bb - aa;
             let disc = c1 * c1 - 4.0 * c2 * c;
 
             if disc >= 0.0 {
-                let mut q = disc.sqrt();
+                let mut q = sqrt_f32(disc);
                 if c1 < 0.0 {
                     q = -q;
                 }
@@ -2712,19 +2729,14 @@ impl Skeleton {
                 let r = if r0.abs() < r1.abs() { r0 } else { r1 };
                 let r0 = dd - r * r;
                 if r0 >= 0.0 {
-                    let y = r0.sqrt() * bend_dir;
-                    a1 = ta - y.atan2(r);
-                    a2 = (y / psy).atan2((r - l1) / psx);
-                } else {
-                    a1 = 0.0;
-                    a2 = 0.0;
+                    let y = sqrt_f32(r0) * bend_dir;
+                    a1 = ta - atan2_radians(y, r);
+                    a2 = atan2_radians(y / psy, (r - l1) / psx);
+                    solved = true;
                 }
-            } else {
-                a1 = 0.0;
-                a2 = 0.0;
             }
 
-            if disc < 0.0 {
+            if !solved {
                 let mut min_angle = PI;
                 let mut min_x = l1 - a;
                 let mut min_dist = min_x * min_x;
@@ -2735,9 +2747,9 @@ impl Skeleton {
                 let mut max_y = 0.0f32;
                 c = -a * l1 / (aa - bb);
                 if (-1.0..=1.0).contains(&c) {
-                    let c = c.acos();
-                    let x = a * c.cos() + l1;
-                    let y = b * c.sin();
+                    let c = acos_f32(c);
+                    let x = a * cos_f32(c) + l1;
+                    let y = b * sin_f32(c);
                     let d = x * x + y * y;
                     if d < min_dist {
                         min_angle = c;
@@ -2753,28 +2765,28 @@ impl Skeleton {
                     }
                 }
                 if dd <= (min_dist + max_dist) * 0.5 {
-                    a1 = ta - (min_y * bend_dir).atan2(min_x);
+                    a1 = ta - atan2_radians(min_y * bend_dir, min_x);
                     a2 = min_angle * bend_dir;
                 } else {
-                    a1 = ta - (max_y * bend_dir).atan2(max_x);
+                    a1 = ta - atan2_radians(max_y * bend_dir, max_x);
                     a2 = max_angle * bend_dir;
                 }
             }
         }
 
-        let os = cy.atan2(cx) * s2;
+        let os = atan2_radians(cy, cx) * s2;
 
         a1 = (a1 - os) * RAD_DEG + os1 - parent_rotation;
         if a1 > 180.0 {
             a1 -= 360.0;
-        } else if a1 < -180.0 {
+        } else if a1 <= -180.0 {
             a1 += 360.0;
         }
 
         a2 = ((a2 + os) * RAD_DEG - child_shear_x) * s2 + os2 - child_rotation;
         if a2 > 180.0 {
             a2 -= 360.0;
-        } else if a2 < -180.0 {
+        } else if a2 <= -180.0 {
             a2 += 360.0;
         }
 
@@ -2782,10 +2794,6 @@ impl Skeleton {
         parent.ax = px;
         parent.ay = py;
         parent.arotation = parent_rotation + a1 * alpha;
-        parent.ascale_x = sx;
-        parent.ascale_y = sy;
-        parent.ashear_x = 0.0;
-        parent.ashear_y = 0.0;
 
         let child = &mut self.bones[child_index];
         child.ax = cx;
@@ -3130,8 +3138,9 @@ impl Skeleton {
             return false;
         }
 
-        if local_source && !self.bones[constraint.source].applied_valid {
+        if local_source && self.bones[constraint.source].local_epoch == self.update_epoch {
             self.update_applied_transform(constraint.source);
+            self.bones[constraint.source].local_epoch = 0;
         }
 
         let (source_ax, source_ay, source_rot, source_scale_x, source_scale_y, source_shear_y) = {
@@ -3183,7 +3192,7 @@ impl Skeleton {
                         if local_source {
                             source_rot + offsets[crate::TransformProperty::Rotate.index()]
                         } else {
-                            let value = (source_c / sy).atan2(source_a / sx).to_degrees();
+                            let value = atan2_degrees(source_c / sy, source_a / sx);
                             let det = source_a * source_d - source_b * source_c;
                             let sign = if det * sx * sy > 0.0 { 1.0 } else { -1.0 };
                             let mut v =
@@ -3304,7 +3313,6 @@ impl Skeleton {
                                 bone.ashear_y += value * mix;
                             }
                         }
-                        bone.applied_valid = true;
                     } else {
                         let bone = &mut self.bones[bone_index];
                         match to.property {
@@ -3719,6 +3727,23 @@ impl Skeleton {
             let s = 1.0 + (constraint.scale_offset - constraint.scale_lag * z) * mix * data.scale_x;
             self.bones[bone_index].a *= s;
             self.bones[bone_index].c *= s;
+            match constraint.scale_y_mode {
+                crate::ScaleYMode::Uniform => {
+                    self.bones[bone_index].b *= s;
+                    self.bones[bone_index].d *= s;
+                }
+                crate::ScaleYMode::Volume => {
+                    let sy = s.abs();
+                    let sy = if sy >= 0.7 {
+                        1.0 / sy
+                    } else {
+                        4.0 - 3.67347 * sy
+                    };
+                    self.bones[bone_index].b *= sy;
+                    self.bones[bone_index].d *= sy;
+                }
+                crate::ScaleYMode::None => {}
+            }
         }
 
         if !matches!(physics_mode, Physics::Pose) {
@@ -3735,156 +3760,208 @@ impl Skeleton {
             return;
         }
 
+        let (a, b, c0, d, wx, wy) = {
+            let bone = &self.bones[bone_index];
+            (bone.a, bone.b, bone.c, bone.d, bone.world_x, bone.world_y)
+        };
+
         let parent = self.bones[bone_index].parent;
-        if parent.is_none() {
-            let (a, b, c0, d, wx, wy) = {
-                let bone = &self.bones[bone_index];
-                (bone.a, bone.b, bone.c, bone.d, bone.world_x, bone.world_y)
+
+        fn decompose_local(ra: f32, rb: f32, rc: f32, rd: f32) -> (f32, f32, f32, f32) {
+            let x = ra * ra + rc * rc;
+            let y = rb * rb + rd * rd;
+            let (shear_x, scale_x) = if x > 1.0e-10 {
+                (atan2_degrees(rc, ra), sqrt_f32(x))
+            } else {
+                (0.0, 0.0)
             };
-            let ax = wx - self.x;
-            let ay = wy - self.y;
-            let arotation = c0.atan2(a).to_degrees();
-            let ascale_x = (a * a + c0 * c0).sqrt();
-            let ascale_y = (b * b + d * d).sqrt();
-            let ashear_x = 0.0;
-            let ashear_y = (a * b + c0 * d).atan2(a * d - b * c0).to_degrees();
+            let mut scale_y = sqrt_f32(y);
+            let shear_y = if y > 1.0e-10 {
+                let mut value = atan2_degrees(rd, rb);
+                if ra * rd - rb * rc < 0.0 {
+                    scale_y = -scale_y;
+                    value += 90.0;
+                } else {
+                    value -= 90.0;
+                }
+                if value > 180.0 {
+                    value -= 360.0;
+                } else if value <= -180.0 {
+                    value += 360.0;
+                }
+                value
+            } else {
+                0.0
+            };
+            (shear_x, scale_x, scale_y, shear_y)
+        }
+
+        fn decompose_local_with_rotation(
+            ra: f32,
+            rb: f32,
+            rc: f32,
+            rd: f32,
+            ro: f32,
+        ) -> (f32, f32, f32, f32, f32) {
+            let mut shear_x = 0.0;
+            let x = ra * ra + rc * rc;
+            let y = rb * rb + rd * rd;
+            if x > 1.0e-10 {
+                let r = atan2_degrees(rc, ra);
+                let rotation = r + ro;
+                let scale_x = sqrt_f32(x);
+                let mut scale_y = sqrt_f32(y);
+                let shear_y = if y > 1.0e-10 {
+                    let mut value = atan2_degrees(rd, rb);
+                    if ra * rd - rb * rc < 0.0 {
+                        scale_y = -scale_y;
+                        value += 90.0 - r;
+                    } else {
+                        value -= 90.0 + r;
+                    }
+                    if value > 180.0 {
+                        value -= 360.0;
+                    } else if value <= -180.0 {
+                        value += 360.0;
+                    }
+                    value
+                } else {
+                    0.0
+                };
+                (rotation, scale_x, scale_y, shear_x, shear_y)
+            } else {
+                let scale_x = 0.0;
+                let scale_y = sqrt_f32(y);
+                let shear_y = 0.0;
+                let rotation = if y > 1.0e-10 {
+                    atan2_degrees(rd, rb) - 90.0 + ro
+                } else {
+                    ro
+                };
+                shear_x = 0.0;
+                (rotation, scale_x, scale_y, shear_x, shear_y)
+            }
+        }
+
+        if parent.is_none() {
+            let sxi = 1.0 / self.scale_x;
+            let syi = 1.0 / self.scale_y;
+            let ra = a * sxi;
+            let rb = b * sxi;
+            let rc = c0 * syi;
+            let rd = d * syi;
+            let (arotation, ascale_x, ascale_y, ashear_x, ashear_y) =
+                decompose_local_with_rotation(ra, rb, rc, rd, 0.0);
             let bone = &mut self.bones[bone_index];
-            bone.ax = ax;
-            bone.ay = ay;
+            bone.ax = (wx - self.x) * sxi;
+            bone.ay = (wy - self.y) * syi;
             bone.arotation = arotation;
             bone.ascale_x = ascale_x;
             bone.ascale_y = ascale_y;
             bone.ashear_x = ashear_x;
             bone.ashear_y = ashear_y;
-            bone.applied_valid = true;
             bone.local_epoch = 0;
             return;
         }
 
-        if let Some(parent_index) = parent {
-            let (pa, mut pb, pc, mut pd, pwx, pwy) = {
-                let p = &self.bones[parent_index];
-                (p.a, p.b, p.c, p.d, p.world_x, p.world_y)
-            };
-            let det = pa * pd - pb * pc;
-            let mut pid = 1.0 / det;
-            let mut ia = pd * pid;
-            let mut ib = pb * pid;
-            let mut ic = pc * pid;
-            let mut id = pa * pid;
+        let parent_index = parent.unwrap();
+        let (mut pa, pb, mut pc, pd, pwx, pwy) = {
+            let p = &self.bones[parent_index];
+            (p.a, p.b, p.c, p.d, p.world_x, p.world_y)
+        };
+        let pad = pa * pd - pb * pc;
+        let pid = 1.0 / pad;
+        let ia = pd * pid;
+        let ib = pb * pid;
+        let ic = pc * pid;
+        let id = pa * pid;
 
-            let (a, b, c0, d, wx, wy, inherit, applied_rotation_deg) = {
-                let bone = &self.bones[bone_index];
-                (
-                    bone.a,
-                    bone.b,
-                    bone.c,
-                    bone.d,
-                    bone.world_x,
-                    bone.world_y,
-                    bone.inherit,
-                    bone.arotation,
-                )
-            };
+        let dx = wx - pwx;
+        let dy = wy - pwy;
+        let ax = dx * ia - dy * ib;
+        let ay = dy * id - dx * ic;
 
-            let dx = wx - pwx;
-            let dy = wy - pwy;
-            let ax = dx * ia - dy * ib;
-            let ay = dy * id - dx * ic;
-
-            let (ra, rb, rc, rd) = if inherit == crate::Inherit::OnlyTranslation {
-                (a, b, c0, d)
-            } else {
-                match inherit {
-                    crate::Inherit::NoRotationOrReflection => {
-                        let s = (pa * pd - pb * pc).abs() / (pa * pa + pc * pc);
-                        let skeleton_scale_y = self.scale_y;
-                        pb = -pc * self.scale_x * s / skeleton_scale_y;
-                        pd = pa * skeleton_scale_y * s / self.scale_x;
-                        pid = 1.0 / (pa * pd - pb * pc);
-                        ia = pd * pid;
-                        ib = pb * pid;
-                    }
-                    crate::Inherit::NoScale | crate::Inherit::NoScaleOrReflection => {
-                        let r = applied_rotation_deg.to_radians();
-                        let cos = r.cos();
-                        let sin = r.sin();
-                        let mut pa = (pa * cos + pb * sin) / self.scale_x;
-                        let mut pc = (pc * cos + pd * sin) / self.scale_y;
-                        let mut s = (pa * pa + pc * pc).sqrt();
-                        if s > 1.0e-5 {
-                            s = 1.0 / s;
-                        }
-                        pa *= s;
-                        pc *= s;
-                        s = (pa * pa + pc * pc).sqrt();
-                        if inherit == crate::Inherit::NoScale {
-                            let flip =
-                                (det < 0.0) != ((self.scale_x < 0.0) != (self.scale_y < 0.0));
-                            if flip {
-                                s = -s;
-                            }
-                        }
-                        let r = std::f32::consts::FRAC_PI_2 + pc.atan2(pa);
-                        pb = r.cos() * s;
-                        pd = r.sin() * s;
-                        pid = 1.0 / (pa * pd - pb * pc);
-                        ia = pd * pid;
-                        ib = pb * pid;
-                        ic = pc * pid;
-                        id = pa * pid;
-                    }
-                    _ => {}
+        let (arotation, ascale_x, ascale_y, ashear_x, ashear_y) =
+            match self.bones[bone_index].inherit {
+                crate::Inherit::Normal => {
+                    let ra = ia * a - ib * c0;
+                    let rb = ia * b - ib * d;
+                    let rc = id * c0 - ic * a;
+                    let rd = id * d - ic * b;
+                    decompose_local_with_rotation(ra, rb, rc, rd, 0.0)
                 }
-
-                (
-                    ia * a - ib * c0,
-                    ia * b - ib * d,
-                    id * c0 - ic * a,
-                    id * d - ic * b,
-                )
+                crate::Inherit::OnlyTranslation => {
+                    let sxi = 1.0 / self.scale_x;
+                    let syi = 1.0 / self.scale_y;
+                    decompose_local_with_rotation(a * sxi, b * sxi, c0 * syi, d * syi, 0.0)
+                }
+                crate::Inherit::NoRotationOrReflection => {
+                    let sxi = 1.0 / self.scale_x;
+                    let syi = 1.0 / self.scale_y;
+                    pa *= sxi;
+                    pc *= syi;
+                    let wa = a * sxi;
+                    let wb = b * sxi;
+                    let wc = c0 * syi;
+                    let wd = d * syi;
+                    let s = 1.0 / (pa * pa + pc * pc);
+                    let det = 1.0 / (pad * sxi * syi).abs();
+                    decompose_local_with_rotation(
+                        (pa * wa + pc * wc) * s,
+                        (pa * wb + pc * wd) * s,
+                        (pa * wc - pc * wa) * det,
+                        (pa * wd - pc * wb) * det,
+                        atan2_degrees(pc, pa),
+                    )
+                }
+                crate::Inherit::NoScale | crate::Inherit::NoScaleOrReflection => {
+                    let sxi = 1.0 / self.scale_x;
+                    let syi = 1.0 / self.scale_y;
+                    let wa = a * sxi;
+                    let wb = b * sxi;
+                    let wc = c0 * syi;
+                    let wd = d * syi;
+                    let mut tx = pd * a - pb * c0;
+                    let mut ty = pa * c0 - pc * a;
+                    if pad < 0.0 {
+                        tx = -tx;
+                        ty = -ty;
+                    }
+                    let rotation = atan2_degrees(ty, tx);
+                    let r = rotation.to_radians();
+                    let cos_r = cos_f32(r);
+                    let sin_r = sin_f32(r);
+                    let mut za = (pa * cos_r + pb * sin_r) * sxi;
+                    let mut zc = (pc * cos_r + pd * sin_r) * syi;
+                    let s = 1.0 / sqrt_f32(za * za + zc * zc);
+                    za *= s;
+                    zc *= s;
+                    let si = if self.bones[bone_index].inherit == crate::Inherit::NoScale
+                        && (pad < 0.0) != ((self.scale_x < 0.0) != (self.scale_y < 0.0))
+                    {
+                        -1.0
+                    } else {
+                        1.0
+                    };
+                    let (shear_x, scale_x, scale_y, shear_y) = decompose_local(
+                        za * wa + zc * wc,
+                        za * wb + zc * wd,
+                        (za * wc - zc * wa) * si,
+                        (za * wd - zc * wb) * si,
+                    );
+                    (rotation, scale_x, scale_y, shear_x, shear_y)
+                }
             };
 
-            let mut ascale_x = (ra * ra + rc * rc).sqrt();
-            let (arotation, ascale_y, ashear_y) = if ascale_x > 1.0e-4 {
-                let det2 = ra * rd - rb * rc;
-                let ascale_y = det2 / ascale_x;
-                let ashear_y = -(ra * rb + rc * rd).atan2(det2).to_degrees();
-                let arotation = rc.atan2(ra).to_degrees();
-                (arotation, ascale_y, ashear_y)
-            } else {
-                ascale_x = 0.0;
-                let ascale_y = (rb * rb + rd * rd).sqrt();
-                let arotation = 90.0 - rd.atan2(rb).to_degrees();
-                (arotation, ascale_y, 0.0)
-            };
-
-            let bone = &mut self.bones[bone_index];
-            bone.ax = ax;
-            bone.ay = ay;
-            bone.arotation = arotation;
-            bone.ascale_x = ascale_x;
-            bone.ascale_y = ascale_y;
-            bone.ashear_x = 0.0;
-            bone.ashear_y = ashear_y;
-            bone.applied_valid = true;
-            bone.local_epoch = 0;
-        } else {
-            let (a, b, c0, d, wx, wy) = {
-                let bone = &self.bones[bone_index];
-                (bone.a, bone.b, bone.c, bone.d, bone.world_x, bone.world_y)
-            };
-            let bone = &mut self.bones[bone_index];
-            bone.ax = wx - self.x;
-            bone.ay = wy - self.y;
-            bone.arotation = c0.atan2(a).to_degrees();
-            bone.ascale_x = (a * a + c0 * c0).sqrt();
-            bone.ascale_y = (b * b + d * d).sqrt();
-            bone.ashear_x = 0.0;
-            bone.ashear_y = (a * b + c0 * d).atan2(a * d - b * c0).to_degrees();
-            bone.applied_valid = true;
-            bone.local_epoch = 0;
-        }
+        let bone = &mut self.bones[bone_index];
+        bone.ax = ax;
+        bone.ay = ay;
+        bone.arotation = arotation;
+        bone.ascale_x = ascale_x;
+        bone.ascale_y = ascale_y;
+        bone.ashear_x = ashear_x;
+        bone.ashear_y = ashear_y;
+        bone.local_epoch = 0;
     }
 }
 
@@ -3901,10 +3978,10 @@ struct ParentTransform {
 fn update_world_transform_root(bone: &mut Bone, x: f32, y: f32, scale_x: f32, scale_y: f32) {
     let rotation_x = (bone.arotation + bone.ashear_x).to_radians();
     let rotation_y = (bone.arotation + 90.0 + bone.ashear_y).to_radians();
-    let la = rotation_x.cos() * bone.ascale_x;
-    let lb = rotation_y.cos() * bone.ascale_y;
-    let lc = rotation_x.sin() * bone.ascale_x;
-    let ld = rotation_y.sin() * bone.ascale_y;
+    let la = cos_f32(rotation_x) * bone.ascale_x;
+    let lb = cos_f32(rotation_y) * bone.ascale_y;
+    let lc = sin_f32(rotation_x) * bone.ascale_x;
+    let ld = sin_f32(rotation_y) * bone.ascale_y;
 
     bone.a = la * scale_x;
     bone.b = lb * scale_x;
@@ -3934,10 +4011,10 @@ fn update_world_transform_child(
         crate::Inherit::Normal => {
             let rotation_x = (bone.arotation + bone.ashear_x).to_radians();
             let rotation_y = (bone.arotation + 90.0 + bone.ashear_y).to_radians();
-            let la = rotation_x.cos() * bone.ascale_x;
-            let lb = rotation_y.cos() * bone.ascale_y;
-            let lc = rotation_x.sin() * bone.ascale_x;
-            let ld = rotation_y.sin() * bone.ascale_y;
+            let la = cos_f32(rotation_x) * bone.ascale_x;
+            let lb = cos_f32(rotation_y) * bone.ascale_y;
+            let lc = sin_f32(rotation_x) * bone.ascale_x;
+            let ld = sin_f32(rotation_y) * bone.ascale_y;
 
             bone.a = pa * la + pb * lc;
             bone.b = pa * lb + pb * ld;
@@ -3947,10 +4024,10 @@ fn update_world_transform_child(
         crate::Inherit::OnlyTranslation => {
             let rotation_x = (bone.arotation + bone.ashear_x).to_radians();
             let rotation_y = (bone.arotation + 90.0 + bone.ashear_y).to_radians();
-            bone.a = rotation_x.cos() * bone.ascale_x;
-            bone.b = rotation_y.cos() * bone.ascale_y;
-            bone.c = rotation_x.sin() * bone.ascale_x;
-            bone.d = rotation_y.sin() * bone.ascale_y;
+            bone.a = cos_f32(rotation_x) * bone.ascale_x;
+            bone.b = cos_f32(rotation_y) * bone.ascale_y;
+            bone.c = sin_f32(rotation_x) * bone.ascale_x;
+            bone.d = sin_f32(rotation_y) * bone.ascale_y;
 
             bone.a *= skeleton_scale_x;
             bone.b *= skeleton_scale_x;
@@ -3973,23 +4050,23 @@ fn update_world_transform_child(
 
             let mut s = pa * pa + pc * pc;
             let prx;
-            if s > 1.0e-4 {
+            if s > 1.0e-10 {
                 s = (pa * pd * sy - pb * sx * pc).abs() / s;
                 pb = pc * s;
                 pd = pa * s;
-                prx = pc.atan2(pa).to_degrees();
+                prx = atan2_degrees(pc, pa);
             } else {
                 pa = 0.0;
                 pc = 0.0;
-                prx = 90.0 - pd.atan2(pb).to_degrees();
+                prx = 90.0 - atan2_degrees(pd, pb);
             }
 
             let rotation_x = (bone.arotation + bone.ashear_x - prx).to_radians();
             let rotation_y = (bone.arotation + bone.ashear_y - prx + 90.0).to_radians();
-            let la = rotation_x.cos() * bone.ascale_x;
-            let lb = rotation_y.cos() * bone.ascale_y;
-            let lc = rotation_x.sin() * bone.ascale_x;
-            let ld = rotation_y.sin() * bone.ascale_y;
+            let la = cos_f32(rotation_x) * bone.ascale_x;
+            let lb = cos_f32(rotation_y) * bone.ascale_y;
+            let lc = sin_f32(rotation_x) * bone.ascale_x;
+            let ld = sin_f32(rotation_y) * bone.ascale_y;
 
             bone.a = pa * la - pb * lc;
             bone.b = pa * lb - pb * ld;
@@ -4002,38 +4079,33 @@ fn update_world_transform_child(
             bone.d *= skeleton_scale_y;
         }
         crate::Inherit::NoScale | crate::Inherit::NoScaleOrReflection => {
-            let mut rotation = bone.arotation.to_radians();
-            let cos = rotation.cos();
-            let sin = rotation.sin();
+            let rotation = bone.arotation.to_radians();
+            let cos = cos_f32(rotation);
+            let sin = sin_f32(rotation);
 
             let za = (pa * cos + pb * sin) / skeleton_scale_x;
             let zc = (pc * cos + pd * sin) / skeleton_scale_y;
-            let mut s = (za * za + zc * zc).sqrt();
-            if s > 1.0e-5 {
-                s = 1.0 / s;
-            }
+            let s = 1.0 / sqrt_f32(za * za + zc * zc);
             let za = za * s;
             let zc = zc * s;
 
-            let mut s2 = (za * za + zc * zc).sqrt();
+            let mut zb = -zc;
+            let mut zd = za;
             if matches!(bone.inherit, crate::Inherit::NoScale) {
                 let det = pa * pd - pb * pc;
                 let flip = (det < 0.0) != ((skeleton_scale_x < 0.0) != (skeleton_scale_y < 0.0));
                 if flip {
-                    s2 = -s2;
+                    zb = -zb;
+                    zd = -zd;
                 }
             }
 
-            rotation = std::f32::consts::FRAC_PI_2 + zc.atan2(za);
-            let zb = rotation.cos() * s2;
-            let zd = rotation.sin() * s2;
-
             let shear_x = bone.ashear_x.to_radians();
             let shear_y = (90.0 + bone.ashear_y).to_radians();
-            let la = shear_x.cos() * bone.ascale_x;
-            let lb = shear_y.cos() * bone.ascale_y;
-            let lc = shear_x.sin() * bone.ascale_x;
-            let ld = shear_y.sin() * bone.ascale_y;
+            let la = cos_f32(shear_x) * bone.ascale_x;
+            let lb = cos_f32(shear_y) * bone.ascale_y;
+            let lc = sin_f32(shear_x) * bone.ascale_x;
+            let ld = sin_f32(shear_y) * bone.ascale_y;
 
             bone.a = za * la + zb * lc;
             bone.b = za * lb + zb * ld;
@@ -4049,9 +4121,10 @@ fn update_world_transform_child(
 }
 
 fn shortest_rotation(mut degrees: f32) -> f32 {
-    degrees = degrees.rem_euclid(360.0);
     if degrees > 180.0 {
         degrees -= 360.0;
+    } else if degrees <= -180.0 {
+        degrees += 360.0;
     }
     degrees
 }

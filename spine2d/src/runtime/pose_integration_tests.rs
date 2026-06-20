@@ -16,7 +16,7 @@ fn assert_approx(actual: f32, expected: f32) {
 
 #[test]
 fn animation_state_apply_drives_skeleton_pose() {
-    let animation = crate::Animation {
+    let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "move".to_string(),
         duration: 1.0,
         event_timeline: None,
@@ -53,7 +53,9 @@ fn animation_state_apply_drives_skeleton_pose() {
         slider_time_timelines: Vec::new(),
         slider_mix_timelines: Vec::new(),
         draw_order_timeline: None,
-    };
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    });
 
     let mut animation_index = HashMap::new();
     animation_index.insert("move".to_string(), 0);
@@ -74,6 +76,7 @@ fn animation_state_apply_drives_skeleton_pose() {
             shear_y: 0.0,
             inherit: Inherit::Normal,
             skin_required: false,
+            ..Default::default()
         }],
         slots: Vec::new(),
         skins: HashMap::new(),
@@ -102,7 +105,7 @@ fn animation_state_apply_drives_skeleton_pose() {
 
 #[test]
 fn animation_state_mixes_pose_between_entries() {
-    let anim_a = crate::Animation {
+    let anim_a = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 0.0,
         event_timeline: None,
@@ -131,8 +134,10 @@ fn animation_state_mixes_pose_between_entries() {
         slider_time_timelines: Vec::new(),
         slider_mix_timelines: Vec::new(),
         draw_order_timeline: None,
-    };
-    let anim_b = crate::Animation {
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    });
+    let anim_b = crate::runtime::finalize_animation(crate::Animation {
         name: "b".to_string(),
         duration: 0.0,
         event_timeline: None,
@@ -161,7 +166,9 @@ fn animation_state_mixes_pose_between_entries() {
         slider_time_timelines: Vec::new(),
         slider_mix_timelines: Vec::new(),
         draw_order_timeline: None,
-    };
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    });
 
     let mut animation_index = HashMap::new();
     animation_index.insert("a".to_string(), 0);
@@ -183,6 +190,7 @@ fn animation_state_mixes_pose_between_entries() {
             shear_y: 0.0,
             inherit: Inherit::Normal,
             skin_required: false,
+            ..Default::default()
         }],
         slots: Vec::new(),
         skins: HashMap::new(),
@@ -218,7 +226,7 @@ fn animation_state_mixes_pose_between_entries() {
 #[test]
 fn track_entry_shortest_rotation_disables_rotation_accumulator() {
     fn run_case(shortest_rotation: bool) -> f32 {
-        let animation = crate::Animation {
+        let animation = crate::runtime::finalize_animation(crate::Animation {
             name: "spin".to_string(),
             duration: 1.0,
             event_timeline: None,
@@ -253,7 +261,9 @@ fn track_entry_shortest_rotation_disables_rotation_accumulator() {
             slider_time_timelines: Vec::new(),
             slider_mix_timelines: Vec::new(),
             draw_order_timeline: None,
-        };
+            draw_order_folder_timelines: Vec::new(),
+            timeline_order: Vec::new(),
+        });
 
         let mut animation_index = HashMap::new();
         animation_index.insert("spin".to_string(), 0);
@@ -274,6 +284,7 @@ fn track_entry_shortest_rotation_disables_rotation_accumulator() {
                 shear_y: 0.0,
                 inherit: Inherit::Normal,
                 skin_required: false,
+                ..Default::default()
             }],
             slots: Vec::new(),
             skins: HashMap::new(),
@@ -310,7 +321,7 @@ fn track_entry_shortest_rotation_disables_rotation_accumulator() {
 
 #[test]
 fn track_entry_reverse_samples_from_animation_end() {
-    let animation = crate::Animation {
+    let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "move".to_string(),
         duration: 1.0,
         event_timeline: None,
@@ -347,7 +358,9 @@ fn track_entry_reverse_samples_from_animation_end() {
         slider_time_timelines: Vec::new(),
         slider_mix_timelines: Vec::new(),
         draw_order_timeline: None,
-    };
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    });
 
     let mut animation_index = HashMap::new();
     animation_index.insert("move".to_string(), 0);
@@ -368,6 +381,7 @@ fn track_entry_reverse_samples_from_animation_end() {
             shear_y: 0.0,
             inherit: Inherit::Normal,
             skin_required: false,
+            ..Default::default()
         }],
         slots: Vec::new(),
         skins: HashMap::new(),

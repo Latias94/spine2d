@@ -52,6 +52,30 @@ const SKELETON_IK_DEFAULT_BEND_POSITIVE: &str = r#"
 }
 "#;
 
+fn one_bone_stretch_json(scale_y_mode: Option<&str>) -> String {
+    let scale_y = scale_y_mode
+        .map(|mode| format!(r#", "scaleY": "{mode}""#))
+        .unwrap_or_default();
+    format!(
+        r#"
+{{
+  "skeleton": {{ "spine": "4.3.00" }},
+  "bones": [
+    {{ "name": "root" }},
+    {{ "name": "p", "parent": "root", "length": 1, "x": 0, "y": 0, "scaleY": 2 }},
+    {{ "name": "t", "parent": "root", "x": 2, "y": 0 }}
+  ],
+  "slots": [],
+  "skins": {{}},
+  "ik": [
+    {{ "name": "ik", "bones": ["p"], "target": "t", "mix": 1, "stretch": true{scale_y} }}
+  ],
+  "animations": {{}}
+}}
+"#
+    )
+}
+
 fn assert_approx(actual: f32, expected: f32) {
     let diff = (actual - expected).abs();
     assert!(
@@ -99,4 +123,21 @@ fn ik_constraint_bend_positive_defaults_to_true() {
     let data = SkeletonData::from_json_str(SKELETON_IK_DEFAULT_BEND_POSITIVE).unwrap();
     assert_eq!(data.ik_constraints.len(), 1);
     assert_eq!(data.ik_constraints[0].bend_direction, 1);
+}
+
+#[test]
+fn ik_scale_y_mode_controls_stretch_scale_y() {
+    let data = SkeletonData::from_json_str(&one_bone_stretch_json(None)).unwrap();
+    let mut skeleton = Skeleton::new(data);
+    skeleton.set_to_setup_pose();
+    skeleton.update_world_transform();
+    assert_approx(skeleton.bones[1].ascale_x, 2.0);
+    assert_approx(skeleton.bones[1].ascale_y, 2.0);
+
+    let data = SkeletonData::from_json_str(&one_bone_stretch_json(Some("uniform"))).unwrap();
+    let mut skeleton = Skeleton::new(data);
+    skeleton.set_to_setup_pose();
+    skeleton.update_world_transform();
+    assert_approx(skeleton.bones[1].ascale_x, 2.0);
+    assert_approx(skeleton.bones[1].ascale_y, 4.0);
 }

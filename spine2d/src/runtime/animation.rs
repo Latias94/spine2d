@@ -1,11 +1,11 @@
 use crate::{
     AlphaTimeline, Animation, AttachmentTimeline, BoneTimeline, ColorTimeline, Curve,
-    DeformTimeline, DrawOrderTimeline, IkConstraintTimeline, InheritTimeline,
-    PathConstraintTimeline, PhysicsConstraintResetTimeline, PhysicsConstraintTimeline,
-    Rgb2Timeline, RgbTimeline, Rgba2Timeline, RotateFrame, RotateTimeline, ScaleTimeline,
-    ScaleXTimeline, ScaleYTimeline, ShearTimeline, ShearXTimeline, ShearYTimeline, Skeleton,
-    SliderConstraintTimeline, TransformConstraintTimeline, TranslateTimeline, TranslateXTimeline,
-    TranslateYTimeline, Vec2Frame,
+    DeformTimeline, DrawOrderFolderTimeline, DrawOrderTimeline, IkConstraintTimeline,
+    InheritTimeline, PathConstraintTimeline, PhysicsConstraintResetTimeline,
+    PhysicsConstraintTimeline, Rgb2Timeline, RgbTimeline, Rgba2Timeline, RotateFrame,
+    RotateTimeline, ScaleTimeline, ScaleXTimeline, ScaleYTimeline, ShearTimeline, ShearXTimeline,
+    ShearYTimeline, Skeleton, SliderConstraintTimeline, TimelineKind, TransformConstraintTimeline,
+    TranslateTimeline, TranslateXTimeline, TranslateYTimeline, Vec2Frame,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -14,6 +14,23 @@ pub enum MixBlend {
     First,
     Replace,
     Add,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum MixFrom {
+    Current,
+    Setup,
+    First,
+}
+
+impl MixFrom {
+    fn from_blend(blend: MixBlend) -> Self {
+        match blend {
+            MixBlend::Setup => Self::Setup,
+            MixBlend::First => Self::First,
+            MixBlend::Replace | MixBlend::Add => Self::Current,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -35,6 +52,7 @@ pub fn apply_animation(
 ) {
     if animation.bone_timelines.is_empty()
         && animation.deform_timelines.is_empty()
+        && animation.sequence_timelines.is_empty()
         && animation.slot_attachment_timelines.is_empty()
         && animation.slot_color_timelines.is_empty()
         && animation.slot_rgb_timelines.is_empty()
@@ -49,6 +67,7 @@ pub fn apply_animation(
         && animation.slider_time_timelines.is_empty()
         && animation.slider_mix_timelines.is_empty()
         && animation.draw_order_timeline.is_none()
+        && animation.draw_order_folder_timelines.is_empty()
     {
         return;
     }
@@ -60,91 +79,174 @@ pub fn apply_animation(
 
     // Plain animation apply does not model AnimationState's attachmentState gating. Use the legacy
     // behaviour: always apply attachments.
-    for timeline in &animation.slot_attachment_timelines {
-        apply_attachment(timeline, skeleton, time, blend, true, 0);
-    }
-
-    for timeline in &animation.sequence_timelines {
-        apply_sequence_timeline(timeline, skeleton, time, blend, MixDirection::In);
-    }
-
-    for timeline in &animation.deform_timelines {
-        apply_deform(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.bone_timelines {
-        match timeline {
-            BoneTimeline::Rotate(t) => apply_rotate(t, skeleton, time, alpha, blend),
-            BoneTimeline::Translate(t) => apply_translate(t, skeleton, time, alpha, blend),
-            BoneTimeline::TranslateX(t) => apply_translate_x(t, skeleton, time, alpha, blend),
-            BoneTimeline::TranslateY(t) => apply_translate_y(t, skeleton, time, alpha, blend),
-            BoneTimeline::Scale(t) => {
-                apply_scale(t, skeleton, time, alpha, blend, MixDirection::In)
+    for kind in animation.timeline_order.iter().copied() {
+        match kind {
+            TimelineKind::SlotAttachment(i) => {
+                apply_attachment(
+                    &animation.slot_attachment_timelines[i],
+                    skeleton,
+                    time,
+                    blend,
+                    true,
+                    0,
+                );
             }
-            BoneTimeline::ScaleX(t) => {
-                apply_scale_x(t, skeleton, time, alpha, blend, MixDirection::In)
+            TimelineKind::Deform(i) => {
+                apply_deform(&animation.deform_timelines[i], skeleton, time, alpha, blend);
             }
-            BoneTimeline::ScaleY(t) => {
-                apply_scale_y(t, skeleton, time, alpha, blend, MixDirection::In)
+            TimelineKind::Sequence(i) => {
+                apply_sequence_timeline(
+                    &animation.sequence_timelines[i],
+                    skeleton,
+                    time,
+                    blend,
+                    MixDirection::In,
+                );
             }
-            BoneTimeline::Shear(t) => apply_shear(t, skeleton, time, alpha, blend),
-            BoneTimeline::ShearX(t) => apply_shear_x(t, skeleton, time, alpha, blend),
-            BoneTimeline::ShearY(t) => apply_shear_y(t, skeleton, time, alpha, blend),
-            BoneTimeline::Inherit(t) => apply_inherit(t, skeleton, time, blend, MixDirection::In),
+            TimelineKind::Bone(i) => match &animation.bone_timelines[i] {
+                BoneTimeline::Rotate(t) => apply_rotate(t, skeleton, time, alpha, blend),
+                BoneTimeline::Translate(t) => apply_translate(t, skeleton, time, alpha, blend),
+                BoneTimeline::TranslateX(t) => apply_translate_x(t, skeleton, time, alpha, blend),
+                BoneTimeline::TranslateY(t) => apply_translate_y(t, skeleton, time, alpha, blend),
+                BoneTimeline::Scale(t) => {
+                    apply_scale(t, skeleton, time, alpha, blend, MixDirection::In)
+                }
+                BoneTimeline::ScaleX(t) => {
+                    apply_scale_x(t, skeleton, time, alpha, blend, MixDirection::In)
+                }
+                BoneTimeline::ScaleY(t) => {
+                    apply_scale_y(t, skeleton, time, alpha, blend, MixDirection::In)
+                }
+                BoneTimeline::Shear(t) => apply_shear(t, skeleton, time, alpha, blend),
+                BoneTimeline::ShearX(t) => apply_shear_x(t, skeleton, time, alpha, blend),
+                BoneTimeline::ShearY(t) => apply_shear_y(t, skeleton, time, alpha, blend),
+                BoneTimeline::Inherit(t) => {
+                    apply_inherit(t, skeleton, time, blend, MixDirection::In)
+                }
+            },
+            TimelineKind::SlotColor(i) => {
+                apply_slot_color(
+                    &animation.slot_color_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::SlotRgb(i) => {
+                apply_slot_rgb(
+                    &animation.slot_rgb_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::SlotAlpha(i) => {
+                apply_slot_alpha(
+                    &animation.slot_alpha_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::SlotRgba2(i) => {
+                apply_slot_rgba2(
+                    &animation.slot_rgba2_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::SlotRgb2(i) => {
+                apply_slot_rgb2(
+                    &animation.slot_rgb2_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::IkConstraint(i) => {
+                apply_ik_constraint_timeline(
+                    &animation.ik_constraint_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                    MixDirection::In,
+                );
+            }
+            TimelineKind::TransformConstraint(i) => {
+                apply_transform_constraint_timeline(
+                    &animation.transform_constraint_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::PathConstraint(i) => {
+                apply_path_constraint_timeline(
+                    &animation.path_constraint_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::PhysicsConstraint(i) => {
+                apply_physics_constraint_timeline(
+                    &animation.physics_constraint_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::PhysicsReset(i) => {
+                apply_physics_reset_timeline(
+                    &animation.physics_reset_timelines[i],
+                    skeleton,
+                    time,
+                    time,
+                );
+            }
+            TimelineKind::SliderTime(i) => {
+                apply_slider_time_timeline(
+                    &animation.slider_time_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::SliderMix(i) => {
+                apply_slider_mix_timeline(
+                    &animation.slider_mix_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::DrawOrder => {
+                if let Some(timeline) = animation.draw_order_timeline.as_ref() {
+                    apply_draw_order(timeline, skeleton, time, mix_blend_is_current(blend), false);
+                }
+            }
+            TimelineKind::DrawOrderFolder(i) => {
+                apply_draw_order_folder(
+                    &animation.draw_order_folder_timelines[i],
+                    skeleton,
+                    time,
+                    mix_blend_is_current(blend),
+                    false,
+                );
+            }
         }
-    }
-
-    for timeline in &animation.slot_color_timelines {
-        apply_slot_color(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.slot_rgb_timelines {
-        apply_slot_rgb(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.slot_alpha_timelines {
-        apply_slot_alpha(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.slot_rgba2_timelines {
-        apply_slot_rgba2(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.slot_rgb2_timelines {
-        apply_slot_rgb2(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.ik_constraint_timelines {
-        apply_ik_constraint_timeline(timeline, skeleton, time, alpha, blend, MixDirection::In);
-    }
-
-    for timeline in &animation.transform_constraint_timelines {
-        apply_transform_constraint_timeline(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.path_constraint_timelines {
-        apply_path_constraint_timeline(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.physics_constraint_timelines {
-        apply_physics_constraint_timeline(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.slider_time_timelines {
-        apply_slider_time_timeline(timeline, skeleton, time, alpha, blend);
-    }
-    for timeline in &animation.slider_mix_timelines {
-        apply_slider_mix_timeline(timeline, skeleton, time, alpha, blend);
-    }
-
-    // `apply_animation` is stateless, so we can't perfectly match Spine's reset timeline semantics.
-    // We approximate by applying as if lastTime = -1.
-    for timeline in &animation.physics_reset_timelines {
-        apply_physics_reset_timeline(timeline, skeleton, -1.0, time);
-    }
-
-    if let Some(timeline) = animation.draw_order_timeline.as_ref() {
-        apply_draw_order(timeline, skeleton, time, blend, MixDirection::In);
     }
 }
 
@@ -162,6 +264,7 @@ pub(crate) fn apply_animation_applied(
 ) {
     if animation.bone_timelines.is_empty()
         && animation.deform_timelines.is_empty()
+        && animation.sequence_timelines.is_empty()
         && animation.slot_attachment_timelines.is_empty()
         && animation.slot_color_timelines.is_empty()
         && animation.slot_rgb_timelines.is_empty()
@@ -176,6 +279,7 @@ pub(crate) fn apply_animation_applied(
         && animation.slider_time_timelines.is_empty()
         && animation.slider_mix_timelines.is_empty()
         && animation.draw_order_timeline.is_none()
+        && animation.draw_order_folder_timelines.is_empty()
     {
         return;
     }
@@ -185,93 +289,180 @@ pub(crate) fn apply_animation_applied(
         time = time.rem_euclid(animation.duration);
     }
 
-    for timeline in &animation.slot_attachment_timelines {
-        apply_attachment(timeline, skeleton, time, blend, true, 0);
-    }
-
-    for timeline in &animation.sequence_timelines {
-        apply_sequence_timeline(timeline, skeleton, time, blend, MixDirection::In);
-    }
-
-    for timeline in &animation.deform_timelines {
-        apply_deform(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.bone_timelines {
-        match timeline {
-            BoneTimeline::Rotate(t) => apply_rotate_applied(t, skeleton, time, alpha, blend),
-            BoneTimeline::Translate(t) => apply_translate_applied(t, skeleton, time, alpha, blend),
-            BoneTimeline::TranslateX(t) => {
-                apply_translate_x_applied(t, skeleton, time, alpha, blend)
+    for kind in animation.timeline_order.iter().copied() {
+        match kind {
+            TimelineKind::SlotAttachment(i) => {
+                apply_attachment(
+                    &animation.slot_attachment_timelines[i],
+                    skeleton,
+                    time,
+                    blend,
+                    true,
+                    0,
+                );
             }
-            BoneTimeline::TranslateY(t) => {
-                apply_translate_y_applied(t, skeleton, time, alpha, blend)
+            TimelineKind::Deform(i) => {
+                apply_deform(&animation.deform_timelines[i], skeleton, time, alpha, blend);
             }
-            BoneTimeline::Scale(t) => {
-                apply_scale_applied(t, skeleton, time, alpha, blend, MixDirection::In)
+            TimelineKind::Sequence(i) => {
+                apply_sequence_timeline(
+                    &animation.sequence_timelines[i],
+                    skeleton,
+                    time,
+                    blend,
+                    MixDirection::In,
+                );
             }
-            BoneTimeline::ScaleX(t) => {
-                apply_scale_x_applied(t, skeleton, time, alpha, blend, MixDirection::In)
+            TimelineKind::Bone(i) => match &animation.bone_timelines[i] {
+                BoneTimeline::Rotate(t) => apply_rotate_applied(t, skeleton, time, alpha, blend),
+                BoneTimeline::Translate(t) => {
+                    apply_translate_applied(t, skeleton, time, alpha, blend)
+                }
+                BoneTimeline::TranslateX(t) => {
+                    apply_translate_x_applied(t, skeleton, time, alpha, blend)
+                }
+                BoneTimeline::TranslateY(t) => {
+                    apply_translate_y_applied(t, skeleton, time, alpha, blend)
+                }
+                BoneTimeline::Scale(t) => {
+                    apply_scale_applied(t, skeleton, time, alpha, blend, MixDirection::In)
+                }
+                BoneTimeline::ScaleX(t) => {
+                    apply_scale_x_applied(t, skeleton, time, alpha, blend, MixDirection::In)
+                }
+                BoneTimeline::ScaleY(t) => {
+                    apply_scale_y_applied(t, skeleton, time, alpha, blend, MixDirection::In)
+                }
+                BoneTimeline::Shear(t) => apply_shear_applied(t, skeleton, time, alpha, blend),
+                BoneTimeline::ShearX(t) => apply_shear_x_applied(t, skeleton, time, alpha, blend),
+                BoneTimeline::ShearY(t) => apply_shear_y_applied(t, skeleton, time, alpha, blend),
+                BoneTimeline::Inherit(t) => {
+                    apply_inherit(t, skeleton, time, blend, MixDirection::In)
+                }
+            },
+            TimelineKind::SlotColor(i) => {
+                apply_slot_color(
+                    &animation.slot_color_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
             }
-            BoneTimeline::ScaleY(t) => {
-                apply_scale_y_applied(t, skeleton, time, alpha, blend, MixDirection::In)
+            TimelineKind::SlotRgb(i) => {
+                apply_slot_rgb(
+                    &animation.slot_rgb_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
             }
-            BoneTimeline::Shear(t) => apply_shear_applied(t, skeleton, time, alpha, blend),
-            BoneTimeline::ShearX(t) => apply_shear_x_applied(t, skeleton, time, alpha, blend),
-            BoneTimeline::ShearY(t) => apply_shear_y_applied(t, skeleton, time, alpha, blend),
-            BoneTimeline::Inherit(t) => apply_inherit(t, skeleton, time, blend, MixDirection::In),
+            TimelineKind::SlotAlpha(i) => {
+                apply_slot_alpha(
+                    &animation.slot_alpha_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::SlotRgba2(i) => {
+                apply_slot_rgba2(
+                    &animation.slot_rgba2_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::SlotRgb2(i) => {
+                apply_slot_rgb2(
+                    &animation.slot_rgb2_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::IkConstraint(i) => {
+                apply_ik_constraint_timeline(
+                    &animation.ik_constraint_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                    MixDirection::In,
+                );
+            }
+            TimelineKind::TransformConstraint(i) => {
+                apply_transform_constraint_timeline(
+                    &animation.transform_constraint_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::PathConstraint(i) => {
+                apply_path_constraint_timeline(
+                    &animation.path_constraint_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::PhysicsConstraint(i) => {
+                apply_physics_constraint_timeline(
+                    &animation.physics_constraint_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::PhysicsReset(i) => {
+                apply_physics_reset_timeline(
+                    &animation.physics_reset_timelines[i],
+                    skeleton,
+                    time,
+                    time,
+                );
+            }
+            TimelineKind::SliderTime(i) => {
+                apply_slider_time_timeline(
+                    &animation.slider_time_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::SliderMix(i) => {
+                apply_slider_mix_timeline(
+                    &animation.slider_mix_timelines[i],
+                    skeleton,
+                    time,
+                    alpha,
+                    blend,
+                );
+            }
+            TimelineKind::DrawOrder => {
+                if let Some(timeline) = animation.draw_order_timeline.as_ref() {
+                    apply_draw_order(timeline, skeleton, time, mix_blend_is_current(blend), false);
+                }
+            }
+            TimelineKind::DrawOrderFolder(i) => {
+                apply_draw_order_folder(
+                    &animation.draw_order_folder_timelines[i],
+                    skeleton,
+                    time,
+                    mix_blend_is_current(blend),
+                    false,
+                );
+            }
         }
-    }
-
-    for timeline in &animation.slot_color_timelines {
-        apply_slot_color(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.slot_rgb_timelines {
-        apply_slot_rgb(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.slot_alpha_timelines {
-        apply_slot_alpha(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.slot_rgba2_timelines {
-        apply_slot_rgba2(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.slot_rgb2_timelines {
-        apply_slot_rgb2(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.ik_constraint_timelines {
-        apply_ik_constraint_timeline(timeline, skeleton, time, alpha, blend, MixDirection::In);
-    }
-
-    for timeline in &animation.transform_constraint_timelines {
-        apply_transform_constraint_timeline(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.path_constraint_timelines {
-        apply_path_constraint_timeline(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.physics_constraint_timelines {
-        apply_physics_constraint_timeline(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.slider_time_timelines {
-        apply_slider_time_timeline(timeline, skeleton, time, alpha, blend);
-    }
-    for timeline in &animation.slider_mix_timelines {
-        apply_slider_mix_timeline(timeline, skeleton, time, alpha, blend);
-    }
-
-    for timeline in &animation.physics_reset_timelines {
-        apply_physics_reset_timeline(timeline, skeleton, -1.0, time);
-    }
-
-    if let Some(timeline) = animation.draw_order_timeline.as_ref() {
-        apply_draw_order(timeline, skeleton, time, blend, MixDirection::In);
     }
 }
 
@@ -906,47 +1097,23 @@ pub(crate) fn apply_slider_time_timeline(
     alpha: f32,
     blend: MixBlend,
 ) {
-    if alpha <= 0.0 || timeline.frames.is_empty() {
-        return;
-    }
-    let Some(constraint) = skeleton
-        .slider_constraints
-        .get_mut(timeline.constraint_index)
-    else {
-        return;
-    };
-    let Some(data) = skeleton.data.slider_constraints.get(constraint.data_index) else {
-        return;
-    };
-
-    let first_time = timeline.frames[0].time;
-    if time < first_time {
-        match blend {
-            MixBlend::Setup => constraint.time = data.setup_time,
-            MixBlend::First => constraint.time += (data.setup_time - constraint.time) * alpha,
-            _ => {}
-        }
-        return;
-    }
-
-    let sampled = sample_float(&timeline.frames, time);
-    match blend {
-        MixBlend::Setup => constraint.time = data.setup_time + (sampled - data.setup_time) * alpha,
-        MixBlend::First | MixBlend::Replace => {
-            constraint.time += (sampled - constraint.time) * alpha;
-        }
-        MixBlend::Add => {
-            constraint.time += sampled * alpha;
-        }
-    }
+    apply_slider_time_timeline_with(
+        timeline,
+        skeleton,
+        time,
+        alpha,
+        MixFrom::from_blend(blend),
+        blend == MixBlend::Add,
+    );
 }
 
-pub(crate) fn apply_slider_mix_timeline(
+pub(crate) fn apply_slider_time_timeline_with(
     timeline: &SliderConstraintTimeline,
     skeleton: &mut Skeleton,
     time: f32,
     alpha: f32,
-    blend: MixBlend,
+    from: MixFrom,
+    add: bool,
 ) {
     if alpha <= 0.0 || timeline.frames.is_empty() {
         return;
@@ -963,23 +1130,86 @@ pub(crate) fn apply_slider_mix_timeline(
 
     let first_time = timeline.frames[0].time;
     if time < first_time {
-        match blend {
-            MixBlend::Setup => constraint.mix = data.setup_mix,
-            MixBlend::First => constraint.mix += (data.setup_mix - constraint.mix) * alpha,
-            _ => {}
-        }
+        constraint.time = before_first_absolute(from, alpha, constraint.time, data.setup_time);
         return;
     }
 
     let sampled = sample_float(&timeline.frames, time);
-    match blend {
-        MixBlend::Setup => constraint.mix = data.setup_mix + (sampled - data.setup_mix) * alpha,
-        MixBlend::First | MixBlend::Replace => {
-            constraint.mix += (sampled - constraint.mix) * alpha;
-        }
-        MixBlend::Add => {
-            constraint.mix += sampled * alpha;
-        }
+    constraint.time =
+        apply_absolute_value(from, add, alpha, constraint.time, data.setup_time, sampled);
+}
+
+pub(crate) fn apply_slider_mix_timeline(
+    timeline: &SliderConstraintTimeline,
+    skeleton: &mut Skeleton,
+    time: f32,
+    alpha: f32,
+    blend: MixBlend,
+) {
+    apply_slider_mix_timeline_with(
+        timeline,
+        skeleton,
+        time,
+        alpha,
+        MixFrom::from_blend(blend),
+        blend == MixBlend::Add,
+    );
+}
+
+pub(crate) fn apply_slider_mix_timeline_with(
+    timeline: &SliderConstraintTimeline,
+    skeleton: &mut Skeleton,
+    time: f32,
+    alpha: f32,
+    from: MixFrom,
+    add: bool,
+) {
+    if alpha <= 0.0 || timeline.frames.is_empty() {
+        return;
+    }
+    let Some(constraint) = skeleton
+        .slider_constraints
+        .get_mut(timeline.constraint_index)
+    else {
+        return;
+    };
+    let Some(data) = skeleton.data.slider_constraints.get(constraint.data_index) else {
+        return;
+    };
+
+    let first_time = timeline.frames[0].time;
+    if time < first_time {
+        constraint.mix = before_first_absolute(from, alpha, constraint.mix, data.setup_mix);
+        return;
+    }
+
+    let sampled = sample_float(&timeline.frames, time);
+    constraint.mix =
+        apply_absolute_value(from, add, alpha, constraint.mix, data.setup_mix, sampled);
+}
+
+fn before_first_absolute(from: MixFrom, alpha: f32, current: f32, setup: f32) -> f32 {
+    match from {
+        MixFrom::Setup => setup,
+        MixFrom::First => current + (setup - current) * alpha,
+        MixFrom::Current => current,
+    }
+}
+
+fn apply_absolute_value(
+    from: MixFrom,
+    add: bool,
+    alpha: f32,
+    current: f32,
+    setup: f32,
+    value: f32,
+) -> f32 {
+    if from == MixFrom::Setup {
+        let delta = if add { value } else { value - setup };
+        setup + delta * alpha
+    } else {
+        let delta = if add { value } else { value - current };
+        current + delta * alpha
     }
 }
 
@@ -1047,6 +1277,24 @@ pub(crate) fn apply_physics_constraint_timeline(
     alpha: f32,
     blend: MixBlend,
 ) {
+    apply_physics_constraint_timeline_with(
+        timeline,
+        skeleton,
+        time,
+        alpha,
+        MixFrom::from_blend(blend),
+        blend == MixBlend::Add,
+    );
+}
+
+pub(crate) fn apply_physics_constraint_timeline_with(
+    timeline: &PhysicsConstraintTimeline,
+    skeleton: &mut Skeleton,
+    time: f32,
+    alpha: f32,
+    from: MixFrom,
+    entry_add: bool,
+) {
     if alpha <= 0.0 {
         return;
     }
@@ -1063,7 +1311,8 @@ pub(crate) fn apply_physics_constraint_timeline(
         frames: &[crate::FloatFrame],
         time: f32,
         alpha: f32,
-        blend: MixBlend,
+        from: MixFrom,
+        add: bool,
         get_setup: GetSetup,
         get_current: GetCurrent,
         set_current: SetCurrent,
@@ -1082,25 +1331,25 @@ pub(crate) fn apply_physics_constraint_timeline(
 
         let apply_one = |constraint: &mut crate::PhysicsConstraint, setup: f32, value: f32| {
             if time < first_time {
-                match blend {
-                    MixBlend::Setup => set_current(constraint, setup),
-                    MixBlend::First => {
+                match from {
+                    MixFrom::Setup => set_current(constraint, setup),
+                    MixFrom::First => {
                         let current = get_current(constraint);
                         set_current(constraint, current + (setup - current) * alpha);
                     }
-                    _ => {}
+                    MixFrom::Current => {}
                 }
                 return;
             }
-            match blend {
-                MixBlend::Setup => set_current(constraint, setup + (value - setup) * alpha),
-                MixBlend::First | MixBlend::Replace => {
-                    let current = get_current(constraint);
-                    set_current(constraint, current + (value - current) * alpha);
+            match from {
+                MixFrom::Setup => {
+                    let delta = if add { value } else { value - setup };
+                    set_current(constraint, setup + delta * alpha);
                 }
-                MixBlend::Add => {
+                MixFrom::First | MixFrom::Current => {
                     let current = get_current(constraint);
-                    set_current(constraint, current + value * alpha);
+                    let delta = if add { value } else { value - current };
+                    set_current(constraint, current + delta * alpha);
                 }
             }
         };
@@ -1139,7 +1388,8 @@ pub(crate) fn apply_physics_constraint_timeline(
             &tl.frames,
             time,
             alpha,
-            blend,
+            from,
+            false,
             |d| d.inertia,
             |c| c.inertia,
             |c, v| c.inertia = v,
@@ -1151,7 +1401,8 @@ pub(crate) fn apply_physics_constraint_timeline(
             &tl.frames,
             time,
             alpha,
-            blend,
+            from,
+            false,
             |d| d.strength,
             |c| c.strength,
             |c, v| c.strength = v,
@@ -1163,7 +1414,8 @@ pub(crate) fn apply_physics_constraint_timeline(
             &tl.frames,
             time,
             alpha,
-            blend,
+            from,
+            false,
             |d| d.damping,
             |c| c.damping,
             |c, v| c.damping = v,
@@ -1175,7 +1427,8 @@ pub(crate) fn apply_physics_constraint_timeline(
             &tl.frames,
             time,
             alpha,
-            blend,
+            from,
+            false,
             |d| 1.0 / d.mass_inverse,
             |c| 1.0 / c.mass_inverse,
             |c, v| c.mass_inverse = 1.0 / v,
@@ -1187,7 +1440,8 @@ pub(crate) fn apply_physics_constraint_timeline(
             &tl.frames,
             time,
             alpha,
-            blend,
+            from,
+            entry_add,
             |d| d.wind,
             |c| c.wind,
             |c, v| c.wind = v,
@@ -1199,7 +1453,8 @@ pub(crate) fn apply_physics_constraint_timeline(
             &tl.frames,
             time,
             alpha,
-            blend,
+            from,
+            entry_add,
             |d| d.gravity,
             |c| c.gravity,
             |c, v| c.gravity = v,
@@ -1211,7 +1466,8 @@ pub(crate) fn apply_physics_constraint_timeline(
             &tl.frames,
             time,
             alpha,
-            blend,
+            from,
+            false,
             |d| d.mix,
             |c| c.mix,
             |c, v| c.mix = v,
@@ -1227,14 +1483,34 @@ pub(crate) fn apply_path_constraint_timeline(
     alpha: f32,
     blend: MixBlend,
 ) {
+    apply_path_constraint_timeline_with(
+        timeline,
+        skeleton,
+        time,
+        alpha,
+        MixFrom::from_blend(blend),
+        blend == MixBlend::Add,
+    );
+}
+
+pub(crate) fn apply_path_constraint_timeline_with(
+    timeline: &PathConstraintTimeline,
+    skeleton: &mut Skeleton,
+    time: f32,
+    alpha: f32,
+    from: MixFrom,
+    entry_add: bool,
+) {
     match timeline {
         PathConstraintTimeline::Position(t) => {
-            apply_path_position_timeline(t, skeleton, time, alpha, blend)
+            apply_path_position_timeline(t, skeleton, time, alpha, from, entry_add)
         }
         PathConstraintTimeline::Spacing(t) => {
-            apply_path_spacing_timeline(t, skeleton, time, alpha, blend)
+            apply_path_spacing_timeline(t, skeleton, time, alpha, from)
         }
-        PathConstraintTimeline::Mix(t) => apply_path_mix_timeline(t, skeleton, time, alpha, blend),
+        PathConstraintTimeline::Mix(t) => {
+            apply_path_mix_timeline(t, skeleton, time, alpha, from, entry_add)
+        }
     }
 }
 
@@ -1243,7 +1519,8 @@ fn apply_path_position_timeline(
     skeleton: &mut Skeleton,
     time: f32,
     alpha: f32,
-    blend: MixBlend,
+    from: MixFrom,
+    add: bool,
 ) {
     if alpha <= 0.0 || timeline.frames.is_empty() {
         return;
@@ -1261,22 +1538,17 @@ fn apply_path_position_timeline(
 
     let first_time = timeline.frames[0].time;
     if time < first_time {
-        match blend {
-            MixBlend::Setup => constraint.position = setup,
-            MixBlend::First => constraint.position += (setup - constraint.position) * alpha,
-            _ => {}
+        match from {
+            MixFrom::Setup => constraint.position = setup,
+            MixFrom::First => constraint.position += (setup - constraint.position) * alpha,
+            MixFrom::Current => {}
         }
         return;
     }
 
     let sampled = sample_float(&timeline.frames, time);
-    match blend {
-        MixBlend::Setup => constraint.position = setup + (sampled - setup) * alpha,
-        MixBlend::First | MixBlend::Replace => {
-            constraint.position += (sampled - constraint.position) * alpha
-        }
-        MixBlend::Add => constraint.position += sampled * alpha,
-    }
+    constraint.position =
+        apply_absolute_value(from, add, alpha, constraint.position, setup, sampled);
 }
 
 fn apply_path_spacing_timeline(
@@ -1284,7 +1556,7 @@ fn apply_path_spacing_timeline(
     skeleton: &mut Skeleton,
     time: f32,
     alpha: f32,
-    blend: MixBlend,
+    from: MixFrom,
 ) {
     if alpha <= 0.0 || timeline.frames.is_empty() {
         return;
@@ -1302,22 +1574,17 @@ fn apply_path_spacing_timeline(
 
     let first_time = timeline.frames[0].time;
     if time < first_time {
-        match blend {
-            MixBlend::Setup => constraint.spacing = setup,
-            MixBlend::First => constraint.spacing += (setup - constraint.spacing) * alpha,
-            _ => {}
+        match from {
+            MixFrom::Setup => constraint.spacing = setup,
+            MixFrom::First => constraint.spacing += (setup - constraint.spacing) * alpha,
+            MixFrom::Current => {}
         }
         return;
     }
 
     let sampled = sample_float(&timeline.frames, time);
-    match blend {
-        MixBlend::Setup => constraint.spacing = setup + (sampled - setup) * alpha,
-        MixBlend::First | MixBlend::Replace => {
-            constraint.spacing += (sampled - constraint.spacing) * alpha
-        }
-        MixBlend::Add => constraint.spacing += sampled * alpha,
-    }
+    constraint.spacing =
+        apply_absolute_value(from, false, alpha, constraint.spacing, setup, sampled);
 }
 
 fn apply_path_mix_timeline(
@@ -1325,7 +1592,8 @@ fn apply_path_mix_timeline(
     skeleton: &mut Skeleton,
     time: f32,
     alpha: f32,
-    blend: MixBlend,
+    from: MixFrom,
+    add: bool,
 ) {
     if alpha <= 0.0 || timeline.frames.is_empty() {
         return;
@@ -1343,40 +1611,27 @@ fn apply_path_mix_timeline(
 
     let first_time = timeline.frames[0].time;
     if time < first_time {
-        match blend {
-            MixBlend::Setup => {
+        match from {
+            MixFrom::Setup => {
                 constraint.mix_rotate = setup.0;
                 constraint.mix_x = setup.1;
                 constraint.mix_y = setup.2;
             }
-            MixBlend::First => {
+            MixFrom::First => {
                 constraint.mix_rotate += (setup.0 - constraint.mix_rotate) * alpha;
                 constraint.mix_x += (setup.1 - constraint.mix_x) * alpha;
                 constraint.mix_y += (setup.2 - constraint.mix_y) * alpha;
             }
-            _ => {}
+            MixFrom::Current => {}
         }
         return;
     }
 
     let sampled = sample_path_mix(&timeline.frames, time);
-    match blend {
-        MixBlend::Setup => {
-            constraint.mix_rotate = setup.0 + (sampled.0 - setup.0) * alpha;
-            constraint.mix_x = setup.1 + (sampled.1 - setup.1) * alpha;
-            constraint.mix_y = setup.2 + (sampled.2 - setup.2) * alpha;
-        }
-        MixBlend::First | MixBlend::Replace => {
-            constraint.mix_rotate += (sampled.0 - constraint.mix_rotate) * alpha;
-            constraint.mix_x += (sampled.1 - constraint.mix_x) * alpha;
-            constraint.mix_y += (sampled.2 - constraint.mix_y) * alpha;
-        }
-        MixBlend::Add => {
-            constraint.mix_rotate += sampled.0 * alpha;
-            constraint.mix_x += sampled.1 * alpha;
-            constraint.mix_y += sampled.2 * alpha;
-        }
-    }
+    constraint.mix_rotate =
+        apply_absolute_value(from, add, alpha, constraint.mix_rotate, setup.0, sampled.0);
+    constraint.mix_x = apply_absolute_value(from, add, alpha, constraint.mix_x, setup.1, sampled.1);
+    constraint.mix_y = apply_absolute_value(from, add, alpha, constraint.mix_y, setup.2, sampled.2);
 }
 
 fn sample_float(frames: &[crate::FloatFrame], time: f32) -> f32 {
@@ -1449,6 +1704,24 @@ pub(crate) fn apply_transform_constraint_timeline(
     alpha: f32,
     blend: MixBlend,
 ) {
+    apply_transform_constraint_timeline_with(
+        timeline,
+        skeleton,
+        time,
+        alpha,
+        MixFrom::from_blend(blend),
+        blend == MixBlend::Add,
+    );
+}
+
+pub(crate) fn apply_transform_constraint_timeline_with(
+    timeline: &TransformConstraintTimeline,
+    skeleton: &mut Skeleton,
+    time: f32,
+    alpha: f32,
+    from: MixFrom,
+    add: bool,
+) {
     if alpha <= 0.0 {
         return;
     }
@@ -1480,8 +1753,8 @@ pub(crate) fn apply_transform_constraint_timeline(
 
     let first_time = timeline.frames[0].time;
     if time < first_time {
-        match blend {
-            MixBlend::Setup => {
+        match from {
+            MixFrom::Setup => {
                 constraint.mix_rotate = setup.0;
                 constraint.mix_x = setup.1;
                 constraint.mix_y = setup.2;
@@ -1489,7 +1762,7 @@ pub(crate) fn apply_transform_constraint_timeline(
                 constraint.mix_scale_y = setup.4;
                 constraint.mix_shear_y = setup.5;
             }
-            MixBlend::First => {
+            MixFrom::First => {
                 constraint.mix_rotate += (setup.0 - constraint.mix_rotate) * alpha;
                 constraint.mix_x += (setup.1 - constraint.mix_x) * alpha;
                 constraint.mix_y += (setup.2 - constraint.mix_y) * alpha;
@@ -1497,37 +1770,39 @@ pub(crate) fn apply_transform_constraint_timeline(
                 constraint.mix_scale_y += (setup.4 - constraint.mix_scale_y) * alpha;
                 constraint.mix_shear_y += (setup.5 - constraint.mix_shear_y) * alpha;
             }
-            _ => {}
+            MixFrom::Current => {}
         }
         return;
     }
 
     let sampled = sample_transform_mix(&timeline.frames, time);
-    match blend {
-        MixBlend::Setup => {
-            constraint.mix_rotate = setup.0 + (sampled.0 - setup.0) * alpha;
-            constraint.mix_x = setup.1 + (sampled.1 - setup.1) * alpha;
-            constraint.mix_y = setup.2 + (sampled.2 - setup.2) * alpha;
-            constraint.mix_scale_x = setup.3 + (sampled.3 - setup.3) * alpha;
-            constraint.mix_scale_y = setup.4 + (sampled.4 - setup.4) * alpha;
-            constraint.mix_shear_y = setup.5 + (sampled.5 - setup.5) * alpha;
-        }
-        MixBlend::First | MixBlend::Replace => {
-            constraint.mix_rotate += (sampled.0 - constraint.mix_rotate) * alpha;
-            constraint.mix_x += (sampled.1 - constraint.mix_x) * alpha;
-            constraint.mix_y += (sampled.2 - constraint.mix_y) * alpha;
-            constraint.mix_scale_x += (sampled.3 - constraint.mix_scale_x) * alpha;
-            constraint.mix_scale_y += (sampled.4 - constraint.mix_scale_y) * alpha;
-            constraint.mix_shear_y += (sampled.5 - constraint.mix_shear_y) * alpha;
-        }
-        MixBlend::Add => {
-            constraint.mix_rotate += sampled.0 * alpha;
-            constraint.mix_x += sampled.1 * alpha;
-            constraint.mix_y += sampled.2 * alpha;
-            constraint.mix_scale_x += sampled.3 * alpha;
-            constraint.mix_scale_y += sampled.4 * alpha;
-            constraint.mix_shear_y += sampled.5 * alpha;
-        }
+    let base = if from == MixFrom::Setup {
+        setup
+    } else {
+        (
+            constraint.mix_rotate,
+            constraint.mix_x,
+            constraint.mix_y,
+            constraint.mix_scale_x,
+            constraint.mix_scale_y,
+            constraint.mix_shear_y,
+        )
+    };
+
+    if add {
+        constraint.mix_rotate = base.0 + sampled.0 * alpha;
+        constraint.mix_x = base.1 + sampled.1 * alpha;
+        constraint.mix_y = base.2 + sampled.2 * alpha;
+        constraint.mix_scale_x = base.3 + sampled.3 * alpha;
+        constraint.mix_scale_y = base.4 + sampled.4 * alpha;
+        constraint.mix_shear_y = base.5 + sampled.5 * alpha;
+    } else {
+        constraint.mix_rotate = base.0 + (sampled.0 - base.0) * alpha;
+        constraint.mix_x = base.1 + (sampled.1 - base.1) * alpha;
+        constraint.mix_y = base.2 + (sampled.2 - base.2) * alpha;
+        constraint.mix_scale_x = base.3 + (sampled.3 - base.3) * alpha;
+        constraint.mix_scale_y = base.4 + (sampled.4 - base.4) * alpha;
+        constraint.mix_shear_y = base.5 + (sampled.5 - base.5) * alpha;
     }
 }
 
@@ -1751,9 +2026,6 @@ pub(crate) fn apply_slot_color(
     alpha: f32,
     blend: MixBlend,
 ) {
-    if alpha <= 0.0 {
-        return;
-    }
     let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
         return;
     };
@@ -1804,9 +2076,6 @@ pub(crate) fn apply_slot_rgb(
     alpha: f32,
     blend: MixBlend,
 ) {
-    if alpha <= 0.0 {
-        return;
-    }
     let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
         return;
     };
@@ -1867,9 +2136,6 @@ pub(crate) fn apply_slot_alpha(
     alpha: f32,
     blend: MixBlend,
 ) {
-    if alpha <= 0.0 {
-        return;
-    }
     let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
         return;
     };
@@ -1923,9 +2189,6 @@ pub(crate) fn apply_slot_rgba2(
     alpha: f32,
     blend: MixBlend,
 ) {
-    if alpha <= 0.0 {
-        return;
-    }
     let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
         return;
     };
@@ -1991,9 +2254,6 @@ pub(crate) fn apply_slot_rgb2(
     alpha: f32,
     blend: MixBlend,
 ) {
-    if alpha <= 0.0 {
-        return;
-    }
     let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
         return;
     };
@@ -2106,6 +2366,9 @@ pub(crate) fn apply_attachment(
         return;
     }
     if timeline.frames.is_empty() {
+        return;
+    }
+    if !attachments && blend == MixBlend::Replace {
         return;
     }
 
@@ -2282,11 +2545,11 @@ pub(crate) fn apply_draw_order(
     timeline: &DrawOrderTimeline,
     skeleton: &mut Skeleton,
     time: f32,
-    blend: MixBlend,
-    direction: MixDirection,
+    from_current: bool,
+    out: bool,
 ) {
-    if direction == MixDirection::Out {
-        if blend == MixBlend::Setup {
+    if out {
+        if !from_current {
             skeleton.draw_order = (0..skeleton.slots.len()).collect::<Vec<_>>();
         }
         return;
@@ -2297,7 +2560,7 @@ pub(crate) fn apply_draw_order(
     }
 
     if time < timeline.frames[0].time {
-        if matches!(blend, MixBlend::Setup | MixBlend::First) {
+        if !from_current {
             skeleton.draw_order = (0..skeleton.slots.len()).collect::<Vec<_>>();
         }
         return;
@@ -2319,6 +2582,93 @@ pub(crate) fn apply_draw_order(
     }
 }
 
+pub(crate) fn apply_draw_order_folder(
+    timeline: &DrawOrderFolderTimeline,
+    skeleton: &mut Skeleton,
+    time: f32,
+    from_current: bool,
+    out: bool,
+) {
+    if timeline.slots.is_empty() || timeline.frames.is_empty() {
+        return;
+    }
+
+    if out || time < timeline.frames[0].time {
+        if !from_current {
+            setup_draw_order_folder(timeline, skeleton);
+        }
+        return;
+    }
+
+    let frame_index = timeline
+        .frames
+        .partition_point(|f| f.time <= time)
+        .saturating_sub(1);
+    if let Some(draw_order) = timeline.frames[frame_index].folder_draw_order.as_ref() {
+        apply_draw_order_folder_frame(timeline, skeleton, draw_order);
+    } else {
+        setup_draw_order_folder(timeline, skeleton);
+    }
+}
+
+fn mix_blend_is_current(blend: MixBlend) -> bool {
+    matches!(blend, MixBlend::Replace | MixBlend::Add)
+}
+
+fn setup_draw_order_folder(timeline: &DrawOrderFolderTimeline, skeleton: &mut Skeleton) {
+    let mut found = 0usize;
+    let done = timeline.slots.len();
+    let in_folder = draw_order_folder_mask(timeline, skeleton.slots.len());
+    for slot_index in &mut skeleton.draw_order {
+        if in_folder.get(*slot_index).copied().unwrap_or(false) {
+            *slot_index = timeline.slots[found];
+            found += 1;
+            if found == done {
+                break;
+            }
+        }
+    }
+}
+
+fn apply_draw_order_folder_frame(
+    timeline: &DrawOrderFolderTimeline,
+    skeleton: &mut Skeleton,
+    draw_order: &[usize],
+) {
+    if draw_order.len() != timeline.slots.len() {
+        return;
+    }
+
+    let mut found = 0usize;
+    let done = timeline.slots.len();
+    let in_folder = draw_order_folder_mask(timeline, skeleton.slots.len());
+    for slot_index in &mut skeleton.draw_order {
+        if in_folder.get(*slot_index).copied().unwrap_or(false) {
+            let Some(&folder_index) = draw_order.get(found) else {
+                return;
+            };
+            let Some(&setup_slot_index) = timeline.slots.get(folder_index) else {
+                return;
+            };
+            *slot_index = setup_slot_index;
+            found += 1;
+            if found == done {
+                break;
+            }
+        }
+    }
+}
+
+fn draw_order_folder_mask(timeline: &DrawOrderFolderTimeline, slot_count: usize) -> Vec<bool> {
+    let mut in_folder = vec![false; slot_count];
+    for &slot in &timeline.slots {
+        if let Some(v) = in_folder.get_mut(slot) {
+            *v = true;
+        }
+    }
+    in_folder
+}
+
 pub(crate) fn apply_deform(
     timeline: &DeformTimeline,
     skeleton: &mut Skeleton,
@@ -2329,49 +2679,78 @@ pub(crate) fn apply_deform(
     if alpha <= 0.0 {
         return;
     }
-    let (bone_index, slot_key, slot_skin) = {
-        let Some(slot) = skeleton.slots.get(timeline.slot_index) else {
-            return;
-        };
-        let Some(slot_key) = slot.attachment.as_deref() else {
-            return;
-        };
-        let Some(slot_skin) = slot.attachment_skin.as_deref() else {
-            return;
-        };
-        (slot.bone, slot_key, slot_skin)
-    };
-
-    let bone_active = skeleton
-        .bones
-        .get(bone_index)
-        .map(|b| b.active)
-        .unwrap_or(false);
-    if !bone_active {
-        return;
-    }
-    let current_timeline_key =
-        skeleton
-            .slot_attachment_data(timeline.slot_index)
-            .map(|a| match a {
-                crate::AttachmentData::Mesh(m) => {
-                    (m.timeline_skin.as_str(), m.timeline_attachment.as_str())
-                }
-                _ => (slot_skin, slot_key),
-            });
-    let Some((current_skin, current_key)) = current_timeline_key else {
-        return;
-    };
-    if current_skin != timeline.skin.as_str() || current_key != timeline.attachment.as_str() {
-        return;
-    }
-    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
-        return;
-    };
     if timeline.frames.is_empty() || timeline.vertex_count == 0 {
         return;
     }
 
+    apply_deform_to_slot(timeline, skeleton, timeline.slot_index, time, alpha, blend);
+    for slot_index in deform_timeline_slots(timeline, skeleton) {
+        apply_deform_to_slot(timeline, skeleton, slot_index, time, alpha, blend);
+    }
+}
+
+fn deform_timeline_slots(timeline: &DeformTimeline, skeleton: &Skeleton) -> Vec<usize> {
+    skeleton
+        .data
+        .skin(timeline.skin.as_str())
+        .and_then(|skin| skin.attachment(timeline.slot_index, timeline.attachment.as_str()))
+        .and_then(|attachment| match attachment {
+            crate::AttachmentData::Mesh(mesh) => Some(mesh.timeline_slots.clone()),
+            _ => None,
+        })
+        .unwrap_or_default()
+}
+
+fn slot_matches_deform_timeline(
+    timeline: &DeformTimeline,
+    skeleton: &Skeleton,
+    slot_index: usize,
+) -> bool {
+    let Some(slot) = skeleton.slots.get(slot_index) else {
+        return false;
+    };
+    if !skeleton
+        .bones
+        .get(slot.bone)
+        .map(|b| b.active)
+        .unwrap_or(false)
+    {
+        return false;
+    }
+    let Some(slot_key) = slot.attachment.as_deref() else {
+        return false;
+    };
+    let Some(slot_skin) = slot.attachment_skin.as_deref() else {
+        return false;
+    };
+
+    skeleton
+        .slot_attachment_data(slot_index)
+        .map(|attachment| match attachment {
+            crate::AttachmentData::Mesh(mesh) => {
+                mesh.timeline_skin.as_str() == timeline.skin.as_str()
+                    && mesh.timeline_attachment.as_str() == timeline.attachment.as_str()
+            }
+            _ => slot_skin == timeline.skin.as_str() && slot_key == timeline.attachment.as_str(),
+        })
+        .unwrap_or(false)
+}
+
+fn apply_deform_to_slot(
+    timeline: &DeformTimeline,
+    skeleton: &mut Skeleton,
+    slot_index: usize,
+    time: f32,
+    alpha: f32,
+    blend: MixBlend,
+) {
+    if !slot_matches_deform_timeline(timeline, skeleton, slot_index) {
+        return;
+    }
+
+    let Some(slot) = skeleton.slots.get_mut(slot_index) else {
+        return;
+    };
     let mut blend = blend;
     if slot.deform.is_empty() {
         blend = MixBlend::Setup;
@@ -2455,50 +2834,125 @@ pub(crate) fn apply_sequence_timeline(
     blend: MixBlend,
     direction: MixDirection,
 ) {
-    let (bone_index, slot_key, slot_skin) = {
-        let Some(slot) = skeleton.slots.get(timeline.slot_index) else {
-            return;
-        };
-        let Some(slot_key) = slot.attachment.as_deref() else {
-            return;
-        };
-        let Some(slot_skin) = slot.attachment_skin.as_deref() else {
-            return;
-        };
-        (slot.bone, slot_key, slot_skin)
-    };
+    if timeline.frames.is_empty() {
+        return;
+    }
 
-    let bone_active = skeleton
+    let timeline_slots = sequence_timeline_slots(timeline, skeleton);
+    if !sequence_timeline_active(timeline, skeleton, &timeline_slots) {
+        return;
+    }
+
+    if direction == MixDirection::Out {
+        if matches!(blend, MixBlend::Setup | MixBlend::First) {
+            setup_sequence_timeline_slots(timeline, skeleton, &timeline_slots);
+        }
+        return;
+    }
+
+    if time < timeline.frames[0].time {
+        if matches!(blend, MixBlend::Setup | MixBlend::First) {
+            setup_sequence_timeline_slots(timeline, skeleton, &timeline_slots);
+        }
+        return;
+    }
+
+    let Some(index) = sequence_timeline_index(timeline, skeleton, time) else {
+        return;
+    };
+    apply_sequence_index_to_slot(timeline, skeleton, timeline.slot_index, index);
+    for slot_index in timeline_slots {
+        apply_sequence_index_to_slot(timeline, skeleton, slot_index, index);
+    }
+}
+
+fn sequence_timeline_slots(timeline: &crate::SequenceTimeline, skeleton: &Skeleton) -> Vec<usize> {
+    skeleton
+        .data
+        .skin(timeline.skin.as_str())
+        .and_then(|skin| skin.attachment(timeline.slot_index, timeline.attachment.as_str()))
+        .and_then(|attachment| match attachment {
+            crate::AttachmentData::Mesh(mesh) => Some(mesh.timeline_slots.clone()),
+            _ => None,
+        })
+        .unwrap_or_default()
+}
+
+fn sequence_timeline_active(
+    timeline: &crate::SequenceTimeline,
+    skeleton: &Skeleton,
+    timeline_slots: &[usize],
+) -> bool {
+    slot_matches_sequence_timeline(timeline, skeleton, timeline.slot_index)
+        || timeline_slots
+            .iter()
+            .any(|&slot_index| slot_matches_sequence_timeline(timeline, skeleton, slot_index))
+}
+
+fn slot_matches_sequence_timeline(
+    timeline: &crate::SequenceTimeline,
+    skeleton: &Skeleton,
+    slot_index: usize,
+) -> bool {
+    let Some(slot) = skeleton.slots.get(slot_index) else {
+        return false;
+    };
+    if !skeleton
         .bones
-        .get(bone_index)
+        .get(slot.bone)
         .map(|b| b.active)
-        .unwrap_or(false);
-    if !bone_active {
-        return;
+        .unwrap_or(false)
+    {
+        return false;
     }
-
-    let current_identity_matches =
-        slot_skin == timeline.skin.as_str() && slot_key == timeline.attachment.as_str();
-    let current_timeline_matches = if current_identity_matches {
-        true
-    } else {
-        skeleton
-            .data
-            .skin(slot_skin)
-            .and_then(|s| s.attachment(timeline.slot_index, slot_key))
-            .and_then(|a| match a {
-                crate::AttachmentData::Mesh(m) => Some(
-                    m.timeline_skin.as_str() == timeline.skin.as_str()
-                        && m.timeline_attachment.as_str() == timeline.attachment.as_str(),
-                ),
-                _ => None,
-            })
-            .unwrap_or(false)
+    let Some(slot_key) = slot.attachment.as_deref() else {
+        return false;
     };
-    if !current_timeline_matches {
+    let Some(slot_skin) = slot.attachment_skin.as_deref() else {
+        return false;
+    };
+
+    skeleton
+        .slot_attachment_data(slot_index)
+        .map(|attachment| match attachment {
+            crate::AttachmentData::Mesh(mesh) => {
+                mesh.timeline_skin.as_str() == timeline.skin.as_str()
+                    && mesh.timeline_attachment.as_str() == timeline.attachment.as_str()
+            }
+            _ => slot_skin == timeline.skin.as_str() && slot_key == timeline.attachment.as_str(),
+        })
+        .unwrap_or(false)
+}
+
+fn setup_sequence_timeline_slots(
+    timeline: &crate::SequenceTimeline,
+    skeleton: &mut Skeleton,
+    timeline_slots: &[usize],
+) {
+    setup_sequence_slot(timeline, skeleton, timeline.slot_index);
+    for &slot_index in timeline_slots {
+        setup_sequence_slot(timeline, skeleton, slot_index);
+    }
+}
+
+fn setup_sequence_slot(
+    timeline: &crate::SequenceTimeline,
+    skeleton: &mut Skeleton,
+    slot_index: usize,
+) {
+    if !slot_matches_sequence_timeline(timeline, skeleton, slot_index) {
         return;
     }
+    if let Some(slot) = skeleton.slots.get_mut(slot_index) {
+        slot.sequence_index = -1;
+    }
+}
 
+fn sequence_timeline_index(
+    timeline: &crate::SequenceTimeline,
+    skeleton: &Skeleton,
+    time: f32,
+) -> Option<i32> {
     let sequence = skeleton
         .data
         .skin(timeline.skin.as_str())
@@ -2507,32 +2961,7 @@ pub(crate) fn apply_sequence_timeline(
             crate::AttachmentData::Region(r) => r.sequence.as_ref(),
             crate::AttachmentData::Mesh(m) => m.sequence.as_ref(),
             _ => None,
-        });
-    let Some(sequence) = sequence else {
-        return;
-    };
-
-    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
-        return;
-    };
-
-    if direction == MixDirection::Out {
-        if blend == MixBlend::Setup {
-            slot.sequence_index = -1;
-        }
-        return;
-    }
-
-    if timeline.frames.is_empty() {
-        return;
-    }
-
-    if time < timeline.frames[0].time {
-        if matches!(blend, MixBlend::Setup | MixBlend::First) {
-            slot.sequence_index = -1;
-        }
-        return;
-    }
+        })?;
 
     let frame_index = timeline
         .frames
@@ -2545,7 +2974,7 @@ pub(crate) fn apply_sequence_timeline(
 
     let count = sequence.count as i32;
     if count <= 0 {
-        return;
+        return None;
     }
 
     if mode != crate::SequenceMode::Hold {
@@ -2587,7 +3016,21 @@ pub(crate) fn apply_sequence_timeline(
         }
     }
 
-    slot.sequence_index = index;
+    Some(index)
+}
+
+fn apply_sequence_index_to_slot(
+    timeline: &crate::SequenceTimeline,
+    skeleton: &mut Skeleton,
+    slot_index: usize,
+    index: i32,
+) {
+    if !slot_matches_sequence_timeline(timeline, skeleton, slot_index) {
+        return;
+    }
+    if let Some(slot) = skeleton.slots.get_mut(slot_index) {
+        slot.sequence_index = index;
+    }
 }
 
 fn ensure_len_with_zeros(buf: &mut Vec<f32>, len: usize) {
@@ -2681,32 +3124,12 @@ pub(crate) fn apply_rotate_mixed(
     skeleton: &mut Skeleton,
     time: f32,
     alpha: f32,
-    blend: MixBlend,
+    from: MixFrom,
     state: &mut [f32],
     rotate_timeline_index: usize,
     first_frame: bool,
 ) {
-    let Some(bone) = skeleton.bones.get_mut(timeline.bone_index) else {
-        return;
-    };
-    if !bone.active {
-        return;
-    }
     if timeline.frames.is_empty() {
-        return;
-    }
-
-    let base = rotate_timeline_index * 2;
-    if base + 1 >= state.len() {
-        apply_rotate(timeline, skeleton, time, alpha, blend);
-        return;
-    }
-
-    if first_frame {
-        state[base] = 0.0;
-    }
-    if alpha >= 1.0 {
-        apply_rotate(timeline, skeleton, time, 1.0, blend);
         return;
     }
 
@@ -2717,14 +3140,38 @@ pub(crate) fn apply_rotate_mixed(
         .map(|b| b.rotation)
         .unwrap_or(0.0);
 
+    let base = rotate_timeline_index * 2;
+    if base + 1 >= state.len() {
+        apply_rotate_with(timeline, skeleton, time, alpha, from, false);
+        return;
+    }
+
+    if first_frame {
+        state[base] = 0.0;
+    }
+    if alpha >= 1.0 {
+        apply_rotate_with(timeline, skeleton, time, 1.0, from, false);
+        return;
+    }
+
+    let Some(bone) = skeleton.bones.get_mut(timeline.bone_index) else {
+        return;
+    };
+    if !bone.active {
+        return;
+    }
+
     let (r1, r2) = if time < timeline.frames[0].time {
-        match blend {
-            MixBlend::Setup => (setup, setup),
-            MixBlend::First => (bone.rotation, setup),
-            _ => return,
+        match from {
+            MixFrom::Setup => {
+                bone.rotation = setup;
+                return;
+            }
+            MixFrom::Current => return,
+            MixFrom::First => (bone.rotation, setup),
         }
     } else {
-        let r1 = if blend == MixBlend::Setup {
+        let r1 = if from == MixFrom::Setup {
             setup
         } else {
             bone.rotation
@@ -2781,13 +3228,24 @@ pub(crate) fn apply_rotate(
     alpha: f32,
     blend: MixBlend,
 ) {
-    let Some(bone) = skeleton.bones.get_mut(timeline.bone_index) else {
-        return;
-    };
-    if !bone.active {
-        return;
-    }
+    apply_rotate_with(
+        timeline,
+        skeleton,
+        time,
+        alpha,
+        MixFrom::from_blend(blend),
+        blend == MixBlend::Add,
+    );
+}
 
+pub(crate) fn apply_rotate_with(
+    timeline: &RotateTimeline,
+    skeleton: &mut Skeleton,
+    time: f32,
+    alpha: f32,
+    from: MixFrom,
+    add: bool,
+) {
     if timeline.frames.is_empty() {
         return;
     }
@@ -2799,26 +3257,33 @@ pub(crate) fn apply_rotate(
         .map(|b| b.rotation)
         .unwrap_or(0.0);
 
+    let Some(bone) = skeleton.bones.get_mut(timeline.bone_index) else {
+        return;
+    };
+    if !bone.active {
+        return;
+    }
+
     let first_time = timeline.frames[0].time;
     if time < first_time {
-        match blend {
-            MixBlend::Setup => bone.rotation = setup,
-            MixBlend::First => {
+        match from {
+            MixFrom::Setup => bone.rotation = setup,
+            MixFrom::First => {
                 bone.rotation += (setup - bone.rotation) * alpha;
             }
-            _ => {}
+            MixFrom::Current => {}
         }
         return;
     }
 
     let value = sample_rotate(&timeline.frames, time);
-    match blend {
-        MixBlend::Setup => bone.rotation = setup + value * alpha,
-        MixBlend::First | MixBlend::Replace => {
-            bone.rotation += (value + setup - bone.rotation) * alpha;
-        }
-        MixBlend::Add => bone.rotation += value * alpha,
-    };
+    if from == MixFrom::Setup {
+        bone.rotation = setup + value * alpha;
+    } else if add {
+        bone.rotation += value * alpha;
+    } else {
+        bone.rotation += (value + setup - bone.rotation) * alpha;
+    }
 }
 
 pub(crate) fn apply_translate(
@@ -3105,6 +3570,86 @@ pub(crate) fn apply_scale(
     }
 }
 
+pub(crate) fn apply_scale_with(
+    timeline: &ScaleTimeline,
+    skeleton: &mut Skeleton,
+    time: f32,
+    alpha: f32,
+    from: MixFrom,
+    add: bool,
+    direction: MixDirection,
+) {
+    let Some(bone) = skeleton.bones.get_mut(timeline.bone_index) else {
+        return;
+    };
+    if !bone.active {
+        return;
+    }
+    if timeline.frames.is_empty() {
+        return;
+    }
+
+    let setup = skeleton
+        .data
+        .bones
+        .get(timeline.bone_index)
+        .map(|b| (b.scale_x, b.scale_y))
+        .unwrap_or((1.0, 1.0));
+
+    let first_time = timeline.frames[0].time;
+    if time < first_time {
+        match from {
+            MixFrom::Setup => {
+                bone.scale_x = setup.0;
+                bone.scale_y = setup.1;
+            }
+            MixFrom::First => {
+                bone.scale_x += (setup.0 - bone.scale_x) * alpha;
+                bone.scale_y += (setup.1 - bone.scale_y) * alpha;
+            }
+            MixFrom::Current => {}
+        }
+        return;
+    }
+
+    let mult = sample_vec2(&timeline.frames, time);
+    let x = setup.0 * mult.0;
+    let y = setup.1 * mult.1;
+
+    if alpha >= 1.0 && !add {
+        bone.scale_x = x;
+        bone.scale_y = y;
+        return;
+    }
+
+    fn signum(v: f32) -> f32 {
+        if v > 0.0 {
+            1.0
+        } else if v < 0.0 {
+            -1.0
+        } else {
+            0.0
+        }
+    }
+
+    let (mut bx, mut by) = match from {
+        MixFrom::Setup => setup,
+        MixFrom::Current | MixFrom::First => (bone.scale_x, bone.scale_y),
+    };
+    if add {
+        bone.scale_x = bx + (x - setup.0) * alpha;
+        bone.scale_y = by + (y - setup.1) * alpha;
+    } else if direction == MixDirection::Out {
+        bone.scale_x = bx + (x.abs() * signum(bx) - bx) * alpha;
+        bone.scale_y = by + (y.abs() * signum(by) - by) * alpha;
+    } else {
+        bx = bx.abs() * signum(x);
+        by = by.abs() * signum(y);
+        bone.scale_x = bx + (x - bx) * alpha;
+        bone.scale_y = by + (y - by) * alpha;
+    }
+}
+
 pub(crate) fn apply_scale_x(
     timeline: &ScaleXTimeline,
     skeleton: &mut Skeleton,
@@ -3189,6 +3734,44 @@ pub(crate) fn apply_scale_x(
     }
 
     bone.scale_x += (value - setup) * alpha;
+}
+
+pub(crate) fn apply_scale_x_with(
+    timeline: &ScaleXTimeline,
+    skeleton: &mut Skeleton,
+    time: f32,
+    alpha: f32,
+    from: MixFrom,
+    add: bool,
+    direction: MixDirection,
+) {
+    let Some(bone) = skeleton.bones.get_mut(timeline.bone_index) else {
+        return;
+    };
+    if !bone.active {
+        return;
+    }
+    if timeline.frames.is_empty() {
+        return;
+    }
+
+    let setup = skeleton
+        .data
+        .bones
+        .get(timeline.bone_index)
+        .map(|b| b.scale_x)
+        .unwrap_or(1.0);
+    let current = bone.scale_x;
+    bone.scale_x = scale_value(
+        &timeline.frames,
+        time,
+        alpha,
+        from,
+        add,
+        direction,
+        current,
+        setup,
+    );
 }
 
 pub(crate) fn apply_scale_y(
@@ -3278,6 +3861,87 @@ pub(crate) fn apply_scale_y(
     }
 
     bone.scale_y = current + (value - setup) * alpha;
+}
+
+pub(crate) fn apply_scale_y_with(
+    timeline: &ScaleYTimeline,
+    skeleton: &mut Skeleton,
+    time: f32,
+    alpha: f32,
+    from: MixFrom,
+    add: bool,
+    direction: MixDirection,
+) {
+    let Some(bone) = skeleton.bones.get_mut(timeline.bone_index) else {
+        return;
+    };
+    if !bone.active {
+        return;
+    }
+    if timeline.frames.is_empty() {
+        return;
+    }
+
+    let setup = skeleton
+        .data
+        .bones
+        .get(timeline.bone_index)
+        .map(|b| b.scale_y)
+        .unwrap_or(1.0);
+    let current = bone.scale_y;
+    bone.scale_y = scale_value(
+        &timeline.frames,
+        time,
+        alpha,
+        from,
+        add,
+        direction,
+        current,
+        setup,
+    );
+}
+
+fn scale_value(
+    frames: &[crate::FloatFrame],
+    time: f32,
+    alpha: f32,
+    from: MixFrom,
+    add: bool,
+    direction: MixDirection,
+    current: f32,
+    setup: f32,
+) -> f32 {
+    if time < frames[0].time {
+        return before_first_absolute(from, alpha, current, setup);
+    }
+
+    let value = sample_float(frames, time) * setup;
+    if alpha >= 1.0 && !add {
+        return value;
+    }
+
+    fn signum(v: f32) -> f32 {
+        if v > 0.0 {
+            1.0
+        } else if v < 0.0 {
+            -1.0
+        } else {
+            0.0
+        }
+    }
+
+    let mut base = match from {
+        MixFrom::Setup => setup,
+        MixFrom::Current | MixFrom::First => current,
+    };
+    if add {
+        base + (value - setup) * alpha
+    } else if direction == MixDirection::Out {
+        base + (value.abs() * signum(base) - base) * alpha
+    } else {
+        base = base.abs() * signum(value);
+        base + (value - base) * alpha
+    }
 }
 
 pub(crate) fn apply_shear(
@@ -3480,7 +4144,7 @@ pub(crate) fn apply_inherit(
         .unwrap_or(crate::Inherit::Normal);
 
     if direction == MixDirection::Out {
-        if blend == MixBlend::Setup {
+        if matches!(blend, MixBlend::Setup | MixBlend::First) {
             bone.inherit = setup;
         }
         return;

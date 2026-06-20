@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::runtime::MixBlend;
-use crate::{Skeleton, SkeletonData, apply_animation};
+use crate::{PositionMode, Skeleton, SkeletonData, apply_animation};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -16,9 +16,237 @@ fn load_bytes(rel: &str) -> Vec<u8> {
     std::fs::read(repo_root().join(rel)).expect(rel)
 }
 
+#[cfg(feature = "upstream-smoke")]
+fn upstream_examples_root() -> PathBuf {
+    if let Ok(dir) = std::env::var("SPINE2D_UPSTREAM_EXAMPLES_DIR") {
+        let p = PathBuf::from(dir);
+        if p.is_dir() {
+            return p;
+        }
+    }
+
+    let root = repo_root();
+    let candidates = [
+        root.join(".cache/spine-runtimes/examples"),
+        root.join("assets/spine-runtimes/examples"),
+        root.join("third_party/spine-runtimes/examples"),
+    ];
+    for p in candidates {
+        if p.is_dir() {
+            return p;
+        }
+    }
+
+    panic!(
+        "Upstream Spine examples not found. Run `python3 ./scripts/fetch_spine_runtimes_examples.py --mode export --scope tests` \
+or set SPINE2D_UPSTREAM_EXAMPLES_DIR to <spine-runtimes>/examples."
+    );
+}
+
+#[cfg(feature = "upstream-smoke")]
+fn load_example_bytes(rel: &str) -> Vec<u8> {
+    let path = upstream_examples_root().join(rel);
+    std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+}
+
+#[test]
+fn binary_path_constraint_position_mode_uses_latest_flag_bits() {
+    assert_eq!(
+        crate::binary::decode_path_constraint_position_mode_for_test(0b0000_0010),
+        PositionMode::Percent
+    );
+    assert_eq!(
+        crate::binary::decode_path_constraint_position_mode_for_test(0b0000_0100),
+        PositionMode::Fixed
+    );
+}
+
+#[test]
+fn binary_weighted_vertices_reads_latest_packed_bone_length() {
+    fn varint(value: i32) -> Vec<u8> {
+        let mut value = value as u32;
+        let mut out = Vec::new();
+        loop {
+            let mut b = (value & 0x7f) as u8;
+            value >>= 7;
+            if value != 0 {
+                b |= 0x80;
+            }
+            out.push(b);
+            if value == 0 {
+                break;
+            }
+        }
+        out
+    }
+
+    fn f32_be(value: f32) -> [u8; 4] {
+        value.to_be_bytes()
+    }
+
+    let mut bytes = Vec::new();
+    bytes.extend(varint(2)); // vertexCount
+    bytes.extend(varint(5)); // bones array length: [2, 0, 1, 1, 2]
+    bytes.extend(varint(2)); // vertex 0 has two bones
+    bytes.extend(varint(0));
+    bytes.extend(f32_be(1.0));
+    bytes.extend(f32_be(2.0));
+    bytes.extend(f32_be(0.25));
+    bytes.extend(varint(1));
+    bytes.extend(f32_be(3.0));
+    bytes.extend(f32_be(4.0));
+    bytes.extend(f32_be(0.75));
+    bytes.extend(varint(1)); // vertex 1 has one bone
+    bytes.extend(varint(2));
+    bytes.extend(f32_be(5.0));
+    bytes.extend(f32_be(6.0));
+    bytes.extend(f32_be(1.0));
+
+    let (vertices, world_vertices_length, cursor) =
+        crate::binary::read_vertices_for_test(&bytes, true, 2.0).expect("read vertices");
+
+    assert_eq!(world_vertices_length, 4);
+    assert_eq!(cursor, bytes.len());
+    let crate::MeshVertices::Weighted(weights) = vertices else {
+        panic!("expected weighted vertices");
+    };
+    assert_eq!(weights.len(), 2);
+    assert_eq!(weights[0].len(), 2);
+    assert_eq!(weights[0][0].bone, 0);
+    assert_approx(weights[0][0].x, 2.0, 1.0e-6, "v0 w0 x");
+    assert_approx(weights[0][0].y, 4.0, 1.0e-6, "v0 w0 y");
+    assert_approx(weights[0][0].weight, 0.25, 1.0e-6, "v0 w0 weight");
+    assert_eq!(weights[1][0].bone, 2);
+    assert_approx(weights[1][0].x, 10.0, 1.0e-6, "v1 w0 x");
+    assert_approx(weights[1][0].y, 12.0, 1.0e-6, "v1 w0 y");
+    assert_approx(weights[1][0].weight, 1.0, 1.0e-6, "v1 w0 weight");
+}
+
+#[test]
+fn binary_nonessential_bone_and_slot_fields_are_preserved() {
+    fn varint(value: i32) -> Vec<u8> {
+        let mut value = value as u32;
+        let mut out = Vec::new();
+        loop {
+            let mut b = (value & 0x7f) as u8;
+            value >>= 7;
+            if value != 0 {
+                b |= 0x80;
+            }
+            out.push(b);
+            if value == 0 {
+                break;
+            }
+        }
+        out
+    }
+
+    fn f32_be(value: f32) -> [u8; 4] {
+        value.to_be_bytes()
+    }
+
+    fn push_string(out: &mut Vec<u8>, s: Option<&str>) {
+        match s {
+            None => out.push(0),
+            Some("") => out.push(1),
+            Some(s) => {
+                out.push((s.len() + 1) as u8);
+                out.extend_from_slice(s.as_bytes());
+            }
+        }
+    }
+
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(&[0; 8]); // hash
+    push_string(&mut bytes, Some("4.3.00"));
+    bytes.extend(f32_be(0.0)); // x
+    bytes.extend(f32_be(0.0)); // y
+    bytes.extend(f32_be(0.0)); // width
+    bytes.extend(f32_be(0.0)); // height
+    bytes.extend(f32_be(1.0)); // referenceScale
+    bytes.push(1); // nonessential = true
+    bytes.extend(f32_be(30.0)); // fps
+    push_string(&mut bytes, None); // imagesPath
+    push_string(&mut bytes, None); // audioPath
+    bytes.extend(varint(0)); // strings
+    bytes.extend(varint(1)); // bones
+    push_string(&mut bytes, Some("root"));
+    bytes.extend(f32_be(0.0)); // rotation
+    bytes.extend(f32_be(0.0)); // x
+    bytes.extend(f32_be(0.0)); // y
+    bytes.extend(f32_be(1.0)); // scaleX
+    bytes.extend(f32_be(1.0)); // scaleY
+    bytes.extend(f32_be(0.0)); // shearX
+    bytes.extend(f32_be(0.0)); // shearY
+    bytes.push(0); // inherit normal
+    bytes.extend(f32_be(0.0)); // length
+    bytes.push(0); // skinRequired
+    bytes.extend_from_slice(&[0x11, 0x22, 0x33, 0x44]); // color
+    push_string(&mut bytes, Some("root-icon"));
+    bytes.extend(f32_be(2.5)); // iconSize
+    bytes.extend(f32_be(45.0)); // iconRotation
+    bytes.push(0); // visible=false
+
+    bytes.extend(varint(1)); // slots
+    push_string(&mut bytes, Some("slot0"));
+    bytes.extend(varint(0)); // bone
+    bytes.extend_from_slice(&[0xff, 0xff, 0xff, 0xff]); // slot color
+    bytes.extend_from_slice(&[0xff, 0xff, 0xff, 0xff]); // slot dark
+    push_string(&mut bytes, None); // attachment
+    bytes.extend(varint(0)); // blend normal
+    bytes.push(0); // nonessential visible=false? false => 0
+
+    bytes.extend(varint(0)); // constraints
+    bytes.extend(varint(0)); // default skins
+    bytes.extend(varint(0)); // named skins
+    bytes.extend(varint(0)); // events
+    bytes.extend(varint(0)); // animations
+
+    let data = SkeletonData::from_skel_bytes(&bytes).expect("parse skel");
+    let bone = &data.bones[0];
+    assert_eq!(
+        bone.color,
+        [
+            0x11 as f32 / 255.0,
+            0x22 as f32 / 255.0,
+            0x33 as f32 / 255.0,
+            0x44 as f32 / 255.0
+        ]
+    );
+    assert_eq!(bone.icon, "root-icon");
+    assert_eq!(bone.icon_size, 2.5);
+    assert_eq!(bone.icon_rotation, 45.0);
+    assert!(!bone.visible);
+    assert!(!data.slots[0].visible);
+}
+
+#[test]
+#[cfg(all(feature = "json", feature = "upstream-smoke"))]
+fn binary_animation_preserves_parse_order_in_timeline_order() {
+    let skel = load_example_bytes("tank/export/tank-pro.skel");
+    let json = load_example_string("tank/export/tank-pro.json");
+
+    let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
+    let data_json = SkeletonData::from_json_str(&json).expect("parse json");
+
+    let (_, animation_skel) = data_skel.animation("shoot").expect("shoot animation");
+    let (_, animation_json) = data_json.animation("shoot").expect("shoot animation");
+
+    assert_eq!(
+        animation_skel.timeline_order, animation_json.timeline_order,
+        "binary and json should preserve the same parse order"
+    );
+}
+
 #[cfg(feature = "json")]
 fn load_string(rel: &str) -> String {
     std::fs::read_to_string(repo_root().join(rel)).expect(rel)
+}
+
+#[cfg(all(feature = "json", feature = "upstream-smoke"))]
+fn load_example_string(rel: &str) -> String {
+    let path = upstream_examples_root().join(rel);
+    std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 
 fn pose_at(data: Arc<SkeletonData>, animation_name: &str, time: f32) -> Skeleton {
@@ -244,7 +472,7 @@ fn assert_pose_close(a: &Skeleton, b: &Skeleton, eps: f32, ctx: &str) {
 #[test]
 #[cfg(feature = "upstream-smoke")]
 fn skel_smoke_loads_spineboy_pro() {
-    let bytes = load_bytes("assets/spine-runtimes/examples/spineboy/export/spineboy-pro.skel");
+    let bytes = load_example_bytes("spineboy/export/spineboy-pro.skel");
     let data = SkeletonData::from_skel_bytes(&bytes).expect("parse skel");
     assert!(data.animation("run").is_some(), "missing 'run' animation");
     let _ = pose_at(data, "run", 0.2);
@@ -255,7 +483,7 @@ fn skel_smoke_loads_spineboy_pro() {
 fn skel_spineboy_constraints_match_spine_cpp_lite_reference() {
     // Expected values are dumped from the official C++ runtime (oracle) loading
     // `spineboy-pro.skel` (see `scripts/run_spine_cpp_lite_dump_constraints.zsh`).
-    let bytes = load_bytes("assets/spine-runtimes/examples/spineboy/export/spineboy-pro.skel");
+    let bytes = load_example_bytes("spineboy/export/spineboy-pro.skel");
     let data = SkeletonData::from_skel_bytes(&bytes).expect("parse skel");
 
     let ik = |name: &str| {
@@ -282,6 +510,8 @@ fn skel_spineboy_constraints_match_spine_cpp_lite_reference() {
 
     assert_approx(ik("rear-leg-ik").mix, 1.0, 1.0e-6, "rear-leg-ik mix");
     assert_eq!(ik("rear-leg-ik").bend_direction, -1, "rear-leg-ik bend");
+    assert_approx(ik("rear-foot-ik").mix, 1.0, 1.0e-6, "rear-foot-ik mix");
+    assert_eq!(ik("rear-foot-ik").bend_direction, -1, "rear-foot-ik bend");
 
     assert_approx(
         tr("aim-front-arm-transform").mix_rotate,
@@ -314,9 +544,46 @@ fn skel_spineboy_constraints_match_spine_cpp_lite_reference() {
 
 #[test]
 #[cfg(all(feature = "json", feature = "binary", feature = "upstream-smoke"))]
+fn skel_spineboy_ik_constraints_match_json_parse() {
+    let skel = load_example_bytes("spineboy/export/spineboy-pro.skel");
+    let json = load_example_string("spineboy/export/spineboy-pro.json");
+
+    let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
+    let data_json = SkeletonData::from_json_str(&json).expect("parse json");
+
+    assert_eq!(
+        data_skel.ik_constraints.len(),
+        data_json.ik_constraints.len(),
+        "ik constraints length",
+    );
+
+    for (i, (a, b)) in data_skel
+        .ik_constraints
+        .iter()
+        .zip(&data_json.ik_constraints)
+        .enumerate()
+    {
+        assert_eq!(a.name, b.name, "ik[{i}].name");
+        assert_eq!(a.order, b.order, "ik[{i}].order");
+        assert_eq!(a.skin_required, b.skin_required, "ik[{i}].skin_required");
+        assert_eq!(a.bones, b.bones, "ik[{i}].bones");
+        assert_eq!(a.target, b.target, "ik[{i}].target");
+        assert_eq!(a.compress, b.compress, "ik[{i}].compress");
+        assert_eq!(a.stretch, b.stretch, "ik[{i}].stretch");
+        assert_eq!(a.scale_y_mode, b.scale_y_mode, "ik[{i}].scale_y_mode");
+        if a.bones.len() > 1 {
+            assert_eq!(a.bend_direction, b.bend_direction, "ik[{i}].bend_direction");
+        }
+        assert_approx(a.mix, b.mix, 1.0e-6, &format!("ik[{i}].mix"));
+        assert_approx(a.softness, b.softness, 1.0e-6, &format!("ik[{i}].softness"));
+    }
+}
+
+#[test]
+#[cfg(all(feature = "json", feature = "binary", feature = "upstream-smoke"))]
 fn skel_tank_treads_path_attachment_matches_json() {
-    let skel = load_bytes("assets/spine-runtimes/examples/tank/export/tank-pro.skel");
-    let json = load_string("assets/spine-runtimes/examples/tank/export/tank-pro.json");
+    let skel = load_example_bytes("tank/export/tank-pro.skel");
+    let json = load_example_string("tank/export/tank-pro.json");
 
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
@@ -360,8 +627,8 @@ fn skel_tank_treads_path_attachment_matches_json() {
 #[ignore]
 #[cfg(all(feature = "json", feature = "upstream-smoke"))]
 fn skel_matches_json_pose_spineboy_run() {
-    let skel = load_bytes("assets/spine-runtimes/examples/spineboy/export/spineboy-pro.skel");
-    let json = load_string("assets/spine-runtimes/examples/spineboy/export/spineboy-pro.json");
+    let skel = load_example_bytes("spineboy/export/spineboy-pro.skel");
+    let json = load_example_string("spineboy/export/spineboy-pro.json");
 
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
@@ -379,8 +646,8 @@ fn skel_matches_json_pose_spineboy_run() {
 #[ignore]
 #[cfg(all(feature = "json", feature = "upstream-smoke"))]
 fn skel_matches_json_pose_tank_shoot() {
-    let skel = load_bytes("assets/spine-runtimes/examples/tank/export/tank-pro.skel");
-    let json = load_string("assets/spine-runtimes/examples/tank/export/tank-pro.json");
+    let skel = load_example_bytes("tank/export/tank-pro.skel");
+    let json = load_example_string("tank/export/tank-pro.json");
 
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
@@ -396,8 +663,8 @@ fn skel_matches_json_pose_tank_shoot() {
 #[ignore]
 #[cfg(all(feature = "json", feature = "upstream-smoke"))]
 fn debug_dump_spineboy_run_t0_skel_vs_json() {
-    let skel = load_bytes("assets/spine-runtimes/examples/spineboy/export/spineboy-pro.skel");
-    let json = load_string("assets/spine-runtimes/examples/spineboy/export/spineboy-pro.json");
+    let skel = load_example_bytes("spineboy/export/spineboy-pro.skel");
+    let json = load_example_string("spineboy/export/spineboy-pro.json");
 
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
@@ -432,8 +699,8 @@ fn debug_dump_spineboy_run_t0_skel_vs_json() {
 #[ignore]
 #[cfg(all(feature = "json", feature = "upstream-smoke"))]
 fn debug_dump_spineboy_skel_vs_json_constraints() {
-    let skel = load_bytes("assets/spine-runtimes/examples/spineboy/export/spineboy-pro.skel");
-    let json = load_string("assets/spine-runtimes/examples/spineboy/export/spineboy-pro.json");
+    let skel = load_example_bytes("spineboy/export/spineboy-pro.skel");
+    let json = load_example_string("spineboy/export/spineboy-pro.json");
 
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
@@ -450,7 +717,7 @@ fn debug_dump_spineboy_skel_vs_json_constraints() {
         .enumerate()
     {
         println!(
-            "ik[{i}] name skel='{}' json='{}' order {} vs {} bones {:?} vs {:?} target {} vs {} mix {:.3} vs {:.3} softness {:.3} vs {:.3} compress {} vs {} stretch {} vs {} uniform {} vs {} bend {} vs {} skin_required {} vs {}",
+            "ik[{i}] name skel='{}' json='{}' order {} vs {} bones {:?} vs {:?} target {} vs {} mix {:.3} vs {:.3} softness {:.3} vs {:.3} compress {} vs {} stretch {} vs {} scale_y_mode {:?} vs {:?} bend {} vs {} skin_required {} vs {}",
             a.name,
             b.name,
             a.order,
@@ -467,8 +734,8 @@ fn debug_dump_spineboy_skel_vs_json_constraints() {
             b.compress,
             a.stretch,
             b.stretch,
-            a.uniform,
-            b.uniform,
+            a.scale_y_mode,
+            b.scale_y_mode,
             a.bend_direction,
             b.bend_direction,
             a.skin_required,
@@ -535,14 +802,702 @@ fn debug_dump_spineboy_skel_vs_json_constraints() {
             b.rotate_mode
         );
     }
+
+    for anim_name in ["run", "walk"] {
+        let (_, a) = data_skel.animation(anim_name).expect("skel animation");
+        let (_, b) = data_json.animation(anim_name).expect("json animation");
+        println!(
+            "animation[{anim_name}] duration {:.3} vs {:.3}, order_len {} vs {}",
+            a.duration,
+            b.duration,
+            a.timeline_order.len(),
+            b.timeline_order.len()
+        );
+        println!("  skel order: {:?}", a.timeline_order);
+        println!("  json order: {:?}", b.timeline_order);
+    }
+
+    println!(
+        "Bones: skel={} json={}",
+        data_skel.bones.len(),
+        data_json.bones.len()
+    );
+    for (i, (a, b)) in data_skel.bones.iter().zip(&data_json.bones).enumerate() {
+        if a.parent != b.parent
+            || a.length != b.length
+            || a.x != b.x
+            || a.y != b.y
+            || a.rotation != b.rotation
+            || a.scale_x != b.scale_x
+            || a.scale_y != b.scale_y
+            || a.shear_x != b.shear_x
+            || a.shear_y != b.shear_y
+            || a.inherit != b.inherit
+            || a.skin_required != b.skin_required
+        {
+            println!(
+                "bone[{i}] skel='{}' json='{}' parent {:?} vs {:?} length {:.6} vs {:.6} x {:.6} vs {:.6} y {:.6} vs {:.6} rot {:.6} vs {:.6} scaleX {:.6} vs {:.6} scaleY {:.6} vs {:.6} shearX {:.6} vs {:.6} shearY {:.6} vs {:.6} inherit {:?} vs {:?} skin_required {} vs {}",
+                a.name,
+                b.name,
+                a.parent,
+                b.parent,
+                a.length,
+                b.length,
+                a.x,
+                b.x,
+                a.y,
+                b.y,
+                a.rotation,
+                b.rotation,
+                a.scale_x,
+                b.scale_x,
+                a.scale_y,
+                b.scale_y,
+                a.shear_x,
+                b.shear_x,
+                a.shear_y,
+                b.shear_y,
+                a.inherit,
+                b.inherit,
+                a.skin_required,
+                b.skin_required,
+            );
+        }
+    }
+}
+
+#[test]
+#[ignore]
+#[cfg(all(feature = "json", feature = "upstream-smoke"))]
+fn debug_dump_spineboy_run_to_walk_t04_skel_vs_json() {
+    let skel = load_example_bytes("spineboy/export/spineboy-pro.skel");
+    let json = load_example_string("spineboy/export/spineboy-pro.json");
+
+    let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
+    let data_json = SkeletonData::from_json_str(&json).expect("parse json");
+
+    let mut state_data_skel = crate::runtime::AnimationStateData::new(data_skel.clone());
+    state_data_skel
+        .set_mix("run", "walk", 0.2)
+        .expect("set mix skel");
+    let mut state_data_json = crate::runtime::AnimationStateData::new(data_json.clone());
+    state_data_json
+        .set_mix("run", "walk", 0.2)
+        .expect("set mix json");
+
+    let mut skeleton_skel = Skeleton::new(data_skel.clone());
+    let mut state_skel = crate::runtime::AnimationState::new(state_data_skel);
+    skeleton_skel.set_to_setup_pose();
+    state_skel
+        .set_animation(0, "run", true)
+        .expect("set run skel");
+    state_skel.update(0.3);
+    state_skel.apply(&mut skeleton_skel);
+    skeleton_skel.update_world_transform();
+
+    let mut skeleton_json = Skeleton::new(data_json.clone());
+    let mut state_json = crate::runtime::AnimationState::new(state_data_json);
+    skeleton_json.set_to_setup_pose();
+    state_json
+        .set_animation(0, "run", true)
+        .expect("set run json");
+    state_json.update(0.3);
+    state_json.apply(&mut skeleton_json);
+    skeleton_json.update_world_transform();
+
+    println!("--- after run only ---");
+    for bone_name in ["rear-thigh", "rear-shin", "rear-foot"] {
+        let i = bone_index(&data_skel, bone_name);
+        let ba = &skeleton_skel.bones[i];
+        let bb = &skeleton_json.bones[i];
+        println!(
+            "{bone_name}: arot {:.6} vs {:.6}; world_x {:.6} vs {:.6}; world_y {:.6} vs {:.6}",
+            ba.arotation, bb.arotation, ba.world_x, bb.world_x, ba.world_y, bb.world_y
+        );
+    }
+
+    state_json
+        .set_animation(0, "walk", true)
+        .expect("set walk json");
+    state_json.update(0.1);
+    state_json.apply(&mut skeleton_json);
+
+    state_skel
+        .set_animation(0, "walk", true)
+        .expect("set walk skel");
+    state_skel.update(0.1);
+    state_skel.apply(&mut skeleton_skel);
+
+    println!("--- after walk mix apply, before world ---");
+    for bone_name in ["rear-thigh", "rear-shin", "rear-foot"] {
+        let i = bone_index(&data_skel, bone_name);
+        let ba = &skeleton_skel.bones[i];
+        let bb = &skeleton_json.bones[i];
+        println!(
+            "{bone_name}: local x {:.6} vs {:.6}; y {:.6} vs {:.6}; rot {:.6} vs {:.6}; ax {:.6} vs {:.6}; ay {:.6} vs {:.6}; arot {:.6} vs {:.6}; sx {:.6} vs {:.6}; sy {:.6} vs {:.6}; shx {:.6} vs {:.6}; shy {:.6} vs {:.6}",
+            ba.x,
+            bb.x,
+            ba.y,
+            bb.y,
+            ba.rotation,
+            bb.rotation,
+            ba.ax,
+            bb.ax,
+            ba.ay,
+            bb.ay,
+            ba.arotation,
+            bb.arotation,
+            ba.ascale_x,
+            bb.ascale_x,
+            ba.ascale_y,
+            bb.ascale_y,
+            ba.ashear_x,
+            bb.ashear_x,
+            ba.ashear_y,
+            bb.ashear_y,
+        );
+    }
+    for (i, (ia, ib)) in skeleton_skel
+        .ik_constraints
+        .iter()
+        .zip(&skeleton_json.ik_constraints)
+        .enumerate()
+    {
+        let name = data_skel
+            .ik_constraints
+            .get(i)
+            .map(|c| c.name.as_str())
+            .unwrap_or("?");
+        if matches!(name, "rear-leg-ik" | "rear-foot-ik") {
+            println!(
+                "{name}: mix {:.9} vs {:.9}; softness {:.9} vs {:.9}; bend {} vs {}; compress {} vs {}; stretch {} vs {}",
+                ia.mix,
+                ib.mix,
+                ia.softness,
+                ib.softness,
+                ia.bend_direction,
+                ib.bend_direction,
+                ia.compress,
+                ib.compress,
+                ia.stretch,
+                ib.stretch,
+            );
+        }
+    }
+
+    skeleton_json.update_world_transform();
+    skeleton_skel.update_world_transform();
+
+    println!("--- after walk mix ---");
+
+    for (i, (ba, bb)) in skeleton_skel
+        .bones
+        .iter()
+        .zip(&skeleton_json.bones)
+        .enumerate()
+    {
+        let name = bone_name(&skeleton_skel, ba.data_index());
+        let mut printed = false;
+        for (label, a, b) in [
+            ("ax", ba.ax, bb.ax),
+            ("ay", ba.ay, bb.ay),
+            ("arotation", ba.arotation, bb.arotation),
+            ("ascale_x", ba.ascale_x, bb.ascale_x),
+            ("ascale_y", ba.ascale_y, bb.ascale_y),
+            ("ashear_x", ba.ashear_x, bb.ashear_x),
+            ("ashear_y", ba.ashear_y, bb.ashear_y),
+            ("a", ba.a, bb.a),
+            ("b", ba.b, bb.b),
+            ("c", ba.c, bb.c),
+            ("d", ba.d, bb.d),
+            ("world_x", ba.world_x, bb.world_x),
+            ("world_y", ba.world_y, bb.world_y),
+        ] {
+            if (a - b).abs() > 1.0e-4 {
+                if !printed {
+                    println!("bone[{i}] {name}");
+                    printed = true;
+                }
+                println!("  {label}: {:.6} vs {:.6} (Δ{:.6})", a, b, (a - b).abs());
+            }
+        }
+    }
+}
+
+#[test]
+#[ignore]
+#[cfg(all(feature = "json", feature = "upstream-smoke"))]
+fn debug_dump_spineboy_walk_t01_rear_samples_skel_vs_json() {
+    use crate::{BoneTimeline, Curve};
+
+    fn bezier_value(
+        time: f32,
+        time1: f32,
+        value1: f32,
+        cx1: f32,
+        cy1: f32,
+        cx2: f32,
+        cy2: f32,
+        time2: f32,
+        value2: f32,
+    ) -> f32 {
+        if time <= time1 {
+            return value1;
+        }
+        if time >= time2 {
+            return value2;
+        }
+
+        let mut low = 0.0f32;
+        let mut high = 1.0f32;
+        let mut t = 0.5f32;
+        for _ in 0..24 {
+            t = (low + high) * 0.5;
+            let mt = 1.0 - t;
+            let x = mt * mt * mt * time1
+                + 3.0 * mt * mt * t * cx1
+                + 3.0 * mt * t * t * cx2
+                + t * t * t * time2;
+            if x < time {
+                low = t;
+            } else {
+                high = t;
+            }
+        }
+
+        let mt = 1.0 - t;
+        mt * mt * mt * value1
+            + 3.0 * mt * mt * t * cy1
+            + 3.0 * mt * t * t * cy2
+            + t * t * t * value2
+    }
+
+    fn curve_value(
+        curve: Curve,
+        time: f32,
+        time1: f32,
+        value1: f32,
+        time2: f32,
+        value2: f32,
+    ) -> f32 {
+        match curve {
+            Curve::Linear => {
+                let t = (time - time1) / (time2 - time1);
+                value1 + (value2 - value1) * t
+            }
+            Curve::Stepped => value1,
+            Curve::Bezier { cx1, cy1, cx2, cy2 } => {
+                bezier_value(time, time1, value1, cx1, cy1, cx2, cy2, time2, value2)
+            }
+        }
+    }
+
+    fn sample_rotate(frames: &[crate::RotateFrame], time: f32) -> f32 {
+        let index = frames.partition_point(|f| f.time <= time);
+        if index == 0 {
+            return frames[0].angle;
+        }
+        if index >= frames.len() {
+            return frames[frames.len() - 1].angle;
+        }
+        let prev = &frames[index - 1];
+        let next = &frames[index];
+        curve_value(
+            prev.curve, time, prev.time, prev.angle, next.time, next.angle,
+        )
+    }
+
+    fn sample_vec2(frames: &[crate::Vec2Frame], time: f32) -> (f32, f32) {
+        let index = frames.partition_point(|f| f.time <= time);
+        if index == 0 {
+            let f = &frames[0];
+            return (f.x, f.y);
+        }
+        if index >= frames.len() {
+            let f = &frames[frames.len() - 1];
+            return (f.x, f.y);
+        }
+        let prev = &frames[index - 1];
+        let next = &frames[index];
+        (
+            curve_value(prev.curve[0], time, prev.time, prev.x, next.time, next.x),
+            curve_value(prev.curve[1], time, prev.time, prev.y, next.time, next.y),
+        )
+    }
+
+    fn sample_ik_softness(frames: &[crate::IkFrame], time: f32) -> f32 {
+        let index = frames.partition_point(|f| f.time <= time);
+        if index == 0 {
+            return frames[0].softness;
+        }
+        if index >= frames.len() {
+            return frames[frames.len() - 1].softness;
+        }
+        let prev = &frames[index - 1];
+        let next = &frames[index];
+        curve_value(
+            prev.curve[1],
+            time,
+            prev.time,
+            prev.softness,
+            next.time,
+            next.softness,
+        )
+    }
+
+    let skel = load_example_bytes("spineboy/export/spineboy-pro.skel");
+    let json = load_example_string("spineboy/export/spineboy-pro.json");
+
+    let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
+    let data_json = SkeletonData::from_json_str(&json).expect("parse json");
+    for (anim_name, time) in [("walk", 0.1f32), ("run", 0.4f32)] {
+        let (_, anim_skel) = data_skel.animation(anim_name).expect("skel animation");
+        let (_, anim_json) = data_json.animation(anim_name).expect("json animation");
+
+        println!(
+            "[DEBUG-rear-samples] anim={anim_name} time={time:.9} bits={:08x}",
+            time.to_bits()
+        );
+        for (i, (a, b)) in anim_skel
+            .bone_timelines
+            .iter()
+            .zip(&anim_json.bone_timelines)
+            .enumerate()
+        {
+            match (a, b) {
+                (BoneTimeline::Rotate(ta), BoneTimeline::Rotate(tb)) => {
+                    let name = &data_skel.bones[ta.bone_index].name;
+                    if matches!(
+                        name.as_str(),
+                        "rear-foot-target"
+                            | "rear-leg-target"
+                            | "rear-thigh"
+                            | "rear-shin"
+                            | "rear-foot"
+                            | "back-foot-tip"
+                    ) {
+                        let va = sample_rotate(&ta.frames, time);
+                        let vb = sample_rotate(&tb.frames, time);
+                        println!(
+                            "[DEBUG-rear-samples] bone_tl[{i}] rotate {name}: sample {:.9} vs {:.9} diff {:.9}; frame_bits {:?} vs {:?}",
+                            va,
+                            vb,
+                            va - vb,
+                            ta.frames
+                                .iter()
+                                .map(|f| (f.time, f.time.to_bits(), f.angle))
+                                .collect::<Vec<_>>(),
+                            tb.frames
+                                .iter()
+                                .map(|f| (f.time, f.time.to_bits(), f.angle))
+                                .collect::<Vec<_>>()
+                        );
+                    }
+                }
+                (BoneTimeline::Translate(ta), BoneTimeline::Translate(tb)) => {
+                    let name = &data_skel.bones[ta.bone_index].name;
+                    if matches!(
+                        name.as_str(),
+                        "rear-foot-target"
+                            | "rear-leg-target"
+                            | "rear-thigh"
+                            | "rear-shin"
+                            | "rear-foot"
+                            | "back-foot-tip"
+                    ) {
+                        let va = sample_vec2(&ta.frames, time);
+                        let vb = sample_vec2(&tb.frames, time);
+                        println!(
+                            "[DEBUG-rear-samples] bone_tl[{i}] translate {name}: sample ({:.9},{:.9}) vs ({:.9},{:.9}) diff ({:.9},{:.9}); frame_bits {:?} vs {:?}",
+                            va.0,
+                            va.1,
+                            vb.0,
+                            vb.1,
+                            va.0 - vb.0,
+                            va.1 - vb.1,
+                            ta.frames
+                                .iter()
+                                .map(|f| (f.time, f.time.to_bits(), f.x, f.y))
+                                .collect::<Vec<_>>(),
+                            tb.frames
+                                .iter()
+                                .map(|f| (f.time, f.time.to_bits(), f.x, f.y))
+                                .collect::<Vec<_>>()
+                        );
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        for (i, (a, b)) in anim_skel
+            .ik_constraint_timelines
+            .iter()
+            .zip(&anim_json.ik_constraint_timelines)
+            .enumerate()
+        {
+            let name = &data_skel.ik_constraints[a.constraint_index].name;
+            if matches!(name.as_str(), "rear-leg-ik" | "rear-foot-ik" | "board-ik") {
+                let va = sample_ik_softness(&a.frames, time);
+                let vb = sample_ik_softness(&b.frames, time);
+                println!(
+                    "[DEBUG-rear-samples] ik_tl[{i}] {name}: softness {:.9} vs {:.9} diff {:.9}; frame_bits {:?} vs {:?}",
+                    va,
+                    vb,
+                    va - vb,
+                    a.frames
+                        .iter()
+                        .map(|f| (f.time, f.time.to_bits(), f.softness, f.bend_direction))
+                        .collect::<Vec<_>>(),
+                    b.frames
+                        .iter()
+                        .map(|f| (f.time, f.time.to_bits(), f.softness, f.bend_direction))
+                        .collect::<Vec<_>>()
+                );
+            }
+        }
+    }
+}
+
+#[test]
+#[ignore]
+#[cfg(all(feature = "json", feature = "upstream-smoke"))]
+fn debug_dump_spineboy_run_to_walk_after_state_apply_before_world_skel_vs_json() {
+    let skel = load_example_bytes("spineboy/export/spineboy-pro.skel");
+    let json = load_example_string("spineboy/export/spineboy-pro.json");
+
+    let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
+    let data_json = SkeletonData::from_json_str(&json).expect("parse json");
+
+    let mut state_data_skel = crate::runtime::AnimationStateData::new(data_skel.clone());
+    state_data_skel
+        .set_mix("run", "walk", 0.2)
+        .expect("set mix skel");
+    let mut state_data_json = crate::runtime::AnimationStateData::new(data_json.clone());
+    state_data_json
+        .set_mix("run", "walk", 0.2)
+        .expect("set mix json");
+
+    let mut skeleton_skel = Skeleton::new(data_skel.clone());
+    let mut state_skel = crate::runtime::AnimationState::new(state_data_skel);
+    skeleton_skel.set_to_setup_pose();
+    state_skel
+        .set_animation(0, "run", true)
+        .expect("set run skel");
+    state_skel.update(0.3);
+    state_skel.apply(&mut skeleton_skel);
+    skeleton_skel.update_world_transform();
+    state_skel
+        .set_animation(0, "walk", true)
+        .expect("set walk skel");
+    state_skel.update(0.1);
+    state_skel.apply(&mut skeleton_skel);
+
+    let mut skeleton_json = Skeleton::new(data_json.clone());
+    let mut state_json = crate::runtime::AnimationState::new(state_data_json);
+    skeleton_json.set_to_setup_pose();
+    state_json
+        .set_animation(0, "run", true)
+        .expect("set run json");
+    state_json.update(0.3);
+    state_json.apply(&mut skeleton_json);
+    skeleton_json.update_world_transform();
+    state_json
+        .set_animation(0, "walk", true)
+        .expect("set walk json");
+    state_json.update(0.1);
+    state_json.apply(&mut skeleton_json);
+
+    for name in [
+        "root",
+        "hip",
+        "rear-foot-target",
+        "rear-leg-target",
+        "rear-thigh",
+        "rear-shin",
+        "rear-foot",
+        "back-foot-tip",
+    ] {
+        let i = bone_index(&data_skel, name);
+        let a = &skeleton_skel.bones[i];
+        let b = &skeleton_json.bones[i];
+        println!(
+            "[DEBUG-state-boundary] {name}: local rot {:.9} vs {:.9} diff {:.9}; x {:.9} vs {:.9} diff {:.9}; y {:.9} vs {:.9} diff {:.9}; applied rot {:.9} vs {:.9} diff {:.9}; ax {:.9} vs {:.9} diff {:.9}; ay {:.9} vs {:.9} diff {:.9}",
+            a.rotation,
+            b.rotation,
+            a.rotation - b.rotation,
+            a.x,
+            b.x,
+            a.x - b.x,
+            a.y,
+            b.y,
+            a.y - b.y,
+            a.arotation,
+            b.arotation,
+            a.arotation - b.arotation,
+            a.ax,
+            b.ax,
+            a.ax - b.ax,
+            a.ay,
+            b.ay,
+            a.ay - b.ay,
+        );
+    }
+    skeleton_json.update_world_transform();
+    skeleton_skel.update_world_transform();
+    println!("--- after world ---");
+    println!("rust cache: {:?}", skeleton_skel.debug_update_cache());
+    println!("json cache: {:?}", skeleton_json.debug_update_cache());
+    for name in [
+        "root",
+        "hip",
+        "rear-foot-target",
+        "rear-leg-target",
+        "rear-thigh",
+        "rear-shin",
+        "rear-foot",
+        "back-foot-tip",
+    ] {
+        let i = bone_index(&data_skel, name);
+        let a = &skeleton_skel.bones[i];
+        let b = &skeleton_json.bones[i];
+        println!(
+            "[DEBUG-state-boundary] {name}: local rot {:.9} vs {:.9} diff {:.9}; applied rot {:.9} vs {:.9} diff {:.9}; ax {:.9} vs {:.9} diff {:.9}; ay {:.9} vs {:.9} diff {:.9}; world a {:.9} vs {:.9} diff {:.9}; b {:.9} vs {:.9} diff {:.9}; c {:.9} vs {:.9} diff {:.9}; d {:.9} vs {:.9} diff {:.9}; wx {:.9} vs {:.9} diff {:.9}; wy {:.9} vs {:.9} diff {:.9}",
+            a.rotation,
+            b.rotation,
+            a.rotation - b.rotation,
+            a.arotation,
+            b.arotation,
+            a.arotation - b.arotation,
+            a.ax,
+            b.ax,
+            a.ax - b.ax,
+            a.ay,
+            b.ay,
+            a.ay - b.ay,
+            a.a,
+            b.a,
+            a.a - b.a,
+            a.b,
+            b.b,
+            a.b - b.b,
+            a.c,
+            b.c,
+            a.c - b.c,
+            a.d,
+            b.d,
+            a.d - b.d,
+            a.world_x,
+            b.world_x,
+            a.world_x - b.world_x,
+            a.world_y,
+            b.world_y,
+            a.world_y - b.world_y,
+        );
+    }
+    for name in ["board-ik", "rear-leg-ik", "rear-foot-ik"] {
+        let i = data_skel
+            .ik_constraints
+            .iter()
+            .position(|c| c.name == name)
+            .unwrap_or_else(|| panic!("missing ik {name}"));
+        let a = &skeleton_skel.ik_constraints[i];
+        let b = &skeleton_json.ik_constraints[i];
+        println!(
+            "[DEBUG-state-boundary] ik {name}: mix {:.9} vs {:.9}; softness {:.9} vs {:.9}; bend {} vs {}",
+            a.mix, b.mix, a.softness, b.softness, a.bend_direction, b.bend_direction
+        );
+    }
+}
+
+fn bone_index(data: &SkeletonData, name: &str) -> usize {
+    data.bones
+        .iter()
+        .position(|b| b.name == name)
+        .unwrap_or_else(|| panic!("missing bone: {name}"))
+}
+
+#[test]
+#[ignore]
+#[cfg(all(feature = "json", feature = "upstream-smoke"))]
+fn debug_dump_spineboy_walk_animation_skel_vs_json() {
+    let skel = load_example_bytes("spineboy/export/spineboy-pro.skel");
+    let json = load_example_string("spineboy/export/spineboy-pro.json");
+
+    let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
+    let data_json = SkeletonData::from_json_str(&json).expect("parse json");
+
+    let (_, walk_skel) = data_skel.animation("walk").expect("walk skel");
+    let (_, walk_json) = data_json.animation("walk").expect("walk json");
+
+    println!(
+        "walk duration: {:.6} vs {:.6}; bone {} vs {}; deform {} vs {}; sequence {} vs {}; slotAttachment {} vs {}; ik {} vs {}; transform {} vs {}; path {} vs {}; physics {} vs {}; sliderTime {} vs {}; sliderMix {} vs {}",
+        walk_skel.duration,
+        walk_json.duration,
+        walk_skel.bone_timelines.len(),
+        walk_json.bone_timelines.len(),
+        walk_skel.deform_timelines.len(),
+        walk_json.deform_timelines.len(),
+        walk_skel.sequence_timelines.len(),
+        walk_json.sequence_timelines.len(),
+        walk_skel.slot_attachment_timelines.len(),
+        walk_json.slot_attachment_timelines.len(),
+        walk_skel.ik_constraint_timelines.len(),
+        walk_json.ik_constraint_timelines.len(),
+        walk_skel.transform_constraint_timelines.len(),
+        walk_json.transform_constraint_timelines.len(),
+        walk_skel.path_constraint_timelines.len(),
+        walk_json.path_constraint_timelines.len(),
+        walk_skel.physics_constraint_timelines.len(),
+        walk_json.physics_constraint_timelines.len(),
+        walk_skel.slider_time_timelines.len(),
+        walk_json.slider_time_timelines.len(),
+        walk_skel.slider_mix_timelines.len(),
+        walk_json.slider_mix_timelines.len(),
+    );
+
+    for (i, (a, b)) in walk_skel
+        .bone_timelines
+        .iter()
+        .zip(&walk_json.bone_timelines)
+        .enumerate()
+    {
+        if format!("{a:#?}") != format!("{b:#?}") {
+            println!("bone timeline[{i}] skel = {a:#?}");
+            println!("bone timeline[{i}] json = {b:#?}");
+        }
+    }
+
+    for (i, (a, b)) in walk_skel
+        .ik_constraint_timelines
+        .iter()
+        .zip(&walk_json.ik_constraint_timelines)
+        .enumerate()
+    {
+        let name_skel = data_skel
+            .ik_constraints
+            .get(a.constraint_index)
+            .map(|c| c.name.as_str())
+            .unwrap_or("<unknown>");
+        if matches!(name_skel, "rear-leg-ik" | "rear-foot-ik") {
+            let name_json = data_json
+                .ik_constraints
+                .get(b.constraint_index)
+                .map(|c| c.name.as_str())
+                .unwrap_or("<unknown>");
+            println!("ik timeline[{i}] skel name={name_skel} json name={name_json}");
+            println!("ik timeline[{i}] skel = {a:#?}");
+            println!("ik timeline[{i}] json = {b:#?}");
+        }
+    }
 }
 
 #[test]
 #[ignore]
 #[cfg(all(feature = "json", feature = "upstream-smoke"))]
 fn debug_dump_tank_skel_vs_json_constraints() {
-    let skel = load_bytes("assets/spine-runtimes/examples/tank/export/tank-pro.skel");
-    let json = load_string("assets/spine-runtimes/examples/tank/export/tank-pro.json");
+    let skel = load_example_bytes("tank/export/tank-pro.skel");
+    let json = load_example_string("tank/export/tank-pro.json");
 
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
@@ -595,8 +1550,8 @@ fn debug_dump_tank_skel_vs_json_constraints() {
 #[ignore]
 #[cfg(all(feature = "json", feature = "upstream-smoke"))]
 fn debug_dump_tank_shoot_t01_skel_vs_json() {
-    let skel = load_bytes("assets/spine-runtimes/examples/tank/export/tank-pro.skel");
-    let json = load_string("assets/spine-runtimes/examples/tank/export/tank-pro.json");
+    let skel = load_example_bytes("tank/export/tank-pro.skel");
+    let json = load_example_string("tank/export/tank-pro.json");
 
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");

@@ -162,6 +162,52 @@ const SKELETON_LINKEDMESH_SOURCE_PARENT: &str = r#"
 }
 "#;
 
+const SKELETON_CROSS_SLOT_LINKEDMESH_TIMELINE_SLOTS: &str = r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [ { "name": "root" } ],
+  "slots": [
+    { "name": "slot0", "bone": "root", "attachment": "source" },
+    { "name": "slot1", "bone": "root", "attachment": "linked" }
+  ],
+  "skins": {
+    "default": {
+      "slot0": {
+        "source": {
+          "type": "mesh",
+          "path": "source",
+          "uvs": [0,0, 1,0, 1,1, 0,1],
+          "vertices": [-1,-1, 1,-1, 1,1, -1,1],
+          "triangles": [0,1,2, 2,3,0]
+        }
+      },
+      "slot1": {
+        "linked": {
+          "type": "linkedmesh",
+          "source": "source",
+          "slot": "slot0"
+        }
+      }
+    }
+  },
+  "animations": {
+    "d": {
+      "attachments": {
+        "default": {
+          "slot0": {
+            "source": {
+              "deform": [
+                { "time": 0, "offset": 0, "vertices": [1,0, 0,0, 0,0, 0,0] }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"#;
+
 fn assert_approx2(actual: [f32; 2], expected: [f32; 2]) {
     let dx = (actual[0] - expected[0]).abs();
     let dy = (actual[1] - expected[1]).abs();
@@ -282,4 +328,36 @@ fn attachment_switch_between_linked_mesh_and_parent_preserves_deform_when_timeli
 
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("parent"));
     assert_eq!(skeleton.slots[0].deform.len(), 8);
+}
+
+#[test]
+fn deform_timeline_applies_to_cross_slot_linked_mesh_timeline_slots() {
+    let data = SkeletonData::from_json_str(SKELETON_CROSS_SLOT_LINKEDMESH_TIMELINE_SLOTS).unwrap();
+    let (_, animation) = data.animation("d").unwrap();
+    let mut skeleton = Skeleton::new(data.clone());
+    skeleton.set_to_setup_pose();
+    skeleton.update_world_transform();
+
+    let source = data
+        .skin("default")
+        .and_then(|skin| skin.attachment(0, "source"))
+        .and_then(|attachment| match attachment {
+            crate::AttachmentData::Mesh(mesh) => Some(mesh),
+            _ => None,
+        })
+        .expect("source mesh");
+    assert_eq!(source.timeline_slots, vec![1]);
+
+    apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
+
+    assert_eq!(skeleton.slots[0].deform.len(), 8);
+    assert_eq!(skeleton.slots[1].deform.len(), 8);
+    assert_approx2(
+        [skeleton.slots[0].deform[0], skeleton.slots[0].deform[1]],
+        [0.0, -1.0],
+    );
+    assert_approx2(
+        [skeleton.slots[1].deform[0], skeleton.slots[1].deform[1]],
+        [0.0, -1.0],
+    );
 }

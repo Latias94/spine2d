@@ -1,7 +1,7 @@
 Source: https://github.com/EsotericSoftware/spine-runtimes
-Branch: 4.3-beta
-TargetCommit: d050ae66829ed5e46bb38690c83f792ffc2b3d8b
-RecordedAtUTC: 2025-12-21T14:57:27Z
+Tag: spine-flutter-4.3.4
+TargetCommit: 80dc680a4345ac09cdc5d4c1a77ec572a3f295d1
+RecordedAtUTC: 2026-06-17T18:26:34Z
 Format: skel
 Status: OK
 Notes:

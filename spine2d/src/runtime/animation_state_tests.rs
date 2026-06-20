@@ -1,10 +1,11 @@
 use crate::Skeleton;
 use crate::runtime::{
     AnimationState, AnimationStateData, AnimationStateEvent, AnimationStateListener,
-    TrackEntryListener, TrackEntrySnapshot,
+    MixInterpolation, TrackEntryListener, TrackEntrySnapshot,
 };
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+use std::sync::Arc;
 
 const TEST_JSON: &str = r#"
 {
@@ -112,6 +113,30 @@ const EMPTY_DELAY_JSON: &str = r#"
           "rotate": [
             { "time": 0.0, "value": 0.0 },
             { "time": 1.0, "value": 0.0 }
+          ]
+        }
+      }
+    }
+  }
+}
+"#;
+
+const PHYSICS_RESET_JSON: &str = r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [
+    { "name": "root" },
+    { "name": "bone", "parent": "root" }
+  ],
+  "physics": [
+    { "name": "wind", "bone": "bone" }
+  ],
+  "animations": {
+    "run": {
+      "physics": {
+        "wind": {
+          "reset": [
+            { "time": 0.5 }
           ]
         }
       }
@@ -313,6 +338,109 @@ fn events_30_time_step() {
     ];
 
     assert_eq!(*recording.rows.borrow(), expected);
+}
+
+#[test]
+fn physics_reset_timeline_uses_previous_animation_time() {
+    let data = crate::SkeletonData::from_json_str(PHYSICS_RESET_JSON).unwrap();
+    let state_data = AnimationStateData::new(data.clone());
+    let mut state = AnimationState::new(state_data);
+    let mut skeleton = Skeleton::new(data);
+
+    skeleton.set_to_setup_pose();
+    state.set_animation(0, "run", false).unwrap();
+
+    state.update(0.75);
+    state.apply(&mut skeleton);
+    assert!(skeleton.physics_constraints[0].reset);
+
+    skeleton.update(0.75);
+    skeleton.update_world_transform_with_physics(crate::Physics::Update);
+    assert!(!skeleton.physics_constraints[0].reset);
+
+    state.update(0.1);
+    state.apply(&mut skeleton);
+    assert!(!skeleton.physics_constraints[0].reset);
+}
+
+#[test]
+fn physics_reset_timelines_share_one_property_slot() {
+    let mut data = crate::SkeletonData::from_json_str(PHYSICS_RESET_JSON).unwrap();
+    let skeleton_data = Arc::get_mut(&mut data).expect("unique skeleton data");
+    skeleton_data
+        .physics_constraints
+        .push(crate::PhysicsConstraintData {
+            name: "physics1".to_string(),
+            order: 1,
+            skin_required: false,
+            bone: 0,
+            x: 0.0,
+            y: 0.0,
+            rotate: 0.0,
+            scale_x: 1.0,
+            scale_y_mode: crate::ScaleYMode::None,
+            shear_x: 0.0,
+            limit: 5000.0,
+            step: 1.0 / 60.0,
+            inertia: 0.5,
+            strength: 100.0,
+            damping: 0.85,
+            mass_inverse: 1.0,
+            wind: 0.0,
+            gravity: 0.0,
+            mix: 1.0,
+            inertia_global: false,
+            strength_global: false,
+            damping_global: false,
+            mass_global: false,
+            wind_global: false,
+            gravity_global: false,
+            mix_global: false,
+        });
+    let animation = crate::runtime::finalize_animation(crate::Animation {
+        name: "run2".to_string(),
+        duration: 1.0,
+        event_timeline: None,
+        bone_timelines: Vec::new(),
+        deform_timelines: Vec::new(),
+        sequence_timelines: Vec::new(),
+        slot_attachment_timelines: Vec::new(),
+        slot_color_timelines: Vec::new(),
+        slot_rgb_timelines: Vec::new(),
+        slot_alpha_timelines: Vec::new(),
+        slot_rgba2_timelines: Vec::new(),
+        slot_rgb2_timelines: Vec::new(),
+        ik_constraint_timelines: Vec::new(),
+        transform_constraint_timelines: Vec::new(),
+        path_constraint_timelines: Vec::new(),
+        physics_constraint_timelines: Vec::new(),
+        physics_reset_timelines: vec![
+            crate::PhysicsConstraintResetTimeline {
+                constraint_index: 0,
+                frames: vec![0.0],
+            },
+            crate::PhysicsConstraintResetTimeline {
+                constraint_index: 1,
+                frames: vec![0.0],
+            },
+        ],
+        slider_time_timelines: Vec::new(),
+        slider_mix_timelines: Vec::new(),
+        draw_order_timeline: None,
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    });
+    skeleton_data.animations = vec![animation.clone()];
+    skeleton_data.animation_index.insert("run2".to_string(), 0);
+    let state_data = AnimationStateData::new(data.clone());
+    let mut state = AnimationState::new(state_data);
+    let mut skeleton = Skeleton::new(data.clone());
+
+    skeleton.set_to_setup_pose();
+    state.set_animation(0, "run2", false).unwrap();
+    state.update(0.1);
+    state.apply(&mut skeleton);
+    assert!(skeleton.physics_constraints[0].reset);
 }
 
 #[test]
@@ -1045,6 +1173,55 @@ fn event_threshold_some_animation0_events_fire_during_mix() {
     ];
 
     assert_eq!(*recording.rows.borrow(), expected);
+}
+
+#[test]
+fn event_threshold_uses_mix_interpolation() {
+    let (mut state, mut skeleton, recording) = setup();
+    state.set_listener(RecordingListener {
+        recording: recording.clone(),
+    });
+
+    let from = state.set_animation(0, "events0", false).unwrap();
+    from.set_event_threshold(&mut state, 0.3);
+    state.apply(&mut skeleton);
+    recording.rows.borrow_mut().clear();
+
+    let entry = state.set_animation(0, "events1", false).unwrap();
+    entry.set_mix_duration(&mut state, 1.0);
+    entry.set_mix_interpolation(&mut state, MixInterpolation::SlowFast);
+    recording.rows.borrow_mut().clear();
+
+    recording.time.set(0.5);
+    state.update(0.5);
+    state.apply(&mut skeleton);
+
+    let rows = recording.rows.borrow();
+    assert!(
+        rows.iter()
+            .any(|row| row.animation_index == 0 && row.name == "event 14"),
+        "expected mixing-from event 14 to pass SlowFast threshold, got {rows:?}"
+    );
+}
+
+#[test]
+fn reverse_playback_emits_reverse_order_events() {
+    let (mut state, mut skeleton, recording) = setup();
+    state.set_listener(RecordingListener {
+        recording: recording.clone(),
+    });
+
+    let entry = state.set_animation(0, "events0", false).unwrap();
+    entry.set_reverse(&mut state, true);
+    recording.rows.borrow_mut().clear();
+
+    recording.time.set(0.5);
+    state.update(0.5);
+    state.apply(&mut skeleton);
+
+    let rows = recording.rows.borrow();
+    let actual: Vec<_> = rows.iter().map(|row| row.name.as_str()).collect();
+    assert_eq!(actual, vec!["event 30"]);
 }
 
 #[test]
@@ -2544,6 +2721,34 @@ fn add_animation_with_delay_on_empty_track() {
     ];
 
     assert_eq!(*recording.rows.borrow(), expected);
+}
+
+#[test]
+fn state_time_scale_scales_update_and_queue_progression() {
+    let (mut state, mut skeleton, _recording) = setup();
+
+    state.set_animation(0, "events0", false).unwrap();
+    state.add_animation(0, "events1", false, 0.0).unwrap();
+    state.set_time_scale(0.5);
+
+    for _ in 0..3 {
+        state.update(1.0);
+        state.apply(&mut skeleton);
+    }
+
+    assert_eq!(round3(state.time()), 1.5);
+    assert_eq!(
+        state
+            .with_track_entry(0, |entry| entry.animation.name.clone())
+            .expect("track 0 should have advanced to the queued animation"),
+        "events1"
+    );
+    assert_eq!(
+        state
+            .with_track_entry(0, |entry| round3(entry.track_time))
+            .expect("track 0 should remain active"),
+        0.5
+    );
 }
 
 #[test]

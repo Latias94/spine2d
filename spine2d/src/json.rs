@@ -1,16 +1,20 @@
 use crate::{
-    Animation, AttachmentData, AttachmentFrame, AttachmentTimeline, BoneData, BoneTimeline,
-    BoundingBoxAttachmentData, ClippingAttachmentData, ColorFrame, ColorTimeline, Curve,
-    DeformFrame, DeformTimeline, DrawOrderFrame, DrawOrderTimeline, Error, Event, EventData,
-    EventTimeline, FloatFrame, IkConstraintTimeline, IkFrame, MeshAttachmentData,
-    PathAttachmentData, PointAttachmentData, RegionAttachmentData, Rgb2Frame, Rgb2Timeline,
-    Rgba2Frame, Rgba2Timeline, RotateFrame, RotateTimeline, ScaleTimeline, ShearTimeline,
-    SkeletonData, SkinData, SliderConstraintData, SliderConstraintTimeline, SlotData,
+    AlphaFrame, AlphaTimeline, Animation, AttachmentData, AttachmentFrame, AttachmentTimeline,
+    BoneData, BoneTimeline, BoundingBoxAttachmentData, ClippingAttachmentData, ColorFrame,
+    ColorTimeline, Curve, DeformFrame, DeformTimeline, DrawOrderFolderFrame,
+    DrawOrderFolderTimeline, DrawOrderFrame, DrawOrderTimeline, Error, Event, EventData,
+    EventTimeline, FloatFrame, IkConstraintTimeline, IkFrame, InheritFrame, InheritTimeline,
+    MeshAttachmentData, PathAttachmentData, PointAttachmentData, RegionAttachmentData, Rgb2Frame,
+    Rgb2Timeline, RgbFrame, RgbTimeline, Rgba2Frame, Rgba2Timeline, RotateFrame, RotateTimeline,
+    ScaleTimeline, ScaleXTimeline, ScaleYTimeline, ShearTimeline, ShearXTimeline, ShearYTimeline,
+    SkeletonData, SkinData, SliderConstraintData, SliderConstraintTimeline, SlotData, TimelineKind,
     TransformFromProperty, TransformProperty, TransformToProperty, TranslateTimeline,
     TranslateXTimeline, TranslateYTimeline, Vec2Frame,
 };
+use indexmap::IndexMap;
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use serde::de::DeserializeOwned;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -35,7 +39,8 @@ struct Root {
     bones: Option<Vec<BoneDef>>,
     slots: Option<Vec<SlotDef>>,
     skins: Option<SkinsDef>,
-    events: Option<BTreeMap<String, EventDef>>,
+    #[serde(default)]
+    events: IndexMap<String, EventDef>,
     #[serde(default)]
     constraints: Option<Vec<ConstraintDef>>,
     ik: Option<Vec<IkConstraintDef>>,
@@ -43,7 +48,8 @@ struct Root {
     path: Option<Vec<PathConstraintDef>>,
     physics: Option<Vec<PhysicsConstraintDef>>,
     slider: Option<Vec<SliderConstraintDef>>,
-    animations: Option<BTreeMap<String, AnimationDef>>,
+    #[serde(default)]
+    animations: IndexMap<String, Value>,
 }
 
 fn default_event_volume() -> f32 {
@@ -69,7 +75,7 @@ struct EventDef {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum SkinsDef {
-    Map(BTreeMap<String, BTreeMap<String, BTreeMap<String, AttachmentDef>>>),
+    Map(IndexMap<String, IndexMap<String, IndexMap<String, AttachmentDef>>>),
     Array(Vec<SkinDef>),
 }
 
@@ -77,7 +83,7 @@ enum SkinsDef {
 struct SkinDef {
     name: String,
     #[serde(default)]
-    attachments: BTreeMap<String, BTreeMap<String, AttachmentDef>>,
+    attachments: IndexMap<String, IndexMap<String, AttachmentDef>>,
     #[serde(default)]
     bones: Vec<String>,
     #[serde(default)]
@@ -124,6 +130,16 @@ struct BoneDef {
     inherit: Option<String>,
     #[serde(default, rename = "skin")]
     skin_required: bool,
+    #[serde(default)]
+    color: Option<String>,
+    #[serde(default)]
+    icon: Option<String>,
+    #[serde(default, rename = "iconSize")]
+    icon_size: Option<f32>,
+    #[serde(default, rename = "iconRotation")]
+    icon_rotation: Option<f32>,
+    #[serde(default)]
+    visible: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -138,6 +154,8 @@ struct SlotDef {
     dark: Option<String>,
     #[serde(default)]
     blend: Option<String>,
+    #[serde(default)]
+    visible: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -157,8 +175,8 @@ struct IkConstraintDef {
     compress: bool,
     #[serde(default)]
     stretch: bool,
-    #[serde(default)]
-    uniform: bool,
+    #[serde(default, rename = "scaleY")]
+    scale_y: Option<String>,
     #[serde(default = "default_true", rename = "bendPositive")]
     bend_positive: bool,
 }
@@ -199,7 +217,7 @@ struct TransformConstraintDef {
     shear_y: f32,
 
     #[serde(default)]
-    properties: Option<HashMap<String, TransformFromDef>>,
+    properties: Option<IndexMap<String, TransformFromDef>>,
 
     #[serde(default, rename = "mixRotate")]
     mix_rotate: Option<f32>,
@@ -220,7 +238,7 @@ struct TransformFromDef {
     #[serde(default)]
     offset: f32,
     #[serde(default)]
-    to: Option<HashMap<String, TransformToDef>>,
+    to: Option<IndexMap<String, TransformToDef>>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -280,6 +298,8 @@ struct PhysicsConstraintDef {
     rotate: f32,
     #[serde(default, rename = "scaleX")]
     scale_x: f32,
+    #[serde(default, rename = "scaleY")]
+    scale_y: Option<String>,
     #[serde(default, rename = "shearX")]
     shear_x: f32,
     #[serde(default)]
@@ -356,20 +376,70 @@ struct SliderConstraintDef {
 #[derive(Debug, Deserialize)]
 struct AnimationDef {
     events: Option<Vec<EventKey>>,
-    bones: Option<BTreeMap<String, BoneAnimDef>>,
+    #[serde(default)]
+    bones: IndexMap<String, BoneAnimDef>,
     attachments: Option<AttachmentTimelinesBySlot>,
-    slots: Option<BTreeMap<String, SlotAnimDef>>,
+    #[serde(default)]
+    slots: IndexMap<String, SlotAnimDef>,
     #[serde(rename = "drawOrder")]
     draw_order: Option<Vec<DrawOrderKey>>,
-    ik: Option<BTreeMap<String, Vec<IkTimelineKey>>>,
-    transform: Option<BTreeMap<String, Vec<TransformTimelineKey>>>,
-    path: Option<BTreeMap<String, BTreeMap<String, Vec<PathTimelineKey>>>>,
-    physics: Option<BTreeMap<String, BTreeMap<String, Vec<PhysicsTimelineKey>>>>,
-    slider: Option<BTreeMap<String, BTreeMap<String, Vec<FloatKey>>>>,
+    #[serde(rename = "drawOrderFolder")]
+    #[serde(default)]
+    draw_order_folder: IndexMap<String, DrawOrderFolderDef>,
+    #[serde(default)]
+    ik: IndexMap<String, Vec<IkTimelineKey>>,
+    #[serde(default)]
+    transform: IndexMap<String, Vec<TransformTimelineKey>>,
+    #[serde(default)]
+    path: IndexMap<String, IndexMap<String, Vec<PathTimelineKey>>>,
+    #[serde(default)]
+    physics: IndexMap<String, IndexMap<String, Vec<PhysicsTimelineKey>>>,
+    #[serde(default)]
+    slider: IndexMap<String, IndexMap<String, Vec<FloatKey>>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+enum JsonTimelineRef {
+    Slot {
+        slot: String,
+        timeline: String,
+    },
+    Bone {
+        bone: String,
+        timeline: String,
+    },
+    Ik {
+        constraint: String,
+    },
+    Transform {
+        constraint: String,
+    },
+    Path {
+        constraint: String,
+        timeline: String,
+    },
+    Physics {
+        constraint: String,
+        timeline: String,
+    },
+    Slider {
+        constraint: String,
+        timeline: String,
+    },
+    Attachment {
+        skin: String,
+        slot: String,
+        attachment: String,
+        timeline: String,
+    },
+    DrawOrder,
+    DrawOrderFolder {
+        folder: String,
+    },
 }
 
 type AttachmentTimelinesBySlot =
-    BTreeMap<String, BTreeMap<String, BTreeMap<String, AttachmentTimelinesDef>>>;
+    IndexMap<String, IndexMap<String, IndexMap<String, AttachmentTimelinesDef>>>;
 
 #[derive(Debug, Deserialize)]
 struct PathTimelineKey {
@@ -418,16 +488,30 @@ struct EventKey {
     balance: Option<f32>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 struct BoneAnimDef {
+    #[serde(default)]
     rotate: Option<Vec<RotateKey>>,
+    #[serde(default)]
     translate: Option<Vec<Vec2Key>>,
     #[serde(rename = "translatex", alias = "translateX")]
     translate_x: Option<Vec<FloatKey>>,
     #[serde(rename = "translatey", alias = "translateY")]
     translate_y: Option<Vec<FloatKey>>,
+    #[serde(default)]
     scale: Option<Vec<Vec2Key>>,
+    #[serde(rename = "scalex", alias = "scaleX")]
+    scale_x: Option<Vec<FloatKey>>,
+    #[serde(rename = "scaley", alias = "scaleY")]
+    scale_y: Option<Vec<FloatKey>>,
+    #[serde(default)]
     shear: Option<Vec<Vec2Key>>,
+    #[serde(rename = "shearx", alias = "shearX")]
+    shear_x: Option<Vec<FloatKey>>,
+    #[serde(rename = "sheary", alias = "shearY")]
+    shear_y: Option<Vec<FloatKey>>,
+    #[serde(default)]
+    inherit: Option<Vec<InheritKey>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -465,6 +549,14 @@ struct Vec2Key {
 }
 
 #[derive(Debug, Deserialize)]
+struct InheritKey {
+    #[serde(default)]
+    time: Option<f32>,
+    #[serde(default)]
+    inherit: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 struct AttachmentDef {
     #[serde(default, rename = "type")]
     attachment_type: Option<String>,
@@ -476,6 +568,8 @@ struct AttachmentDef {
     parent: Option<String>,
     #[serde(default)]
     source: Option<String>,
+    #[serde(default)]
+    slot: Option<String>,
     #[serde(default)]
     skin: Option<String>,
     #[serde(default)]
@@ -515,6 +609,10 @@ struct AttachmentDef {
     vertex_count: Option<usize>,
     #[serde(default)]
     lengths: Option<Vec<f32>>,
+    #[serde(default)]
+    convex: bool,
+    #[serde(default)]
+    inverse: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -524,7 +622,7 @@ struct AttachmentSequenceDef {
     start: i32,
     #[serde(default)]
     digits: usize,
-    #[serde(default, rename = "setupIndex")]
+    #[serde(default, rename = "setup")]
     setup_index: i32,
 }
 
@@ -532,12 +630,16 @@ fn default_one_i32() -> i32 {
     1
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 struct SlotAnimDef {
+    #[serde(default)]
     attachment: Option<Vec<SlotAttachmentKey>>,
-    color: Option<Vec<SlotColorKey>>,
     #[serde(default, rename = "rgba")]
     rgba: Option<Vec<SlotColorKey>>,
+    #[serde(default, rename = "rgb")]
+    rgb: Option<Vec<SlotColorKey>>,
+    #[serde(default, rename = "alpha")]
+    alpha: Option<Vec<SlotAlphaKey>>,
     #[serde(default, rename = "rgba2")]
     rgba2: Option<Vec<SlotTwoColorKey>>,
     #[serde(default, rename = "rgb2")]
@@ -558,6 +660,16 @@ struct SlotColorKey {
     time: Option<f32>,
     #[serde(default)]
     color: Option<String>,
+    #[serde(default)]
+    curve: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SlotAlphaKey {
+    #[serde(default)]
+    time: Option<f32>,
+    #[serde(default)]
+    value: Option<f32>,
     #[serde(default)]
     curve: Option<serde_json::Value>,
 }
@@ -587,6 +699,14 @@ struct DrawOrderOffset {
     slot: String,
     #[serde(default)]
     offset: i32,
+}
+
+#[derive(Debug, Deserialize)]
+struct DrawOrderFolderDef {
+    #[serde(default)]
+    slots: Vec<String>,
+    #[serde(default)]
+    keys: Option<Vec<DrawOrderKey>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -627,8 +747,9 @@ struct TransformTimelineKey {
     curve: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 struct AttachmentTimelinesDef {
+    #[serde(default)]
     deform: Option<Vec<DeformKey>>,
     #[serde(default)]
     sequence: Option<Vec<SequenceKey>>,
@@ -720,6 +841,16 @@ impl SkeletonData {
                 shear_y: bone.shear_y,
                 inherit: parse_inherit(bone.inherit.as_deref()),
                 skin_required: bone.skin_required,
+                color: bone
+                    .color
+                    .as_deref()
+                    .map(|s| parse_hex_color_rgba(s, "bone color"))
+                    .transpose()?
+                    .unwrap_or([0.61, 0.61, 0.61, 1.0]),
+                icon: bone.icon.unwrap_or_default(),
+                icon_size: bone.icon_size.unwrap_or(1.0),
+                icon_rotation: bone.icon_rotation.unwrap_or(0.0),
+                visible: bone.visible.unwrap_or(true),
             });
         }
 
@@ -756,6 +887,7 @@ impl SkeletonData {
                 has_dark: dark.is_some(),
                 dark_color: dark.unwrap_or([0.0, 0.0, 0.0]),
                 blend: parse_blend_mode(slot.blend.as_deref(), &slot_name)?,
+                visible: slot.visible.unwrap_or(true),
             });
         }
 
@@ -776,15 +908,16 @@ impl SkeletonData {
                 skin: String,
                 slot_index: usize,
                 attachment_name: String,
-                parent: String,
+                source: String,
                 parent_skin: Option<String>,
+                source_slot_index: usize,
                 inherit_deform: bool,
             }
 
             let mut pending_linked_meshes: Vec<PendingLinkedMesh> = Vec::new();
 
             let mut add_skin = |skin_name: String,
-                                skin_slots: BTreeMap<String, BTreeMap<String, AttachmentDef>>,
+                                skin_slots: IndexMap<String, IndexMap<String, AttachmentDef>>,
                                 skin_bones: Vec<String>,
                                 skin_ik: Vec<String>,
                                 skin_transform: Vec<String>,
@@ -792,7 +925,7 @@ impl SkeletonData {
                                 skin_physics: Vec<String>,
                                 skin_slider: Vec<String>|
              -> Result<(), Error> {
-                let mut attachments = vec![HashMap::new(); slots.len()];
+                let mut attachments = vec![IndexMap::new(); slots.len()];
                 for (slot_name, slot_attachments) in skin_slots {
                     let s_index =
                         *slot_index
@@ -943,6 +1076,7 @@ impl SkeletonData {
                                     path,
                                     timeline_skin: skin_name.clone(),
                                     timeline_attachment: attachment_name.clone(),
+                                    timeline_slots: Vec::new(),
                                     sequence: sequence.clone(),
                                     color: attachment_color,
                                     vertices: packed_vertices,
@@ -1114,30 +1248,55 @@ impl SkeletonData {
                                     name: internal_name.clone(),
                                     vertices: packed_vertices,
                                     end_slot,
+                                    convex: attachment_def.convex,
+                                    inverse: attachment_def.inverse,
                                 })
                             }
                             "linkedmesh" => {
-                                let Some(parent) = attachment_def
-                                    .parent
+                                let source = attachment_def
+                                    .source
                                     .clone()
-                                    .or_else(|| attachment_def.source.clone())
-                                else {
+                                    .or_else(|| attachment_def.parent.clone())
+                                    .ok_or_else(|| Error::JsonInvalidMeshData {
+                                        skin: skin_name.clone(),
+                                        slot: slot_name.clone(),
+                                        attachment: attachment_name.clone(),
+                                        message: "linkedmesh missing 'source'".to_string(),
+                                    })?;
+                                let source_slot_index = match attachment_def.slot.as_deref() {
+                                        Some(source_slot_name) => *slot_index
+                                            .get(source_slot_name)
+                                            .ok_or_else(|| Error::JsonInvalidMeshData {
+                                                skin: skin_name.clone(),
+                                                slot: slot_name.clone(),
+                                                attachment: attachment_name.clone(),
+                                                message: format!(
+                                                    "linkedmesh source slot not found: {source_slot_name}"
+                                                ),
+                                            })?,
+                                        None => s_index,
+                                    };
+                                if source.is_empty() {
                                     return Err(Error::JsonInvalidMeshData {
                                         skin: skin_name.clone(),
                                         slot: slot_name.clone(),
                                         attachment: attachment_name.clone(),
-                                        message: "linkedmesh missing 'parent'/'source'".to_string(),
+                                        message: "linkedmesh missing 'source'".to_string(),
                                     });
-                                };
-                                let parent_skin =
-                                    attachment_def.skin.clone().filter(|skin| !skin.is_empty());
+                                }
+                                let parent_skin = attachment_def
+                                    .skin
+                                    .as_deref()
+                                    .filter(|s| !s.is_empty())
+                                    .map(|s| s.to_string());
                                 let inherit_deform = attachment_def.timelines.unwrap_or(true);
                                 pending_linked_meshes.push(PendingLinkedMesh {
                                     skin: skin_name.clone(),
                                     slot_index: s_index,
                                     attachment_name: attachment_name.clone(),
-                                    parent: parent.clone(),
+                                    source: source.clone(),
                                     parent_skin: parent_skin.clone(),
+                                    source_slot_index,
                                     inherit_deform,
                                 });
 
@@ -1146,15 +1305,16 @@ impl SkeletonData {
                                     name: internal_name.clone(),
                                     path,
                                     timeline_skin: if inherit_deform {
-                                        parent_skin.clone().unwrap_or_else(|| "default".to_string())
+                                        parent_skin.unwrap_or_else(|| "default".to_string())
                                     } else {
                                         skin_name.clone()
                                     },
                                     timeline_attachment: if inherit_deform {
-                                        parent.clone()
+                                        source.clone()
                                     } else {
                                         attachment_name.clone()
                                     },
+                                    timeline_slots: Vec::new(),
                                     sequence: sequence.clone(),
                                     color: attachment_color,
                                     vertices: crate::MeshVertices::Unweighted(Vec::new()),
@@ -1257,9 +1417,9 @@ impl SkeletonData {
                     let Some((parent_skin_name, parent_attachment_name)) =
                         resolve_linked_mesh_parent(
                             &skins,
-                            pending.slot_index,
+                            pending.source_slot_index,
                             pending.parent_skin.as_deref(),
-                            pending.parent.as_str(),
+                            pending.source.as_str(),
                         )
                     else {
                         return Err(Error::JsonInvalidMeshData {
@@ -1271,10 +1431,11 @@ impl SkeletonData {
                             attachment: pending.attachment_name.clone(),
                             message: format!(
                                 "linkedmesh parent attachment not found: {}",
-                                pending.parent
+                                pending.source
                             ),
                         });
                     };
+
                     let Some(parent_skin) = skins.get(&parent_skin_name) else {
                         return Err(Error::JsonInvalidMeshData {
                             skin: pending.skin.clone(),
@@ -1289,7 +1450,7 @@ impl SkeletonData {
                         });
                     };
                     let Some(parent_attachment) =
-                        parent_skin.attachment(pending.slot_index, &parent_attachment_name)
+                        parent_skin.attachment(pending.source_slot_index, &parent_attachment_name)
                     else {
                         return Err(Error::JsonInvalidMeshData {
                             skin: pending.skin.clone(),
@@ -1324,29 +1485,59 @@ impl SkeletonData {
                     let parent_vertices = parent_mesh.vertices.clone();
                     let parent_uvs = parent_mesh.uvs.clone();
                     let parent_triangles = parent_mesh.triangles.clone();
-
-                    let Some(linked_skin) = skins.get_mut(&pending.skin) else {
-                        continue;
-                    };
-                    let Some(slot_map) = linked_skin.attachments.get_mut(pending.slot_index) else {
-                        continue;
-                    };
-                    let Some(linked_attachment) = slot_map.get_mut(&pending.attachment_name) else {
-                        continue;
-                    };
-                    let AttachmentData::Mesh(linked_mesh) = linked_attachment else {
-                        continue;
-                    };
-
-                    linked_mesh.vertices = parent_vertices;
-                    linked_mesh.uvs = parent_uvs;
-                    linked_mesh.triangles = parent_triangles;
-                    if pending.inherit_deform {
-                        linked_mesh.timeline_skin = parent_skin_name;
-                        linked_mesh.timeline_attachment = parent_attachment_name;
+                    let timeline_skin = if pending.inherit_deform {
+                        parent_skin_name.clone()
                     } else {
-                        linked_mesh.timeline_skin = pending.skin.clone();
-                        linked_mesh.timeline_attachment = pending.attachment_name.clone();
+                        pending.skin.clone()
+                    };
+                    let timeline_attachment = if pending.inherit_deform {
+                        parent_attachment_name.clone()
+                    } else {
+                        pending.attachment_name.clone()
+                    };
+
+                    {
+                        let Some(linked_skin) = skins.get_mut(&pending.skin) else {
+                            continue;
+                        };
+                        let Some(slot_map) = linked_skin.attachments.get_mut(pending.slot_index)
+                        else {
+                            continue;
+                        };
+                        let Some(linked_attachment) = slot_map.get_mut(&pending.attachment_name)
+                        else {
+                            continue;
+                        };
+                        let AttachmentData::Mesh(linked_mesh) = linked_attachment else {
+                            continue;
+                        };
+
+                        linked_mesh.vertices = parent_vertices;
+                        linked_mesh.uvs = parent_uvs;
+                        linked_mesh.triangles = parent_triangles;
+                        linked_mesh.timeline_skin = timeline_skin.clone();
+                        linked_mesh.timeline_attachment = timeline_attachment.clone();
+                    }
+
+                    if pending.inherit_deform && pending.slot_index != pending.source_slot_index {
+                        let Some(parent_skin) = skins.get_mut(&timeline_skin) else {
+                            continue;
+                        };
+                        let Some(parent_slot_map) =
+                            parent_skin.attachments.get_mut(pending.source_slot_index)
+                        else {
+                            continue;
+                        };
+                        let Some(parent_attachment) =
+                            parent_slot_map.get_mut(timeline_attachment.as_str())
+                        else {
+                            continue;
+                        };
+                        if let AttachmentData::Mesh(parent_mesh) = parent_attachment {
+                            if !parent_mesh.timeline_slots.contains(&pending.slot_index) {
+                                parent_mesh.timeline_slots.push(pending.slot_index);
+                            }
+                        }
                     }
                     resolved_any = true;
                 }
@@ -1368,7 +1559,7 @@ impl SkeletonData {
                         attachment: pending.attachment_name.clone(),
                         message: format!(
                             "linkedmesh resolution stalled (parent may be missing/unresolved): skin={parent_skin_name}, parent={}",
-                            pending.parent
+                            pending.source
                         ),
                     });
                 }
@@ -1384,7 +1575,6 @@ impl SkeletonData {
 
         let events = root
             .events
-            .unwrap_or_default()
             .into_iter()
             .map(|(name, def)| {
                 let has_audio = !def.audio_path.is_empty();
@@ -1475,11 +1665,15 @@ impl SkeletonData {
                 name: ik.name,
                 bones: bones_indices,
                 target,
+                scale_y_mode: ik
+                    .scale_y
+                    .as_deref()
+                    .map(crate::ScaleYMode::from_name)
+                    .unwrap_or_default(),
                 mix: ik.mix,
                 softness: ik.softness * scale,
                 compress: ik.compress,
                 stretch: ik.stretch,
-                uniform: ik.uniform,
                 bend_direction,
                 order: ik.order,
                 skin_required: ik.skin_required,
@@ -1764,6 +1958,11 @@ impl SkeletonData {
                 y: c.y,
                 rotate: c.rotate,
                 scale_x: c.scale_x,
+                scale_y_mode: c
+                    .scale_y
+                    .as_deref()
+                    .map(crate::ScaleYMode::from_name)
+                    .unwrap_or_default(),
                 shear_x: c.shear_x,
                 limit,
                 step,
@@ -1897,12 +2096,14 @@ impl SkeletonData {
 
         let mut animations = Vec::new();
         let mut animation_index = HashMap::new();
-        for (name, def) in root.animations.unwrap_or_default() {
+        for (name, def_value) in root.animations {
+            let def: AnimationDef = from_json_value(&def_value, &format!("animation '{name}'"))?;
             let events_def = def.events;
             let bones_def = def.bones;
             let attachments_def = def.attachments;
             let slots_def = def.slots;
             let draw_order_def = def.draw_order;
+            let draw_order_folder_def = def.draw_order_folder;
             let ik_def = def.ik;
             let transform_def = def.transform;
             let path_def = def.path;
@@ -1956,147 +2157,241 @@ impl SkeletonData {
             };
 
             let mut bone_timelines = Vec::new();
-            if let Some(bones) = bones_def {
-                for (bone_name, bone_anim) in bones {
-                    let bone_data_index = bone_index.get(&bone_name).copied().ok_or_else(|| {
-                        Error::JsonUnknownAnimationBone {
-                            animation: name.clone(),
-                            bone: bone_name.clone(),
-                        }
-                    })?;
-
-                    if let Some(keys) = bone_anim.rotate {
-                        let curve_context =
-                            format!("animation '{name}'.bones.{bone_name}.rotate curve");
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for k in keys {
-                            frames.push(RotateFrame {
-                                time: k.time.unwrap_or(0.0),
-                                angle: k.angle.or(k.value).unwrap_or(0.0),
-                                curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        if let Some(last) = frames.last() {
-                            duration = duration.max(last.time);
-                        }
-                        bone_timelines.push(BoneTimeline::Rotate(RotateTimeline {
-                            bone_index: bone_data_index,
-                            frames,
-                        }));
+            for (bone_name, bone_anim) in bones_def {
+                let bone_data_index = bone_index.get(&bone_name).copied().ok_or_else(|| {
+                    Error::JsonUnknownAnimationBone {
+                        animation: name.clone(),
+                        bone: bone_name.clone(),
                     }
+                })?;
 
-                    if let Some(keys) = bone_anim.translate {
-                        let curve_context =
-                            format!("animation '{name}'.bones.{bone_name}.translate curve");
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for k in keys {
-                            frames.push(Vec2Frame {
-                                time: k.time.unwrap_or(0.0),
-                                x: k.x.unwrap_or(0.0) * scale,
-                                y: k.y.unwrap_or(0.0) * scale,
-                                curve: parse_curve_n(
-                                    k.curve.as_ref(),
-                                    [scale, scale],
-                                    &curve_context,
-                                )?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        if let Some(last) = frames.last() {
-                            duration = duration.max(last.time);
-                        }
-                        bone_timelines.push(BoneTimeline::Translate(TranslateTimeline {
-                            bone_index: bone_data_index,
-                            frames,
-                        }));
+                if let Some(keys) = bone_anim.rotate {
+                    let curve_context =
+                        format!("animation '{name}'.bones.{bone_name}.rotate curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(RotateFrame {
+                            time: k.time.unwrap_or(0.0),
+                            angle: k.angle.or(k.value).unwrap_or(0.0),
+                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                        });
                     }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::Rotate(RotateTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
+                }
 
-                    if let Some(keys) = bone_anim.translate_x {
-                        let curve_context =
-                            format!("animation '{name}'.bones.{bone_name}.translatex curve");
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for k in keys {
-                            frames.push(FloatFrame {
-                                time: k.time.unwrap_or(0.0),
-                                value: k.value.unwrap_or(0.0) * scale,
-                                curve: parse_curve_1(k.curve.as_ref(), scale, &curve_context)?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        if let Some(last) = frames.last() {
-                            duration = duration.max(last.time);
-                        }
-                        bone_timelines.push(BoneTimeline::TranslateX(TranslateXTimeline {
-                            bone_index: bone_data_index,
-                            frames,
-                        }));
+                if let Some(keys) = bone_anim.translate {
+                    let curve_context =
+                        format!("animation '{name}'.bones.{bone_name}.translate curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(Vec2Frame {
+                            time: k.time.unwrap_or(0.0),
+                            x: k.x.unwrap_or(0.0) * scale,
+                            y: k.y.unwrap_or(0.0) * scale,
+                            curve: parse_curve_n(k.curve.as_ref(), [scale, scale], &curve_context)?,
+                        });
                     }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::Translate(TranslateTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
+                }
 
-                    if let Some(keys) = bone_anim.translate_y {
-                        let curve_context =
-                            format!("animation '{name}'.bones.{bone_name}.translatey curve");
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for k in keys {
-                            frames.push(FloatFrame {
-                                time: k.time.unwrap_or(0.0),
-                                value: k.value.unwrap_or(0.0) * scale,
-                                curve: parse_curve_1(k.curve.as_ref(), scale, &curve_context)?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        if let Some(last) = frames.last() {
-                            duration = duration.max(last.time);
-                        }
-                        bone_timelines.push(BoneTimeline::TranslateY(TranslateYTimeline {
-                            bone_index: bone_data_index,
-                            frames,
-                        }));
+                if let Some(keys) = bone_anim.translate_x {
+                    let curve_context =
+                        format!("animation '{name}'.bones.{bone_name}.translatex curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(FloatFrame {
+                            time: k.time.unwrap_or(0.0),
+                            value: k.value.unwrap_or(0.0) * scale,
+                            curve: parse_curve_1(k.curve.as_ref(), scale, &curve_context)?,
+                        });
                     }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::TranslateX(TranslateXTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
+                }
 
-                    if let Some(keys) = bone_anim.scale {
-                        let curve_context =
-                            format!("animation '{name}'.bones.{bone_name}.scale curve");
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for k in keys {
-                            frames.push(Vec2Frame {
-                                time: k.time.unwrap_or(0.0),
-                                x: k.x.unwrap_or(1.0),
-                                y: k.y.unwrap_or(1.0),
-                                curve: parse_curve_n(k.curve.as_ref(), [1.0, 1.0], &curve_context)?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        if let Some(last) = frames.last() {
-                            duration = duration.max(last.time);
-                        }
-                        bone_timelines.push(BoneTimeline::Scale(ScaleTimeline {
-                            bone_index: bone_data_index,
-                            frames,
-                        }));
+                if let Some(keys) = bone_anim.translate_y {
+                    let curve_context =
+                        format!("animation '{name}'.bones.{bone_name}.translatey curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(FloatFrame {
+                            time: k.time.unwrap_or(0.0),
+                            value: k.value.unwrap_or(0.0) * scale,
+                            curve: parse_curve_1(k.curve.as_ref(), scale, &curve_context)?,
+                        });
                     }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::TranslateY(TranslateYTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
+                }
 
-                    if let Some(keys) = bone_anim.shear {
-                        let curve_context =
-                            format!("animation '{name}'.bones.{bone_name}.shear curve");
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for k in keys {
-                            frames.push(Vec2Frame {
-                                time: k.time.unwrap_or(0.0),
-                                x: k.x.unwrap_or(0.0),
-                                y: k.y.unwrap_or(0.0),
-                                curve: parse_curve_n(k.curve.as_ref(), [1.0, 1.0], &curve_context)?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        if let Some(last) = frames.last() {
-                            duration = duration.max(last.time);
-                        }
-                        bone_timelines.push(BoneTimeline::Shear(ShearTimeline {
-                            bone_index: bone_data_index,
-                            frames,
-                        }));
+                if let Some(keys) = bone_anim.scale {
+                    let curve_context = format!("animation '{name}'.bones.{bone_name}.scale curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(Vec2Frame {
+                            time: k.time.unwrap_or(0.0),
+                            x: k.x.unwrap_or(1.0),
+                            y: k.y.unwrap_or(1.0),
+                            curve: parse_curve_n(k.curve.as_ref(), [1.0, 1.0], &curve_context)?,
+                        });
                     }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::Scale(ScaleTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
+                }
+
+                if let Some(keys) = bone_anim.scale_x {
+                    let curve_context =
+                        format!("animation '{name}'.bones.{bone_name}.scalex curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(FloatFrame {
+                            time: k.time.unwrap_or(0.0),
+                            value: k.value.unwrap_or(1.0),
+                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::ScaleX(ScaleXTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
+                }
+
+                if let Some(keys) = bone_anim.scale_y {
+                    let curve_context =
+                        format!("animation '{name}'.bones.{bone_name}.scaley curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(FloatFrame {
+                            time: k.time.unwrap_or(0.0),
+                            value: k.value.unwrap_or(1.0),
+                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::ScaleY(ScaleYTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
+                }
+
+                if let Some(keys) = bone_anim.shear {
+                    let curve_context = format!("animation '{name}'.bones.{bone_name}.shear curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(Vec2Frame {
+                            time: k.time.unwrap_or(0.0),
+                            x: k.x.unwrap_or(0.0),
+                            y: k.y.unwrap_or(0.0),
+                            curve: parse_curve_n(k.curve.as_ref(), [1.0, 1.0], &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::Shear(ShearTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
+                }
+
+                if let Some(keys) = bone_anim.shear_x {
+                    let curve_context =
+                        format!("animation '{name}'.bones.{bone_name}.shearx curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(FloatFrame {
+                            time: k.time.unwrap_or(0.0),
+                            value: k.value.unwrap_or(0.0),
+                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::ShearX(ShearXTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
+                }
+
+                if let Some(keys) = bone_anim.shear_y {
+                    let curve_context =
+                        format!("animation '{name}'.bones.{bone_name}.sheary curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(FloatFrame {
+                            time: k.time.unwrap_or(0.0),
+                            value: k.value.unwrap_or(0.0),
+                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::ShearY(ShearYTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
+                }
+
+                if let Some(keys) = bone_anim.inherit {
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        frames.push(InheritFrame {
+                            time: k.time.unwrap_or(0.0),
+                            inherit: parse_inherit(k.inherit.as_deref()),
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    bone_timelines.push(BoneTimeline::Inherit(InheritTimeline {
+                        bone_index: bone_data_index,
+                        frames,
+                    }));
                 }
             }
 
@@ -2283,153 +2578,189 @@ impl SkeletonData {
 
             let mut slot_attachment_timelines = Vec::new();
             let mut slot_color_timelines = Vec::new();
+            let mut slot_rgb_timelines: Vec<RgbTimeline> = Vec::new();
+            let mut slot_alpha_timelines: Vec<AlphaTimeline> = Vec::new();
             let mut slot_rgba2_timelines = Vec::new();
             let mut slot_rgb2_timelines = Vec::new();
-            if let Some(slots_anim) = slots_def {
-                for (slot_name, slot_anim) in slots_anim {
-                    let s_index = slot_index.get(&slot_name).copied().ok_or_else(|| {
-                        Error::JsonUnknownSlotTimelineSlot {
+            for (slot_name, slot_anim) in slots_def {
+                let s_index = slot_index.get(&slot_name).copied().ok_or_else(|| {
+                    Error::JsonUnknownSlotTimelineSlot {
+                        animation: name.clone(),
+                        slot: slot_name.clone(),
+                    }
+                })?;
+
+                if let Some(keys) = slot_anim.attachment {
+                    let mut frames = keys
+                        .into_iter()
+                        .map(|k| AttachmentFrame {
+                            time: k.time.unwrap_or(0.0),
+                            name: k.name,
+                        })
+                        .collect::<Vec<_>>();
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+                    slot_attachment_timelines.push(AttachmentTimeline {
+                        slot_index: s_index,
+                        frames,
+                    });
+                }
+
+                if let Some(keys) = slot_anim.rgba {
+                    let curve_context = format!("animation '{name}'.slots.{slot_name}.color curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for key in keys {
+                        let time = key.time.unwrap_or(0.0);
+                        duration = duration.max(time);
+                        let color_str = key.color.unwrap_or_else(|| "FFFFFFFF".to_string());
+                        let color = parse_hex_color_rgba(
+                            &color_str,
+                            &format!("slot color timeline '{}.slots.{}.color'", name, slot_name),
+                        )?;
+                        frames.push(ColorFrame {
+                            time,
+                            color,
+                            curve: parse_curve_n(key.curve.as_ref(), [1.0; 4], &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    slot_color_timelines.push(ColorTimeline {
+                        slot_index: s_index,
+                        frames,
+                    });
+                }
+
+                if let Some(keys) = slot_anim.rgb {
+                    let curve_context = format!("animation '{name}'.slots.{slot_name}.rgb curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for key in keys {
+                        let time = key.time.unwrap_or(0.0);
+                        duration = duration.max(time);
+                        let color_str = key.color.unwrap_or_else(|| "FFFFFF".to_string());
+                        let color = parse_hex_color_rgb(
+                            &color_str,
+                            &format!("slot rgb timeline '{}.slots.{}.rgb'", name, slot_name),
+                        )?;
+                        frames.push(RgbFrame {
+                            time,
+                            color,
+                            curve: parse_curve_n(key.curve.as_ref(), [1.0; 3], &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    slot_rgb_timelines.push(RgbTimeline {
+                        slot_index: s_index,
+                        frames,
+                    });
+                }
+
+                if let Some(keys) = slot_anim.alpha {
+                    let curve_context = format!("animation '{name}'.slots.{slot_name}.alpha curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for key in keys {
+                        let time = key.time.unwrap_or(0.0);
+                        duration = duration.max(time);
+                        frames.push(AlphaFrame {
+                            time,
+                            alpha: key.value.unwrap_or(1.0),
+                            curve: parse_curve_1(key.curve.as_ref(), 1.0, &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    slot_alpha_timelines.push(AlphaTimeline {
+                        slot_index: s_index,
+                        frames,
+                    });
+                }
+
+                if let Some(keys) = slot_anim.rgba2 {
+                    if !slots.get(s_index).map(|s| s.has_dark).unwrap_or(false) {
+                        return Err(Error::JsonTwoColorTimelineRequiresDarkSlot {
                             animation: name.clone(),
                             slot: slot_name.clone(),
-                        }
-                    })?;
-
-                    if let Some(keys) = slot_anim.attachment {
-                        let mut frames = keys
-                            .into_iter()
-                            .map(|k| AttachmentFrame {
-                                time: k.time.unwrap_or(0.0),
-                                name: k.name,
-                            })
-                            .collect::<Vec<_>>();
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        if let Some(last) = frames.last() {
-                            duration = duration.max(last.time);
-                        }
-                        slot_attachment_timelines.push(AttachmentTimeline {
-                            slot_index: s_index,
-                            frames,
+                            timeline: "rgba2".to_string(),
                         });
                     }
 
-                    let keys = slot_anim.color.or(slot_anim.rgba);
-                    if let Some(keys) = keys {
-                        let curve_context =
-                            format!("animation '{name}'.slots.{slot_name}.color curve");
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for key in keys {
-                            let time = key.time.unwrap_or(0.0);
-                            duration = duration.max(time);
-                            let color_str = key.color.unwrap_or_else(|| "FFFFFFFF".to_string());
-                            let color = parse_hex_color_rgba(
-                                &color_str,
-                                &format!(
-                                    "slot color timeline '{}.slots.{}.color'",
-                                    name, slot_name
-                                ),
-                            )?;
-                            frames.push(ColorFrame {
-                                time,
-                                color,
-                                curve: parse_curve_n(key.curve.as_ref(), [1.0; 4], &curve_context)?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        slot_color_timelines.push(ColorTimeline {
-                            slot_index: s_index,
-                            frames,
+                    let curve_context = format!("animation '{name}'.slots.{slot_name}.rgba2 curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for key in keys {
+                        let time = key.time.unwrap_or(0.0);
+                        duration = duration.max(time);
+                        let light_str = key.light.unwrap_or_else(|| "FFFFFFFF".to_string());
+                        let dark_str = key.dark.unwrap_or_else(|| "000000".to_string());
+                        let light = parse_hex_color_rgba(
+                            &light_str,
+                            &format!(
+                                "slot rgba2 timeline '{}.slots.{}.rgba2.light'",
+                                name, slot_name
+                            ),
+                        )?;
+                        let dark = parse_hex_color_rgb(
+                            &dark_str,
+                            &format!(
+                                "slot rgba2 timeline '{}.slots.{}.rgba2.dark'",
+                                name, slot_name
+                            ),
+                        )?;
+                        frames.push(Rgba2Frame {
+                            time,
+                            light,
+                            dark,
+                            curve: parse_curve_n(key.curve.as_ref(), [1.0; 7], &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    slot_rgba2_timelines.push(Rgba2Timeline {
+                        slot_index: s_index,
+                        frames,
+                    });
+                }
+
+                if let Some(keys) = slot_anim.rgb2 {
+                    if !slots.get(s_index).map(|s| s.has_dark).unwrap_or(false) {
+                        return Err(Error::JsonTwoColorTimelineRequiresDarkSlot {
+                            animation: name.clone(),
+                            slot: slot_name.clone(),
+                            timeline: "rgb2".to_string(),
                         });
                     }
 
-                    if let Some(keys) = slot_anim.rgba2 {
-                        if !slots.get(s_index).map(|s| s.has_dark).unwrap_or(false) {
-                            return Err(Error::JsonTwoColorTimelineRequiresDarkSlot {
-                                animation: name.clone(),
-                                slot: slot_name.clone(),
-                                timeline: "rgba2".to_string(),
-                            });
-                        }
-
-                        let curve_context =
-                            format!("animation '{name}'.slots.{slot_name}.rgba2 curve");
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for key in keys {
-                            let time = key.time.unwrap_or(0.0);
-                            duration = duration.max(time);
-                            let light_str = key.light.unwrap_or_else(|| "FFFFFFFF".to_string());
-                            let dark_str = key.dark.unwrap_or_else(|| "000000".to_string());
-                            let light = parse_hex_color_rgba(
-                                &light_str,
-                                &format!(
-                                    "slot rgba2 timeline '{}.slots.{}.rgba2.light'",
-                                    name, slot_name
-                                ),
-                            )?;
-                            let dark = parse_hex_color_rgb(
-                                &dark_str,
-                                &format!(
-                                    "slot rgba2 timeline '{}.slots.{}.rgba2.dark'",
-                                    name, slot_name
-                                ),
-                            )?;
-                            frames.push(Rgba2Frame {
-                                time,
-                                light,
-                                dark,
-                                curve: parse_curve_n(key.curve.as_ref(), [1.0; 7], &curve_context)?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        slot_rgba2_timelines.push(Rgba2Timeline {
-                            slot_index: s_index,
-                            frames,
+                    let curve_context = format!("animation '{name}'.slots.{slot_name}.rgb2 curve");
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for key in keys {
+                        let time = key.time.unwrap_or(0.0);
+                        duration = duration.max(time);
+                        let light_str = key.light.unwrap_or_else(|| "FFFFFF".to_string());
+                        let dark_str = key.dark.unwrap_or_else(|| "000000".to_string());
+                        let light = parse_hex_color_rgb(
+                            &light_str,
+                            &format!(
+                                "slot rgb2 timeline '{}.slots.{}.rgb2.light'",
+                                name, slot_name
+                            ),
+                        )?;
+                        let dark = parse_hex_color_rgb(
+                            &dark_str,
+                            &format!(
+                                "slot rgb2 timeline '{}.slots.{}.rgb2.dark'",
+                                name, slot_name
+                            ),
+                        )?;
+                        frames.push(Rgb2Frame {
+                            time,
+                            light,
+                            dark,
+                            curve: parse_curve_n(key.curve.as_ref(), [1.0; 6], &curve_context)?,
                         });
                     }
-
-                    if let Some(keys) = slot_anim.rgb2 {
-                        if !slots.get(s_index).map(|s| s.has_dark).unwrap_or(false) {
-                            return Err(Error::JsonTwoColorTimelineRequiresDarkSlot {
-                                animation: name.clone(),
-                                slot: slot_name.clone(),
-                                timeline: "rgb2".to_string(),
-                            });
-                        }
-
-                        let curve_context =
-                            format!("animation '{name}'.slots.{slot_name}.rgb2 curve");
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for key in keys {
-                            let time = key.time.unwrap_or(0.0);
-                            duration = duration.max(time);
-                            let light_str = key.light.unwrap_or_else(|| "FFFFFF".to_string());
-                            let dark_str = key.dark.unwrap_or_else(|| "000000".to_string());
-                            let light = parse_hex_color_rgb(
-                                &light_str,
-                                &format!(
-                                    "slot rgb2 timeline '{}.slots.{}.rgb2.light'",
-                                    name, slot_name
-                                ),
-                            )?;
-                            let dark = parse_hex_color_rgb(
-                                &dark_str,
-                                &format!(
-                                    "slot rgb2 timeline '{}.slots.{}.rgb2.dark'",
-                                    name, slot_name
-                                ),
-                            )?;
-                            frames.push(Rgb2Frame {
-                                time,
-                                light,
-                                dark,
-                                curve: parse_curve_n(key.curve.as_ref(), [1.0; 6], &curve_context)?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        slot_rgb2_timelines.push(Rgb2Timeline {
-                            slot_index: s_index,
-                            frames,
-                        });
-                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    slot_rgb2_timelines.push(Rgb2Timeline {
+                        slot_index: s_index,
+                        frames,
+                    });
                 }
             }
 
@@ -2439,15 +2770,14 @@ impl SkeletonData {
                     let time = key.time.unwrap_or(0.0);
                     duration = duration.max(time);
 
-                    let draw_order_to_setup_index = if let Some(offsets) = key.offsets {
-                        Some(build_draw_order_to_setup_index(
-                            &offsets,
+                    let draw_order_to_setup_index = match key.offsets.as_deref() {
+                        Some(offsets) => Some(build_draw_order_to_setup_index(
+                            offsets,
                             slots.len(),
                             &slot_index,
                             name.as_str(),
-                        )?)
-                    } else {
-                        None
+                        )?),
+                        None => None,
                     };
                     frames.push(DrawOrderFrame {
                         time,
@@ -2460,367 +2790,433 @@ impl SkeletonData {
                 None
             };
 
-            let mut ik_constraint_timelines = Vec::new();
-            if let Some(ik_map) = ik_def {
-                for (constraint_name, keys) in ik_map {
-                    let constraint_index =
-                        *ik_constraint_index.get(&constraint_name).ok_or_else(|| {
-                            Error::JsonUnknownIkConstraintTimeline {
-                                animation: name.clone(),
-                                constraint: constraint_name.clone(),
-                            }
-                        })?;
+            let mut draw_order_folder_timelines = Vec::new();
+            let mut draw_order_folder_names = Vec::new();
+            for (folder_name, folder) in draw_order_folder_def {
+                let mut folder_slots = Vec::with_capacity(folder.slots.len());
+                for slot_name in folder.slots {
+                    let slot = slot_index.get(&slot_name).copied().ok_or_else(|| {
+                        Error::JsonInvalidDrawOrder {
+                            animation: name.clone(),
+                            message: format!(
+                                "unknown slot '{}' in drawOrderFolder slots",
+                                slot_name
+                            ),
+                        }
+                    })?;
+                    folder_slots.push(slot);
+                }
 
-                    let curve_context = format!("animation '{name}'.ik.{constraint_name} curve");
-                    let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
-                        frames.push(IkFrame {
-                            time: k.time.unwrap_or(0.0),
-                            mix: k.mix.unwrap_or(1.0),
-                            softness: k.softness.unwrap_or(0.0) * scale,
-                            bend_direction: if k.bend_positive.unwrap_or(true) {
-                                1
-                            } else {
-                                -1
-                            },
-                            compress: k.compress.unwrap_or(false),
-                            stretch: k.stretch.unwrap_or(false),
-                            curve: parse_curve_n(k.curve.as_ref(), [1.0, scale], &curve_context)?,
-                        });
-                    }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                    if let Some(last) = frames.last() {
-                        duration = duration.max(last.time);
-                    }
-                    ik_constraint_timelines.push(IkConstraintTimeline {
-                        constraint_index,
-                        frames,
+                let mut folder_slot_index = HashMap::with_capacity(folder_slots.len());
+                for (folder_index, &setup_slot_index) in folder_slots.iter().enumerate() {
+                    let slot_name = slots
+                        .get(setup_slot_index)
+                        .map(|s| s.name.clone())
+                        .unwrap_or_default();
+                    folder_slot_index.insert(slot_name, folder_index);
+                }
+
+                let keys = folder.keys.unwrap_or_default();
+                let mut frames = Vec::with_capacity(keys.len());
+                for key in keys {
+                    let time = key.time.unwrap_or(0.0);
+                    duration = duration.max(time);
+                    let folder_draw_order = match key.offsets.as_deref() {
+                        Some(offsets) => Some(build_draw_order_to_setup_index(
+                            offsets,
+                            folder_slots.len(),
+                            &folder_slot_index,
+                            name.as_str(),
+                        )?),
+                        None => None,
+                    };
+                    frames.push(DrawOrderFolderFrame {
+                        time,
+                        folder_draw_order,
                     });
                 }
+                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                draw_order_folder_names.push(folder_name);
+                draw_order_folder_timelines.push(DrawOrderFolderTimeline {
+                    slots: folder_slots,
+                    frames,
+                });
+            }
+
+            let mut ik_constraint_timelines = Vec::new();
+            for (constraint_name, keys) in ik_def {
+                let constraint_index =
+                    *ik_constraint_index.get(&constraint_name).ok_or_else(|| {
+                        Error::JsonUnknownIkConstraintTimeline {
+                            animation: name.clone(),
+                            constraint: constraint_name.clone(),
+                        }
+                    })?;
+
+                let curve_context = format!("animation '{name}'.ik.{constraint_name} curve");
+                let mut frames = Vec::with_capacity(keys.len());
+                for k in keys {
+                    frames.push(IkFrame {
+                        time: k.time.unwrap_or(0.0),
+                        mix: k.mix.unwrap_or(1.0),
+                        softness: k.softness.unwrap_or(0.0) * scale,
+                        bend_direction: if k.bend_positive.unwrap_or(true) {
+                            1
+                        } else {
+                            -1
+                        },
+                        compress: k.compress.unwrap_or(false),
+                        stretch: k.stretch.unwrap_or(false),
+                        curve: parse_curve_n(k.curve.as_ref(), [1.0, scale], &curve_context)?,
+                    });
+                }
+                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                if let Some(last) = frames.last() {
+                    duration = duration.max(last.time);
+                }
+                ik_constraint_timelines.push(IkConstraintTimeline {
+                    constraint_index,
+                    frames,
+                });
             }
 
             let mut transform_constraint_timelines = Vec::new();
-            if let Some(map) = transform_def {
-                for (constraint_name, keys) in map {
-                    let constraint_index = *transform_constraint_index
-                        .get(&constraint_name)
-                        .ok_or_else(|| Error::JsonUnknownTransformConstraintTimeline {
-                            animation: name.clone(),
-                            constraint: constraint_name.clone(),
-                        })?;
+            for (constraint_name, keys) in transform_def {
+                let constraint_index = *transform_constraint_index
+                    .get(&constraint_name)
+                    .ok_or_else(|| Error::JsonUnknownTransformConstraintTimeline {
+                        animation: name.clone(),
+                        constraint: constraint_name.clone(),
+                    })?;
 
-                    let mut frames = Vec::with_capacity(keys.len());
-                    let curve_context =
-                        format!("animation '{name}'.transform.{constraint_name} curve");
-                    for k in keys {
-                        let time = k.time.unwrap_or(0.0);
-                        duration = duration.max(time);
+                let mut frames = Vec::with_capacity(keys.len());
+                let curve_context = format!("animation '{name}'.transform.{constraint_name} curve");
+                for k in keys {
+                    let time = k.time.unwrap_or(0.0);
+                    duration = duration.max(time);
 
-                        let mix_rotate = k.mix_rotate.unwrap_or(1.0);
-                        let mix_x = k.mix_x.unwrap_or(1.0);
-                        let mix_y = k.mix_y.unwrap_or(mix_x);
-                        let mix_scale_x = k.mix_scale_x.unwrap_or(1.0);
-                        let mix_scale_y = k.mix_scale_y.unwrap_or(mix_scale_x);
-                        let mix_shear_y = k.mix_shear_y.unwrap_or(1.0);
+                    let mix_rotate = k.mix_rotate.unwrap_or(1.0);
+                    let mix_x = k.mix_x.unwrap_or(1.0);
+                    let mix_y = k.mix_y.unwrap_or(mix_x);
+                    let mix_scale_x = k.mix_scale_x.unwrap_or(1.0);
+                    let mix_scale_y = k.mix_scale_y.unwrap_or(mix_scale_x);
+                    let mix_shear_y = k.mix_shear_y.unwrap_or(1.0);
 
-                        frames.push(crate::TransformFrame {
-                            time,
-                            mix_rotate,
-                            mix_x,
-                            mix_y,
-                            mix_scale_x,
-                            mix_scale_y,
-                            mix_shear_y,
-                            curve: parse_curve_n(k.curve.as_ref(), [1.0; 6], &curve_context)?,
-                        });
-                    }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                    if let Some(last) = frames.last() {
-                        duration = duration.max(last.time);
-                    }
-                    transform_constraint_timelines.push(crate::TransformConstraintTimeline {
-                        constraint_index,
-                        frames,
+                    frames.push(crate::TransformFrame {
+                        time,
+                        mix_rotate,
+                        mix_x,
+                        mix_y,
+                        mix_scale_x,
+                        mix_scale_y,
+                        mix_shear_y,
+                        curve: parse_curve_n(k.curve.as_ref(), [1.0; 6], &curve_context)?,
                     });
                 }
+                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                if let Some(last) = frames.last() {
+                    duration = duration.max(last.time);
+                }
+                transform_constraint_timelines.push(crate::TransformConstraintTimeline {
+                    constraint_index,
+                    frames,
+                });
             }
 
             let mut path_constraint_timelines = Vec::new();
-            if let Some(map) = path_def {
-                for (constraint_name, timelines) in map {
-                    let constraint_index = *path_constraint_index
-                        .get(&constraint_name)
-                        .ok_or_else(|| Error::JsonUnknownPathConstraintTimeline {
-                            animation: name.clone(),
-                            constraint: constraint_name.clone(),
-                        })?;
-
-                    let constraint = path_constraints.get(constraint_index).ok_or_else(|| {
+            for (constraint_name, timelines) in path_def {
+                let constraint_index =
+                    *path_constraint_index.get(&constraint_name).ok_or_else(|| {
                         Error::JsonUnknownPathConstraintTimeline {
                             animation: name.clone(),
                             constraint: constraint_name.clone(),
                         }
                     })?;
-                    let position_scale = if constraint.position_mode == crate::PositionMode::Fixed {
-                        scale
-                    } else {
-                        1.0
-                    };
-                    let spacing_scale = if constraint.spacing_mode == crate::SpacingMode::Length
-                        || constraint.spacing_mode == crate::SpacingMode::Fixed
-                    {
-                        scale
-                    } else {
-                        1.0
-                    };
 
-                    for (timeline_name, keys) in timelines {
-                        if keys.is_empty() {
-                            continue;
-                        }
-                        match timeline_name.as_str() {
-                            "position" => {
-                                let curve_context = format!(
-                                    "animation '{name}'.path.{constraint_name}.position curve"
-                                );
-                                let mut frames = Vec::with_capacity(keys.len());
-                                for k in keys {
-                                    let time =
-                                        k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
-                                    let value = k
-                                        .value
-                                        .as_ref()
-                                        .or(k.position.as_ref())
-                                        .and_then(curve_number)
-                                        .unwrap_or(0.0)
-                                        * position_scale;
-                                    frames.push(crate::FloatFrame {
-                                        time,
-                                        value,
-                                        curve: parse_curve_1(
-                                            k.curve.as_ref(),
-                                            position_scale,
-                                            &curve_context,
-                                        )?,
-                                    });
-                                }
-                                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                                if let Some(last) = frames.last() {
-                                    duration = duration.max(last.time);
-                                }
-                                path_constraint_timelines.push(
-                                    crate::PathConstraintTimeline::Position(
-                                        crate::PathConstraintPositionTimeline {
-                                            constraint_index,
-                                            frames,
-                                        },
-                                    ),
-                                );
+                let constraint = path_constraints.get(constraint_index).ok_or_else(|| {
+                    Error::JsonUnknownPathConstraintTimeline {
+                        animation: name.clone(),
+                        constraint: constraint_name.clone(),
+                    }
+                })?;
+                let position_scale = if constraint.position_mode == crate::PositionMode::Fixed {
+                    scale
+                } else {
+                    1.0
+                };
+                let spacing_scale = if constraint.spacing_mode == crate::SpacingMode::Length
+                    || constraint.spacing_mode == crate::SpacingMode::Fixed
+                {
+                    scale
+                } else {
+                    1.0
+                };
+
+                for (timeline_name, keys) in timelines {
+                    if keys.is_empty() {
+                        continue;
+                    }
+                    match timeline_name.as_str() {
+                        "position" => {
+                            let curve_context =
+                                format!("animation '{name}'.path.{constraint_name}.position curve");
+                            let mut frames = Vec::with_capacity(keys.len());
+                            for k in keys {
+                                let time = k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
+                                let value = k
+                                    .value
+                                    .as_ref()
+                                    .or(k.position.as_ref())
+                                    .and_then(curve_number)
+                                    .unwrap_or(0.0)
+                                    * position_scale;
+                                frames.push(crate::FloatFrame {
+                                    time,
+                                    value,
+                                    curve: parse_curve_1(
+                                        k.curve.as_ref(),
+                                        position_scale,
+                                        &curve_context,
+                                    )?,
+                                });
                             }
-                            "spacing" => {
-                                let curve_context = format!(
-                                    "animation '{name}'.path.{constraint_name}.spacing curve"
-                                );
-                                let mut frames = Vec::with_capacity(keys.len());
-                                for k in keys {
-                                    let time =
-                                        k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
-                                    let value = k
-                                        .value
-                                        .as_ref()
-                                        .or(k.spacing.as_ref())
-                                        .and_then(curve_number)
-                                        .unwrap_or(0.0)
-                                        * spacing_scale;
-                                    frames.push(crate::FloatFrame {
-                                        time,
-                                        value,
-                                        curve: parse_curve_1(
-                                            k.curve.as_ref(),
-                                            spacing_scale,
-                                            &curve_context,
-                                        )?,
-                                    });
-                                }
-                                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                                if let Some(last) = frames.last() {
-                                    duration = duration.max(last.time);
-                                }
-                                path_constraint_timelines.push(
-                                    crate::PathConstraintTimeline::Spacing(
-                                        crate::PathConstraintSpacingTimeline {
-                                            constraint_index,
-                                            frames,
-                                        },
-                                    ),
-                                );
+                            frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                            if let Some(last) = frames.last() {
+                                duration = duration.max(last.time);
                             }
-                            "mix" => {
-                                let curve_context =
-                                    format!("animation '{name}'.path.{constraint_name}.mix curve");
-                                let mut frames = Vec::with_capacity(keys.len());
-                                for k in keys {
-                                    let time =
-                                        k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
-                                    duration = duration.max(time);
-                                    let mix_rotate =
-                                        k.mix_rotate.as_ref().and_then(curve_number).unwrap_or(1.0);
-                                    let mix_x =
-                                        k.mix_x.as_ref().and_then(curve_number).unwrap_or(1.0);
-                                    let mix_y =
-                                        k.mix_y.as_ref().and_then(curve_number).unwrap_or(mix_x);
-                                    frames.push(crate::PathMixFrame {
-                                        time,
-                                        mix_rotate,
-                                        mix_x,
-                                        mix_y,
-                                        curve: parse_curve_n(
-                                            k.curve.as_ref(),
-                                            [1.0; 3],
-                                            &curve_context,
-                                        )?,
-                                    });
-                                }
-                                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                                if let Some(last) = frames.last() {
-                                    duration = duration.max(last.time);
-                                }
-                                path_constraint_timelines.push(crate::PathConstraintTimeline::Mix(
-                                    crate::PathConstraintMixTimeline {
+                            path_constraint_timelines.push(
+                                crate::PathConstraintTimeline::Position(
+                                    crate::PathConstraintPositionTimeline {
                                         constraint_index,
                                         frames,
                                     },
-                                ));
-                            }
-                            _ => {}
+                                ),
+                            );
                         }
+                        "spacing" => {
+                            let curve_context =
+                                format!("animation '{name}'.path.{constraint_name}.spacing curve");
+                            let mut frames = Vec::with_capacity(keys.len());
+                            for k in keys {
+                                let time = k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
+                                let value = k
+                                    .value
+                                    .as_ref()
+                                    .or(k.spacing.as_ref())
+                                    .and_then(curve_number)
+                                    .unwrap_or(0.0)
+                                    * spacing_scale;
+                                frames.push(crate::FloatFrame {
+                                    time,
+                                    value,
+                                    curve: parse_curve_1(
+                                        k.curve.as_ref(),
+                                        spacing_scale,
+                                        &curve_context,
+                                    )?,
+                                });
+                            }
+                            frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                            if let Some(last) = frames.last() {
+                                duration = duration.max(last.time);
+                            }
+                            path_constraint_timelines.push(crate::PathConstraintTimeline::Spacing(
+                                crate::PathConstraintSpacingTimeline {
+                                    constraint_index,
+                                    frames,
+                                },
+                            ));
+                        }
+                        "mix" => {
+                            let curve_context =
+                                format!("animation '{name}'.path.{constraint_name}.mix curve");
+                            let mut frames = Vec::with_capacity(keys.len());
+                            for k in keys {
+                                let time = k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
+                                duration = duration.max(time);
+                                let mix_rotate =
+                                    k.mix_rotate.as_ref().and_then(curve_number).unwrap_or(1.0);
+                                let mix_x = k.mix_x.as_ref().and_then(curve_number).unwrap_or(1.0);
+                                let mix_y =
+                                    k.mix_y.as_ref().and_then(curve_number).unwrap_or(mix_x);
+                                frames.push(crate::PathMixFrame {
+                                    time,
+                                    mix_rotate,
+                                    mix_x,
+                                    mix_y,
+                                    curve: parse_curve_n(
+                                        k.curve.as_ref(),
+                                        [1.0; 3],
+                                        &curve_context,
+                                    )?,
+                                });
+                            }
+                            frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                            if let Some(last) = frames.last() {
+                                duration = duration.max(last.time);
+                            }
+                            path_constraint_timelines.push(crate::PathConstraintTimeline::Mix(
+                                crate::PathConstraintMixTimeline {
+                                    constraint_index,
+                                    frames,
+                                },
+                            ));
+                        }
+                        _ => {}
                     }
                 }
             }
 
             let mut physics_constraint_timelines = Vec::new();
             let mut physics_reset_timelines = Vec::new();
-            if let Some(map) = physics_def {
-                for (constraint_name, timelines) in map {
-                    let constraint_index: i32 = if constraint_name.is_empty() {
-                        -1
-                    } else {
-                        *physics_constraint_index
-                            .get(&constraint_name)
-                            .ok_or_else(|| Error::JsonUnknownPhysicsConstraintTimeline {
-                                animation: name.clone(),
-                                constraint: constraint_name.clone(),
-                            })? as i32
-                    };
+            for (constraint_name, timelines) in physics_def {
+                let constraint_index: i32 = if constraint_name.is_empty() {
+                    -1
+                } else {
+                    *physics_constraint_index
+                        .get(&constraint_name)
+                        .ok_or_else(|| Error::JsonUnknownPhysicsConstraintTimeline {
+                            animation: name.clone(),
+                            constraint: constraint_name.clone(),
+                        })? as i32
+                };
 
-                    for (timeline_name, keys) in timelines {
-                        if keys.is_empty() {
-                            continue;
-                        }
+                for (timeline_name, keys) in timelines {
+                    if keys.is_empty() {
+                        continue;
+                    }
 
-                        if timeline_name == "reset" {
-                            let mut frames = keys
-                                .iter()
-                                .map(|k| k.time.unwrap_or(0.0))
-                                .collect::<Vec<_>>();
-                            frames.sort_by(|a, b| a.total_cmp(b));
-                            if let Some(last) = frames.last() {
-                                duration = duration.max(*last);
-                            }
-                            physics_reset_timelines.push(crate::PhysicsConstraintResetTimeline {
-                                constraint_index,
-                                frames,
-                            });
-                            continue;
-                        }
-
-                        let curve_context = format!(
-                            "animation '{name}'.physics.{constraint_name}.{timeline_name} curve"
-                        );
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for k in keys {
-                            let time = k.time.unwrap_or(0.0);
-                            let value = k.value.unwrap_or(0.0);
-                            frames.push(crate::FloatFrame {
-                                time,
-                                value,
-                                curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if timeline_name == "reset" {
+                        let mut frames = keys
+                            .iter()
+                            .map(|k| k.time.unwrap_or(0.0))
+                            .collect::<Vec<_>>();
+                        frames.sort_by(|a, b| a.total_cmp(b));
                         if let Some(last) = frames.last() {
-                            duration = duration.max(last.time);
+                            duration = duration.max(*last);
                         }
-
-                        let timeline = crate::PhysicsConstraintFloatTimeline {
+                        physics_reset_timelines.push(crate::PhysicsConstraintResetTimeline {
                             constraint_index,
                             frames,
-                        };
-                        let wrapped = match timeline_name.as_str() {
-                            "inertia" => crate::PhysicsConstraintTimeline::Inertia(timeline),
-                            "strength" => crate::PhysicsConstraintTimeline::Strength(timeline),
-                            "damping" => crate::PhysicsConstraintTimeline::Damping(timeline),
-                            "mass" => crate::PhysicsConstraintTimeline::Mass(timeline),
-                            "wind" => crate::PhysicsConstraintTimeline::Wind(timeline),
-                            "gravity" => crate::PhysicsConstraintTimeline::Gravity(timeline),
-                            "mix" => crate::PhysicsConstraintTimeline::Mix(timeline),
-                            _ => continue,
-                        };
-                        physics_constraint_timelines.push(wrapped);
+                        });
+                        continue;
                     }
+
+                    let curve_context = format!(
+                        "animation '{name}'.physics.{constraint_name}.{timeline_name} curve"
+                    );
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        let time = k.time.unwrap_or(0.0);
+                        let value = k.value.unwrap_or(0.0);
+                        frames.push(crate::FloatFrame {
+                            time,
+                            value,
+                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
+
+                    let timeline = crate::PhysicsConstraintFloatTimeline {
+                        constraint_index,
+                        frames,
+                    };
+                    let wrapped = match timeline_name.as_str() {
+                        "inertia" => crate::PhysicsConstraintTimeline::Inertia(timeline),
+                        "strength" => crate::PhysicsConstraintTimeline::Strength(timeline),
+                        "damping" => crate::PhysicsConstraintTimeline::Damping(timeline),
+                        "mass" => crate::PhysicsConstraintTimeline::Mass(timeline),
+                        "wind" => crate::PhysicsConstraintTimeline::Wind(timeline),
+                        "gravity" => crate::PhysicsConstraintTimeline::Gravity(timeline),
+                        "mix" => crate::PhysicsConstraintTimeline::Mix(timeline),
+                        _ => continue,
+                    };
+                    physics_constraint_timelines.push(wrapped);
                 }
             }
 
             let mut slider_time_timelines = Vec::new();
             let mut slider_mix_timelines = Vec::new();
-            if let Some(map) = slider_def {
-                for (constraint_name, timelines) in map {
-                    let constraint_index = *slider_constraint_index
+            for (constraint_name, timelines) in slider_def {
+                let constraint_index =
+                    *slider_constraint_index
                         .get(&constraint_name)
                         .ok_or_else(|| Error::JsonUnknownSliderConstraintTimeline {
                             animation: name.clone(),
                             constraint: constraint_name.clone(),
                         })?;
-                    for (timeline_name, keys) in timelines {
-                        if keys.is_empty() {
-                            continue;
-                        }
+                for (timeline_name, keys) in timelines {
+                    if keys.is_empty() {
+                        continue;
+                    }
 
-                        // Match upstream: Slider timelines use `readTimeline(..., defaultValue=1, scale=1)`.
-                        let default_value = 1.0f32;
-                        let curve_context = format!(
-                            "animation '{name}'.slider.{constraint_name}.{timeline_name} curve"
-                        );
-                        let mut frames = Vec::with_capacity(keys.len());
-                        for k in keys {
-                            let time = k.time.unwrap_or(0.0);
-                            let value = k.value.unwrap_or(default_value);
-                            frames.push(crate::FloatFrame {
-                                time,
-                                value,
-                                curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
-                            });
-                        }
-                        frames.sort_by(|a, b| a.time.total_cmp(&b.time));
-                        if let Some(last) = frames.last() {
-                            duration = duration.max(last.time);
-                        }
+                    // Match upstream: Slider timelines use `readTimeline(..., defaultValue=1, scale=1)`.
+                    let default_value = 1.0f32;
+                    let curve_context = format!(
+                        "animation '{name}'.slider.{constraint_name}.{timeline_name} curve"
+                    );
+                    let mut frames = Vec::with_capacity(keys.len());
+                    for k in keys {
+                        let time = k.time.unwrap_or(0.0);
+                        let value = k.value.unwrap_or(default_value);
+                        frames.push(crate::FloatFrame {
+                            time,
+                            value,
+                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                        });
+                    }
+                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
 
-                        let timeline = SliderConstraintTimeline {
-                            constraint_index,
-                            frames,
-                        };
-                        match timeline_name.as_str() {
-                            "time" => slider_time_timelines.push(timeline),
-                            "mix" => slider_mix_timelines.push(timeline),
-                            _ => {}
-                        }
+                    let timeline = SliderConstraintTimeline {
+                        constraint_index,
+                        frames,
+                    };
+                    match timeline_name.as_str() {
+                        "time" => slider_time_timelines.push(timeline),
+                        "mix" => slider_mix_timelines.push(timeline),
+                        _ => {}
                     }
                 }
             }
 
+            let timeline_lookup = build_json_timeline_lookup(
+                &slots,
+                &bones,
+                &slot_attachment_timelines,
+                &slot_color_timelines,
+                &slot_rgb_timelines,
+                &slot_alpha_timelines,
+                &slot_rgba2_timelines,
+                &slot_rgb2_timelines,
+                &bone_timelines,
+                &deform_timelines,
+                &sequence_timelines,
+                &ik_constraint_timelines,
+                &transform_constraint_timelines,
+                &path_constraint_timelines,
+                &physics_constraint_timelines,
+                &physics_reset_timelines,
+                &slider_time_timelines,
+                &slider_mix_timelines,
+                draw_order_timeline.as_ref(),
+                &draw_order_folder_timelines,
+                &draw_order_folder_names,
+                &ik_constraints,
+                &transform_constraints,
+                &path_constraints,
+                &physics_constraints,
+                &slider_constraints,
+            );
+            let timeline_order = build_json_timeline_order(&def_value, &timeline_lookup);
+
             let index = animations.len();
-            animations.push(Animation {
+            let animation = Animation {
                 name: name.clone(),
                 duration,
                 event_timeline: timeline,
@@ -2829,8 +3225,8 @@ impl SkeletonData {
                 sequence_timelines,
                 slot_attachment_timelines,
                 slot_color_timelines,
-                slot_rgb_timelines: Vec::new(),
-                slot_alpha_timelines: Vec::new(),
+                slot_rgb_timelines,
+                slot_alpha_timelines,
                 slot_rgba2_timelines,
                 slot_rgb2_timelines,
                 ik_constraint_timelines,
@@ -2841,7 +3237,10 @@ impl SkeletonData {
                 slider_time_timelines,
                 slider_mix_timelines,
                 draw_order_timeline,
-            });
+                draw_order_folder_timelines,
+                timeline_order,
+            };
+            animations.push(crate::runtime::finalize_animation(animation));
             animation_index.insert(name, index);
         }
 
@@ -2876,6 +3275,479 @@ impl SkeletonData {
             slider_constraints,
         }))
     }
+}
+
+fn from_json_value<T: DeserializeOwned>(
+    value: &serde_json::Value,
+    context: &str,
+) -> Result<T, Error> {
+    serde_json::from_value(value.clone()).map_err(|e| Error::JsonParse {
+        message: format!("{context}: {e}"),
+    })
+}
+
+fn normalize_bone_timeline_name(name: &str) -> &str {
+    match name {
+        "translateX" => "translatex",
+        "translateY" => "translatey",
+        "scaleX" => "scalex",
+        "scaleY" => "scaley",
+        "shearX" => "shearx",
+        "shearY" => "sheary",
+        _ => name,
+    }
+}
+
+fn push_json_timeline_order(
+    out: &mut Vec<TimelineKind>,
+    timelines: &HashMap<JsonTimelineRef, TimelineKind>,
+    key: JsonTimelineRef,
+) {
+    if let Some(kind) = timelines.get(&key).copied() {
+        out.push(kind);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_json_timeline_lookup(
+    slots: &[SlotData],
+    bones: &[BoneData],
+    slot_attachment_timelines: &[AttachmentTimeline],
+    slot_color_timelines: &[ColorTimeline],
+    slot_rgb_timelines: &[RgbTimeline],
+    slot_alpha_timelines: &[AlphaTimeline],
+    slot_rgba2_timelines: &[Rgba2Timeline],
+    slot_rgb2_timelines: &[Rgb2Timeline],
+    bone_timelines: &[BoneTimeline],
+    deform_timelines: &[DeformTimeline],
+    sequence_timelines: &[crate::SequenceTimeline],
+    ik_constraint_timelines: &[IkConstraintTimeline],
+    transform_constraint_timelines: &[crate::TransformConstraintTimeline],
+    path_constraint_timelines: &[crate::PathConstraintTimeline],
+    physics_constraint_timelines: &[crate::PhysicsConstraintTimeline],
+    physics_reset_timelines: &[crate::PhysicsConstraintResetTimeline],
+    slider_time_timelines: &[SliderConstraintTimeline],
+    slider_mix_timelines: &[SliderConstraintTimeline],
+    draw_order_timeline: Option<&DrawOrderTimeline>,
+    draw_order_folder_timelines: &[DrawOrderFolderTimeline],
+    draw_order_folder_names: &[String],
+    ik_constraints: &[crate::IkConstraintData],
+    transform_constraints: &[crate::TransformConstraintData],
+    path_constraints: &[crate::PathConstraintData],
+    physics_constraints: &[crate::PhysicsConstraintData],
+    slider_constraints: &[crate::SliderConstraintData],
+) -> HashMap<JsonTimelineRef, TimelineKind> {
+    let mut out = HashMap::new();
+    for (i, timeline) in slot_attachment_timelines.iter().enumerate() {
+        if let Some(slot) = slots.get(timeline.slot_index) {
+            out.insert(
+                JsonTimelineRef::Slot {
+                    slot: slot.name.clone(),
+                    timeline: "attachment".to_string(),
+                },
+                TimelineKind::SlotAttachment(i),
+            );
+        }
+    }
+    for (i, timeline) in slot_color_timelines.iter().enumerate() {
+        if let Some(slot) = slots.get(timeline.slot_index) {
+            out.insert(
+                JsonTimelineRef::Slot {
+                    slot: slot.name.clone(),
+                    timeline: "rgba".to_string(),
+                },
+                TimelineKind::SlotColor(i),
+            );
+        }
+    }
+    for (i, timeline) in slot_rgb_timelines.iter().enumerate() {
+        if let Some(slot) = slots.get(timeline.slot_index) {
+            out.insert(
+                JsonTimelineRef::Slot {
+                    slot: slot.name.clone(),
+                    timeline: "rgb".to_string(),
+                },
+                TimelineKind::SlotRgb(i),
+            );
+        }
+    }
+    for (i, timeline) in slot_alpha_timelines.iter().enumerate() {
+        if let Some(slot) = slots.get(timeline.slot_index) {
+            out.insert(
+                JsonTimelineRef::Slot {
+                    slot: slot.name.clone(),
+                    timeline: "alpha".to_string(),
+                },
+                TimelineKind::SlotAlpha(i),
+            );
+        }
+    }
+    for (i, timeline) in slot_rgba2_timelines.iter().enumerate() {
+        if let Some(slot) = slots.get(timeline.slot_index) {
+            out.insert(
+                JsonTimelineRef::Slot {
+                    slot: slot.name.clone(),
+                    timeline: "rgba2".to_string(),
+                },
+                TimelineKind::SlotRgba2(i),
+            );
+        }
+    }
+    for (i, timeline) in slot_rgb2_timelines.iter().enumerate() {
+        if let Some(slot) = slots.get(timeline.slot_index) {
+            out.insert(
+                JsonTimelineRef::Slot {
+                    slot: slot.name.clone(),
+                    timeline: "rgb2".to_string(),
+                },
+                TimelineKind::SlotRgb2(i),
+            );
+        }
+    }
+
+    for (i, timeline) in bone_timelines.iter().enumerate() {
+        let (bone_index, timeline_name) = match timeline {
+            BoneTimeline::Rotate(t) => (t.bone_index, "rotate"),
+            BoneTimeline::Translate(t) => (t.bone_index, "translate"),
+            BoneTimeline::TranslateX(t) => (t.bone_index, "translatex"),
+            BoneTimeline::TranslateY(t) => (t.bone_index, "translatey"),
+            BoneTimeline::Scale(t) => (t.bone_index, "scale"),
+            BoneTimeline::ScaleX(t) => (t.bone_index, "scalex"),
+            BoneTimeline::ScaleY(t) => (t.bone_index, "scaley"),
+            BoneTimeline::Shear(t) => (t.bone_index, "shear"),
+            BoneTimeline::ShearX(t) => (t.bone_index, "shearx"),
+            BoneTimeline::ShearY(t) => (t.bone_index, "sheary"),
+            BoneTimeline::Inherit(t) => (t.bone_index, "inherit"),
+        };
+        if let Some(bone) = bones.get(bone_index) {
+            out.insert(
+                JsonTimelineRef::Bone {
+                    bone: bone.name.clone(),
+                    timeline: timeline_name.to_string(),
+                },
+                TimelineKind::Bone(i),
+            );
+        }
+    }
+
+    for (i, timeline) in ik_constraint_timelines.iter().enumerate() {
+        if let Some(constraint) = ik_constraints.get(timeline.constraint_index) {
+            out.insert(
+                JsonTimelineRef::Ik {
+                    constraint: constraint.name.clone(),
+                },
+                TimelineKind::IkConstraint(i),
+            );
+        }
+    }
+    for (i, timeline) in transform_constraint_timelines.iter().enumerate() {
+        if let Some(constraint) = transform_constraints.get(timeline.constraint_index) {
+            out.insert(
+                JsonTimelineRef::Transform {
+                    constraint: constraint.name.clone(),
+                },
+                TimelineKind::TransformConstraint(i),
+            );
+        }
+    }
+    for (i, timeline) in path_constraint_timelines.iter().enumerate() {
+        let (constraint_index, timeline_name) = match timeline {
+            crate::PathConstraintTimeline::Position(t) => (t.constraint_index, "position"),
+            crate::PathConstraintTimeline::Spacing(t) => (t.constraint_index, "spacing"),
+            crate::PathConstraintTimeline::Mix(t) => (t.constraint_index, "mix"),
+        };
+        if let Some(constraint) = path_constraints.get(constraint_index) {
+            out.insert(
+                JsonTimelineRef::Path {
+                    constraint: constraint.name.clone(),
+                    timeline: timeline_name.to_string(),
+                },
+                TimelineKind::PathConstraint(i),
+            );
+        }
+    }
+    for (i, timeline) in physics_constraint_timelines.iter().enumerate() {
+        let (constraint_index, timeline_name) = match timeline {
+            crate::PhysicsConstraintTimeline::Inertia(t) => (t.constraint_index, "inertia"),
+            crate::PhysicsConstraintTimeline::Strength(t) => (t.constraint_index, "strength"),
+            crate::PhysicsConstraintTimeline::Damping(t) => (t.constraint_index, "damping"),
+            crate::PhysicsConstraintTimeline::Mass(t) => (t.constraint_index, "mass"),
+            crate::PhysicsConstraintTimeline::Wind(t) => (t.constraint_index, "wind"),
+            crate::PhysicsConstraintTimeline::Gravity(t) => (t.constraint_index, "gravity"),
+            crate::PhysicsConstraintTimeline::Mix(t) => (t.constraint_index, "mix"),
+        };
+        let constraint = if constraint_index < 0 {
+            Some("")
+        } else {
+            physics_constraints
+                .get(constraint_index as usize)
+                .map(|c| c.name.as_str())
+        };
+        if let Some(constraint) = constraint {
+            out.insert(
+                JsonTimelineRef::Physics {
+                    constraint: constraint.to_string(),
+                    timeline: timeline_name.to_string(),
+                },
+                TimelineKind::PhysicsConstraint(i),
+            );
+        }
+    }
+    for (i, timeline) in physics_reset_timelines.iter().enumerate() {
+        let constraint = if timeline.constraint_index < 0 {
+            Some("")
+        } else {
+            physics_constraints
+                .get(timeline.constraint_index as usize)
+                .map(|c| c.name.as_str())
+        };
+        if let Some(constraint) = constraint {
+            out.insert(
+                JsonTimelineRef::Physics {
+                    constraint: constraint.to_string(),
+                    timeline: "reset".to_string(),
+                },
+                TimelineKind::PhysicsReset(i),
+            );
+        }
+    }
+    for (i, timeline) in slider_time_timelines.iter().enumerate() {
+        if let Some(constraint) = slider_constraints.get(timeline.constraint_index) {
+            out.insert(
+                JsonTimelineRef::Slider {
+                    constraint: constraint.name.clone(),
+                    timeline: "time".to_string(),
+                },
+                TimelineKind::SliderTime(i),
+            );
+        }
+    }
+    for (i, timeline) in slider_mix_timelines.iter().enumerate() {
+        if let Some(constraint) = slider_constraints.get(timeline.constraint_index) {
+            out.insert(
+                JsonTimelineRef::Slider {
+                    constraint: constraint.name.clone(),
+                    timeline: "mix".to_string(),
+                },
+                TimelineKind::SliderMix(i),
+            );
+        }
+    }
+
+    for (i, timeline) in deform_timelines.iter().enumerate() {
+        if let Some(slot) = slots.get(timeline.slot_index) {
+            out.insert(
+                JsonTimelineRef::Attachment {
+                    skin: timeline.skin.clone(),
+                    slot: slot.name.clone(),
+                    attachment: timeline.attachment.clone(),
+                    timeline: "deform".to_string(),
+                },
+                TimelineKind::Deform(i),
+            );
+        }
+    }
+    for (i, timeline) in sequence_timelines.iter().enumerate() {
+        if let Some(slot) = slots.get(timeline.slot_index) {
+            out.insert(
+                JsonTimelineRef::Attachment {
+                    skin: timeline.skin.clone(),
+                    slot: slot.name.clone(),
+                    attachment: timeline.attachment.clone(),
+                    timeline: "sequence".to_string(),
+                },
+                TimelineKind::Sequence(i),
+            );
+        }
+    }
+
+    if draw_order_timeline.is_some() {
+        out.insert(JsonTimelineRef::DrawOrder, TimelineKind::DrawOrder);
+    }
+    for (i, folder_name) in draw_order_folder_names.iter().enumerate() {
+        if i < draw_order_folder_timelines.len() {
+            out.insert(
+                JsonTimelineRef::DrawOrderFolder {
+                    folder: folder_name.clone(),
+                },
+                TimelineKind::DrawOrderFolder(i),
+            );
+        }
+    }
+
+    out
+}
+
+fn build_json_timeline_order(
+    animation: &serde_json::Value,
+    timelines: &HashMap<JsonTimelineRef, TimelineKind>,
+) -> Vec<TimelineKind> {
+    let Some(animation) = animation.as_object() else {
+        return Vec::new();
+    };
+    let mut out = Vec::with_capacity(timelines.len());
+
+    if let Some(slots) = animation.get("slots").and_then(|v| v.as_object()) {
+        for (slot, slot_map) in slots {
+            let Some(slot_map) = slot_map.as_object() else {
+                continue;
+            };
+            for (timeline, _) in slot_map {
+                push_json_timeline_order(
+                    &mut out,
+                    timelines,
+                    JsonTimelineRef::Slot {
+                        slot: slot.clone(),
+                        timeline: timeline.clone(),
+                    },
+                );
+            }
+        }
+    }
+
+    if let Some(bones) = animation.get("bones").and_then(|v| v.as_object()) {
+        for (bone, bone_map) in bones {
+            let Some(bone_map) = bone_map.as_object() else {
+                continue;
+            };
+            for (timeline, _) in bone_map {
+                push_json_timeline_order(
+                    &mut out,
+                    timelines,
+                    JsonTimelineRef::Bone {
+                        bone: bone.clone(),
+                        timeline: normalize_bone_timeline_name(timeline).to_string(),
+                    },
+                );
+            }
+        }
+    }
+
+    if let Some(ik) = animation.get("ik").and_then(|v| v.as_object()) {
+        for (constraint, _) in ik {
+            push_json_timeline_order(
+                &mut out,
+                timelines,
+                JsonTimelineRef::Ik {
+                    constraint: constraint.clone(),
+                },
+            );
+        }
+    }
+
+    if let Some(transform) = animation.get("transform").and_then(|v| v.as_object()) {
+        for (constraint, _) in transform {
+            push_json_timeline_order(
+                &mut out,
+                timelines,
+                JsonTimelineRef::Transform {
+                    constraint: constraint.clone(),
+                },
+            );
+        }
+    }
+
+    if let Some(path) = animation.get("path").and_then(|v| v.as_object()) {
+        for (constraint, path_map) in path {
+            let Some(path_map) = path_map.as_object() else {
+                continue;
+            };
+            for (timeline, _) in path_map {
+                push_json_timeline_order(
+                    &mut out,
+                    timelines,
+                    JsonTimelineRef::Path {
+                        constraint: constraint.clone(),
+                        timeline: timeline.clone(),
+                    },
+                );
+            }
+        }
+    }
+
+    if let Some(physics) = animation.get("physics").and_then(|v| v.as_object()) {
+        for (constraint, physics_map) in physics {
+            let Some(physics_map) = physics_map.as_object() else {
+                continue;
+            };
+            for (timeline, _) in physics_map {
+                push_json_timeline_order(
+                    &mut out,
+                    timelines,
+                    JsonTimelineRef::Physics {
+                        constraint: constraint.clone(),
+                        timeline: timeline.clone(),
+                    },
+                );
+            }
+        }
+    }
+
+    if let Some(slider) = animation.get("slider").and_then(|v| v.as_object()) {
+        for (constraint, slider_map) in slider {
+            let Some(slider_map) = slider_map.as_object() else {
+                continue;
+            };
+            for (timeline, _) in slider_map {
+                push_json_timeline_order(
+                    &mut out,
+                    timelines,
+                    JsonTimelineRef::Slider {
+                        constraint: constraint.clone(),
+                        timeline: timeline.clone(),
+                    },
+                );
+            }
+        }
+    }
+
+    if let Some(attachments) = animation.get("attachments").and_then(|v| v.as_object()) {
+        for (skin, skin_map) in attachments {
+            let Some(skin_map) = skin_map.as_object() else {
+                continue;
+            };
+            for (slot, slot_map) in skin_map {
+                let Some(slot_map) = slot_map.as_object() else {
+                    continue;
+                };
+                for (attachment, attachment_map) in slot_map {
+                    let Some(attachment_map) = attachment_map.as_object() else {
+                        continue;
+                    };
+                    for (timeline, _) in attachment_map {
+                        push_json_timeline_order(
+                            &mut out,
+                            timelines,
+                            JsonTimelineRef::Attachment {
+                                skin: skin.clone(),
+                                slot: slot.clone(),
+                                attachment: attachment.clone(),
+                                timeline: timeline.clone(),
+                            },
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    if animation.contains_key("drawOrder") {
+        push_json_timeline_order(&mut out, timelines, JsonTimelineRef::DrawOrder);
+    }
+
+    if let Some(folders) = animation.get("drawOrderFolder").and_then(|v| v.as_object()) {
+        for (folder, _) in folders {
+            push_json_timeline_order(
+                &mut out,
+                timelines,
+                JsonTimelineRef::DrawOrderFolder {
+                    folder: folder.clone(),
+                },
+            );
+        }
+    }
+
+    out
 }
 
 fn build_draw_order_to_setup_index(
@@ -3384,7 +4256,7 @@ fn parse_weighted_mesh_vertices(
 
 fn resolve_linked_mesh_parent(
     skins: &HashMap<String, SkinData>,
-    slot_index: usize,
+    source_slot_index: usize,
     explicit_skin: Option<&str>,
     source: &str,
 ) -> Option<(String, String)> {
@@ -3392,7 +4264,7 @@ fn resolve_linked_mesh_parent(
         return skins
             .get(parent_skin_name)
             .and_then(|skin| {
-                find_linked_mesh_attachment_name(skin, slot_index, source).map(
+                find_linked_mesh_attachment_name(skin, source_slot_index, source).map(
                     |(attachment_name, _)| (parent_skin_name.to_string(), attachment_name.clone()),
                 )
             })
@@ -3400,7 +4272,7 @@ fn resolve_linked_mesh_parent(
     }
 
     if let Some(default_skin) = skins.get("default")
-        && default_skin.attachment(slot_index, source).is_some()
+        && default_skin.attachment(source_slot_index, source).is_some()
     {
         return Some(("default".to_string(), source.to_string()));
     }
@@ -3418,7 +4290,7 @@ fn resolve_linked_mesh_parent(
     for (skin_name, attachment_name) in prefix_matches {
         if skins
             .get(skin_name)
-            .and_then(|skin| skin.attachment(slot_index, attachment_name))
+            .and_then(|skin| skin.attachment(source_slot_index, attachment_name))
             .is_some()
         {
             return Some((skin_name.to_string(), attachment_name.to_string()));
@@ -3428,7 +4300,7 @@ fn resolve_linked_mesh_parent(
     let mut name_matches = skins
         .iter()
         .filter_map(|(skin_name, skin)| {
-            find_linked_mesh_attachment_name(skin, slot_index, source)
+            find_linked_mesh_attachment_name(skin, source_slot_index, source)
                 .map(|(attachment_name, _)| (skin_name.as_str(), attachment_name.as_str()))
         })
         .collect::<Vec<_>>();

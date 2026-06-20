@@ -134,14 +134,17 @@ test_json_files=(
   "owl/export/owl-pro.json"
   "raptor/export/raptor-pro.json"
   "spinosaurus/export/spinosaurus-ess.json"
+  "stretchyman/export/stretchyman-pro.json"
   "speedy/export/speedy-ess.json"
   "windmill/export/windmill-ess.json"
   "celestial-circus/export/celestial-circus-pro.json"
   "chibi-stickers/export/chibi-stickers.json"
   "cloud-pot/export/cloud-pot.json"
   "coin/export/coin-pro.json"
+  "6-arcs/export/6-arcs-pro.json"
+  "8-follow-through/export/8-follow-through-pro-ball.json"
+  "food-app/export/food-app-search-ess.json"
   "goblins/export/goblins-pro.json"
-  "sack/export/sack-pro.json"
   "snowglobe/export/snowglobe-pro.json"
   "mix-and-match/export/mix-and-match-pro.json"
   "spineboy/export/spineboy-ess.json"
@@ -169,7 +172,7 @@ case "${SCOPE}" in
       typeset -A seen_examples
       for rel in "${test_json_files[@]}"; do
         example="${rel%%/*}"
-        seen_examples["${example}"]=1
+        seen_examples[${example}]=1
       done
       for example in ${(k)seen_examples}; do
         src_dir="${SRC}/examples/${example}/export"

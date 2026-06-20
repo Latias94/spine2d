@@ -118,7 +118,7 @@ fn read_skel_spine_version_prefix(bytes: &[u8]) -> Option<String> {
 
 fn run_each_animation_sample_smoke(path: &Path, example_label: &str) {
     let bytes = std::fs::read(path).unwrap_or_else(|e| panic!("read {path:?}: {e}"));
-    // This suite is intended to exercise the current 4.3-beta baseline exports.
+    // This suite is intended to exercise the current pinned 4.3 baseline exports.
     if read_skel_spine_version_prefix(&bytes).is_some_and(|v| !v.starts_with("4.3")) {
         return;
     }
@@ -233,7 +233,7 @@ fn run_multitrack_overlay_smoke(data: Arc<SkeletonData>, example_label: &str) {
         let e = state
             .set_animation(2, name, true)
             .unwrap_or_else(|e| panic!("set track2 {name} ({example_label}): {e}"));
-        e.set_mix_blend(&mut state, crate::MixBlend::Add);
+        e.set_additive(&mut state, true);
         e.set_alpha(&mut state, 0.5);
     }
 
