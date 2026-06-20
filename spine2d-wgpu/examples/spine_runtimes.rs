@@ -586,11 +586,11 @@ impl App {
                 choose_default_skin(&example, &data)
             }
         };
-        if let Some(skin_name) = chosen_skin.as_deref() {
-            if let Err(e) = skeleton.set_skin(Some(skin_name)) {
-                self.last_error = Some(format!("set_skin({skin_name:?}) failed: {e:?}"));
-                return;
-            }
+        if let Some(skin_name) = chosen_skin.as_deref()
+            && let Err(e) = skeleton.set_skin(Some(skin_name))
+        {
+            self.last_error = Some(format!("set_skin({skin_name:?}) failed: {e:?}"));
+            return;
         }
         skeleton.set_to_setup_pose();
         skeleton.update_world_transform();
@@ -736,10 +736,10 @@ fn choose_default_skin(example: &str, data: &SkeletonData) -> Option<String> {
         "chibi-stickers" => Some("spineboy"),
         _ => None,
     };
-    if let Some(name) = recommended {
-        if data.skins.contains_key(name) {
-            return Some(name.to_string());
-        }
+    if let Some(name) = recommended
+        && data.skins.contains_key(name)
+    {
+        return Some(name.to_string());
     }
 
     if data.skins.contains_key("default") {
@@ -1120,21 +1120,21 @@ impl ApplicationHandler for App {
                     return;
                 };
 
-                if !self.paused {
-                    if let (Some(atlas), Some(skeleton), Some(state)) = (
+                if !self.paused
+                    && let (Some(atlas), Some(skeleton), Some(state)) = (
                         self.atlas.as_ref(),
                         self.skeleton.as_mut(),
                         self.state.as_mut(),
-                    ) {
-                        state.update(dt);
-                        skeleton.set_to_setup_pose();
-                        state.apply(skeleton);
-                        skeleton.update_world_transform();
+                    )
+                {
+                    state.update(dt);
+                    skeleton.set_to_setup_pose();
+                    state.apply(skeleton);
+                    skeleton.update_world_transform();
 
-                        self.draw_list.clear();
-                        spine2d::append_draw_list_with_atlas(&mut self.draw_list, skeleton, atlas);
-                        renderer.upload(device, queue, &self.draw_list);
-                    }
+                    self.draw_list.clear();
+                    spine2d::append_draw_list_with_atlas(&mut self.draw_list, skeleton, atlas);
+                    renderer.upload(device, queue, &self.draw_list);
                 }
 
                 for (id, image_delta) in &textures_delta.set {
