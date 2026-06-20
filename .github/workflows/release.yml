@@ -45,6 +45,7 @@ jobs:
           crates = {
               "spine2d": read_version("spine2d/Cargo.toml"),
               "spine2d-wgpu": read_version("spine2d-wgpu/Cargo.toml"),
+              "spine2d-bevy": read_version("spine2d-bevy/Cargo.toml"),
           }
           bad = {k: v for k, v in crates.items() if v != version}
           if bad:
@@ -80,6 +81,9 @@ jobs:
       - name: Test (spine2d)
         run: cargo test -p spine2d --features json,binary,glam
 
+      - name: Check (spine2d-bevy)
+        run: cargo check -p spine2d-bevy
+
       - name: Cargo package (spine2d)
         run: cargo package -p spine2d
       # NOTE: We intentionally do not run `cargo package -p spine2d-wgpu` here.
@@ -111,6 +115,17 @@ jobs:
               exit 0
             fi
             echo "spine2d-wgpu publish failed (attempt $i), waiting for crates.io index..."
+            sleep 30
+          done
+          exit 1
+
+      - name: Publish spine2d-bevy
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if cargo publish -p spine2d-bevy --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"; then
+              exit 0
+            fi
+            echo "spine2d-bevy publish failed (attempt $i), waiting for crates.io index..."
             sleep 30
           done
           exit 1

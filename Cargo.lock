@@ -5083,7 +5083,7 @@ dependencies = [
 
 [[package]]
 name = "spine2d"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "byteorder",
  "glam 0.30.10",
@@ -5095,7 +5095,7 @@ dependencies = [
 
 [[package]]
 name = "spine2d-bevy"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "bevy",
@@ -5106,7 +5106,7 @@ dependencies = [
 
 [[package]]
 name = "spine2d-web"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "console_error_panic_hook",
  "console_log",
@@ -5125,7 +5125,7 @@ dependencies = [
 
 [[package]]
 name = "spine2d-wgpu"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bytemuck",
  "egui",

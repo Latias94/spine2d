@@ -7,6 +7,12 @@ Version numbers follow SemVer, but the public API is expected to change rapidly 
 
 - TBD
 
+## 0.3.0
+
+- Bevy: upgrade `spine2d-bevy` to `bevy 0.19.0` and make it publish alongside the core crates.
+- Runtime: refresh the Spine 4.3 baseline and merge the latest parity fixes.
+- Tooling: raise the workspace MSRV to `1.95`, fix the remaining `clippy -D warnings` issues, and upgrade GitHub Actions.
+
 ## 0.2.0
 
 - Parity: fix constraint pose timelines to apply even when the constraint is not in the update cache (Spine 4.3 `PosedActive` vs `Constraint::_active` semantics), locked by a new C++ oracle scenario.

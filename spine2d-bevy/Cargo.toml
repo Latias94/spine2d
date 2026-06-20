@@ -1,6 +1,6 @@
 [package]
 name = "spine2d-bevy"
-version = "0.1.0"
+version = "0.3.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -8,10 +8,12 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 documentation.workspace = true
+description = "Bevy integration backend for the spine2d runtime"
+readme = "../README.md"
 
 [dependencies]
 bevy = "0.19.0"
-spine2d = { path = "../spine2d", features = ["json", "binary"] }
+spine2d = { path = "../spine2d", version = "0.3.0", features = ["json", "binary"] }
 anyhow = "1.0"
 
 [dev-dependencies]

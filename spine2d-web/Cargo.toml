@@ -1,6 +1,6 @@
 [package]
 name = "spine2d-web"
-version = "0.2.0"
+version = "0.3.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -13,8 +13,8 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-spine2d = { path = "../spine2d", version = "0.2.0", default-features = false, features = ["json"] }
-spine2d-wgpu = { path = "../spine2d-wgpu", version = "0.2.0", default-features = false, features = ["json"] }
+spine2d = { path = "../spine2d", version = "0.3.0", default-features = false, features = ["json"] }
+spine2d-wgpu = { path = "../spine2d-wgpu", version = "0.3.0", default-features = false, features = ["json"] }
 wgpu.workspace = true
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

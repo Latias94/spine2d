@@ -24,7 +24,7 @@ impl Plugin for Spine2dPlugin {
         app.add_message::<SpineAnimationEvent>();
         app.add_message::<SpineAnimationCommand>();
 
-        app.insert_non_send_resource(SpineWorld::new());
+        app.insert_non_send(SpineWorld::new());
 
         app.configure_sets(
             Update,
