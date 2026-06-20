@@ -1,25 +1,15 @@
 use serde_json::json;
 use spine2d::{
-    AnimationState, AnimationStateData, MixBlend, Physics, Skeleton, SkeletonData, TrackEntryHandle,
+    AnimationState, AnimationStateData, Curve, Physics, Skeleton, SkeletonData, TrackEntryHandle,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
 
 fn print_usage_and_exit() -> ! {
     eprintln!(
-        "Usage:\n  pose_dump_scenario <skeleton.(json|skel)> <commands...>\n\nCommands:\n  --set-skin <name|none>\n  --dump-slot-vertices <slotName>\n  --dump-update-cache\n  --mix <from> <to> <duration>\n  --set <track> <animation> <loop 0|1>\n  --add <track> <animation> <loop 0|1> <delay>\n  --set-empty <track> <mixDuration>\n  --add-empty <track> <mixDuration> <delay>\n  --entry-alpha <alpha>\n  --entry-hold-previous <0|1>\n  --entry-mix-blend <setup|first|replace|add>\n  --entry-reverse <0|1>\n  --entry-shortest-rotation <0|1>\n  --entry-reset-rotation-directions\n  --physics <none|reset|update|pose>\n  --step <dt>\n"
+        "Usage:\n  pose_dump_scenario <skeleton.(json|skel)> <commands...>\n\nCommands:\n  --set-skin <name|none>\n  --dump-slot-vertices <slotName>\n  --dump-update-cache\n  --dump-animation-data <name>\n  --mix <from> <to> <duration>\n  --set <track> <animation> <loop 0|1>\n  --add <track> <animation> <loop 0|1> <delay>\n  --set-empty <track> <mixDuration>\n  --add-empty <track> <mixDuration> <delay>\n  --entry-alpha <alpha>\n  --entry-mix-attachment-threshold <threshold>\n  --entry-mix-draw-order-threshold <threshold>\n  --entry-additive <0|1>\n  --entry-reverse <0|1>\n  --entry-shortest-rotation <0|1>\n  --entry-reset-rotation-directions\n  --physics <none|reset|update|pose>\n  --step <dt>\n"
     );
     std::process::exit(2);
-}
-
-fn parse_mix_blend(s: &str) -> Option<MixBlend> {
-    match s {
-        "setup" => Some(MixBlend::Setup),
-        "first" => Some(MixBlend::First),
-        "replace" => Some(MixBlend::Replace),
-        "add" => Some(MixBlend::Add),
-        _ => None,
-    }
 }
 
 fn load_skeleton_data(path: &PathBuf) -> Arc<SkeletonData> {
@@ -50,6 +40,337 @@ fn parse_physics(s: &str) -> Option<Physics> {
     }
 }
 
+fn bone_timeline_info(
+    data: &SkeletonData,
+    index: usize,
+    timeline: &spine2d::BoneTimeline,
+) -> serde_json::Value {
+    let (kind, bone_index, frames) = match timeline {
+        spine2d::BoneTimeline::Rotate(t) => (
+            "Rotate",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "angle": frame.angle,
+                            "curve": curve_info(&frame.curve),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+        spine2d::BoneTimeline::Translate(t) => (
+            "Translate",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "x": frame.x,
+                            "y": frame.y,
+                            "curve": [
+                                curve_info(&frame.curve[0]),
+                                curve_info(&frame.curve[1]),
+                            ],
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+        spine2d::BoneTimeline::TranslateX(t) => (
+            "TranslateX",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "value": frame.value,
+                            "curve": curve_info(&frame.curve),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+        spine2d::BoneTimeline::TranslateY(t) => (
+            "TranslateY",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "value": frame.value,
+                            "curve": curve_info(&frame.curve),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+        spine2d::BoneTimeline::Scale(t) => (
+            "Scale",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "x": frame.x,
+                            "y": frame.y,
+                            "curve": [
+                                curve_info(&frame.curve[0]),
+                                curve_info(&frame.curve[1]),
+                            ],
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+        spine2d::BoneTimeline::ScaleX(t) => (
+            "ScaleX",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "value": frame.value,
+                            "curve": curve_info(&frame.curve),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+        spine2d::BoneTimeline::ScaleY(t) => (
+            "ScaleY",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "value": frame.value,
+                            "curve": curve_info(&frame.curve),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+        spine2d::BoneTimeline::Shear(t) => (
+            "Shear",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "x": frame.x,
+                            "y": frame.y,
+                            "curve": [
+                                curve_info(&frame.curve[0]),
+                                curve_info(&frame.curve[1]),
+                            ],
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+        spine2d::BoneTimeline::ShearX(t) => (
+            "ShearX",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "value": frame.value,
+                            "curve": curve_info(&frame.curve),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+        spine2d::BoneTimeline::ShearY(t) => (
+            "ShearY",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "value": frame.value,
+                            "curve": curve_info(&frame.curve),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+        spine2d::BoneTimeline::Inherit(t) => (
+            "Inherit",
+            t.bone_index,
+            json!(
+                t.frames
+                    .iter()
+                    .map(|frame| {
+                        json!({
+                            "time": frame.time,
+                            "inherit": format!("{:?}", frame.inherit),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            ),
+        ),
+    };
+    json!({
+        "index": index,
+        "kind": kind,
+        "boneIndex": bone_index,
+        "boneName": data.bones.get(bone_index).map(|b| b.name.as_str()).unwrap_or("<unknown>"),
+        "frames": frames,
+    })
+}
+
+fn curve_info(curve: &Curve) -> serde_json::Value {
+    match curve {
+        Curve::Linear => json!({"kind": "Linear"}),
+        Curve::Stepped => json!({"kind": "Stepped"}),
+        Curve::Bezier { cx1, cy1, cx2, cy2 } => json!({
+            "kind": "Bezier",
+            "cx1": cx1,
+            "cy1": cy1,
+            "cx2": cx2,
+            "cy2": cy2,
+        }),
+    }
+}
+
+fn dump_animation_data(data: &SkeletonData, name: &str) {
+    let Some((index, animation)) = data.animation(name) else {
+        panic!("missing animation: {name}");
+    };
+    let ik_timelines: Vec<_> = animation
+        .ik_constraint_timelines
+        .iter()
+        .map(|timeline| {
+            let constraint_name = data
+                .ik_constraints
+                .get(timeline.constraint_index)
+                .map(|c| c.name.as_str())
+                .unwrap_or("<unknown>");
+            let frames: Vec<_> = timeline
+                .frames
+                .iter()
+                .map(|frame| {
+                    json!({
+                        "time": frame.time,
+                        "mix": frame.mix,
+                        "softness": frame.softness,
+                        "bendDirection": frame.bend_direction,
+                        "compress": frame.compress,
+                        "stretch": frame.stretch,
+                        "curve": [
+                            curve_info(&frame.curve[0]),
+                            curve_info(&frame.curve[1]),
+                        ],
+                    })
+                })
+                .collect();
+            json!({
+                "constraintIndex": timeline.constraint_index,
+                "constraintName": constraint_name,
+                "frames": frames,
+            })
+        })
+        .collect();
+    let bone_timelines: Vec<_> = animation
+        .bone_timelines
+        .iter()
+        .enumerate()
+        .map(|(i, timeline)| bone_timeline_info(data, i, timeline))
+        .collect();
+    let out = json!({
+        "index": index,
+        "name": animation.name,
+        "duration": animation.duration,
+        "timelineOrder": animation.timeline_order.iter().map(|kind| format!("{kind:?}")).collect::<Vec<_>>(),
+        "ikTimelines": ik_timelines,
+        "boneTimelines": bone_timelines,
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&out).expect("animation data json")
+    );
+}
+
+fn debug_dump_bones(label: &str, skeleton: &Skeleton, total_time: f32) {
+    let Ok(filter) = std::env::var("SPINE2D_DEBUG_BONES") else {
+        return;
+    };
+    let names: Vec<&str> = filter
+        .split(',')
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .collect();
+    if names.is_empty() {
+        return;
+    }
+
+    eprintln!("[DEBUG-runwalk] {label} t={total_time:.6}");
+    for name in names {
+        let Some((i, bone)) = skeleton
+            .bones
+            .iter()
+            .enumerate()
+            .find(|(i, _)| skeleton.data.bones.get(*i).is_some_and(|b| b.name == name))
+        else {
+            eprintln!("[DEBUG-runwalk] missing bone {name}");
+            continue;
+        };
+        eprintln!(
+            "[DEBUG-runwalk] bone[{i}] {name} pose x={:.9} y={:.9} rot={:.9} sx={:.9} sy={:.9} shx={:.9} shy={:.9} world a={:.9} b={:.9} c={:.9} d={:.9} x={:.9} y={:.9} applied x={:.9} y={:.9} rot={:.9} sx={:.9} sy={:.9} shx={:.9} shy={:.9} world a={:.9} b={:.9} c={:.9} d={:.9} x={:.9} y={:.9}",
+            bone.x,
+            bone.y,
+            bone.rotation,
+            bone.scale_x,
+            bone.scale_y,
+            bone.shear_x,
+            bone.shear_y,
+            bone.a,
+            bone.b,
+            bone.c,
+            bone.d,
+            bone.world_x,
+            bone.world_y,
+            bone.ax,
+            bone.ay,
+            bone.arotation,
+            bone.ascale_x,
+            bone.ascale_y,
+            bone.ashear_x,
+            bone.ashear_y,
+            bone.a,
+            bone.b,
+            bone.c,
+            bone.d,
+            bone.world_x,
+            bone.world_y,
+        );
+    }
+}
+
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     if args.is_empty() {
@@ -59,6 +380,7 @@ fn main() {
     let json_path = PathBuf::from(args.remove(0));
     let mut dump_slot_vertices: Option<String> = None;
     let mut dump_update_cache: bool = false;
+    let mut dump_animation_data_name: Option<String> = None;
     let data: Arc<SkeletonData> = load_skeleton_data(&json_path);
 
     let mut skeleton = Skeleton::new(data.clone());
@@ -80,6 +402,10 @@ fn main() {
             "--dump-update-cache" => {
                 dump_update_cache = true;
                 i += 1;
+            }
+            "--dump-animation-data" if i + 1 < args.len() => {
+                dump_animation_data_name = args.get(i + 1).cloned();
+                i += 2;
             }
             "--set-skin" if i + 1 < args.len() => {
                 let name = args[i + 1].as_str();
@@ -152,23 +478,32 @@ fn main() {
                     .set_alpha(&mut state, alpha);
                 i += 2;
             }
-            "--entry-hold-previous" if i + 1 < args.len() => {
-                let hold_previous: bool = args[i + 1].parse::<i32>().unwrap_or(0) != 0;
+            "--entry-mix-attachment-threshold" if i + 1 < args.len() => {
+                let threshold: f32 = args[i + 1].parse().unwrap();
                 last_entry
                     .as_ref()
                     .unwrap_or_else(|| {
-                        panic!("--entry-hold-previous requires a preceding --set/--add")
+                        panic!("--entry-mix-attachment-threshold requires a preceding --set/--add")
                     })
-                    .set_hold_previous(&mut state, hold_previous);
+                    .set_mix_attachment_threshold(&mut state, threshold);
                 i += 2;
             }
-            "--entry-mix-blend" if i + 1 < args.len() => {
-                let mix_blend = parse_mix_blend(args[i + 1].as_str())
-                    .unwrap_or_else(|| panic!("invalid mix blend: {}", args[i + 1]));
+            "--entry-mix-draw-order-threshold" if i + 1 < args.len() => {
+                let threshold: f32 = args[i + 1].parse().unwrap();
                 last_entry
                     .as_ref()
-                    .unwrap_or_else(|| panic!("--entry-mix-blend requires a preceding --set/--add"))
-                    .set_mix_blend(&mut state, mix_blend);
+                    .unwrap_or_else(|| {
+                        panic!("--entry-mix-draw-order-threshold requires a preceding --set/--add")
+                    })
+                    .set_mix_draw_order_threshold(&mut state, threshold);
+                i += 2;
+            }
+            "--entry-additive" if i + 1 < args.len() => {
+                let additive: bool = args[i + 1].parse::<i32>().unwrap_or(0) != 0;
+                last_entry
+                    .as_ref()
+                    .unwrap_or_else(|| panic!("--entry-additive requires a preceding --set/--add"))
+                    .set_additive(&mut state, additive);
                 i += 2;
             }
             "--entry-reverse" if i + 1 < args.len() => {
@@ -208,8 +543,10 @@ fn main() {
                 let dt: f32 = args[i + 1].parse().unwrap();
                 state.update(dt);
                 state.apply(&mut skeleton);
+                debug_dump_bones("after-apply-before-world", &skeleton, total_time + dt);
                 skeleton.update(dt);
                 skeleton.update_world_transform_with_physics(physics);
+                debug_dump_bones("after-world", &skeleton, total_time + dt);
                 total_time += dt;
                 i += 2;
             }
@@ -395,11 +732,6 @@ fn main() {
             "transformConstraintData".to_string(),
             json!(transform_constraint_data),
         );
-
-        debug_map.insert(
-            "invalidAppliedBones".to_string(),
-            json!(skeleton.debug_invalid_applied_bones()),
-        );
     }
     if let Some(slot_name) = dump_slot_vertices.as_deref() {
         if let Some(slot_index) = skeleton.data.slots.iter().position(|s| s.name == slot_name) {
@@ -411,6 +743,12 @@ fn main() {
             }
         }
     }
+
+    if let Some(animation_name) = dump_animation_data_name.as_deref() {
+        dump_animation_data(&data, animation_name);
+        return;
+    }
+
     let debug = if debug_map.is_empty() {
         None
     } else {

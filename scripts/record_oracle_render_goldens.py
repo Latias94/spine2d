@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -10,9 +11,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
+from upstream_baseline import commit_for_examples, load_baseline
+
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 ORACLE_RUNNER = ROOT_DIR / "scripts" / "run_spine_cpp_lite_render_oracle.zsh"
+UPSTREAM_BASELINE = load_baseline()
+UPSTREAM_DEFAULT_REV = UPSTREAM_BASELINE.rev
+UPSTREAM_BASELINE_COMMIT = UPSTREAM_BASELINE.commit
+DEFAULT_ORACLE_TIMEOUT_SECONDS = 30
 
 
 def find_examples_root() -> Path:
@@ -36,22 +43,27 @@ def find_examples_root() -> Path:
     )
 
 
-def read_pinned_commit() -> str:
-    source = ROOT_DIR / "assets" / "spine-runtimes" / "SOURCE.txt"
-    if not source.is_file():
-        return "unknown"
-    for line in source.read_text(encoding="utf-8").splitlines():
-        if line.startswith("Commit:"):
-            return line.split(":", 1)[1].strip()
-    return "unknown"
+def read_pinned_commit(examples_root: Path) -> str:
+    return commit_for_examples(examples_root, UPSTREAM_BASELINE)
 
 
-def _run_oracle(args: List[str]) -> str:
+def _run_oracle(args: List[str], *, timeout_seconds: int) -> str:
     cmd = [str(ORACLE_RUNNER), *args]
     try:
-        return subprocess.check_output(cmd, cwd=str(ROOT_DIR), text=True)
+        return subprocess.check_output(
+            cmd,
+            cwd=str(ROOT_DIR),
+            text=True,
+            timeout=timeout_seconds,
+            stderr=subprocess.STDOUT,
+        )
+    except subprocess.TimeoutExpired as e:
+        out = e.output or ""
+        raise RuntimeError(
+            f"oracle timed out after {timeout_seconds}s: {' '.join(cmd)}\n{out}"
+        ) from e
     except subprocess.CalledProcessError as e:
-        out = (e.stdout or "") + (e.stderr or "")
+        out = e.output or ""
         raise RuntimeError(f"oracle failed: {' '.join(cmd)}\n{out}") from e
 
 
@@ -280,8 +292,8 @@ def scenario_cases_json() -> List[RenderScenarioCase]:
                 "1",
                 "shoot",
                 "0",
-                "--entry-mix-blend",
-                "add",
+                "--entry-additive",
+                "1",
                 "--entry-alpha",
                 "0.5",
                 "--step",
@@ -330,7 +342,13 @@ def scenario_cases_skel() -> List[RenderScenarioCase]:
     return out
 
 
-def record_one(examples_root: Path, out_dir: Path, case: RenderCase) -> None:
+def record_one(
+    examples_root: Path,
+    out_dir: Path,
+    case: RenderCase,
+    *,
+    timeout_seconds: int,
+) -> None:
     atlas = examples_root / case.atlas
     skeleton = examples_root / case.skeleton
     if not atlas.is_file():
@@ -354,11 +372,17 @@ def record_one(examples_root: Path, out_dir: Path, case: RenderCase) -> None:
     if case.skin is not None:
         args.extend(["--skin", case.skin])
 
-    out = _run_oracle(args)
+    out = _run_oracle(args, timeout_seconds=timeout_seconds)
     out_path = out_dir / case.golden_name()
     out_path.write_text(out, encoding="utf-8")
 
-def record_one_scenario(examples_root: Path, out_dir: Path, case: RenderScenarioCase) -> None:
+def record_one_scenario(
+    examples_root: Path,
+    out_dir: Path,
+    case: RenderScenarioCase,
+    *,
+    timeout_seconds: int,
+) -> None:
     atlas = examples_root / case.atlas
     skeleton = examples_root / case.skeleton
     if not atlas.is_file():
@@ -367,23 +391,24 @@ def record_one_scenario(examples_root: Path, out_dir: Path, case: RenderScenario
         raise FileNotFoundError(f"missing skeleton: {skeleton}")
 
     args = [str(atlas), str(skeleton), *case.commands]
-    out = _run_oracle(args)
+    out = _run_oracle(args, timeout_seconds=timeout_seconds)
     out_path = out_dir / case.golden_name()
     out_path.write_text(out, encoding="utf-8")
 
 
-def write_source(out_dir: Path, *, commit: str, fmt: str) -> None:
+def write_source(out_dir: Path, *, commit: str, fmt: str, status: str) -> None:
     now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    ref_prefix = "Tag" if UPSTREAM_BASELINE.ref_kind == "tag" else "Branch"
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "SOURCE.txt").write_text(
         "\n".join(
             [
                 "Source: https://github.com/EsotericSoftware/spine-runtimes",
-                "Branch: 4.3-beta",
+                f"{ref_prefix}: {UPSTREAM_DEFAULT_REV}",
                 f"TargetCommit: {commit}",
                 f"RecordedAtUTC: {now}",
                 f"Format: {fmt}",
-                "Status: OK",
+                f"Status: {status}",
                 "Notes:",
                 "  These files are render-dump goldens produced by the C++ render oracle.",
                 "  Both legacy (--anim/--time) and scenario (--set/--step) cases may be present.",
@@ -398,11 +423,19 @@ def write_source(out_dir: Path, *, commit: str, fmt: str) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Record C++ render oracle goldens for spine2d.")
     ap.add_argument("--formats", choices=["json", "skel", "all"], default="all")
+    ap.add_argument("--only", type=str, default="", help="Regex filter on golden filename")
     ap.add_argument("--keep-going", action="store_true")
+    ap.add_argument(
+        "--timeout-seconds",
+        type=int,
+        default=DEFAULT_ORACLE_TIMEOUT_SECONDS,
+        help=f"Per oracle scenario timeout (default: {DEFAULT_ORACLE_TIMEOUT_SECONDS})",
+    )
     args = ap.parse_args()
+    only = re.compile(args.only) if args.only else None
 
     examples_root = find_examples_root()
-    commit = read_pinned_commit()
+    commit = read_pinned_commit(examples_root)
 
     out_json = ROOT_DIR / "spine2d" / "tests" / "golden" / "render_oracle_scenarios"
     out_skel = ROOT_DIR / "spine2d" / "tests" / "golden" / "render_oracle_scenarios_skel"
@@ -411,47 +444,95 @@ def main() -> int:
 
     if args.formats in ("json", "all"):
         out_json.mkdir(parents=True, exist_ok=True)
-        write_source(out_json, commit=commit, fmt="json")
+        json_failures = 0
         for c in cases_json():
+            if only and not only.search(c.golden_name()):
+                continue
             try:
-                record_one(examples_root, out_json, c)
+                record_one(
+                    examples_root,
+                    out_json,
+                    c,
+                    timeout_seconds=args.timeout_seconds,
+                )
                 print(f"Wrote {out_json / c.golden_name()}")
             except Exception as e:
                 failures += 1
+                json_failures += 1
                 print(f"FAIL {c.name} (json): {e}", file=sys.stderr)
                 if not args.keep_going:
+                    write_source(out_json, commit=commit, fmt="json", status="FAILED")
                     return 1
         for c in scenario_cases_json():
+            if only and not only.search(c.golden_name()):
+                continue
             try:
-                record_one_scenario(examples_root, out_json, c)
+                record_one_scenario(
+                    examples_root,
+                    out_json,
+                    c,
+                    timeout_seconds=args.timeout_seconds,
+                )
                 print(f"Wrote {out_json / c.golden_name()}")
             except Exception as e:
                 failures += 1
+                json_failures += 1
                 print(f"FAIL {c.name} (json scenario): {e}", file=sys.stderr)
                 if not args.keep_going:
+                    write_source(out_json, commit=commit, fmt="json", status="FAILED")
                     return 1
+        write_source(
+            out_json,
+            commit=commit,
+            fmt="json",
+            status="OK" if json_failures == 0 else f"FAILED ({json_failures} failures)",
+        )
 
     if args.formats in ("skel", "all"):
         out_skel.mkdir(parents=True, exist_ok=True)
-        write_source(out_skel, commit=commit, fmt="skel")
+        skel_failures = 0
         for c in cases_skel():
+            if only and not only.search(c.golden_name()):
+                continue
             try:
-                record_one(examples_root, out_skel, c)
+                record_one(
+                    examples_root,
+                    out_skel,
+                    c,
+                    timeout_seconds=args.timeout_seconds,
+                )
                 print(f"Wrote {out_skel / c.golden_name()}")
             except Exception as e:
                 failures += 1
+                skel_failures += 1
                 print(f"FAIL {c.name} (skel): {e}", file=sys.stderr)
                 if not args.keep_going:
+                    write_source(out_skel, commit=commit, fmt="skel", status="FAILED")
                     return 1
         for c in scenario_cases_skel():
+            if only and not only.search(c.golden_name()):
+                continue
             try:
-                record_one_scenario(examples_root, out_skel, c)
+                record_one_scenario(
+                    examples_root,
+                    out_skel,
+                    c,
+                    timeout_seconds=args.timeout_seconds,
+                )
                 print(f"Wrote {out_skel / c.golden_name()}")
             except Exception as e:
                 failures += 1
+                skel_failures += 1
                 print(f"FAIL {c.name} (skel scenario): {e}", file=sys.stderr)
                 if not args.keep_going:
+                    write_source(out_skel, commit=commit, fmt="skel", status="FAILED")
                     return 1
+        write_source(
+            out_skel,
+            commit=commit,
+            fmt="skel",
+            status="OK" if skel_failures == 0 else f"FAILED ({skel_failures} failures)",
+        )
 
     if failures:
         print(f"Completed with failures: {failures}", file=sys.stderr)

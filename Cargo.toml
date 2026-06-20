@@ -21,7 +21,8 @@ documentation = "https://docs.rs/spine2d"
 [workspace.dependencies]
 thiserror = "2.0"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
+indexmap = { version = "2", features = ["serde"] }
 byteorder = "1"
 glam = "0.30"
 wgpu = "27.0"

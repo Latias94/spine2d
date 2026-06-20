@@ -24,6 +24,17 @@ static bool ends_with(const std::string &s, const char *suffix) {
   return s.compare(s.size() - n, n, suffix) == 0;
 }
 
+static void print_float_array(const char *label, spine_array_float array) {
+  const size_t n = spine_array_float_size(array);
+  const float *buf = spine_array_float_buffer(array);
+  std::cout << "    " << label << "=[";
+  for (size_t i = 0; i < n; i++) {
+    if (i) std::cout << ",";
+    std::cout << buf[i];
+  }
+  std::cout << "]\n";
+}
+
 static void usage() {
   std::cerr << "Usage:\n"
                "  spine_cpp_lite_dump_constraints <atlas.atlas> <skeleton.(json|skel)> [--y-down 0|1] [--dump-animation <name>]\n";
@@ -145,7 +156,7 @@ int main(int argc, char **argv) {
                 << " bend=" << spine_ik_constraint_pose_get_bend_direction(setup)
                 << " compress=" << (spine_ik_constraint_pose_get_compress(setup) ? 1 : 0)
                 << " stretch=" << (spine_ik_constraint_pose_get_stretch(setup) ? 1 : 0)
-                << " uniform=" << (spine_ik_constraint_data_get_uniform(ik) ? 1 : 0)
+                << " scaleYMode=" << (int)spine_ik_constraint_data_get_scale_y_mode(ik)
                 << " skin=" << (spine_constraint_data_get_skin_required(c) ? 1 : 0)
                 << "\n";
     } else if (spine_rtti_instance_of(rt, spine_transform_constraint_data_rtti())) {
@@ -281,6 +292,60 @@ int main(int argc, char **argv) {
       }
 
       std::cout << "\n";
+
+      const char *timeline_name = nullptr;
+      if (spine_rtti_instance_of(rt, spine_bone_timeline1_rtti())) {
+        spine_bone_timeline1 bt = spine_timeline_cast_to_bone_timeline1(t);
+        const int bone_idx = spine_bone_timeline1_get_bone_index(bt);
+        spine_array_bone_data bones = spine_skeleton_data_get_bones(data);
+        if (bone_idx >= 0 && (size_t)bone_idx < spine_array_bone_data_size(bones)) {
+          timeline_name = spine_bone_data_get_name(spine_array_bone_data_buffer(bones)[bone_idx]);
+        }
+        if (timeline_name) {
+          std::cout << "    kind=bone1 name=" << timeline_name << "\n";
+          print_float_array("frames", spine_bone_timeline1_get_frames(bt));
+          print_float_array("curves", spine_bone_timeline1_get_curves(bt));
+        }
+      } else if (spine_rtti_instance_of(rt, spine_bone_timeline2_rtti())) {
+        spine_bone_timeline2 bt = spine_timeline_cast_to_bone_timeline2(t);
+        const int bone_idx = spine_bone_timeline2_get_bone_index(bt);
+        spine_array_bone_data bones = spine_skeleton_data_get_bones(data);
+        if (bone_idx >= 0 && (size_t)bone_idx < spine_array_bone_data_size(bones)) {
+          timeline_name = spine_bone_data_get_name(spine_array_bone_data_buffer(bones)[bone_idx]);
+        }
+        if (timeline_name) {
+          std::cout << "    kind=bone2 name=" << timeline_name << "\n";
+          print_float_array("frames", spine_bone_timeline2_get_frames(bt));
+          print_float_array("curves", spine_bone_timeline2_get_curves(bt));
+        }
+      } else if (spine_rtti_instance_of(rt, spine_constraint_timeline_rtti())) {
+        spine_constraint_timeline1 ct1 = spine_timeline_cast_to_constraint_timeline1(t);
+        spine_constraint_timeline ct = spine_constraint_timeline1_cast_to_constraint_timeline(ct1);
+        const int idx = spine_constraint_timeline_get_constraint_index(ct);
+        if (idx >= 0 && idx < constraint_count) {
+          timeline_name = spine_constraint_data_get_name(buf[idx]);
+        }
+        if (timeline_name) {
+          std::cout << "    kind=constraint name=" << timeline_name << "\n";
+          if (spine_rtti_instance_of(rt, spine_ik_constraint_timeline_rtti())) {
+            spine_ik_constraint_timeline ikt = spine_timeline_cast_to_ik_constraint_timeline(t);
+            print_float_array("frames", spine_ik_constraint_timeline_get_frames(ikt));
+            print_float_array("curves", spine_ik_constraint_timeline_get_curves(ikt));
+          } else if (spine_rtti_instance_of(rt, spine_path_constraint_position_timeline_rtti())) {
+            spine_path_constraint_position_timeline pct = spine_timeline_cast_to_path_constraint_position_timeline(t);
+            print_float_array("frames", spine_path_constraint_position_timeline_get_frames(pct));
+            print_float_array("curves", spine_path_constraint_position_timeline_get_curves(pct));
+          } else if (spine_rtti_instance_of(rt, spine_path_constraint_spacing_timeline_rtti())) {
+            spine_path_constraint_spacing_timeline pst = spine_timeline_cast_to_path_constraint_spacing_timeline(t);
+            print_float_array("frames", spine_path_constraint_spacing_timeline_get_frames(pst));
+            print_float_array("curves", spine_path_constraint_spacing_timeline_get_curves(pst));
+          } else if (spine_rtti_instance_of(rt, spine_path_constraint_mix_timeline_rtti())) {
+            spine_path_constraint_mix_timeline pmt = spine_timeline_cast_to_path_constraint_mix_timeline(t);
+            print_float_array("frames", spine_path_constraint_mix_timeline_get_frames(pmt));
+            print_float_array("curves", spine_path_constraint_mix_timeline_get_curves(pmt));
+          }
+        }
+      }
     }
   }
 

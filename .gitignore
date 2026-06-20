@@ -1,6 +1,8 @@
 /target
 /.cache/
 /repo-ref
+/.worktrees/
+/scripts/__pycache__/
 
 /assets/spine-runtimes/*
 !/assets/spine-runtimes/.keep

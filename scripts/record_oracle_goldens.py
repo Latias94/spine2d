@@ -13,10 +13,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from upstream_baseline import commit_for_examples, load_baseline
+
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 TESTS_RS = ROOT_DIR / "spine2d" / "src" / "runtime" / "oracle_scenario_parity_tests.rs"
 ORACLE_RUNNER = ROOT_DIR / "scripts" / "run_spine_cpp_lite_oracle.zsh"
+UPSTREAM_BASELINE = load_baseline()
+UPSTREAM_DEFAULT_REV = UPSTREAM_BASELINE.rev
+UPSTREAM_BASELINE_COMMIT = UPSTREAM_BASELINE.commit
+DEFAULT_ORACLE_TIMEOUT_SECONDS = 30
 
 
 def find_examples_root() -> Path:
@@ -35,9 +41,28 @@ def find_examples_root() -> Path:
         if p.is_dir():
             return p
     raise SystemExit(
-        "Missing upstream Spine examples. Run `python3 ./scripts/prepare_spine_runtimes_web_assets.py --scope tests --rev 4.3-beta` "
+        "Missing upstream Spine examples. Run "
+        f"`python3 ./scripts/prepare_spine_runtimes_web_assets.py --scope tests --rev {UPSTREAM_DEFAULT_REV}` "
         "or set SPINE2D_UPSTREAM_EXAMPLES_DIR."
     )
+
+
+def find_examples_root_for_scenario(skeleton_rel: str) -> Path | None:
+    env = os.environ.get("SPINE2D_UPSTREAM_EXAMPLES_DIR", "").strip()
+    if env:
+        p = Path(env)
+        if (p / skeleton_rel).is_file():
+            return p
+
+    candidates = [
+        ROOT_DIR / "assets" / "spine-runtimes" / "examples",
+        ROOT_DIR / "third_party" / "spine-runtimes" / "examples",
+        ROOT_DIR / ".cache" / "spine-runtimes" / "examples",
+    ]
+    for p in candidates:
+        if (p / skeleton_rel).is_file():
+            return p
+    return None
 
 
 def strip_rust_strings_for_brace_count(s: str) -> str:
@@ -177,14 +202,6 @@ def parse_bool(token: str) -> str:
     raise ValueError(f"invalid bool: {token}")
 
 
-def parse_mix_blend(variant: str) -> str:
-    v = variant.strip()
-    mapping = {"Setup": "setup", "First": "first", "Replace": "replace", "Add": "add"}
-    if v not in mapping:
-        raise ValueError(f"invalid MixBlend: {v}")
-    return mapping[v]
-
-
 def parse_physics_mode(variant: str) -> str:
     v = variant.strip()
     mapping = {"None": "none", "Reset": "reset", "Update": "update", "Pose": "pose"}
@@ -241,8 +258,8 @@ def parse_commands_no_loops(body: str, env: Dict[str, float]) -> List[str]:
 
     # TrackEntry / last-entry mutations.
     add(
-        r"\.\s*set_mix_blend\s*\(\s*&mut\s+state\s*,\s*crate::MixBlend::([A-Za-z]+)\s*\)",
-        lambda m: ["--entry-mix-blend", parse_mix_blend(m.group(1))],
+        r"\.\s*set_additive\s*\(\s*&mut\s+state\s*,\s*(true|false)\s*\)",
+        lambda m: ["--entry-additive", parse_bool(m.group(1))],
     )
     add(
         r"\.\s*set_alpha\s*\(\s*&mut\s+state\s*,\s*([^\)]+?)\s*\)",
@@ -272,10 +289,6 @@ def parse_commands_no_loops(body: str, env: Dict[str, float]) -> List[str]:
             "--entry-mix-draw-order-threshold",
             value_to_string(parse_value(m.group(1), env)),
         ],
-    )
-    add(
-        r"\.\s*set_hold_previous\s*\(\s*&mut\s+state\s*,\s*(true|false)\s*\)",
-        lambda m: ["--entry-hold-previous", parse_bool(m.group(1))],
     )
     add(
         r"\.\s*set_reverse\s*\(\s*&mut\s+state\s*,\s*(true|false)\s*\)",
@@ -448,26 +461,49 @@ def iter_atlas_candidates(export_dir: Path) -> List[Path]:
     return sorted(export_dir.glob("*.atlas"))
 
 
-def run_oracle(atlas: Path, skeleton: Path, commands: List[str]) -> str:
+def run_oracle(
+    atlas: Path,
+    skeleton: Path,
+    commands: List[str],
+    *,
+    timeout_seconds: int,
+) -> str:
     argv = [str(ORACLE_RUNNER), str(atlas), str(skeleton), *commands]
-    proc = subprocess.run(argv, cwd=str(ROOT_DIR), capture_output=True, text=True)
+    try:
+        proc = subprocess.run(
+            argv,
+            cwd=str(ROOT_DIR),
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as e:
+        stdout = e.stdout or ""
+        stderr = e.stderr or ""
+        raise RuntimeError(
+            f"oracle timed out after {timeout_seconds}s\n"
+            f"atlas: {atlas}\n"
+            f"skeleton: {skeleton}\n"
+            f"argv: {argv}\n"
+            f"stdout:\n{stdout}\n"
+            f"stderr:\n{stderr}"
+        ) from e
     if proc.returncode != 0:
         raise RuntimeError(
-            f"oracle failed (code {proc.returncode})\nargv: {argv}\nstdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+            f"oracle failed (code {proc.returncode})\n"
+            f"atlas: {atlas}\n"
+            f"skeleton: {skeleton}\n"
+            f"argv: {argv}\n"
+            f"stdout:\n{proc.stdout}\n"
+            f"stderr:\n{proc.stderr}"
         )
     out = proc.stdout.strip()
     json.loads(out)
     return out + "\n"
 
 
-def load_upstream_commit() -> Optional[str]:
-    p = ROOT_DIR / "assets" / "spine-runtimes" / "SOURCE.txt"
-    if not p.is_file():
-        return None
-    for line in p.read_text(encoding="utf-8").splitlines():
-        if line.startswith("Commit:"):
-            return line.split(":", 1)[1].strip()
-    return None
+def load_upstream_commit(examples_root: Path) -> str:
+    return commit_for_examples(examples_root, UPSTREAM_BASELINE)
 
 
 def update_golden_source(status: str, commit: Optional[str]) -> None:
@@ -479,7 +515,6 @@ def update_golden_source(status: str, commit: Optional[str]) -> None:
     else:
         lines = [
             "Source: https://github.com/EsotericSoftware/spine-runtimes",
-            "Branch: 4.3-beta",
         ]
 
     def upsert(prefix: str, value: str):
@@ -490,6 +525,10 @@ def update_golden_source(status: str, commit: Optional[str]) -> None:
                 return
         lines.append(f"{prefix}{value}")
 
+    ref_prefix = "Tag: " if UPSTREAM_BASELINE.ref_kind == "tag" else "Branch: "
+    stale_ref_prefix = "Branch: " if ref_prefix == "Tag: " else "Tag: "
+    lines = [line for line in lines if not line.startswith(stale_ref_prefix)]
+    upsert(ref_prefix, UPSTREAM_DEFAULT_REV)
     if commit:
         upsert("TargetCommit: ", commit)
     upsert("RecordedAtUTC: ", now)
@@ -504,6 +543,12 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--keep-going", action="store_true")
+    ap.add_argument(
+        "--timeout-seconds",
+        type=int,
+        default=DEFAULT_ORACLE_TIMEOUT_SECONDS,
+        help=f"Per oracle scenario timeout (default: {DEFAULT_ORACLE_TIMEOUT_SECONDS})",
+    )
     args = ap.parse_args()
 
     if not TESTS_RS.is_file():
@@ -532,14 +577,14 @@ def main() -> int:
         print("No scenarios selected.")
         return 0
 
-    commit = load_upstream_commit()
     if not args.dry_run:
-        update_golden_source("STALE (recording in progress)", commit)
+        update_golden_source("STALE (recording in progress)", load_upstream_commit(examples_root))
 
     ok = 0
     failed = 0
     for s in selected:
-        skel_path = examples_root / s.skeleton_rel
+        scenario_root = find_examples_root_for_scenario(s.skeleton_rel) or examples_root
+        skel_path = scenario_root / s.skeleton_rel
         export_dir = skel_path.parent
 
         golden_dir = (
@@ -568,7 +613,12 @@ def main() -> int:
         last_err: Optional[Exception] = None
         for atlas in atlas_candidates:
             try:
-                payload = run_oracle(atlas, skel_path, s.commands)
+                payload = run_oracle(
+                    atlas,
+                    skel_path,
+                    s.commands,
+                    timeout_seconds=args.timeout_seconds,
+                )
                 out_path.write_text(payload, encoding="utf-8")
                 ok += 1
                 last_err = None
@@ -581,12 +631,14 @@ def main() -> int:
             failed += 1
             print(f"FAIL {s.golden_file} ({s.skeleton_rel})\n{last_err}\n")
             if not args.keep_going:
-                update_golden_source("STALE (recording failed)", commit)
+                update_golden_source(
+                    "STALE (recording failed)", load_upstream_commit(examples_root)
+                )
                 return 2
 
     status = "OK" if failed == 0 else "STALE (recording failed)"
     if not args.dry_run:
-        update_golden_source(status, commit)
+        update_golden_source(status, load_upstream_commit(examples_root))
 
     print(f"done: ok={ok}, failed={failed}, total={len(selected)}")
     return 0 if failed == 0 else 2
