@@ -39,12 +39,13 @@ status: "active"
   - Continued U6 Skeleton extraction in commit `6be2f7b`; physics constraint solver entry and helper routines now live in private `skeleton::physics`.
   - Continued U6 Skeleton extraction in commit `6104586`; slider constraint solver entry and helper routines now live in private `skeleton::slider`.
   - Continued U6 Skeleton extraction in commit `5e93794`; path constraint apply entry now lives in private `skeleton::path`, and its path-only helper visibility was narrowed.
+  - Continued U6 Skeleton extraction in commit `7f98a3d`; generic attachment world-vertices computation now lives in private `skeleton::vertices`, matching the official `VertexAttachment::computeWorldVertices` responsibility more closely.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: audit the remaining `skeleton.rs` type/helper boundaries, especially whether shared attachment world-vertices logic should remain with `Skeleton::world_vertices` or move behind a narrower helper module.
+  - Continue U6: audit the remaining `skeleton.rs` type and public field surface now that constraint solver bodies and vertex helpers have moved behind private modules.
 
 # Citations
 
