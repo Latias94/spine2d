@@ -33,6 +33,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U6 transform commit `d772a9f` moved the transform constraint solver entry and helper routines into private `skeleton::transform`.
 - U6 physics commit `6be2f7b` moved the physics constraint solver entry and helper routines into private `skeleton::physics`.
 - U6 slider commit `6104586` moved the slider constraint solver entry and helper routines into private `skeleton::slider`.
+- U6 path apply commit `5e93794` moved the path constraint apply entry into private `skeleton::path` and narrowed path-only helper visibility.
 - Post-U2 verification passed:
   - `cargo fmt --all --check`
   - `git diff --check`
@@ -115,6 +116,12 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
   - `cargo check -p spine2d --features json,binary,upstream-smoke`
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke slider animation animation_state skeleton ik path_constraint transform_constraint physics --no-fail-fast --status-level fail` (`186 passed, 370 skipped`)
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` (`546 passed, 10 skipped`)
+- Post-U6 path-apply verification passed:
+  - `cargo fmt --all --check`
+  - `git diff --check`
+  - `cargo check -p spine2d --features json,binary,upstream-smoke`
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke path_constraint skeleton ik transform_constraint physics slider upstream_ik_demo --no-fail-fast --status-level fail` (`112 passed, 444 skipped`)
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` (`546 passed, 10 skipped`)
 - The worktree was clean before creating the hardening plan and memory updates.
 - Existing golden metadata is intentionally not rewritten unless assets or oracle outputs are regenerated.
 
@@ -125,11 +132,11 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U3 is complete: timeline dispatch is centralized behind internal runtime/state helpers, while `AnimationState` keeps only policy decisions for alpha, hold, additive, thresholds, and draw-order output.
 - U4 is complete: binary parser timeline-order ownership is centralized behind `TimelineOrderBuilder`, and JSON already had explicit local lookup/order builders.
 - U5 is complete: the shared `TrackEntrySettings` value object is now owned by the core runtime and used by Bevy, direct `TrackEntry` field exposure has been removed, and delay setter branches now follow the official C++ shape. The final numeric setter audit found no additional guard changes needed because `spine-cpp` setters are intentionally sparse.
-- U6 is in progress: path constraint scratch storage, capacity estimation, path attachment lookup, path world-position calculation, and private path curve helpers have moved into `skeleton::path`; update-cache ordering and debug formatting have moved into `skeleton::cache`; BonePose-equivalent world/local transform helpers, root/child world-transform math, `modifyWorld`, `modifyLocal`, child reset, applied-transform decomposition, and the bone world-update entry have moved into `skeleton::bone`; IK, transform, physics, and slider constraint solver helpers have moved into `skeleton::ik`, `skeleton::transform`, `skeleton::physics`, and `skeleton::slider`. The generic `compute_attachment_world_vertices` helper intentionally remains in `skeleton.rs` because it is still shared by path solving and `Skeleton::world_vertices`.
+- U6 is in progress: path constraint scratch storage, capacity estimation, path attachment lookup, path world-position calculation, path apply, and private path curve helpers have moved into `skeleton::path`; update-cache ordering and debug formatting have moved into `skeleton::cache`; BonePose-equivalent world/local transform helpers, root/child world-transform math, `modifyWorld`, `modifyLocal`, child reset, applied-transform decomposition, and the bone world-update entry have moved into `skeleton::bone`; IK, transform, physics, and slider constraint solver helpers have moved into `skeleton::ik`, `skeleton::transform`, `skeleton::physics`, and `skeleton::slider`. The generic `compute_attachment_world_vertices` helper intentionally remains in `skeleton.rs` because it is still shared by path solving and `Skeleton::world_vertices`.
 
 # Next Action
 
-Audit the remaining path constraint apply body and the shared attachment world-vertices helper boundary. Keep the same verification shape: focused solver tests first, then the full core parity gate.
+Audit the remaining `skeleton.rs` type/helper boundaries, especially whether shared attachment world-vertices logic should remain with `Skeleton::world_vertices` or move behind a narrower helper module. Keep the same verification shape: focused solver tests first, then the full core parity gate.
 
 # Citations
 
