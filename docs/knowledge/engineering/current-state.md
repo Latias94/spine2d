@@ -33,6 +33,7 @@ status: "active"
   - Continued U6 Skeleton extraction in commit `190a119`; update-cache ordering and debug formatting now live in private `skeleton::cache`, mirroring the official C++ `Skeleton::updateCache`/constraint `sort` responsibility boundary while preserving the Rust centralized constraint model.
   - Continued U6 Skeleton extraction in commit `757b2f7`; BonePose-equivalent world/local transform helpers and root/child world-transform math now live in private `skeleton::bone`, while the `Bone` type itself remains in `skeleton.rs` for now.
   - Continued U6 Skeleton extraction in commit `a37abac`; BonePose-equivalent `modifyWorld`, `modifyLocal`, child world-reset, and applied-transform decomposition now live in private `skeleton::bone`.
+  - Continued U6 Skeleton extraction in commit `fc3ef3c`; the bone world-transform update entry now delegates to private `skeleton::bone`, completing the low-risk BonePose helper extraction slice.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
