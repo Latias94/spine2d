@@ -266,6 +266,8 @@ flowchart TB
 
 **Recent update:** Commit `9147966` split applied slot pose from the unconstrained slot pose and routed slider-driven slot, attachment, sequence, and deform timelines through the applied buffer, matching C++ `Slot`/`SlotPose` applied-pose semantics more closely without exposing raw `PosedGeneric` internals.
 
+**Recent update:** Commit `068263d` removed the Rust-only `Slot::set_attachment_name` public helper. Bare name mutation cannot match C++ `SlotPose::setAttachment(Attachment*)` because it lacks attachment object identity and timeline-attachment comparison; runtime name changes now use `Skeleton::set_attachment`.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
