@@ -13,7 +13,7 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `551 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `554 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast` passed with `42 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-wgpu`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
@@ -49,12 +49,13 @@ status: "active"
   - Continued U6 Slot API hardening in commit `2643dd0`; slot pose fields are now crate-visible with public accessors/setters matching the official `SlotPose` shape, including attachment-change deform/sequence reset.
   - Continued U6 constraint API hardening in commit `0c8d8cd`; IK, transform, path, physics, and slider runtime pose fields are now crate-visible with public accessors/setters matching the official constraint pose/control shape. Physics integration internals are crate-visible only.
   - Added official-style physics movement controls in commit `ecdf83f`; `Skeleton::physics_translate`, `Skeleton::physics_rotate`, `PhysicsConstraint::translate`, and `PhysicsConstraint::rotate` now match the spine-cpp entry points and formulas.
+  - Added official-style named lookup and attachment helpers in commit `9bae119`; `Skeleton` now exposes root/find bone/slot helpers, slot-name attachment lookup, and no-op-on-miss `set_attachment` semantics with source-skin-aware reset behavior.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: audit remaining `Skeleton` public API gaps against `spine-cpp`, especially bounds/attachment convenience APIs, after public field hardening and physics movement controls.
+  - Continue U6: audit and implement `Skeleton::getBounds`-equivalent bounds calculation if the existing render/world-vertices helpers can support a focused, C++-compatible slice without dragging in clipping prematurely.
 
 # Citations
 
