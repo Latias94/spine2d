@@ -1,5 +1,19 @@
 use super::{Skeleton, acos_f32, atan2_degrees, atan2_radians, cos_f32, sin_f32, sqrt_f32};
 
+#[derive(Clone, Debug)]
+pub struct IkConstraint {
+    pub(super) data_index: usize,
+    pub bones: Vec<usize>,
+    pub target: usize,
+    pub scale_y_mode: crate::ScaleYMode,
+    pub mix: f32,
+    pub softness: f32,
+    pub compress: bool,
+    pub stretch: bool,
+    pub bend_direction: i32,
+    pub active: bool,
+}
+
 pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {
     let Some(ik) = skeleton.ik_constraints.get(constraint_index).cloned() else {
         return false;

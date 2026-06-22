@@ -1,5 +1,14 @@
 use super::{Skeleton, atan2_degrees};
 
+#[derive(Clone, Debug)]
+pub struct SliderConstraint {
+    pub(crate) data_index: usize,
+    pub time: f32,
+    pub mix: f32,
+    pub active: bool,
+    pub(super) animation_bones: Vec<usize>,
+}
+
 pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {
     if constraint_index >= skeleton.slider_constraints.len() {
         return false;

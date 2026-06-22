@@ -1,6 +1,19 @@
 use super::{Skeleton, vertices::compute_attachment_world_vertices, wrap_pi};
 use crate::SkeletonData;
 
+#[derive(Clone, Debug)]
+pub struct PathConstraint {
+    pub(super) data_index: usize,
+    pub bones: Vec<usize>,
+    pub target: usize, // slot index
+    pub position: f32,
+    pub spacing: f32,
+    pub mix_rotate: f32,
+    pub mix_x: f32,
+    pub mix_y: f32,
+    pub active: bool,
+}
+
 #[derive(Clone, Debug, Default)]
 pub(super) struct PathConstraintScratch {
     pub(super) spaces: Vec<f32>,

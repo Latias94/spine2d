@@ -1,5 +1,19 @@
 use super::{Skeleton, atan2_degrees};
 
+#[derive(Clone, Debug)]
+pub struct TransformConstraint {
+    pub(super) data_index: usize,
+    pub bones: Vec<usize>,
+    pub source: usize,
+    pub mix_rotate: f32,
+    pub mix_x: f32,
+    pub mix_y: f32,
+    pub mix_scale_x: f32,
+    pub mix_scale_y: f32,
+    pub mix_shear_y: f32,
+    pub active: bool,
+}
+
 pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {
     const PI: f32 = std::f32::consts::PI;
     const PI2: f32 = 2.0 * std::f32::consts::PI;

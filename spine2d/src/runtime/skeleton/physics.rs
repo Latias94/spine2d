@@ -1,4 +1,80 @@
-use super::{Physics, Skeleton};
+use super::Skeleton;
+
+/// Determines how physics and other non-deterministic updates are applied.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum Physics {
+    /// Physics are not updated or applied.
+    None,
+    /// Physics are reset to the current pose.
+    Reset,
+    /// Physics are updated and the pose from physics is applied.
+    Update,
+    /// Physics are not updated but the pose from physics is applied.
+    Pose,
+}
+
+#[derive(Clone, Debug)]
+pub struct PhysicsConstraint {
+    pub(super) data_index: usize,
+    pub bone: usize,
+
+    pub inertia: f32,
+    pub strength: f32,
+    pub damping: f32,
+    pub mass_inverse: f32,
+    pub wind: f32,
+    pub gravity: f32,
+    pub mix: f32,
+    pub scale_y_mode: crate::ScaleYMode,
+
+    pub reset: bool,
+    pub ux: f32,
+    pub uy: f32,
+    pub cx: f32,
+    pub cy: f32,
+    pub tx: f32,
+    pub ty: f32,
+    pub x_offset: f32,
+    pub x_lag: f32,
+    pub x_velocity: f32,
+    pub y_offset: f32,
+    pub y_lag: f32,
+    pub y_velocity: f32,
+    pub rotate_offset: f32,
+    pub rotate_lag: f32,
+    pub rotate_velocity: f32,
+    pub scale_offset: f32,
+    pub scale_lag: f32,
+    pub scale_velocity: f32,
+
+    pub active: bool,
+    pub remaining: f32,
+    pub last_time: f32,
+}
+
+impl PhysicsConstraint {
+    pub fn data_index(&self) -> usize {
+        self.data_index
+    }
+
+    pub(crate) fn reset_with_time(&mut self, time: f32) {
+        self.remaining = 0.0;
+        self.last_time = time;
+        self.reset = true;
+        self.x_offset = 0.0;
+        self.x_lag = 0.0;
+        self.x_velocity = 0.0;
+        self.y_offset = 0.0;
+        self.y_lag = 0.0;
+        self.y_velocity = 0.0;
+        self.rotate_offset = 0.0;
+        self.rotate_lag = 0.0;
+        self.rotate_velocity = 0.0;
+        self.scale_offset = 0.0;
+        self.scale_lag = 0.0;
+        self.scale_velocity = 0.0;
+    }
+}
 
 pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize, physics: Physics) -> bool {
     const PI_2: f32 = std::f32::consts::PI * 2.0;
