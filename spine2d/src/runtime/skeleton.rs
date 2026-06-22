@@ -474,8 +474,12 @@ impl Skeleton {
         &mut self.draw_order
     }
 
-    pub fn skin(&self) -> Option<&str> {
+    pub fn skin_name(&self) -> Option<&str> {
         self.skin.as_deref()
+    }
+
+    pub fn skin(&self) -> Option<&crate::SkinData> {
+        self.skin_name().and_then(|name| self.data.skin(name))
     }
 
     pub fn color(&self) -> [f32; 4] {

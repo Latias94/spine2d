@@ -565,7 +565,8 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
     assert_eq!(skeleton.slots_mut().len(), 0);
     assert!(skeleton.draw_order().is_empty());
     assert!(skeleton.draw_order_mut().is_empty());
-    assert_eq!(skeleton.skin(), None);
+    assert_eq!(skeleton.skin_name(), None);
+    assert!(skeleton.skin().is_none());
     assert_eq!(skeleton.ik_constraints().len(), 0);
     assert_eq!(skeleton.ik_constraints_mut().len(), 0);
     assert_eq!(skeleton.transform_constraints().len(), 0);
@@ -727,13 +728,19 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
     assert!(skeleton.attachment_by_slot_name("", "shared").is_none());
 
     skeleton.set_skin(Some("missing"));
-    assert_eq!(skeleton.skin(), None);
+    assert_eq!(skeleton.skin_name(), None);
+    assert!(skeleton.skin().is_none());
     assert_eq!(
         skeleton.attachment(0, "shared").unwrap().name(),
         "default-shared"
     );
 
     skeleton.set_skin(Some("custom"));
+    assert_eq!(skeleton.skin_name(), Some("custom"));
+    assert_eq!(
+        skeleton.skin().map(|skin| skin.name.as_str()),
+        Some("custom")
+    );
     assert_eq!(
         skeleton.attachment(0, "shared").unwrap().name(),
         "custom-shared"
