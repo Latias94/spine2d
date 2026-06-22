@@ -21,18 +21,21 @@ status: "active"
   - Re-recorded stale `sack_*` physics goldens against the pinned official oracle.
   - Added upstream IK demo coverage for both JSON and `.skel`.
   - Locked exact draw batching parity with official renderers via unit tests for merge/split rules and the 16-bit index limit.
+  - Deleted disabled Skeleton legacy solver code in commit `fbc85eb`; post-cleanup full parity gate remains green.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Execute U2 from the hardening plan: delete disabled legacy code in `spine2d/src/runtime/skeleton.rs`, then run focused solver tests.
+  - Execute U3 from the hardening plan: audit timeline dispatch and mixing paths against `spine-cpp` before choosing the next refactor slice.
 
 # Citations
 
 - `spine-upstream.toml`
 - `docs/parity.md`
 - `spine2d/src/runtime/skeleton.rs`
+- `spine2d/src/runtime/animation.rs`
+- `spine2d/src/runtime/animation_state.rs`
 - `spine2d/src/binary.rs`
 - `spine2d/src/runtime/upstream_ik_demo_skel_tests.rs`
 - `spine2d/tests/golden/oracle_scenarios_skel/spineboy_run_to_walk_mix0_2_t0_4.json`
