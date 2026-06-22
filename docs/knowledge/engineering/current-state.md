@@ -23,12 +23,13 @@ status: "active"
   - Locked exact draw batching parity with official renderers via unit tests for merge/split rules and the 16-bit index limit.
   - Deleted disabled Skeleton legacy solver code in commit `fbc85eb`; post-cleanup full parity gate remains green.
   - Centralized runtime timeline dispatch in commit `73edc54`; `AnimationState` now delegates concrete `TimelineKind` application to internal helpers in `animation.rs`.
+  - Centralized binary parser timeline-order registration in commit `48518a5`; JSON already uses a local order reconstruction boundary.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Execute U4 from the hardening plan: audit JSON/binary parser timeline-order registration and extract a local builder if coverage is sufficient.
+  - Execute U5 from the hardening plan: narrow `TrackEntry` and backend control surfaces against `spine-cpp/include/spine/AnimationState.h`.
 
 # Citations
 

@@ -188,6 +188,8 @@ flowchart TB
 
 **Goal:** Make JSON and binary readers construct timeline order through one explicit builder instead of hand-maintaining scattered push logic.
 
+**Status:** Complete in commit `48518a5`. The binary reader now records order through `TimelineOrderBuilder`; JSON kept its existing local `build_json_timeline_lookup` and `build_json_timeline_order` boundary.
+
 **Requirements:** R1, R2, R6.
 
 **Dependencies:** U3.
