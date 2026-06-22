@@ -13,7 +13,7 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `558 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `559 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `42 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu`, `cargo check -p spine2d-wgpu --examples --features json`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
@@ -58,12 +58,13 @@ status: "active"
   - Aligned Skeleton world/skin controls in breaking commit `aec70e4`; wind/gravity/time/update now use direct C++ assignment semantics, component-level wind/gravity accessors exist, `set_skin(Some(missing))` no-ops, and `Error::UnknownSkin` was removed.
   - Removed the useless `Skeleton::set_skin` `Result` wrapper in breaking commit `ae1ab99`; callers now use the no-return setter directly.
   - Aligned the current skin accessor in breaking commit `ea3d166`; `Skeleton::skin()` now returns `Option<&SkinData>` like C++ `getSkin()`, while `skin_name()` exposes the stored skin name.
+  - Added official-style update-cache inspection in commit `f0903f1`; `Skeleton::update_cache_items()` exposes a read-only typed view over the solver cache, matching C++ `getUpdateCache()` without exposing mutable internals.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: review remaining `Skeleton.h` public-surface gaps, especially generic constraint/update-cache exposure.
+  - Continue U6: review the remaining `Skeleton.h` generic `getConstraints()` surface and decide whether a typed read-only Rust enum is enough or if mutable constraint traversal is worth exposing.
 
 # Citations
 

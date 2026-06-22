@@ -246,6 +246,8 @@ flowchart TB
 
 **Recent update:** Commit `ea3d166` aligned `Skeleton::skin()` with C++ `getSkin()` by returning current `SkinData`; `skin_name()` now serves name-only callers.
 
+**Recent update:** Commit `f0903f1` added `Skeleton::update_cache_items()` and public `UpdateCacheItem`, exposing a read-only Rust equivalent of C++ `getUpdateCache()`.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
