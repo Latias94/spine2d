@@ -19,6 +19,7 @@ pub use transform::TransformConstraint;
 
 use crate::{SkeletonData, geometry::SkeletonClipper};
 use path::{PathConstraintScratch, estimate_path_attachment_scratch_capacities};
+use slot::{SlotPose, SlotPoseRef};
 use std::sync::Arc;
 
 #[derive(Copy, Clone, Debug)]
@@ -263,6 +264,16 @@ impl Skeleton {
                 has_dark: slot.has_dark,
                 dark_color: slot.dark_color,
                 blend: slot.blend,
+                applied_pose: SlotPose {
+                    attachment: slot.attachment.clone(),
+                    attachment_skin: None,
+                    sequence_index: 0,
+                    deform: Vec::new(),
+                    color: slot.color,
+                    has_dark: slot.has_dark,
+                    dark_color: slot.dark_color,
+                },
+                pose_constrained: false,
             })
             .collect::<Vec<_>>();
 
@@ -512,6 +523,12 @@ impl Skeleton {
         &mut self.slots
     }
 
+    pub(crate) fn reset_constrained_slot_poses(&mut self) {
+        for slot in &mut self.slots {
+            slot.reset_constrained_pose();
+        }
+    }
+
     pub fn find_slot_index(&self, slot_name: &str) -> Option<usize> {
         if slot_name.is_empty() {
             return None;
@@ -575,6 +592,35 @@ impl Skeleton {
         let target = self.draw_order_target_mut(applied_pose);
         target.clear();
         target.extend_from_slice(order);
+    }
+
+    pub(crate) fn slot_pose_ref(
+        &self,
+        slot_index: usize,
+        applied_pose: bool,
+    ) -> Option<SlotPoseRef<'_>> {
+        self.slots
+            .get(slot_index)
+            .map(|slot| slot.pose_for(applied_pose))
+    }
+
+    pub(crate) fn slot_attachment_data_for_pose(
+        &self,
+        slot_index: usize,
+        applied_pose: bool,
+    ) -> Option<&crate::AttachmentData> {
+        let slot = self.slots.get(slot_index)?;
+        let pose = slot.pose_for(applied_pose);
+        let key = pose.attachment_name()?;
+
+        if let Some(source_skin) = pose.attachment_skin()
+            && let Some(skin) = self.data.skin(source_skin)
+            && let Some(att) = skin.attachment(slot_index, key)
+        {
+            return Some(att);
+        }
+
+        self.attachment(slot_index, key)
     }
 
     fn ensure_draw_order_constrained(&mut self) {
@@ -1032,6 +1078,70 @@ impl Skeleton {
                 })
         });
         self.set_draw_order_constrained(constrained);
+        self.update_slot_constrained_state();
+    }
+
+    fn update_slot_constrained_state(&mut self) {
+        let mut constrained = vec![false; self.slots.len()];
+        for slider in &self.slider_constraints {
+            if !slider.is_active() {
+                continue;
+            }
+            let Some(data) = self.data.slider_constraints.get(slider.data_index()) else {
+                continue;
+            };
+            let Some(animation_index) = data.animation else {
+                continue;
+            };
+            let Some(animation) = self.data.animations.get(animation_index) else {
+                continue;
+            };
+
+            for timeline in &animation.slot_attachment_timelines {
+                if let Some(slot) = constrained.get_mut(timeline.slot_index) {
+                    *slot = true;
+                }
+            }
+            for timeline in &animation.slot_color_timelines {
+                if let Some(slot) = constrained.get_mut(timeline.slot_index) {
+                    *slot = true;
+                }
+            }
+            for timeline in &animation.slot_rgb_timelines {
+                if let Some(slot) = constrained.get_mut(timeline.slot_index) {
+                    *slot = true;
+                }
+            }
+            for timeline in &animation.slot_alpha_timelines {
+                if let Some(slot) = constrained.get_mut(timeline.slot_index) {
+                    *slot = true;
+                }
+            }
+            for timeline in &animation.slot_rgba2_timelines {
+                if let Some(slot) = constrained.get_mut(timeline.slot_index) {
+                    *slot = true;
+                }
+            }
+            for timeline in &animation.slot_rgb2_timelines {
+                if let Some(slot) = constrained.get_mut(timeline.slot_index) {
+                    *slot = true;
+                }
+            }
+            for timeline in &animation.deform_timelines {
+                if let Some(slot) = constrained.get_mut(timeline.slot_index) {
+                    *slot = true;
+                }
+            }
+            for timeline in &animation.sequence_timelines {
+                if let Some(slot) = constrained.get_mut(timeline.slot_index) {
+                    *slot = true;
+                }
+            }
+        }
+
+        for (slot, constrained) in self.slots.iter_mut().zip(constrained) {
+            slot.set_pose_constrained(constrained);
+        }
     }
 
     pub fn set_skin(&mut self, skin_name: Option<&str>) {
@@ -1236,10 +1346,12 @@ impl Skeleton {
             slot.has_dark = data.has_dark;
             slot.dark_color = data.dark_color;
             slot.blend = data.blend;
+            slot.applied_pose = SlotPose::from_slot(slot);
         }
 
         self.draw_order = (0..self.slots.len()).collect::<Vec<_>>();
         self.reset_constrained_draw_order();
+        self.reset_constrained_slot_poses();
     }
 
     pub fn attachment(
@@ -1551,17 +1663,7 @@ impl Skeleton {
     }
 
     pub fn slot_attachment_data(&self, slot_index: usize) -> Option<&crate::AttachmentData> {
-        let slot = self.slots.get(slot_index)?;
-        let key = slot.attachment.as_deref()?;
-
-        if let Some(source_skin) = slot.attachment_skin.as_deref()
-            && let Some(skin) = self.data.skin(source_skin)
-            && let Some(att) = skin.attachment(slot_index, key)
-        {
-            return Some(att);
-        }
-
-        self.attachment(slot_index, key)
+        self.slot_attachment_data_for_pose(slot_index, true)
     }
 
     /// Computes full world vertices for the current vertex attachment in a slot.
@@ -1608,6 +1710,7 @@ impl Skeleton {
     pub fn update_world_transform_with_physics(&mut self, physics: Physics) {
         self.update_epoch = self.update_epoch.wrapping_add(1);
         self.reset_constrained_draw_order();
+        self.reset_constrained_slot_poses();
         self.reset_applied_transforms();
 
         let cache = std::mem::take(&mut self.update_cache);

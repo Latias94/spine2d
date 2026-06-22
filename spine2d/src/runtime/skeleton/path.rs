@@ -145,11 +145,7 @@ fn path_attachment_for_slot(
     skeleton: &Skeleton,
     slot_index: usize,
 ) -> Option<(usize, &crate::PathAttachmentData)> {
-    let attachment_name = skeleton
-        .slots
-        .get(slot_index)
-        .and_then(|s| s.attachment.as_deref())?;
-    let attachment = skeleton.attachment(slot_index, attachment_name)?;
+    let attachment = skeleton.slot_attachment_data_for_pose(slot_index, true)?;
     match attachment {
         crate::AttachmentData::Path(p) => Some((slot_index, p)),
         _ => None,

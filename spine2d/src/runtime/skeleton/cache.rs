@@ -204,7 +204,7 @@ pub(super) fn rebuild_update_cache(skeleton: &Skeleton) -> Vec<UpdateCacheItem> 
                         &mut out,
                     );
                 }
-                if let Some(att) = skeleton.slot_attachment_data(c.target) {
+                if let Some(att) = skeleton.slot_attachment_data_for_pose(c.target, false) {
                     sort_path_attachment(skeleton, att, slot_bone_index, &mut sorted, &mut out);
                 }
 

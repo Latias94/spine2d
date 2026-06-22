@@ -324,7 +324,15 @@ fn attachment_switch_between_linked_mesh_and_parent_preserves_deform_when_timeli
             name: Some("parent".to_string()),
         }],
     };
-    apply_attachment(&switch, &mut skeleton, 0.0, MixBlend::Replace, true, 0);
+    apply_attachment(
+        &switch,
+        &mut skeleton,
+        0.0,
+        MixBlend::Replace,
+        true,
+        0,
+        false,
+    );
 
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("parent"));
     assert_eq!(skeleton.slots[0].deform.len(), 8);

@@ -211,6 +211,7 @@ fn apply_animation_timeline(
                 ctx.blend,
                 ctx.attachments,
                 ctx.unkeyed_state,
+                ctx.applied_pose,
             );
         }
         TimelineKind::Deform(i) => {
@@ -220,6 +221,7 @@ fn apply_animation_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.blend,
+                ctx.applied_pose,
             );
         }
         TimelineKind::Sequence(i) => {
@@ -229,6 +231,7 @@ fn apply_animation_timeline(
                 ctx.time,
                 ctx.blend,
                 ctx.direction,
+                ctx.applied_pose,
             );
         }
         TimelineKind::Bone(i) => match &animation.bone_timelines[i] {
@@ -327,6 +330,7 @@ fn apply_animation_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.blend,
+                ctx.applied_pose,
             );
         }
         TimelineKind::SlotRgb(i) => {
@@ -336,6 +340,7 @@ fn apply_animation_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.blend,
+                ctx.applied_pose,
             );
         }
         TimelineKind::SlotAlpha(i) => {
@@ -345,6 +350,7 @@ fn apply_animation_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.blend,
+                ctx.applied_pose,
             );
         }
         TimelineKind::SlotRgba2(i) => {
@@ -354,6 +360,7 @@ fn apply_animation_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.blend,
+                ctx.applied_pose,
             );
         }
         TimelineKind::SlotRgb2(i) => {
@@ -363,6 +370,7 @@ fn apply_animation_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.blend,
+                ctx.applied_pose,
             );
         }
         TimelineKind::IkConstraint(i) => {
@@ -468,6 +476,7 @@ pub(crate) fn apply_state_timeline(
                 ctx.timeline_blend,
                 ctx.attachments,
                 ctx.unkeyed_state,
+                false,
             );
         }
         TimelineKind::Deform(i) => {
@@ -477,6 +486,7 @@ pub(crate) fn apply_state_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.additive_blend,
+                false,
             );
         }
         TimelineKind::Sequence(i) => {
@@ -486,6 +496,7 @@ pub(crate) fn apply_state_timeline(
                 ctx.time,
                 ctx.timeline_blend,
                 ctx.direction,
+                false,
             );
         }
         TimelineKind::Bone(i) => match &animation.bone_timelines[i] {
@@ -574,6 +585,7 @@ pub(crate) fn apply_state_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.timeline_blend,
+                false,
             );
         }
         TimelineKind::SlotRgb(i) => {
@@ -583,6 +595,7 @@ pub(crate) fn apply_state_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.timeline_blend,
+                false,
             );
         }
         TimelineKind::SlotAlpha(i) => {
@@ -592,6 +605,7 @@ pub(crate) fn apply_state_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.timeline_blend,
+                false,
             );
         }
         TimelineKind::SlotRgba2(i) => {
@@ -601,6 +615,7 @@ pub(crate) fn apply_state_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.timeline_blend,
+                false,
             );
         }
         TimelineKind::SlotRgb2(i) => {
@@ -610,6 +625,7 @@ pub(crate) fn apply_state_timeline(
                 ctx.time,
                 ctx.alpha,
                 ctx.timeline_blend,
+                false,
             );
         }
         TimelineKind::IkConstraint(i) => {
@@ -2260,22 +2276,24 @@ fn sample_ik(frames: &[crate::IkFrame], time: f32) -> (f32, f32) {
     )
 }
 
+fn slot_bone_active(skeleton: &Skeleton, slot_index: usize) -> bool {
+    skeleton
+        .slots
+        .get(slot_index)
+        .and_then(|slot| skeleton.bones.get(slot.bone))
+        .map(|bone| bone.active)
+        .unwrap_or(false)
+}
+
 pub(crate) fn apply_slot_color(
     timeline: &ColorTimeline,
     skeleton: &mut Skeleton,
     time: f32,
     alpha: f32,
     blend: MixBlend,
+    applied_pose: bool,
 ) {
-    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
-        return;
-    };
-    let bone_active = skeleton
-        .bones
-        .get(slot.bone)
-        .map(|b| b.active)
-        .unwrap_or(false);
-    if !bone_active {
+    if !slot_bone_active(skeleton, timeline.slot_index) {
         return;
     }
     if timeline.frames.is_empty() {
@@ -2289,12 +2307,17 @@ pub(crate) fn apply_slot_color(
         .map(|s| s.color)
         .unwrap_or([1.0, 1.0, 1.0, 1.0]);
 
+    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
+        return;
+    };
+    let mut pose = slot.pose_mut_for(applied_pose);
+
     let first_time = timeline.frames[0].time;
     if time < first_time {
         match blend {
-            MixBlend::Setup => slot.color = setup,
+            MixBlend::Setup => pose.set_color(setup),
             MixBlend::First => {
-                slot.color = lerp_color(slot.color, setup, alpha);
+                pose.set_color(lerp_color(pose.color(), setup, alpha));
             }
             _ => {}
         }
@@ -2302,12 +2325,13 @@ pub(crate) fn apply_slot_color(
     }
 
     let target = sample_color(&timeline.frames, time);
-    slot.color = match blend {
+    let color = match blend {
         MixBlend::Setup => lerp_color(setup, target, alpha),
         MixBlend::First | MixBlend::Replace | MixBlend::Add => {
-            lerp_color(slot.color, target, alpha)
+            lerp_color(pose.color(), target, alpha)
         }
     };
+    pose.set_color(color);
 }
 
 pub(crate) fn apply_slot_rgb(
@@ -2316,16 +2340,9 @@ pub(crate) fn apply_slot_rgb(
     time: f32,
     alpha: f32,
     blend: MixBlend,
+    applied_pose: bool,
 ) {
-    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
-        return;
-    };
-    let bone_active = skeleton
-        .bones
-        .get(slot.bone)
-        .map(|b| b.active)
-        .unwrap_or(false);
-    if !bone_active {
+    if !slot_bone_active(skeleton, timeline.slot_index) {
         return;
     }
     if timeline.frames.is_empty() {
@@ -2339,12 +2356,17 @@ pub(crate) fn apply_slot_rgb(
         .map(|s| s.color)
         .unwrap_or([1.0, 1.0, 1.0, 1.0]);
 
+    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
+        return;
+    };
+    let mut pose = slot.pose_mut_for(applied_pose);
+
     let first_time = timeline.frames[0].time;
     if time < first_time {
         match blend {
-            MixBlend::Setup => slot.color = setup,
+            MixBlend::Setup => pose.set_color(setup),
             MixBlend::First => {
-                slot.color = lerp_color(slot.color, setup, alpha);
+                pose.set_color(lerp_color(pose.color(), setup, alpha));
             }
             _ => {}
         }
@@ -2352,22 +2374,23 @@ pub(crate) fn apply_slot_rgb(
     }
 
     let target = sample_rgb(&timeline.frames, time);
+    let color = pose.color_mut();
     if alpha == 1.0 {
-        slot.color[0] = target[0];
-        slot.color[1] = target[1];
-        slot.color[2] = target[2];
+        color[0] = target[0];
+        color[1] = target[1];
+        color[2] = target[2];
         return;
     }
 
     if blend == MixBlend::Setup {
-        slot.color[0] = setup[0];
-        slot.color[1] = setup[1];
-        slot.color[2] = setup[2];
+        color[0] = setup[0];
+        color[1] = setup[1];
+        color[2] = setup[2];
     }
 
-    slot.color[0] += (target[0] - slot.color[0]) * alpha;
-    slot.color[1] += (target[1] - slot.color[1]) * alpha;
-    slot.color[2] += (target[2] - slot.color[2]) * alpha;
+    color[0] += (target[0] - color[0]) * alpha;
+    color[1] += (target[1] - color[1]) * alpha;
+    color[2] += (target[2] - color[2]) * alpha;
 }
 
 pub(crate) fn apply_slot_alpha(
@@ -2376,16 +2399,9 @@ pub(crate) fn apply_slot_alpha(
     time: f32,
     alpha: f32,
     blend: MixBlend,
+    applied_pose: bool,
 ) {
-    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
-        return;
-    };
-    let bone_active = skeleton
-        .bones
-        .get(slot.bone)
-        .map(|b| b.active)
-        .unwrap_or(false);
-    if !bone_active {
+    if !slot_bone_active(skeleton, timeline.slot_index) {
         return;
     }
     if timeline.frames.is_empty() {
@@ -2399,12 +2415,18 @@ pub(crate) fn apply_slot_alpha(
         .map(|s| s.color[3])
         .unwrap_or(1.0);
 
+    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
+        return;
+    };
+    let mut pose = slot.pose_mut_for(applied_pose);
+
     let first_time = timeline.frames[0].time;
     if time < first_time {
         match blend {
-            MixBlend::Setup => slot.color[3] = setup_alpha,
+            MixBlend::Setup => pose.color_mut()[3] = setup_alpha,
             MixBlend::First => {
-                slot.color[3] += (setup_alpha - slot.color[3]) * alpha;
+                let color = pose.color_mut();
+                color[3] += (setup_alpha - color[3]) * alpha;
             }
             _ => {}
         }
@@ -2412,15 +2434,16 @@ pub(crate) fn apply_slot_alpha(
     }
 
     let target = sample_alpha(&timeline.frames, time);
+    let color = pose.color_mut();
     if alpha == 1.0 {
-        slot.color[3] = target;
+        color[3] = target;
         return;
     }
 
     if blend == MixBlend::Setup {
-        slot.color[3] = setup_alpha;
+        color[3] = setup_alpha;
     }
-    slot.color[3] += (target - slot.color[3]) * alpha;
+    color[3] += (target - color[3]) * alpha;
 }
 
 pub(crate) fn apply_slot_rgba2(
@@ -2429,16 +2452,9 @@ pub(crate) fn apply_slot_rgba2(
     time: f32,
     alpha: f32,
     blend: MixBlend,
+    applied_pose: bool,
 ) {
-    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
-        return;
-    };
-    let bone_active = skeleton
-        .bones
-        .get(slot.bone)
-        .map(|b| b.active)
-        .unwrap_or(false);
-    if !bone_active {
+    if !slot_bone_active(skeleton, timeline.slot_index) {
         return;
     }
     if timeline.frames.is_empty() {
@@ -2452,17 +2468,22 @@ pub(crate) fn apply_slot_rgba2(
         .map(|s| (s.color, s.has_dark, s.dark_color))
         .unwrap_or(([1.0, 1.0, 1.0, 1.0], false, [0.0, 0.0, 0.0]));
 
+    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
+        return;
+    };
+    let mut pose = slot.pose_mut_for(applied_pose);
+
     let first_time = timeline.frames[0].time;
     if time < first_time {
         match blend {
             MixBlend::Setup => {
-                slot.color = setup_light;
-                slot.has_dark = setup_has_dark;
-                slot.dark_color = setup_dark;
+                pose.set_color(setup_light);
+                pose.set_has_dark(setup_has_dark);
+                pose.set_dark_color(setup_dark);
             }
             MixBlend::First => {
-                slot.color = lerp_color(slot.color, setup_light, alpha);
-                slot.dark_color = lerp3(slot.dark_color, setup_dark, alpha);
+                pose.set_color(lerp_color(pose.color(), setup_light, alpha));
+                pose.set_dark_color(lerp3(pose.dark_color(), setup_dark, alpha));
             }
             _ => {}
         }
@@ -2471,21 +2492,21 @@ pub(crate) fn apply_slot_rgba2(
 
     let (target_light, target_dark) = sample_rgba2(&timeline.frames, time);
     if alpha == 1.0 {
-        slot.color = target_light;
-        slot.has_dark = true;
-        slot.dark_color = target_dark;
+        pose.set_color(target_light);
+        pose.set_has_dark(true);
+        pose.set_dark_color(target_dark);
         return;
     }
 
     if blend == MixBlend::Setup {
-        slot.color = setup_light;
-        slot.has_dark = setup_has_dark;
-        slot.dark_color = setup_dark;
+        pose.set_color(setup_light);
+        pose.set_has_dark(setup_has_dark);
+        pose.set_dark_color(setup_dark);
     }
 
-    slot.color = lerp_color(slot.color, target_light, alpha);
-    slot.dark_color = lerp3(slot.dark_color, target_dark, alpha);
-    slot.has_dark = true;
+    pose.set_color(lerp_color(pose.color(), target_light, alpha));
+    pose.set_dark_color(lerp3(pose.dark_color(), target_dark, alpha));
+    pose.set_has_dark(true);
 }
 
 pub(crate) fn apply_slot_rgb2(
@@ -2494,16 +2515,9 @@ pub(crate) fn apply_slot_rgb2(
     time: f32,
     alpha: f32,
     blend: MixBlend,
+    applied_pose: bool,
 ) {
-    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
-        return;
-    };
-    let bone_active = skeleton
-        .bones
-        .get(slot.bone)
-        .map(|b| b.active)
-        .unwrap_or(false);
-    if !bone_active {
+    if !slot_bone_active(skeleton, timeline.slot_index) {
         return;
     }
     if timeline.frames.is_empty() {
@@ -2517,24 +2531,32 @@ pub(crate) fn apply_slot_rgb2(
         .map(|s| (s.color, s.has_dark, s.dark_color))
         .unwrap_or(([1.0, 1.0, 1.0, 1.0], false, [0.0, 0.0, 0.0]));
 
+    let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
+        return;
+    };
+    let mut pose = slot.pose_mut_for(applied_pose);
+
     let first_time = timeline.frames[0].time;
     if time < first_time {
         match blend {
             MixBlend::Setup => {
-                slot.color[0] = setup_light[0];
-                slot.color[1] = setup_light[1];
-                slot.color[2] = setup_light[2];
-                slot.has_dark = setup_has_dark;
-                slot.dark_color = setup_dark;
+                let color = pose.color_mut();
+                color[0] = setup_light[0];
+                color[1] = setup_light[1];
+                color[2] = setup_light[2];
+                pose.set_has_dark(setup_has_dark);
+                pose.set_dark_color(setup_dark);
             }
             MixBlend::First => {
                 let target = [setup_light[0], setup_light[1], setup_light[2]];
-                let current = [slot.color[0], slot.color[1], slot.color[2]];
+                let color = pose.color();
+                let current = [color[0], color[1], color[2]];
                 let out = lerp3(current, target, alpha);
-                slot.color[0] = out[0];
-                slot.color[1] = out[1];
-                slot.color[2] = out[2];
-                slot.dark_color = lerp3(slot.dark_color, setup_dark, alpha);
+                let color = pose.color_mut();
+                color[0] = out[0];
+                color[1] = out[1];
+                color[2] = out[2];
+                pose.set_dark_color(lerp3(pose.dark_color(), setup_dark, alpha));
             }
             _ => {}
         }
@@ -2543,29 +2565,33 @@ pub(crate) fn apply_slot_rgb2(
 
     let (target_light, target_dark) = sample_rgb2(&timeline.frames, time);
     if alpha == 1.0 {
-        slot.color[0] = target_light[0];
-        slot.color[1] = target_light[1];
-        slot.color[2] = target_light[2];
-        slot.has_dark = true;
-        slot.dark_color = target_dark;
+        let color = pose.color_mut();
+        color[0] = target_light[0];
+        color[1] = target_light[1];
+        color[2] = target_light[2];
+        pose.set_has_dark(true);
+        pose.set_dark_color(target_dark);
         return;
     }
 
     if blend == MixBlend::Setup {
-        slot.color[0] = setup_light[0];
-        slot.color[1] = setup_light[1];
-        slot.color[2] = setup_light[2];
-        slot.has_dark = setup_has_dark;
-        slot.dark_color = setup_dark;
+        let color = pose.color_mut();
+        color[0] = setup_light[0];
+        color[1] = setup_light[1];
+        color[2] = setup_light[2];
+        pose.set_has_dark(setup_has_dark);
+        pose.set_dark_color(setup_dark);
     }
 
-    let current = [slot.color[0], slot.color[1], slot.color[2]];
+    let color = pose.color();
+    let current = [color[0], color[1], color[2]];
     let out = lerp3(current, target_light, alpha);
-    slot.color[0] = out[0];
-    slot.color[1] = out[1];
-    slot.color[2] = out[2];
-    slot.dark_color = lerp3(slot.dark_color, target_dark, alpha);
-    slot.has_dark = true;
+    let color = pose.color_mut();
+    color[0] = out[0];
+    color[1] = out[1];
+    color[2] = out[2];
+    pose.set_dark_color(lerp3(pose.dark_color(), target_dark, alpha));
+    pose.set_has_dark(true);
 }
 
 fn lerp_color(from: [f32; 4], to: [f32; 4], alpha: f32) -> [f32; 4] {
@@ -2594,16 +2620,9 @@ pub(crate) fn apply_attachment(
     blend: MixBlend,
     attachments: bool,
     unkeyed_state: i32,
+    applied_pose: bool,
 ) {
-    let Some(bone_index) = skeleton.slots.get(timeline.slot_index).map(|s| s.bone) else {
-        return;
-    };
-    let bone_active = skeleton
-        .bones
-        .get(bone_index)
-        .map(|b| b.active)
-        .unwrap_or(false);
-    if !bone_active {
+    if !slot_bone_active(skeleton, timeline.slot_index) {
         return;
     }
     if timeline.frames.is_empty() {
@@ -2628,6 +2647,7 @@ pub(crate) fn apply_attachment(
                     setup_attachment.as_deref(),
                     attachments,
                     unkeyed_state,
+                    applied_pose,
                 );
             } else {
                 set_attachment(
@@ -2636,6 +2656,7 @@ pub(crate) fn apply_attachment(
                     None,
                     attachments,
                     unkeyed_state,
+                    applied_pose,
                 );
             }
         }
@@ -2658,6 +2679,7 @@ pub(crate) fn apply_attachment(
         timeline.frames[frame_index].name.as_deref(),
         attachments,
         unkeyed_state,
+        applied_pose,
     );
     if let Some(slot) = skeleton.slots.get_mut(timeline.slot_index)
         && slot.attachment_state <= unkeyed_state
@@ -2698,6 +2720,7 @@ fn set_attachment(
     name: Option<&str>,
     attachments: bool,
     unkeyed_state: i32,
+    applied_pose: bool,
 ) {
     fn attachment_timeline_key(
         skeleton: &Skeleton,
@@ -2723,9 +2746,13 @@ fn set_attachment(
     }
 
     let (old_key, old_skin) = skeleton
-        .slots
-        .get(slot_index)
-        .map(|slot| (slot.attachment.clone(), slot.attachment_skin.clone()))
+        .slot_pose_ref(slot_index, applied_pose)
+        .map(|pose| {
+            (
+                pose.attachment_name().map(|s| s.to_string()),
+                pose.attachment_skin().map(|s| s.to_string()),
+            )
+        })
         .unwrap_or((None, None));
 
     let (new_key, new_skin) = if let Some(name) = name {
@@ -2769,13 +2796,15 @@ fn set_attachment(
         return;
     }
 
-    if clear_deform {
-        slot.deform.clear();
+    {
+        let mut pose = slot.pose_mut_for(applied_pose);
+        if clear_deform {
+            pose.deform_mut().clear();
+        }
+        pose.set_attachment(new_key, new_skin);
+        pose.set_sequence_index(-1);
     }
 
-    slot.attachment = new_key;
-    slot.attachment_skin = new_skin;
-    slot.sequence_index = -1;
     if attachments {
         slot.attachment_state = unkeyed_state + ANIMATION_STATE_CURRENT;
     }
@@ -2922,6 +2951,7 @@ pub(crate) fn apply_deform(
     time: f32,
     alpha: f32,
     blend: MixBlend,
+    applied_pose: bool,
 ) {
     if alpha <= 0.0 {
         return;
@@ -2930,9 +2960,25 @@ pub(crate) fn apply_deform(
         return;
     }
 
-    apply_deform_to_slot(timeline, skeleton, timeline.slot_index, time, alpha, blend);
+    apply_deform_to_slot(
+        timeline,
+        skeleton,
+        timeline.slot_index,
+        time,
+        alpha,
+        blend,
+        applied_pose,
+    );
     for slot_index in deform_timeline_slots(timeline, skeleton) {
-        apply_deform_to_slot(timeline, skeleton, slot_index, time, alpha, blend);
+        apply_deform_to_slot(
+            timeline,
+            skeleton,
+            slot_index,
+            time,
+            alpha,
+            blend,
+            applied_pose,
+        );
     }
 }
 
@@ -2952,6 +2998,7 @@ fn slot_matches_deform_timeline(
     timeline: &DeformTimeline,
     skeleton: &Skeleton,
     slot_index: usize,
+    applied_pose: bool,
 ) -> bool {
     let Some(slot) = skeleton.slots.get(slot_index) else {
         return false;
@@ -2964,15 +3011,16 @@ fn slot_matches_deform_timeline(
     {
         return false;
     }
-    let Some(slot_key) = slot.attachment.as_deref() else {
+    let pose = slot.pose_for(applied_pose);
+    let Some(slot_key) = pose.attachment_name() else {
         return false;
     };
-    let Some(slot_skin) = slot.attachment_skin.as_deref() else {
+    let Some(slot_skin) = pose.attachment_skin() else {
         return false;
     };
 
     skeleton
-        .slot_attachment_data(slot_index)
+        .slot_attachment_data_for_pose(slot_index, applied_pose)
         .map(|attachment| match attachment {
             crate::AttachmentData::Mesh(mesh) => {
                 mesh.timeline_skin.as_str() == timeline.skin.as_str()
@@ -2990,37 +3038,39 @@ fn apply_deform_to_slot(
     time: f32,
     alpha: f32,
     blend: MixBlend,
+    applied_pose: bool,
 ) {
-    if !slot_matches_deform_timeline(timeline, skeleton, slot_index) {
+    if !slot_matches_deform_timeline(timeline, skeleton, slot_index, applied_pose) {
         return;
     }
 
     let Some(slot) = skeleton.slots.get_mut(slot_index) else {
         return;
     };
+    let mut pose = slot.pose_mut_for(applied_pose);
     let mut blend = blend;
-    if slot.deform.is_empty() {
+    if pose.deform().is_empty() {
         blend = MixBlend::Setup;
     }
 
     if time < timeline.frames[0].time {
         match blend {
             MixBlend::Setup => {
-                slot.deform.clear();
+                pose.deform_mut().clear();
             }
             MixBlend::First => {
                 if alpha >= 1.0 {
-                    slot.deform.clear();
+                    pose.deform_mut().clear();
                     return;
                 }
-                ensure_len_with_zeros(&mut slot.deform, timeline.vertex_count);
+                ensure_len_with_zeros(pose.deform_mut(), timeline.vertex_count);
                 if let Some(setup) = timeline.setup_vertices.as_ref() {
-                    for (d, s) in slot.deform.iter_mut().zip(setup) {
+                    for (d, s) in pose.deform_mut().iter_mut().zip(setup) {
                         *d += (*s - *d) * alpha;
                     }
                 } else {
                     let m = 1.0 - alpha;
-                    for d in &mut slot.deform {
+                    for d in pose.deform_mut() {
                         *d *= m;
                     }
                 }
@@ -3030,13 +3080,13 @@ fn apply_deform_to_slot(
         return;
     }
 
-    ensure_len_with_zeros(&mut slot.deform, timeline.vertex_count);
+    ensure_len_with_zeros(pose.deform_mut(), timeline.vertex_count);
 
     let last_index = timeline.frames.len() - 1;
     if time >= timeline.frames[last_index].time {
         let last_vertices = &timeline.frames[last_index].vertices;
         apply_deform_vertices(
-            &mut slot.deform,
+            pose.deform_mut(),
             timeline.setup_vertices.as_deref(),
             last_vertices,
             alpha,
@@ -3066,7 +3116,7 @@ fn apply_deform_to_slot(
     }
 
     apply_deform_vertices(
-        &mut slot.deform,
+        pose.deform_mut(),
         timeline.setup_vertices.as_deref(),
         &mixed,
         alpha,
@@ -3080,26 +3130,27 @@ pub(crate) fn apply_sequence_timeline(
     time: f32,
     blend: MixBlend,
     direction: MixDirection,
+    applied_pose: bool,
 ) {
     if timeline.frames.is_empty() {
         return;
     }
 
     let timeline_slots = sequence_timeline_slots(timeline, skeleton);
-    if !sequence_timeline_active(timeline, skeleton, &timeline_slots) {
+    if !sequence_timeline_active(timeline, skeleton, &timeline_slots, applied_pose) {
         return;
     }
 
     if direction == MixDirection::Out {
         if matches!(blend, MixBlend::Setup | MixBlend::First) {
-            setup_sequence_timeline_slots(timeline, skeleton, &timeline_slots);
+            setup_sequence_timeline_slots(timeline, skeleton, &timeline_slots, applied_pose);
         }
         return;
     }
 
     if time < timeline.frames[0].time {
         if matches!(blend, MixBlend::Setup | MixBlend::First) {
-            setup_sequence_timeline_slots(timeline, skeleton, &timeline_slots);
+            setup_sequence_timeline_slots(timeline, skeleton, &timeline_slots, applied_pose);
         }
         return;
     }
@@ -3107,9 +3158,9 @@ pub(crate) fn apply_sequence_timeline(
     let Some(index) = sequence_timeline_index(timeline, skeleton, time) else {
         return;
     };
-    apply_sequence_index_to_slot(timeline, skeleton, timeline.slot_index, index);
+    apply_sequence_index_to_slot(timeline, skeleton, timeline.slot_index, index, applied_pose);
     for slot_index in timeline_slots {
-        apply_sequence_index_to_slot(timeline, skeleton, slot_index, index);
+        apply_sequence_index_to_slot(timeline, skeleton, slot_index, index, applied_pose);
     }
 }
 
@@ -3129,17 +3180,19 @@ fn sequence_timeline_active(
     timeline: &crate::SequenceTimeline,
     skeleton: &Skeleton,
     timeline_slots: &[usize],
+    applied_pose: bool,
 ) -> bool {
-    slot_matches_sequence_timeline(timeline, skeleton, timeline.slot_index)
-        || timeline_slots
-            .iter()
-            .any(|&slot_index| slot_matches_sequence_timeline(timeline, skeleton, slot_index))
+    slot_matches_sequence_timeline(timeline, skeleton, timeline.slot_index, applied_pose)
+        || timeline_slots.iter().any(|&slot_index| {
+            slot_matches_sequence_timeline(timeline, skeleton, slot_index, applied_pose)
+        })
 }
 
 fn slot_matches_sequence_timeline(
     timeline: &crate::SequenceTimeline,
     skeleton: &Skeleton,
     slot_index: usize,
+    applied_pose: bool,
 ) -> bool {
     let Some(slot) = skeleton.slots.get(slot_index) else {
         return false;
@@ -3152,15 +3205,16 @@ fn slot_matches_sequence_timeline(
     {
         return false;
     }
-    let Some(slot_key) = slot.attachment.as_deref() else {
+    let pose = slot.pose_for(applied_pose);
+    let Some(slot_key) = pose.attachment_name() else {
         return false;
     };
-    let Some(slot_skin) = slot.attachment_skin.as_deref() else {
+    let Some(slot_skin) = pose.attachment_skin() else {
         return false;
     };
 
     skeleton
-        .slot_attachment_data(slot_index)
+        .slot_attachment_data_for_pose(slot_index, applied_pose)
         .map(|attachment| match attachment {
             crate::AttachmentData::Mesh(mesh) => {
                 mesh.timeline_skin.as_str() == timeline.skin.as_str()
@@ -3175,10 +3229,11 @@ fn setup_sequence_timeline_slots(
     timeline: &crate::SequenceTimeline,
     skeleton: &mut Skeleton,
     timeline_slots: &[usize],
+    applied_pose: bool,
 ) {
-    setup_sequence_slot(timeline, skeleton, timeline.slot_index);
+    setup_sequence_slot(timeline, skeleton, timeline.slot_index, applied_pose);
     for &slot_index in timeline_slots {
-        setup_sequence_slot(timeline, skeleton, slot_index);
+        setup_sequence_slot(timeline, skeleton, slot_index, applied_pose);
     }
 }
 
@@ -3186,12 +3241,13 @@ fn setup_sequence_slot(
     timeline: &crate::SequenceTimeline,
     skeleton: &mut Skeleton,
     slot_index: usize,
+    applied_pose: bool,
 ) {
-    if !slot_matches_sequence_timeline(timeline, skeleton, slot_index) {
+    if !slot_matches_sequence_timeline(timeline, skeleton, slot_index, applied_pose) {
         return;
     }
     if let Some(slot) = skeleton.slots.get_mut(slot_index) {
-        slot.sequence_index = -1;
+        slot.pose_mut_for(applied_pose).set_sequence_index(-1);
     }
 }
 
@@ -3271,12 +3327,13 @@ fn apply_sequence_index_to_slot(
     skeleton: &mut Skeleton,
     slot_index: usize,
     index: i32,
+    applied_pose: bool,
 ) {
-    if !slot_matches_sequence_timeline(timeline, skeleton, slot_index) {
+    if !slot_matches_sequence_timeline(timeline, skeleton, slot_index, applied_pose) {
         return;
     }
     if let Some(slot) = skeleton.slots.get_mut(slot_index) {
-        slot.sequence_index = index;
+        slot.pose_mut_for(applied_pose).set_sequence_index(index);
     }
 }
 

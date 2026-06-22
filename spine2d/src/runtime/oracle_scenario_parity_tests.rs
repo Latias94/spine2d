@@ -317,22 +317,18 @@ fn dump_pose(skeleton: &Skeleton, time: f32, debug_slot: Option<&str>) -> PoseDu
             let attachment = resolve_current_slot_attachment(skeleton, i).map(|a| AttachmentDump {
                 name: a.name().to_string(),
             });
-            let dark_color = if slot.has_dark {
-                [
-                    slot.dark_color[0],
-                    slot.dark_color[1],
-                    slot.dark_color[2],
-                    1.0,
-                ]
+            let dark = slot.applied_dark_color();
+            let dark_color = if slot.applied_has_dark() {
+                [dark[0], dark[1], dark[2], 1.0]
             } else {
                 [0.0, 0.0, 0.0, 0.0]
             };
             SlotDump {
                 name: name.to_string(),
-                color: slot.color,
-                has_dark: if slot.has_dark { 1 } else { 0 },
+                color: slot.applied_color(),
+                has_dark: if slot.applied_has_dark() { 1 } else { 0 },
                 dark_color,
-                sequence_index: slot.sequence_index,
+                sequence_index: slot.applied_sequence_index(),
                 attachment,
             }
         })

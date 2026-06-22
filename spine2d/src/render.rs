@@ -113,7 +113,8 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     // Match spine-cpp `SkeletonRenderer` early-outs:
                     // - Skip region/mesh attachments when the slot color alpha is 0.
                     // - Skip when the slot's bone is inactive (skinRequired bones not included by the current skin).
-                    if slot.color[3] <= 0.0 || !bone.active {
+                    let slot_color = slot.applied_color();
+                    if slot_color[3] <= 0.0 || !bone.active {
                         break 'process_slot;
                     }
                     // Match spine runtimes: region attachments have their own tint and can be alpha-zero.
@@ -124,7 +125,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     let attachment_path = effective_attachment_path(
                         region.path.as_str(),
                         region.sequence.as_ref(),
-                        slot.sequence_index,
+                        slot.applied_sequence_index(),
                     );
                     let atlas_region_opt = atlas.and_then(|a| a.region(attachment_path.as_ref()));
 
@@ -184,7 +185,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     };
 
                     let light_unpma =
-                        multiply_rgba(multiply_rgba(skeleton.color, slot.color), region.color);
+                        multiply_rgba(multiply_rgba(skeleton.color, slot_color), region.color);
                     let light_alpha = light_unpma[3];
                     let color = apply_pma(light_unpma, premultiplied_alpha);
                     let dark_color = slot_dark_color_rgba(slot, premultiplied_alpha, light_alpha);
@@ -284,7 +285,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     }
 
                     call_clip_end_for_slot = false;
-                    let deform = slot.deform.as_slice();
+                    let deform = slot.applied_deform();
 
                     let polygon =
                         attachment_world_positions(skeleton, slot_index, &clip.vertices, deform);
@@ -310,19 +311,20 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                         break 'process_slot;
                     };
                     // Match spine-cpp `SkeletonRenderer` early-outs (see region case).
-                    if slot.color[3] <= 0.0 || !bone.active {
+                    let slot_color = slot.applied_color();
+                    if slot_color[3] <= 0.0 || !bone.active {
                         break 'process_slot;
                     }
                     if mesh.color[3] <= 0.0 {
                         break 'process_slot;
                     }
-                    let deform = slot.deform.as_slice();
+                    let deform = slot.applied_deform();
 
                     let blend = slot.blend;
                     let attachment_path = effective_attachment_path(
                         mesh.path.as_str(),
                         mesh.sequence.as_ref(),
-                        slot.sequence_index,
+                        slot.applied_sequence_index(),
                     );
                     let (texture_path, atlas_region_and_page, premultiplied_alpha) =
                         if let Some(atlas) = atlas {
@@ -344,7 +346,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                         };
 
                     let light_unpma =
-                        multiply_rgba(multiply_rgba(skeleton.color, slot.color), mesh.color);
+                        multiply_rgba(multiply_rgba(skeleton.color, slot_color), mesh.color);
                     let light_alpha = light_unpma[3];
                     let color = apply_pma(light_unpma, premultiplied_alpha);
                     let dark_color = slot_dark_color_rgba(slot, premultiplied_alpha, light_alpha);
@@ -726,22 +728,22 @@ fn slot_dark_color_rgba(
     // - With dark color:
     //   - PMA: dark.rgb is premultiplied by the *final* light alpha, dark.a=1.
     //   - non-PMA: dark.rgb is not premultiplied, dark.a=0 (shader formula switch).
-    if !slot.has_dark {
+    if !slot.applied_has_dark() {
         return [0.0, 0.0, 0.0, 1.0];
     }
 
     if premultiplied_alpha {
         [
-            slot.dark_color[0] * light_alpha,
-            slot.dark_color[1] * light_alpha,
-            slot.dark_color[2] * light_alpha,
+            slot.applied_dark_color()[0] * light_alpha,
+            slot.applied_dark_color()[1] * light_alpha,
+            slot.applied_dark_color()[2] * light_alpha,
             1.0,
         ]
     } else {
         [
-            slot.dark_color[0],
-            slot.dark_color[1],
-            slot.dark_color[2],
+            slot.applied_dark_color()[0],
+            slot.applied_dark_color()[1],
+            slot.applied_dark_color()[2],
             0.0,
         ]
     }

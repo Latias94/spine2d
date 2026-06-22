@@ -32,7 +32,7 @@ pub(super) fn compute_attachment_world_vertices(
             }
             let available = v.len().saturating_sub(start_vertex);
             let n = vertex_count.min(available);
-            let deform = slot.deform.as_slice();
+            let deform = slot.applied_deform();
             let use_deform = !deform.is_empty() && deform.len() >= v.len() * 2;
             for i in 0..n {
                 let vi = start_vertex + i;
@@ -62,7 +62,7 @@ pub(super) fn compute_attachment_world_vertices(
                 skip_weights = skip_weights.saturating_add(v.get(i).map(|w| w.len()).unwrap_or(0));
             }
             let mut f = skip_weights * 2;
-            let deform = slot.deform.as_slice();
+            let deform = slot.applied_deform();
 
             for i in 0..n {
                 let vi = start_vertex + i;
