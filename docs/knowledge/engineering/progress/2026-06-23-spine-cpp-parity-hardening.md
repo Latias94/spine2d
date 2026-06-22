@@ -39,6 +39,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U6 Slot type commit `6f56a26` moved the `Slot` runtime type into private `skeleton::slot` and re-exported it from `skeleton`.
 - U6 constraint type commit `fcf3389` moved IK, transform, path, physics, and slider runtime constraint types into their matching private modules and re-exported them from `skeleton`.
 - U6 Skeleton field hardening commit `047be09` made `Skeleton` container/state fields crate-visible and added public collection accessors plus official-style color, position, and scale setters.
+- U6 Bone field hardening commit `12218d2` made `Bone` local pose, applied pose, active state, and world-transform fields crate-visible and added public accessors/setters matching the official `BoneLocal`/`BonePose` shape.
 - Post-U2 verification passed:
   - `cargo fmt --all --check`
   - `git diff --check`
@@ -162,6 +163,17 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
   - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` (`42 passed, 0 skipped`)
   - `cargo fmt --all --check`
   - `git diff --check`
+- Post-U6 Bone field hardening verification passed:
+  - `cargo check -p spine2d --features json,binary,upstream-smoke`
+  - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`
+  - `cargo check -p spine2d-bevy`
+  - `cargo check -p spine2d-wgpu`
+  - `cargo check -p spine2d-web`
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke skeleton bone slot ik transform_constraint path_constraint physics slider world_vertices attachment render sequence --no-fail-fast --status-level fail` (`197 passed, 361 skipped`)
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` (`548 passed, 10 skipped`)
+  - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` (`42 passed, 0 skipped`)
+  - `cargo fmt --all --check`
+  - `git diff --check`
 - The worktree was clean before creating the hardening plan and memory updates.
 - Existing golden metadata is intentionally not rewritten unless assets or oracle outputs are regenerated.
 
@@ -172,11 +184,11 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U3 is complete: timeline dispatch is centralized behind internal runtime/state helpers, while `AnimationState` keeps only policy decisions for alpha, hold, additive, thresholds, and draw-order output.
 - U4 is complete: binary parser timeline-order ownership is centralized behind `TimelineOrderBuilder`, and JSON already had explicit local lookup/order builders.
 - U5 is complete: the shared `TrackEntrySettings` value object is now owned by the core runtime and used by Bevy, direct `TrackEntry` field exposure has been removed, and delay setter branches now follow the official C++ shape. The final numeric setter audit found no additional guard changes needed because `spine-cpp` setters are intentionally sparse.
-- U6 is in progress: path constraint scratch storage, capacity estimation, path attachment lookup, path world-position calculation, path apply, and private path curve helpers have moved into `skeleton::path`; update-cache ordering and debug formatting have moved into `skeleton::cache`; `Bone` plus BonePose-equivalent world/local transform helpers, root/child world-transform math, `modifyWorld`, `modifyLocal`, child reset, applied-transform decomposition, and the bone world-update entry have moved into `skeleton::bone`; `Slot` has moved into `skeleton::slot`; IK, transform, physics, and slider runtime constraint types and solver helpers have moved into `skeleton::ik`, `skeleton::transform`, `skeleton::physics`, and `skeleton::slider`; generic attachment world-vertices computation has moved into `skeleton::vertices`; `Skeleton` container/state fields have been narrowed behind accessors and official-style color, position, and scale setters.
+- U6 is in progress: path constraint scratch storage, capacity estimation, path attachment lookup, path world-position calculation, path apply, and private path curve helpers have moved into `skeleton::path`; update-cache ordering and debug formatting have moved into `skeleton::cache`; `Bone` plus BonePose-equivalent world/local transform helpers, root/child world-transform math, `modifyWorld`, `modifyLocal`, child reset, applied-transform decomposition, and the bone world-update entry have moved into `skeleton::bone`; `Slot` has moved into `skeleton::slot`; IK, transform, physics, and slider runtime constraint types and solver helpers have moved into `skeleton::ik`, `skeleton::transform`, `skeleton::physics`, and `skeleton::slider`; generic attachment world-vertices computation has moved into `skeleton::vertices`; `Skeleton` container/state fields have been narrowed behind accessors and official-style color, position, and scale setters; `Bone` local pose, applied pose, active state, and world-transform fields have been narrowed behind accessors and setters.
 
 # Next Action
 
-Audit public field/accessor hardening for `Bone`, `Slot`, and runtime constraint structs against the official C++ getter/setter shape now that the `Skeleton` container/state field surface is narrowed. Keep the same verification shape: focused tests first, then the full core parity gate.
+Audit public field/accessor hardening for `Slot` and runtime constraint structs against the official C++ getter/setter shape now that the `Skeleton` and `Bone` field surfaces are narrowed. Keep the same verification shape: focused tests first, then the full core parity gate.
 
 # Citations
 
