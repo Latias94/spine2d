@@ -250,6 +250,8 @@ flowchart TB
 
 **Recent update:** Commit `295c836` added `Skeleton::constraints()` and public `ConstraintRef`, exposing a read-only ordered Rust equivalent of C++ `getConstraints()`.
 
+**Recent update:** Commit `c20ab80` added `Bone::child_indices`, parent-space point transforms, local/world rotation transforms, and `rotate_world`, covering the remaining C++ `Bone`/`BonePose` helper surface while preserving Rust's index-based skeleton storage model.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
