@@ -1,4 +1,4 @@
-use super::{Skeleton, compute_attachment_world_vertices, wrap_pi};
+use super::{Skeleton, vertices::compute_attachment_world_vertices, wrap_pi};
 use crate::SkeletonData;
 
 #[derive(Clone, Debug, Default)]
