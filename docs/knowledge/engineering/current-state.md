@@ -30,12 +30,13 @@ status: "active"
   - Preserved `spine-cpp` delay branch behavior in commit `f36cfa7`; negative delay is special-cased without coercing non-comparable delay values.
   - Started U6 Skeleton extraction in commit `3edaa0b`; path constraint scratch storage and capacity estimation now live in private `skeleton::path`.
   - Continued U6 Skeleton extraction in commit `0dab0fb`; path attachment lookup and path world-position helpers now live in private `skeleton::path`. Generic attachment world-vertex computation intentionally remains in `skeleton.rs` because it is still shared by `Skeleton::world_vertices`.
+  - Continued U6 Skeleton extraction in commit `190a119`; update-cache ordering and debug formatting now live in private `skeleton::cache`, mirroring the official C++ `Skeleton::updateCache`/constraint `sort` responsibility boundary while preserving the Rust centralized constraint model.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: audit remaining `skeleton.rs` helper ownership, especially the shared attachment world-vertex path and update-cache/constraint-solver boundaries, then choose the next behavior-neutral extraction backed by focused solver tests.
+  - Continue U6: audit remaining `skeleton.rs` helper ownership, especially shared attachment world vertices and bone world-transform math, then choose the next behavior-neutral extraction backed by focused solver tests.
 
 # Citations
 
