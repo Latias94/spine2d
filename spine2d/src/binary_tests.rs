@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::runtime::MixBlend;
-use crate::{PositionMode, Skeleton, SkeletonData, apply_animation};
+use crate::{PositionMode, Skeleton, SkeletonData, UpdateCacheItem, apply_animation};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -14,6 +14,70 @@ fn repo_root() -> PathBuf {
 
 fn load_bytes(rel: &str) -> Vec<u8> {
     std::fs::read(repo_root().join(rel)).expect(rel)
+}
+
+fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
+    fn bone_name(skeleton: &Skeleton, index: usize) -> &str {
+        skeleton
+            .data()
+            .bones
+            .get(index)
+            .map(|b| b.name.as_str())
+            .unwrap_or("<unknown>")
+    }
+
+    skeleton
+        .update_cache_items()
+        .iter()
+        .map(|item| match *item {
+            UpdateCacheItem::Bone(index) => format!("bone {}", bone_name(skeleton, index)),
+            UpdateCacheItem::Ik(index) => {
+                let name = skeleton
+                    .ik_constraints()
+                    .get(index)
+                    .and_then(|c| skeleton.data().ik_constraints.get(c.data_index()))
+                    .map(|d| d.name.as_str())
+                    .unwrap_or("<unknown>");
+                format!("ik {}", name)
+            }
+            UpdateCacheItem::Transform(index) => {
+                let name = skeleton
+                    .transform_constraints()
+                    .get(index)
+                    .and_then(|c| skeleton.data().transform_constraints.get(c.data_index()))
+                    .map(|d| d.name.as_str())
+                    .unwrap_or("<unknown>");
+                format!("transform {}", name)
+            }
+            UpdateCacheItem::Path(index) => {
+                let name = skeleton
+                    .path_constraints()
+                    .get(index)
+                    .and_then(|c| skeleton.data().path_constraints.get(c.data_index()))
+                    .map(|d| d.name.as_str())
+                    .unwrap_or("<unknown>");
+                format!("path {}", name)
+            }
+            UpdateCacheItem::Physics(index) => {
+                let name = skeleton
+                    .physics_constraints()
+                    .get(index)
+                    .and_then(|c| skeleton.data().physics_constraints.get(c.data_index()))
+                    .map(|d| d.name.as_str())
+                    .unwrap_or("<unknown>");
+                format!("physics {}", name)
+            }
+            UpdateCacheItem::Slider(index) => {
+                let name = skeleton
+                    .slider_constraints()
+                    .get(index)
+                    .and_then(|c| skeleton.data().slider_constraints.get(c.data_index()))
+                    .map(|d| d.name.as_str())
+                    .unwrap_or("<unknown>");
+                format!("slider {}", name)
+            }
+        })
+        .collect()
 }
 
 #[cfg(feature = "upstream-smoke")]
@@ -1386,8 +1450,14 @@ fn debug_dump_spineboy_run_to_walk_after_state_apply_before_world_skel_vs_json()
     skeleton_json.update_world_transform();
     skeleton_skel.update_world_transform();
     println!("--- after world ---");
-    println!("rust cache: {:?}", skeleton_skel.debug_update_cache());
-    println!("json cache: {:?}", skeleton_json.debug_update_cache());
+    println!(
+        "rust cache: {:?}",
+        update_cache_debug_labels(&skeleton_skel)
+    );
+    println!(
+        "json cache: {:?}",
+        update_cache_debug_labels(&skeleton_json)
+    );
     for name in [
         "root",
         "hip",

@@ -943,11 +943,6 @@ impl Skeleton {
         self.rebuild_update_cache();
     }
 
-    #[doc(hidden)]
-    pub fn debug_update_cache(&self) -> Vec<String> {
-        cache::debug_update_cache(self)
-    }
-
     pub fn update_cache_items(&self) -> &[UpdateCacheItem] {
         &self.update_cache
     }

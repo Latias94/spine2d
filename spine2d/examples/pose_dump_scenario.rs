@@ -1,6 +1,7 @@
 use serde_json::json;
 use spine2d::{
     AnimationState, AnimationStateData, Curve, Physics, Skeleton, SkeletonData, TrackEntryHandle,
+    UpdateCacheItem,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -38,6 +39,70 @@ fn parse_physics(s: &str) -> Option<Physics> {
         "pose" => Some(Physics::Pose),
         _ => None,
     }
+}
+
+fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
+    fn bone_name(skeleton: &Skeleton, index: usize) -> &str {
+        skeleton
+            .data()
+            .bones
+            .get(index)
+            .map(|b| b.name.as_str())
+            .unwrap_or("<unknown>")
+    }
+
+    skeleton
+        .update_cache_items()
+        .iter()
+        .map(|item| match *item {
+            UpdateCacheItem::Bone(index) => format!("bone {}", bone_name(skeleton, index)),
+            UpdateCacheItem::Ik(index) => {
+                let name = skeleton
+                    .ik_constraints()
+                    .get(index)
+                    .and_then(|c| skeleton.data().ik_constraints.get(c.data_index()))
+                    .map(|d| d.name.as_str())
+                    .unwrap_or("<unknown>");
+                format!("ik {}", name)
+            }
+            UpdateCacheItem::Transform(index) => {
+                let name = skeleton
+                    .transform_constraints()
+                    .get(index)
+                    .and_then(|c| skeleton.data().transform_constraints.get(c.data_index()))
+                    .map(|d| d.name.as_str())
+                    .unwrap_or("<unknown>");
+                format!("transform {}", name)
+            }
+            UpdateCacheItem::Path(index) => {
+                let name = skeleton
+                    .path_constraints()
+                    .get(index)
+                    .and_then(|c| skeleton.data().path_constraints.get(c.data_index()))
+                    .map(|d| d.name.as_str())
+                    .unwrap_or("<unknown>");
+                format!("path {}", name)
+            }
+            UpdateCacheItem::Physics(index) => {
+                let name = skeleton
+                    .physics_constraints()
+                    .get(index)
+                    .and_then(|c| skeleton.data().physics_constraints.get(c.data_index()))
+                    .map(|d| d.name.as_str())
+                    .unwrap_or("<unknown>");
+                format!("physics {}", name)
+            }
+            UpdateCacheItem::Slider(index) => {
+                let name = skeleton
+                    .slider_constraints()
+                    .get(index)
+                    .and_then(|c| skeleton.data().slider_constraints.get(c.data_index()))
+                    .map(|d| d.name.as_str())
+                    .unwrap_or("<unknown>");
+                format!("slider {}", name)
+            }
+        })
+        .collect()
 }
 
 fn bone_timeline_info(
@@ -692,7 +757,7 @@ fn main() {
     if dump_update_cache {
         debug_map.insert(
             "updateCache".to_string(),
-            json!(skeleton.debug_update_cache()),
+            json!(update_cache_debug_labels(&skeleton)),
         );
         let transform_constraint_data: Vec<_> = skeleton
             .data()
