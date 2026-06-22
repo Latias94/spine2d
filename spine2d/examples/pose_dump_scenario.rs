@@ -801,7 +801,7 @@ fn main() {
             .slots
             .iter()
             .position(|s| s.name == slot_name)
-        && let Some(world_vertices) = skeleton.slot_vertex_attachment_world_vertices(slot_index)
+        && let Some(world_vertices) = skeleton.slot_attachment_world_vertices(slot_index)
     {
         debug_map.insert("slot".to_string(), json!(slot_name));
         debug_map.insert("slotIndex".to_string(), json!(slot_index as i32));

@@ -1271,8 +1271,7 @@ impl Skeleton {
                     );
                 }
                 Some(crate::AttachmentData::Mesh(_)) => {
-                    let Some(vertices) = self.slot_vertex_attachment_world_vertices(slot_index)
-                    else {
+                    let Some(vertices) = self.slot_attachment_world_vertices(slot_index) else {
                         continue;
                     };
                     include_flat_vertices_in_bounds(
@@ -1351,8 +1350,7 @@ impl Skeleton {
                     }
                 }
                 crate::AttachmentData::Mesh(mesh) => {
-                    let Some(vertices) = self.slot_vertex_attachment_world_vertices(slot_index)
-                    else {
+                    let Some(vertices) = self.slot_attachment_world_vertices(slot_index) else {
                         continue;
                     };
 
@@ -1405,8 +1403,7 @@ impl Skeleton {
                         clip_end_slot = None;
                     }
 
-                    let Some(vertices) = self.slot_vertex_attachment_world_vertices(slot_index)
-                    else {
+                    let Some(vertices) = self.slot_attachment_world_vertices(slot_index) else {
                         continue;
                     };
                     if clipper.clip_start(&vertices, clip.convex, clip.inverse) {
@@ -1483,8 +1480,11 @@ impl Skeleton {
         self.attachment(slot_index, key)
     }
 
-    #[doc(hidden)]
-    pub fn slot_vertex_attachment_world_vertices(&self, slot_index: usize) -> Option<Vec<f32>> {
+    /// Computes full world vertices for the current vertex attachment in a slot.
+    ///
+    /// This is the Rust runtime equivalent of calling C++ `VertexAttachment::computeWorldVertices`
+    /// with the slot's current attachment. Region and point attachments return `None`.
+    pub fn slot_attachment_world_vertices(&self, slot_index: usize) -> Option<Vec<f32>> {
         let attachment = self.slot_attachment_data(slot_index)?;
         let vertices = match attachment {
             crate::AttachmentData::Mesh(a) => &a.vertices,

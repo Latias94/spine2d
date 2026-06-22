@@ -205,7 +205,7 @@ fn main() {
             .slots
             .iter()
             .position(|s| s.name == slot_name)?;
-        let world_vertices = skeleton.slot_vertex_attachment_world_vertices(slot_index)?;
+        let world_vertices = skeleton.slot_attachment_world_vertices(slot_index)?;
         Some(json!({
             "slot": slot_name,
             "slotIndex": slot_index as i32,

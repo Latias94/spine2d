@@ -460,7 +460,7 @@ fn dump_pose(skeleton: &Skeleton, time: f32, debug_slot: Option<&str>) -> PoseDu
         DebugDump {
             slot: slot_name.to_string(),
             world_vertices: skeleton
-                .slot_vertex_attachment_world_vertices(i)
+                .slot_attachment_world_vertices(i)
                 .unwrap_or_default(),
         }
     });
