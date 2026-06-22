@@ -256,6 +256,8 @@ flowchart TB
 
 **Recent update:** Commit `e3e96c0` aligned the public local-transform update wrappers with C++ `BonePose::updateLocalTransform` by keeping the world epoch current after rebuilding applied local state.
 
+**Recent update:** Commit `d374ddf` added the C++-style `Bone::is_y_down/set_y_down` global control and routed `Skeleton::scale_y()` plus BonePose transform math through the effective scaleY while preserving the repo's default Y-up baseline.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.

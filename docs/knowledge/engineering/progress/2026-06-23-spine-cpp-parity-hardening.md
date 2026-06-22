@@ -16,7 +16,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 
 # Verified State
 
-- Full parity gate passed on 2026-06-23: `566 passed, 10 skipped`.
+- Full parity gate passed on 2026-06-23: `567 passed, 10 skipped`.
 - U2 cleanup commit `fbc85eb` deleted 634 lines of disabled Skeleton legacy solver code.
 - U3 dispatch cleanup commit `73edc54` moved `AnimationState` timeline application onto shared internal dispatch helpers in `animation.rs`.
 - U4 parser cleanup commit `48518a5` moved binary animation timeline-order recording onto `TimelineOrderBuilder`; JSON keeps its existing local lookup/order builders.
@@ -57,6 +57,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U6 BonePose helper public-surface commit `c20ab80` exposed `Bone::child_indices`, parent-space point transforms, local/world rotation transforms, and `rotate_world`, covering the remaining read-only/math helper surface from C++ `Bone`/`BonePose`.
 - U6 BonePose update/local public-surface commit `b2cadd4` exposed single-bone world/local transform update, validation, and modification marker helpers through `Skeleton`, covering C++ `BonePose` update/cache helpers without exposing the raw update counter.
 - U6 BonePose local-update epoch fix commit `e3e96c0` made public local-transform updates keep the world epoch current, matching C++ `BonePose::updateLocalTransform`.
+- U6 y-down scale control commit `d374ddf` exposed `Bone::is_y_down/set_y_down` and routed `Skeleton::scale_y()` plus BonePose transform math through the effective C++ scaleY while preserving the default Y-up baseline.
 - Post-U2 verification passed:
   - `cargo fmt --all --check`
   - `git diff --check`
@@ -375,6 +376,19 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
   - `cargo check -p spine2d-wgpu --examples --features json`
   - `cargo check -p spine2d-web`
   - `e3e96c0` additionally strengthened the local-transform test so same-epoch world transforms are not clobbered after local validation.
+- Post-U6 y-down scale control verification passed:
+  - `cargo fmt --all --check`
+  - `git diff --check`
+  - `cargo check -p spine2d --features json,binary,upstream-smoke`
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke bone_y_down_switch_controls_skeleton_scale_y --no-fail-fast --status-level fail` (`1 passed, 576 skipped`)
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` (`567 passed, 10 skipped`)
+  - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`
+  - `cargo check -p spine2d-bevy`
+  - `cargo check -p spine2d-bevy --examples`
+  - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` (`42 passed, 0 skipped`)
+  - `cargo check -p spine2d-wgpu`
+  - `cargo check -p spine2d-wgpu --examples --features json`
+  - `cargo check -p spine2d-web`
 - The worktree was clean before creating the hardening plan and memory updates.
 - Existing golden metadata is intentionally not rewritten unless assets or oracle outputs are regenerated.
 
@@ -385,11 +399,11 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U3 is complete: timeline dispatch is centralized behind internal runtime/state helpers, while `AnimationState` keeps only policy decisions for alpha, hold, additive, thresholds, and draw-order output.
 - U4 is complete: binary parser timeline-order ownership is centralized behind `TimelineOrderBuilder`, and JSON already had explicit local lookup/order builders.
 - U5 is complete: the shared `TrackEntrySettings` value object is now owned by the core runtime and used by Bevy, direct `TrackEntry` field exposure has been removed, and delay setter branches now follow the official C++ shape. The final numeric setter audit found no additional guard changes needed because `spine-cpp` setters are intentionally sparse.
-- U6 is in progress: path constraint scratch storage, capacity estimation, path attachment lookup, path world-position calculation, path apply, and private path curve helpers have moved into `skeleton::path`; update-cache ordering, debug formatting, and read-only public cache inspection have moved into `skeleton::cache`; `Bone` plus BonePose-equivalent world/local transform helpers, root/child world-transform math, `modifyWorld`, `modifyLocal`, child reset, applied-transform decomposition, and the bone world-update entry have moved into `skeleton::bone`; `Bone` now also exposes C++-style child-index, parent-space point, local/world rotation, and world-matrix rotation helpers; `Skeleton` exposes C++-style single-bone BonePose update/local validation and modification marker helpers without the raw update counter; `Slot` has moved into `skeleton::slot`; IK, transform, physics, and slider runtime constraint types and solver helpers have moved into `skeleton::ik`, `skeleton::transform`, `skeleton::physics`, and `skeleton::slider`; generic attachment world-vertices computation has moved into `skeleton::vertices`; `Skeleton` container/state fields have been narrowed behind accessors and official-style color, position, and scale setters; `Bone` local pose, applied pose, active state, and world-transform fields have been narrowed behind accessors and setters; `Slot` pose fields have been narrowed behind accessors and setters; runtime IK, transform, path, physics, and slider constraint pose surfaces have been narrowed behind accessors and setters; official C++ physics translate/rotate controls have been added at both `Skeleton` and `PhysicsConstraint` levels; Skeleton wind/gravity/time/update and skin switching now follow direct C++ setter/no-op semantics; `Skeleton::set_skin` no longer returns a `Result`; `Skeleton::skin()` now returns current `SkinData`; `Skeleton::constraints()` exposes ordered typed constraint refs; named root/bone/slot lookup plus attachment convenience helpers have been added; a no-clipper `Skeleton::bounds` helper now computes active region/mesh AABBs in draw order; `Skeleton::bounds_with_clipping` now mirrors the optional clipper-aware bounds overload; explicit by-name constraint lookup helpers now exist for IK, transform, path, physics, and slider constraints; official-style setup pose split APIs now exist and empty setup attachments reset sequence state like `spine-cpp`; the old `set_to_setup_pose` compatibility alias and dead `Error::UnknownSkin` path have been removed.
+- U6 is in progress: path constraint scratch storage, capacity estimation, path attachment lookup, path world-position calculation, path apply, and private path curve helpers have moved into `skeleton::path`; update-cache ordering, debug formatting, and read-only public cache inspection have moved into `skeleton::cache`; `Bone` plus BonePose-equivalent world/local transform helpers, root/child world-transform math, `modifyWorld`, `modifyLocal`, child reset, applied-transform decomposition, and the bone world-update entry have moved into `skeleton::bone`; `Bone` now also exposes C++-style child-index, parent-space point, local/world rotation, world-matrix rotation, and y-down scale controls; `Skeleton` exposes C++-style single-bone BonePose update/local validation and modification marker helpers without the raw update counter, and its world/local transform math honors the effective C++ scaleY; `Slot` has moved into `skeleton::slot`; IK, transform, physics, and slider runtime constraint types and solver helpers have moved into `skeleton::ik`, `skeleton::transform`, `skeleton::physics`, and `skeleton::slider`; generic attachment world-vertices computation has moved into `skeleton::vertices`; `Skeleton` container/state fields have been narrowed behind accessors and official-style color, position, and scale setters; `Bone` local pose, applied pose, active state, and world-transform fields have been narrowed behind accessors and setters; `Slot` pose fields have been narrowed behind accessors and setters; runtime IK, transform, path, physics, and slider constraint pose surfaces have been narrowed behind accessors and setters; official C++ physics translate/rotate controls have been added at both `Skeleton` and `PhysicsConstraint` levels; Skeleton wind/gravity/time/update and skin switching now follow direct C++ setter/no-op semantics; `Skeleton::set_skin` no longer returns a `Result`; `Skeleton::skin()` now returns current `SkinData`; `Skeleton::constraints()` exposes ordered typed constraint refs; named root/bone/slot lookup plus attachment convenience helpers have been added; a no-clipper `Skeleton::bounds` helper now computes active region/mesh AABBs in draw order; `Skeleton::bounds_with_clipping` now mirrors the optional clipper-aware bounds overload; explicit by-name constraint lookup helpers now exist for IK, transform, path, physics, and slider constraints; official-style setup pose split APIs now exist and empty setup attachments reset sequence state like `spine-cpp`; the old `set_to_setup_pose` compatibility alias and dead `Error::UnknownSkin` path have been removed.
 
 # Next Action
 
-Audit the remaining `Bone.h`/`Skeleton.h` public/protected surface, especially whether C++ `Bone::isYDown/setYDown` needs a Rust equivalent. Keep the same verification shape: focused tests first, then the full core parity gate.
+Audit the remaining `Skeleton.h` debug/internal public helpers and decide whether any more low-risk surface should be exposed or deleted. Keep the same verification shape: focused tests first, then the full core parity gate.
 
 # Citations
 
