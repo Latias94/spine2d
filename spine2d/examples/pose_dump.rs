@@ -82,9 +82,9 @@ fn main() {
             json!({
                 "i": i,
                 "name": name,
-                "active": if bone.active { 1 } else { 0 },
-                "world": {"a": bone.a, "b": bone.b, "c": bone.c, "d": bone.d, "x": bone.world_x, "y": bone.world_y},
-                "applied": {"x": bone.ax, "y": bone.ay, "rotation": bone.arotation, "scaleX": bone.ascale_x, "scaleY": bone.ascale_y, "shearX": bone.ashear_x, "shearY": bone.ashear_y},
+                "active": if bone.is_active() { 1 } else { 0 },
+                "world": {"a": bone.a(), "b": bone.b(), "c": bone.c(), "d": bone.d(), "x": bone.world_x(), "y": bone.world_y()},
+                "applied": {"x": bone.applied_x(), "y": bone.applied_y(), "rotation": bone.applied_rotation(), "scaleX": bone.applied_scale_x(), "scaleY": bone.applied_scale_y(), "shearX": bone.applied_shear_x(), "shearY": bone.applied_shear_y()},
             })
         })
         .collect();

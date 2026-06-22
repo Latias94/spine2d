@@ -106,6 +106,75 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
 }
 
 #[test]
+fn bone_accessors_expose_local_applied_and_world_pose() {
+    let data = Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: Vec::new(),
+        skins: HashMap::new(),
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    });
+
+    let mut skeleton = Skeleton::new(data);
+    let bone = &mut skeleton.bones_mut()[0];
+
+    assert!(bone.is_active());
+    bone.set_active(false);
+    assert!(!bone.is_active());
+
+    bone.set_inherit(Inherit::OnlyTranslation);
+    bone.set_position(1.0, 2.0);
+    bone.set_rotation(3.0);
+    bone.set_scale(4.0, 5.0);
+    bone.set_shear_x(6.0);
+    bone.set_shear_y(7.0);
+    assert_eq!(bone.inherit(), Inherit::OnlyTranslation);
+    assert_eq!(bone.position(), (1.0, 2.0));
+    assert_eq!(bone.rotation(), 3.0);
+    assert_eq!(bone.scale(), (4.0, 5.0));
+    assert_eq!(bone.shear_x(), 6.0);
+    assert_eq!(bone.shear_y(), 7.0);
+
+    bone.set_applied_position(8.0, 9.0);
+    bone.set_applied_rotation(10.0);
+    bone.set_applied_scale(11.0, 12.0);
+    bone.set_applied_shear(13.0, 14.0);
+    assert_eq!(bone.applied_position(), (8.0, 9.0));
+    assert_eq!(bone.applied_rotation(), 10.0);
+    assert_eq!(bone.applied_scale(), (11.0, 12.0));
+    assert_eq!(bone.applied_shear(), (13.0, 14.0));
+
+    bone.set_a(3.0);
+    bone.set_b(0.0);
+    bone.set_c(4.0);
+    bone.set_d(2.0);
+    bone.set_world_position(15.0, 16.0);
+    assert_eq!(bone.a(), 3.0);
+    assert_eq!(bone.b(), 0.0);
+    assert_eq!(bone.c(), 4.0);
+    assert_eq!(bone.d(), 2.0);
+    assert_eq!(bone.world_position(), (15.0, 16.0));
+    assert_approx(bone.world_scale_x(), 5.0);
+    assert_approx(bone.world_scale_y(), 2.0);
+    assert_approx(bone.world_rotation_x(), 4.0f32.atan2(3.0).to_degrees());
+    assert_approx(bone.world_rotation_y(), 90.0);
+}
+
+#[test]
 fn update_world_transform_root_and_child() {
     let data = Arc::new(SkeletonData {
         spine_version: None,

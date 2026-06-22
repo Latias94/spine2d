@@ -5,31 +5,31 @@ pub struct Bone {
     pub(super) data_index: usize,
     pub(super) parent: Option<usize>,
 
-    pub inherit: crate::Inherit,
-    pub active: bool,
+    pub(crate) inherit: crate::Inherit,
+    pub(crate) active: bool,
 
-    pub x: f32,
-    pub y: f32,
-    pub rotation: f32,
-    pub scale_x: f32,
-    pub scale_y: f32,
-    pub shear_x: f32,
-    pub shear_y: f32,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) rotation: f32,
+    pub(crate) scale_x: f32,
+    pub(crate) scale_y: f32,
+    pub(crate) shear_x: f32,
+    pub(crate) shear_y: f32,
 
-    pub ax: f32,
-    pub ay: f32,
-    pub arotation: f32,
-    pub ascale_x: f32,
-    pub ascale_y: f32,
-    pub ashear_x: f32,
-    pub ashear_y: f32,
+    pub(crate) ax: f32,
+    pub(crate) ay: f32,
+    pub(crate) arotation: f32,
+    pub(crate) ascale_x: f32,
+    pub(crate) ascale_y: f32,
+    pub(crate) ashear_x: f32,
+    pub(crate) ashear_y: f32,
 
-    pub a: f32,
-    pub b: f32,
-    pub c: f32,
-    pub d: f32,
-    pub world_x: f32,
-    pub world_y: f32,
+    pub(crate) a: f32,
+    pub(crate) b: f32,
+    pub(crate) c: f32,
+    pub(crate) d: f32,
+    pub(crate) world_x: f32,
+    pub(crate) world_y: f32,
 
     pub(super) world_epoch: u32,
     pub(super) local_epoch: u32,
@@ -42,6 +42,252 @@ impl Bone {
 
     pub fn parent_index(&self) -> Option<usize> {
         self.parent
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+
+    pub fn set_active(&mut self, active: bool) {
+        self.active = active;
+    }
+
+    pub fn inherit(&self) -> crate::Inherit {
+        self.inherit
+    }
+
+    pub fn set_inherit(&mut self, inherit: crate::Inherit) {
+        self.inherit = inherit;
+    }
+
+    pub fn x(&self) -> f32 {
+        self.x
+    }
+
+    pub fn set_x(&mut self, x: f32) {
+        self.x = x;
+    }
+
+    pub fn y(&self) -> f32 {
+        self.y
+    }
+
+    pub fn set_y(&mut self, y: f32) {
+        self.y = y;
+    }
+
+    pub fn position(&self) -> (f32, f32) {
+        (self.x, self.y)
+    }
+
+    pub fn set_position(&mut self, x: f32, y: f32) {
+        self.x = x;
+        self.y = y;
+    }
+
+    pub fn rotation(&self) -> f32 {
+        self.rotation
+    }
+
+    pub fn set_rotation(&mut self, rotation: f32) {
+        self.rotation = rotation;
+    }
+
+    pub fn scale_x(&self) -> f32 {
+        self.scale_x
+    }
+
+    pub fn set_scale_x(&mut self, scale_x: f32) {
+        self.scale_x = scale_x;
+    }
+
+    pub fn scale_y(&self) -> f32 {
+        self.scale_y
+    }
+
+    pub fn set_scale_y(&mut self, scale_y: f32) {
+        self.scale_y = scale_y;
+    }
+
+    pub fn scale(&self) -> (f32, f32) {
+        (self.scale_x, self.scale_y)
+    }
+
+    pub fn set_scale(&mut self, scale_x: f32, scale_y: f32) {
+        self.scale_x = scale_x;
+        self.scale_y = scale_y;
+    }
+
+    pub fn shear_x(&self) -> f32 {
+        self.shear_x
+    }
+
+    pub fn set_shear_x(&mut self, shear_x: f32) {
+        self.shear_x = shear_x;
+    }
+
+    pub fn shear_y(&self) -> f32 {
+        self.shear_y
+    }
+
+    pub fn set_shear_y(&mut self, shear_y: f32) {
+        self.shear_y = shear_y;
+    }
+
+    pub fn applied_x(&self) -> f32 {
+        self.ax
+    }
+
+    pub fn set_applied_x(&mut self, x: f32) {
+        self.ax = x;
+    }
+
+    pub fn applied_y(&self) -> f32 {
+        self.ay
+    }
+
+    pub fn set_applied_y(&mut self, y: f32) {
+        self.ay = y;
+    }
+
+    pub fn applied_position(&self) -> (f32, f32) {
+        (self.ax, self.ay)
+    }
+
+    pub fn set_applied_position(&mut self, x: f32, y: f32) {
+        self.ax = x;
+        self.ay = y;
+    }
+
+    pub fn applied_rotation(&self) -> f32 {
+        self.arotation
+    }
+
+    pub fn set_applied_rotation(&mut self, rotation: f32) {
+        self.arotation = rotation;
+    }
+
+    pub fn applied_scale_x(&self) -> f32 {
+        self.ascale_x
+    }
+
+    pub fn set_applied_scale_x(&mut self, scale_x: f32) {
+        self.ascale_x = scale_x;
+    }
+
+    pub fn applied_scale_y(&self) -> f32 {
+        self.ascale_y
+    }
+
+    pub fn set_applied_scale_y(&mut self, scale_y: f32) {
+        self.ascale_y = scale_y;
+    }
+
+    pub fn applied_scale(&self) -> (f32, f32) {
+        (self.ascale_x, self.ascale_y)
+    }
+
+    pub fn set_applied_scale(&mut self, scale_x: f32, scale_y: f32) {
+        self.ascale_x = scale_x;
+        self.ascale_y = scale_y;
+    }
+
+    pub fn applied_shear_x(&self) -> f32 {
+        self.ashear_x
+    }
+
+    pub fn set_applied_shear_x(&mut self, shear_x: f32) {
+        self.ashear_x = shear_x;
+    }
+
+    pub fn applied_shear_y(&self) -> f32 {
+        self.ashear_y
+    }
+
+    pub fn set_applied_shear_y(&mut self, shear_y: f32) {
+        self.ashear_y = shear_y;
+    }
+
+    pub fn applied_shear(&self) -> (f32, f32) {
+        (self.ashear_x, self.ashear_y)
+    }
+
+    pub fn set_applied_shear(&mut self, shear_x: f32, shear_y: f32) {
+        self.ashear_x = shear_x;
+        self.ashear_y = shear_y;
+    }
+
+    pub fn a(&self) -> f32 {
+        self.a
+    }
+
+    pub fn set_a(&mut self, a: f32) {
+        self.a = a;
+    }
+
+    pub fn b(&self) -> f32 {
+        self.b
+    }
+
+    pub fn set_b(&mut self, b: f32) {
+        self.b = b;
+    }
+
+    pub fn c(&self) -> f32 {
+        self.c
+    }
+
+    pub fn set_c(&mut self, c: f32) {
+        self.c = c;
+    }
+
+    pub fn d(&self) -> f32 {
+        self.d
+    }
+
+    pub fn set_d(&mut self, d: f32) {
+        self.d = d;
+    }
+
+    pub fn world_x(&self) -> f32 {
+        self.world_x
+    }
+
+    pub fn set_world_x(&mut self, world_x: f32) {
+        self.world_x = world_x;
+    }
+
+    pub fn world_y(&self) -> f32 {
+        self.world_y
+    }
+
+    pub fn set_world_y(&mut self, world_y: f32) {
+        self.world_y = world_y;
+    }
+
+    pub fn world_position(&self) -> (f32, f32) {
+        (self.world_x, self.world_y)
+    }
+
+    pub fn set_world_position(&mut self, world_x: f32, world_y: f32) {
+        self.world_x = world_x;
+        self.world_y = world_y;
+    }
+
+    pub fn world_rotation_x(&self) -> f32 {
+        atan2_degrees(self.c, self.a)
+    }
+
+    pub fn world_rotation_y(&self) -> f32 {
+        atan2_degrees(self.d, self.b)
+    }
+
+    pub fn world_scale_x(&self) -> f32 {
+        sqrt_f32(self.a * self.a + self.c * self.c)
+    }
+
+    pub fn world_scale_y(&self) -> f32 {
+        sqrt_f32(self.b * self.b + self.d * self.d)
     }
 
     /// Transforms a point from world coordinates into this bone's local coordinates.
