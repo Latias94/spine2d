@@ -213,6 +213,8 @@ flowchart TB
 
 **Goal:** Move public mutation toward value-object settings and validated methods instead of broad field access.
 
+**Status:** In progress. Commit `e1e827f` moved entry settings into core `TrackEntrySettings`, changed Bevy to alias that value object, deleted unused Rust-only completion flags, and added coverage for negative delay plus `spine-cpp`-style `setMixDuration(mixDuration, delay)`.
+
 **Requirements:** R1, R2, R8.
 
 **Dependencies:** U3.
