@@ -248,6 +248,8 @@ flowchart TB
 
 **Recent update:** Commit `f0903f1` added `Skeleton::update_cache_items()` and public `UpdateCacheItem`, exposing a read-only Rust equivalent of C++ `getUpdateCache()`.
 
+**Recent update:** Commit `295c836` added `Skeleton::constraints()` and public `ConstraintRef`, exposing a read-only ordered Rust equivalent of C++ `getConstraints()`.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
