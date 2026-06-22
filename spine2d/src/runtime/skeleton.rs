@@ -7,6 +7,8 @@ mod slider;
 mod transform;
 mod vertices;
 
+pub use bone::Bone;
+
 use crate::SkeletonData;
 use cache::UpdateCacheItem;
 use path::{PathConstraintScratch, estimate_path_attachment_scratch_capacities};
@@ -34,51 +36,6 @@ fn sin_f32(v: f32) -> f32 {
 
 fn cos_f32(v: f32) -> f32 {
     (v as f64).cos() as f32
-}
-
-#[derive(Clone, Debug)]
-pub struct Bone {
-    data_index: usize,
-    parent: Option<usize>,
-
-    pub inherit: crate::Inherit,
-    pub active: bool,
-
-    pub x: f32,
-    pub y: f32,
-    pub rotation: f32,
-    pub scale_x: f32,
-    pub scale_y: f32,
-    pub shear_x: f32,
-    pub shear_y: f32,
-
-    pub ax: f32,
-    pub ay: f32,
-    pub arotation: f32,
-    pub ascale_x: f32,
-    pub ascale_y: f32,
-    pub ashear_x: f32,
-    pub ashear_y: f32,
-
-    pub a: f32,
-    pub b: f32,
-    pub c: f32,
-    pub d: f32,
-    pub world_x: f32,
-    pub world_y: f32,
-
-    world_epoch: u32,
-    local_epoch: u32,
-}
-
-impl Bone {
-    pub fn data_index(&self) -> usize {
-        self.data_index
-    }
-
-    pub fn parent_index(&self) -> Option<usize> {
-        self.parent
-    }
 }
 
 #[derive(Clone, Debug)]

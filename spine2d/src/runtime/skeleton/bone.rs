@@ -1,6 +1,49 @@
-use super::{Bone, Skeleton, atan2_degrees, cos_f32, sin_f32, sqrt_f32};
+use super::{Skeleton, atan2_degrees, cos_f32, sin_f32, sqrt_f32};
+
+#[derive(Clone, Debug)]
+pub struct Bone {
+    pub(super) data_index: usize,
+    pub(super) parent: Option<usize>,
+
+    pub inherit: crate::Inherit,
+    pub active: bool,
+
+    pub x: f32,
+    pub y: f32,
+    pub rotation: f32,
+    pub scale_x: f32,
+    pub scale_y: f32,
+    pub shear_x: f32,
+    pub shear_y: f32,
+
+    pub ax: f32,
+    pub ay: f32,
+    pub arotation: f32,
+    pub ascale_x: f32,
+    pub ascale_y: f32,
+    pub ashear_x: f32,
+    pub ashear_y: f32,
+
+    pub a: f32,
+    pub b: f32,
+    pub c: f32,
+    pub d: f32,
+    pub world_x: f32,
+    pub world_y: f32,
+
+    pub(super) world_epoch: u32,
+    pub(super) local_epoch: u32,
+}
 
 impl Bone {
+    pub fn data_index(&self) -> usize {
+        self.data_index
+    }
+
+    pub fn parent_index(&self) -> Option<usize> {
+        self.parent
+    }
+
     /// Transforms a point from world coordinates into this bone's local coordinates.
     ///
     /// Mirrors the official runtimes' `BonePose.worldToLocal`.
