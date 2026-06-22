@@ -276,6 +276,8 @@ flowchart TB
 
 **Recent update:** Commit `b3ca6c1` added official-style `SkinData` attachment helpers (`set_attachment`, `remove_attachment`, names/attachments/entries queries) and routed `add_skin` through the growable set path used by C++ `Skin::setAttachment`.
 
+**Recent update:** Commit `7cd8d8c` removed the Rust-only success return from `Skeleton::set_attachment`, matching C++ `Skeleton::setAttachment` as a void method with no-op-on-miss behavior.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.

@@ -73,6 +73,7 @@ status: "active"
   - Removed runtime `Slot` blend storage in breaking commit `9afff8b`; rendering now reads blend mode from `SlotData`, matching C++ `SlotData::getBlendMode()`.
   - Aligned public attachment mutation in commit `4f8b351`; `Skeleton::set_attachment`, `set_skin` attachAll paths, and animation attachment timelines now share the C++ `SlotPose::setAttachment` deform-clear rule based on vertex timeline attachment identity.
   - Added official-style `SkinData` attachment helpers in commit `b3ca6c1`; `set_attachment` grows slot storage like C++ `Skin::setAttachment`, and remove/find/list helpers are now available for runtime composition.
+  - Removed the Rust-only `Skeleton::set_attachment` success return in breaking commit `7cd8d8c`; the method now matches C++ void/no-op semantics.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
