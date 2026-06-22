@@ -13,7 +13,7 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `557 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `558 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `42 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu`, `cargo check -p spine2d-wgpu --examples --features json`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
@@ -54,12 +54,13 @@ status: "active"
   - Added official-style constraint lookup helpers in commit `fed0975`; `Skeleton` now exposes explicit by-name find/index/mut helpers for IK, transform, path, physics, and slider constraints.
   - Added official-style setup pose split APIs in commit `955cc27`; `Skeleton` now exposes `setup_pose`, `setup_pose_bones`, and `setup_pose_slots`, and empty setup attachments reset `sequenceIndex` like `spine-cpp`.
   - Removed the legacy `Skeleton::set_to_setup_pose` alias in breaking commit `c385349`; internal tests, examples, and backend callers now use `setup_pose` directly.
+  - Added clipping-aware bounds in commit `43c5503`; `Skeleton::bounds_with_clipping` now matches the official optional `SkeletonClipping` bounds overload while `bounds()` remains the no-clipper default.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: tackle clipping-aware `getBounds` as a separate geometry slice, or explicitly defer it if exposing/reusing `SkeletonClipper` would make the slice too large.
+  - Continue U6: rescan `spine-cpp/include/spine/Skeleton.h` and current Rust exports for remaining actionable Skeleton public API or solver-boundary gaps.
 
 # Citations
 
