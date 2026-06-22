@@ -26,12 +26,14 @@ status: "active"
   - Centralized runtime timeline dispatch in commit `73edc54`; `AnimationState` now delegates concrete `TimelineKind` application to internal helpers in `animation.rs`.
   - Centralized binary parser timeline-order registration in commit `48518a5`; JSON already uses a local order reconstruction boundary.
   - Centralized track entry settings in commit `e1e827f`; Bevy now aliases the core runtime settings value object, and queued delay/mix-duration handling follows the `spine-cpp` two-argument `setMixDuration` rule.
+  - Hid `TrackEntry` fields in commit `fc1c241`; external code now reads entry state through getters instead of broad public fields.
+  - Preserved `spine-cpp` delay branch behavior in commit `f36cfa7`; negative delay is special-cased without coercing non-comparable delay values.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U5 from the hardening plan: narrow direct `TrackEntry` field exposure and setter validation against `spine-cpp/include/spine/AnimationState.h`.
+  - Finish U5 numeric setter audit, then move to Skeleton solver extraction.
 
 # Citations
 

@@ -21,6 +21,8 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U3 dispatch cleanup commit `73edc54` moved `AnimationState` timeline application onto shared internal dispatch helpers in `animation.rs`.
 - U4 parser cleanup commit `48518a5` moved binary animation timeline-order recording onto `TimelineOrderBuilder`; JSON keeps its existing local lookup/order builders.
 - U5 settings cleanup commit `e1e827f` moved track entry settings application into the core runtime, replaced the Bevy settings implementation with an alias, and aligned queued delay/mix-duration adjustment with `spine-cpp`.
+- U5 field cleanup commit `fc1c241` made `TrackEntry` state private and exposed read-only getters for external tests and Bevy.
+- U5 delay cleanup commit `f36cfa7` preserved the `spine-cpp` delay branch shape for handle setters by special-casing negative delay without forcing non-comparable values through the queued-delay formula.
 - Post-U2 verification passed:
   - `cargo fmt --all --check`
   - `git diff --check`
@@ -39,6 +41,12 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast` (`546 passed, 10 skipped`)
   - `cargo nextest run -p spine2d-bevy --no-fail-fast` (`42 passed, 0 skipped`)
   - `cargo check -p spine2d-bevy`
+- Post-U5 field/delay-slice verification passed:
+  - `cargo check -p spine2d --features json,binary,upstream-smoke`
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke animation_state animation --no-fail-fast` (`78 passed, 478 skipped`)
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast` (`546 passed, 10 skipped`)
+  - `cargo nextest run -p spine2d-bevy --no-fail-fast` (`42 passed, 0 skipped`)
+  - `cargo check -p spine2d-bevy`
 - The worktree was clean before creating the hardening plan and memory updates.
 - Existing golden metadata is intentionally not rewritten unless assets or oracle outputs are regenerated.
 
@@ -48,11 +56,11 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U2 is complete: disabled `#[cfg(any())]` Skeleton legacy code has been removed.
 - U3 is complete: timeline dispatch is centralized behind internal runtime/state helpers, while `AnimationState` keeps only policy decisions for alpha, hold, additive, thresholds, and draw-order output.
 - U4 is complete: binary parser timeline-order ownership is centralized behind `TimelineOrderBuilder`, and JSON already had explicit local lookup/order builders.
-- U5 is in progress: the shared `TrackEntrySettings` value object is now owned by the core runtime and used by Bevy; remaining U5 work is to narrow direct `TrackEntry` field exposure and setter validation.
+- U5 is in progress: the shared `TrackEntrySettings` value object is now owned by the core runtime and used by Bevy, direct `TrackEntry` field exposure has been removed, and delay setter branches now follow the official C++ shape. Remaining U5 work is a final numeric setter audit.
 
 # Next Action
 
-Audit direct `TrackEntry` field reads and handle setters against `spine-cpp/include/spine/AnimationState.h`. Prefer explicit getters, snapshots, or settings methods over broad public fields where external mutation is not part of the intended runtime contract.
+Audit numeric handle setters and queued entry APIs against `spine-cpp/include/spine/AnimationState.h`. Decide whether Rust should reject non-finite mix/delay values with `Error::InvalidValue` or silently match C++ setter behavior where official code has no guard.
 
 # Citations
 
