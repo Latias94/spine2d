@@ -2688,32 +2688,6 @@ pub(crate) fn apply_attachment(
     }
 }
 
-fn resolve_attachment_source_skin<'a>(
-    skeleton: &'a Skeleton,
-    slot_index: usize,
-    name: &str,
-) -> Option<&'a str> {
-    let skin_name = skeleton.skin.as_deref();
-    if let Some(skin_name) = skin_name {
-        if let Some(skin) = skeleton.data.skin(skin_name)
-            && skin.attachment(slot_index, name).is_some()
-        {
-            return Some(skin_name);
-        }
-        if skin_name != "default"
-            && let Some(default_skin) = skeleton.data.skin("default")
-            && default_skin.attachment(slot_index, name).is_some()
-        {
-            return Some("default");
-        }
-    } else if let Some(default_skin) = skeleton.data.skin("default")
-        && default_skin.attachment(slot_index, name).is_some()
-    {
-        return Some("default");
-    }
-    None
-}
-
 fn set_attachment(
     skeleton: &mut Skeleton,
     slot_index: usize,
@@ -2722,29 +2696,6 @@ fn set_attachment(
     unkeyed_state: i32,
     applied_pose: bool,
 ) {
-    fn attachment_timeline_key(
-        skeleton: &Skeleton,
-        slot_index: usize,
-        source_skin: &str,
-        key: &str,
-    ) -> Option<(bool, String, String)> {
-        let skin = skeleton.data.skin(source_skin)?;
-        let att = skin.attachment(slot_index, key)?;
-        match att {
-            crate::AttachmentData::Mesh(m) => {
-                Some((true, m.timeline_skin.clone(), m.timeline_attachment.clone()))
-            }
-            crate::AttachmentData::Path(_)
-            | crate::AttachmentData::BoundingBox(_)
-            | crate::AttachmentData::Clipping(_) => {
-                Some((true, source_skin.to_string(), key.to_string()))
-            }
-            crate::AttachmentData::Region(_) | crate::AttachmentData::Point(_) => {
-                Some((false, source_skin.to_string(), key.to_string()))
-            }
-        }
-    }
-
     let (old_key, old_skin) = skeleton
         .slot_pose_ref(slot_index, applied_pose)
         .map(|pose| {
@@ -2756,8 +2707,8 @@ fn set_attachment(
         .unwrap_or((None, None));
 
     let (new_key, new_skin) = if let Some(name) = name {
-        if let Some(source_skin) = resolve_attachment_source_skin(skeleton, slot_index, name) {
-            (Some(name.to_string()), Some(source_skin.to_string()))
+        if let Some(source_skin) = skeleton.attachment_source_skin_name(slot_index, name) {
+            (Some(name.to_string()), Some(source_skin))
         } else {
             (None, None)
         }
@@ -2765,25 +2716,13 @@ fn set_attachment(
         (None, None)
     };
 
-    let clear_deform = if old_key == new_key && old_skin == new_skin {
-        false
-    } else {
-        match (
-            old_key
-                .as_deref()
-                .zip(old_skin.as_deref())
-                .and_then(|(k, s)| attachment_timeline_key(skeleton, slot_index, s, k)),
-            new_key
-                .as_deref()
-                .zip(new_skin.as_deref())
-                .and_then(|(k, s)| attachment_timeline_key(skeleton, slot_index, s, k)),
-        ) {
-            (Some((old_vertex, old_skin, old_key)), Some((new_vertex, new_skin, new_key))) => {
-                !(old_vertex && new_vertex && old_skin == new_skin && old_key == new_key)
-            }
-            _ => true,
-        }
-    };
+    let clear_deform = skeleton.attachment_change_clears_deform(
+        slot_index,
+        old_key.as_deref(),
+        old_skin.as_deref(),
+        new_key.as_deref(),
+        new_skin.as_deref(),
+    );
 
     let Some(slot) = skeleton.slots.get_mut(slot_index) else {
         return;

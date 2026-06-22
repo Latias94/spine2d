@@ -65,6 +65,32 @@ fn region_attachment(name: &str, color: [f32; 4]) -> AttachmentData {
     })
 }
 
+fn mesh_attachment(
+    name: &str,
+    timeline_skin: &str,
+    timeline_attachment: &str,
+    vertex_id: u32,
+) -> AttachmentData {
+    AttachmentData::Mesh(MeshAttachmentData {
+        vertex_id,
+        name: name.to_string(),
+        path: name.to_string(),
+        timeline_skin: timeline_skin.to_string(),
+        timeline_attachment: timeline_attachment.to_string(),
+        timeline_slots: vec![0],
+        sequence: None,
+        color: [1.0, 1.0, 1.0, 1.0],
+        vertices: MeshVertices::Unweighted(vec![
+            [-1.0, -1.0],
+            [1.0, -1.0],
+            [1.0, 1.0],
+            [-1.0, 1.0],
+        ]),
+        uvs: vec![[0.0, 0.0]; 4],
+        triangles: vec![0, 1, 2, 2, 3, 0],
+    })
+}
+
 fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
     let mut default_skin = SkinData::new("default", 2);
     default_skin.attachments[0].insert(
@@ -119,6 +145,104 @@ fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
                 ..Default::default()
             },
         ],
+        skins,
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    })
+}
+
+fn linked_mesh_attachment_skeleton_data() -> Arc<SkeletonData> {
+    let mut default_skin = SkinData::new("default", 1);
+    default_skin.attachments[0].insert(
+        "parent".to_string(),
+        mesh_attachment("parent", "default", "parent", 1),
+    );
+    default_skin.attachments[0].insert(
+        "child".to_string(),
+        mesh_attachment("child", "default", "parent", 2),
+    );
+    default_skin.attachments[0].insert(
+        "other".to_string(),
+        mesh_attachment("other", "default", "other", 3),
+    );
+
+    let mut skins = HashMap::new();
+    skins.insert("default".to_string(), default_skin);
+
+    Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: vec![SlotData {
+            name: "slot0".to_string(),
+            bone: 0,
+            attachment: Some("parent".to_string()),
+            ..Default::default()
+        }],
+        skins,
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    })
+}
+
+fn skin_switch_linked_mesh_skeleton_data() -> Arc<SkeletonData> {
+    let mut default_skin = SkinData::new("default", 1);
+    default_skin.attachments[0].insert(
+        "mesh".to_string(),
+        mesh_attachment("default-mesh", "source", "parent", 0),
+    );
+
+    let mut old_skin = SkinData::new("old", 1);
+    old_skin.attachments[0].insert(
+        "mesh".to_string(),
+        mesh_attachment("old-mesh", "source", "parent", 1),
+    );
+
+    let mut new_skin = SkinData::new("new", 1);
+    new_skin.attachments[0].insert(
+        "mesh".to_string(),
+        mesh_attachment("new-mesh", "source", "parent", 2),
+    );
+
+    let mut skins = HashMap::new();
+    skins.insert("default".to_string(), default_skin);
+    skins.insert("old".to_string(), old_skin);
+    skins.insert("new".to_string(), new_skin);
+
+    Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: vec![SlotData {
+            name: "slot0".to_string(),
+            bone: 0,
+            attachment: Some("mesh".to_string()),
+            ..Default::default()
+        }],
         skins,
         events: HashMap::new(),
         animations: Vec::new(),
@@ -1124,6 +1248,73 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
     assert_eq!(skeleton.slots()[0].sequence_index(), -1);
     assert!(!skeleton.set_attachment("missing", "shared"));
     assert!(!skeleton.set_attachment("", "shared"));
+}
+
+#[test]
+fn skeleton_set_attachment_preserves_deform_for_matching_timeline_attachment() {
+    let mut skeleton = Skeleton::new(linked_mesh_attachment_skeleton_data());
+
+    {
+        let slot = &mut skeleton.slots_mut()[0];
+        slot.deform_mut().extend_from_slice(&[1.0, 2.0, 3.0, 4.0]);
+        slot.set_sequence_index(7);
+    }
+
+    assert!(skeleton.set_attachment("slot0", "child"));
+    assert_eq!(skeleton.slots()[0].attachment_name(), Some("child"));
+    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
+    assert_eq!(skeleton.slots()[0].deform(), &[1.0, 2.0, 3.0, 4.0]);
+
+    skeleton.slots_mut()[0].set_sequence_index(9);
+    assert!(skeleton.set_attachment("slot0", "other"));
+    assert_eq!(skeleton.slots()[0].attachment_name(), Some("other"));
+    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
+    assert!(skeleton.slots()[0].deform().is_empty());
+}
+
+#[test]
+fn skeleton_set_skin_preserves_deform_for_matching_timeline_attachment() {
+    let mut skeleton = Skeleton::new(skin_switch_linked_mesh_skeleton_data());
+
+    skeleton.set_skin(Some("old"));
+    assert_eq!(skeleton.slots()[0].attachment_name(), Some("mesh"));
+    assert_eq!(skeleton.slots()[0].attachment_skin.as_deref(), Some("old"));
+
+    {
+        let slot = &mut skeleton.slots_mut()[0];
+        slot.deform_mut().extend_from_slice(&[5.0, 6.0]);
+        slot.set_sequence_index(4);
+    }
+
+    skeleton.set_skin(Some("new"));
+    assert_eq!(skeleton.skin_name(), Some("new"));
+    assert_eq!(skeleton.slots()[0].attachment_skin.as_deref(), Some("new"));
+    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
+    assert_eq!(skeleton.slots()[0].deform(), &[5.0, 6.0]);
+}
+
+#[test]
+fn skeleton_set_skin_from_default_preserves_deform_for_matching_timeline_attachment() {
+    let mut skeleton = Skeleton::new(skin_switch_linked_mesh_skeleton_data());
+
+    assert_eq!(skeleton.skin_name(), None);
+    assert_eq!(skeleton.slots()[0].attachment_name(), Some("mesh"));
+    assert_eq!(
+        skeleton.slots()[0].attachment_skin.as_deref(),
+        Some("default")
+    );
+
+    {
+        let slot = &mut skeleton.slots_mut()[0];
+        slot.deform_mut().extend_from_slice(&[7.0, 8.0]);
+        slot.set_sequence_index(6);
+    }
+
+    skeleton.set_skin(Some("new"));
+    assert_eq!(skeleton.skin_name(), Some("new"));
+    assert_eq!(skeleton.slots()[0].attachment_skin.as_deref(), Some("new"));
+    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
+    assert_eq!(skeleton.slots()[0].deform(), &[7.0, 8.0]);
 }
 
 #[test]

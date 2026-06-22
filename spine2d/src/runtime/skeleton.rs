@@ -1161,8 +1161,8 @@ impl Skeleton {
         // Spine-cpp: when switching from no skin to a skin, the setup attachment names are
         // applied from the new skin.
         if old_skin.is_none() {
-            if let Some(new_skin) = new_skin {
-                for (slot_index, slot) in self.slots.iter_mut().enumerate() {
+            if let (Some(new_skin_name), Some(new_skin)) = (self.skin.as_deref(), new_skin) {
+                for slot_index in 0..self.slots.len() {
                     let setup_name = self
                         .data
                         .slots
@@ -1172,9 +1172,22 @@ impl Skeleton {
                         continue;
                     };
                     if new_skin.attachment(slot_index, setup_name).is_some() {
+                        let clear_deform = {
+                            let slot = &self.slots[slot_index];
+                            self.attachment_change_clears_deform(
+                                slot_index,
+                                slot.attachment.as_deref(),
+                                slot.attachment_skin.as_deref(),
+                                Some(setup_name),
+                                Some(new_skin_name),
+                            )
+                        };
+                        let slot = &mut self.slots[slot_index];
                         slot.attachment = Some(setup_name.to_string());
-                        slot.attachment_skin = self.skin.clone();
-                        slot.deform.clear();
+                        slot.attachment_skin = Some(new_skin_name.to_string());
+                        if clear_deform {
+                            slot.deform.clear();
+                        }
                         slot.sequence_index = -1;
                     }
                 }
@@ -1186,16 +1199,29 @@ impl Skeleton {
             // attachments currently sourced from the old skin are replaced by attachments from the
             // new skin with the same key (if present). Attachments not present in the new skin are
             // kept as-is.
-            for (slot_index, slot) in self.slots.iter_mut().enumerate() {
-                let Some(current_key) = slot.attachment.as_deref() else {
+            for slot_index in 0..self.slots.len() {
+                let Some(current_key) = self.slots[slot_index].attachment.clone() else {
                     continue;
                 };
-                if slot.attachment_skin.as_deref() != Some(old_skin_name) {
+                if self.slots[slot_index].attachment_skin.as_deref() != Some(old_skin_name) {
                     continue;
                 }
-                if new_skin.attachment(slot_index, current_key).is_some() {
+                if new_skin
+                    .attachment(slot_index, current_key.as_str())
+                    .is_some()
+                {
+                    let clear_deform = self.attachment_change_clears_deform(
+                        slot_index,
+                        Some(current_key.as_str()),
+                        Some(old_skin_name),
+                        Some(current_key.as_str()),
+                        Some(new_skin_name),
+                    );
+                    let slot = &mut self.slots[slot_index];
                     slot.attachment_skin = Some(new_skin_name.to_string());
-                    slot.deform.clear();
+                    if clear_deform {
+                        slot.deform.clear();
+                    }
                     slot.sequence_index = -1;
                 }
             }
@@ -1401,13 +1427,25 @@ impl Skeleton {
         };
 
         if attachment_name.is_empty() {
+            let clear_deform = {
+                let slot = &self.slots[slot_index];
+                self.attachment_change_clears_deform(
+                    slot_index,
+                    slot.attachment.as_deref(),
+                    slot.attachment_skin.as_deref(),
+                    None,
+                    None,
+                )
+            };
             let slot = &mut self.slots[slot_index];
             if slot.attachment.is_none() && slot.attachment_skin.is_none() {
                 return false;
             }
             slot.attachment = None;
             slot.attachment_skin = None;
-            slot.deform.clear();
+            if clear_deform {
+                slot.deform.clear();
+            }
             slot.sequence_index = -1;
             return true;
         }
@@ -1416,16 +1454,29 @@ impl Skeleton {
         else {
             return false;
         };
-        let slot = &mut self.slots[slot_index];
-        if slot.attachment.as_deref() == Some(attachment_name)
-            && slot.attachment_skin.as_deref() == Some(source_skin.as_str())
+        let (old_key, old_skin) = {
+            let slot = &self.slots[slot_index];
+            (slot.attachment.clone(), slot.attachment_skin.clone())
+        };
+        if old_key.as_deref() == Some(attachment_name)
+            && old_skin.as_deref() == Some(source_skin.as_str())
         {
             return false;
         }
 
+        let clear_deform = self.attachment_change_clears_deform(
+            slot_index,
+            old_key.as_deref(),
+            old_skin.as_deref(),
+            Some(attachment_name),
+            Some(source_skin.as_str()),
+        );
+        let slot = &mut self.slots[slot_index];
         slot.attachment = Some(attachment_name.to_string());
         slot.attachment_skin = Some(source_skin);
-        slot.deform.clear();
+        if clear_deform {
+            slot.deform.clear();
+        }
         slot.sequence_index = -1;
         true
     }
@@ -1618,7 +1669,7 @@ impl Skeleton {
         has_vertices.then_some((min_x, min_y, max_x - min_x, max_y - min_y))
     }
 
-    fn attachment_source_skin_name(
+    pub(crate) fn attachment_source_skin_name(
         &self,
         slot_index: usize,
         attachment_name: &str,
@@ -1658,6 +1709,58 @@ impl Skeleton {
         }
 
         None
+    }
+
+    pub(crate) fn attachment_timeline_key(
+        &self,
+        slot_index: usize,
+        source_skin: &str,
+        key: &str,
+    ) -> Option<(bool, String, String)> {
+        let skin = self.data.skin(source_skin)?;
+        let attachment = skin.attachment(slot_index, key)?;
+        match attachment {
+            crate::AttachmentData::Mesh(mesh) => Some((
+                true,
+                mesh.timeline_skin.clone(),
+                mesh.timeline_attachment.clone(),
+            )),
+            crate::AttachmentData::Path(_)
+            | crate::AttachmentData::BoundingBox(_)
+            | crate::AttachmentData::Clipping(_) => {
+                Some((true, source_skin.to_string(), key.to_string()))
+            }
+            crate::AttachmentData::Region(_) | crate::AttachmentData::Point(_) => {
+                Some((false, source_skin.to_string(), key.to_string()))
+            }
+        }
+    }
+
+    pub(crate) fn attachment_change_clears_deform(
+        &self,
+        slot_index: usize,
+        old_key: Option<&str>,
+        old_skin: Option<&str>,
+        new_key: Option<&str>,
+        new_skin: Option<&str>,
+    ) -> bool {
+        if old_key == new_key && old_skin == new_skin {
+            return false;
+        }
+
+        match (
+            old_key
+                .zip(old_skin)
+                .and_then(|(key, skin)| self.attachment_timeline_key(slot_index, skin, key)),
+            new_key
+                .zip(new_skin)
+                .and_then(|(key, skin)| self.attachment_timeline_key(slot_index, skin, key)),
+        ) {
+            (Some((old_vertex, old_skin, old_key)), Some((new_vertex, new_skin, new_key))) => {
+                !(old_vertex && new_vertex && old_skin == new_skin && old_key == new_key)
+            }
+            _ => true,
+        }
     }
 
     pub fn slot_attachment_data(&self, slot_index: usize) -> Option<&crate::AttachmentData> {
