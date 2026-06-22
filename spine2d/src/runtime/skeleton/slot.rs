@@ -185,10 +185,6 @@ impl Slot {
         self.bone
     }
 
-    pub fn set_bone_index(&mut self, bone: usize) {
-        self.bone = bone;
-    }
-
     pub fn attachment_name(&self) -> Option<&str> {
         self.attachment.as_deref()
     }

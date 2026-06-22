@@ -1498,8 +1498,6 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
     let slot = &mut skeleton.slots_mut()[0];
 
     assert_eq!(slot.bone_index(), 0);
-    slot.set_bone_index(0);
-    assert_eq!(slot.bone_index(), 0);
 
     slot.set_color([0.1, 0.2, 0.3, 0.4]);
     slot.set_has_dark(true);
