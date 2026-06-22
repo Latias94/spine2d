@@ -1,7 +1,7 @@
 use super::Skeleton;
 
-#[derive(Copy, Clone, Debug)]
-pub(super) enum UpdateCacheItem {
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum UpdateCacheItem {
     Bone(usize),
     Ik(usize),
     Transform(usize),

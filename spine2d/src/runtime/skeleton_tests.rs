@@ -3,7 +3,7 @@ use crate::{
     Inherit, MeshAttachmentData, MeshVertices, PathConstraint, PathConstraintData,
     PhysicsConstraint, PhysicsConstraintData, PositionMode, RegionAttachmentData, RotateMode,
     ScaleYMode, Skeleton, SkeletonData, SkinData, SliderConstraintData, SlotData, SpacingMode,
-    TransformConstraint, TransformConstraintData,
+    TransformConstraint, TransformConstraintData, UpdateCacheItem,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -577,6 +577,7 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
     assert_eq!(skeleton.physics_constraints_mut().len(), 0);
     assert_eq!(skeleton.slider_constraints().len(), 0);
     assert_eq!(skeleton.slider_constraints_mut().len(), 0);
+    assert!(skeleton.update_cache_items().is_empty());
 
     assert_eq!(skeleton.color(), [1.0, 1.0, 1.0, 1.0]);
     skeleton.set_color([0.25, 0.5, 0.75, 0.875]);
@@ -601,6 +602,24 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
     skeleton.set_scale_x(5.0);
     skeleton.set_scale_y(6.0);
     assert_eq!(skeleton.scale(), (5.0, 6.0));
+}
+
+#[test]
+fn skeleton_update_cache_items_expose_read_only_solver_order() {
+    let skeleton = Skeleton::new(constraint_lookup_skeleton_data());
+
+    assert_eq!(
+        skeleton.update_cache_items(),
+        &[
+            UpdateCacheItem::Bone(0),
+            UpdateCacheItem::Ik(0),
+            UpdateCacheItem::Bone(0),
+            UpdateCacheItem::Transform(0),
+            UpdateCacheItem::Path(0),
+            UpdateCacheItem::Physics(0),
+            UpdateCacheItem::Slider(0),
+        ]
+    );
 }
 
 #[test]

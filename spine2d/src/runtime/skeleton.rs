@@ -9,6 +9,7 @@ mod transform;
 mod vertices;
 
 pub use bone::Bone;
+pub use cache::UpdateCacheItem;
 pub use ik::IkConstraint;
 pub use path::PathConstraint;
 pub use physics::{Physics, PhysicsConstraint};
@@ -17,7 +18,6 @@ pub use slot::Slot;
 pub use transform::TransformConstraint;
 
 use crate::{SkeletonData, geometry::SkeletonClipper};
-use cache::UpdateCacheItem;
 use path::{PathConstraintScratch, estimate_path_attachment_scratch_capacities};
 use std::sync::Arc;
 
@@ -860,6 +860,10 @@ impl Skeleton {
     #[doc(hidden)]
     pub fn debug_update_cache(&self) -> Vec<String> {
         cache::debug_update_cache(self)
+    }
+
+    pub fn update_cache_items(&self) -> &[UpdateCacheItem] {
+        &self.update_cache
     }
 
     fn rebuild_update_cache(&mut self) {
