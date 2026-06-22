@@ -17,6 +17,19 @@ fn assert_approx(actual: f32, expected: f32) {
     );
 }
 
+fn assert_approx_pair(actual: (f32, f32), expected: (f32, f32)) {
+    assert_approx(actual.0, expected.0);
+    assert_approx(actual.1, expected.1);
+}
+
+fn assert_approx_angle(actual: f32, expected: f32) {
+    let diff = (actual - expected).abs();
+    assert!(
+        diff <= 1.0e-5,
+        "expected {expected}, got {actual} (diff {diff})"
+    );
+}
+
 fn empty_skeleton_data() -> Arc<SkeletonData> {
     Arc::new(SkeletonData {
         spine_version: None,
@@ -1019,6 +1032,65 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
     assert_approx(bone.world_scale_y(), 2.0);
     assert_approx(bone.world_rotation_x(), 4.0f32.atan2(3.0).to_degrees());
     assert_approx(bone.world_rotation_y(), 90.0);
+}
+
+#[test]
+fn bone_child_indices_expose_skeleton_hierarchy() {
+    let skeleton = Skeleton::new(named_attachment_skeleton_data());
+
+    assert_eq!(skeleton.bones()[0].child_indices(&skeleton), &[1]);
+    assert!(skeleton.bones()[1].child_indices(&skeleton).is_empty());
+}
+
+#[test]
+fn bone_parent_space_helpers_follow_parent_world_transform() {
+    let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
+    {
+        let root = &mut skeleton.bones_mut()[0];
+        root.set_a(2.0);
+        root.set_b(0.25);
+        root.set_c(0.5);
+        root.set_d(3.0);
+        root.set_world_position(10.0, 20.0);
+    }
+
+    let root = &skeleton.bones()[0];
+    let child = &skeleton.bones()[1];
+
+    assert_approx_pair(root.world_to_parent(&skeleton, 17.0, 29.0), (17.0, 29.0));
+    assert_approx_pair(root.parent_to_world(&skeleton, 7.0, 9.0), (7.0, 9.0));
+
+    let world = (18.25, 29.5);
+    let parent = child.world_to_parent(&skeleton, world.0, world.1);
+    assert_approx_pair(parent, root.world_to_local(world.0, world.1));
+    assert_approx_pair(child.parent_to_world(&skeleton, parent.0, parent.1), world);
+}
+
+#[test]
+fn bone_rotation_helpers_match_bone_pose_formulas() {
+    let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
+    let bone = &mut skeleton.bones_mut()[0];
+
+    bone.set_a(0.0);
+    bone.set_b(-1.0);
+    bone.set_c(1.0);
+    bone.set_d(0.0);
+    bone.set_applied_rotation(0.0);
+    bone.set_applied_shear_x(0.0);
+
+    assert_approx_angle(bone.local_to_world_rotation(0.0), 90.0);
+    assert_approx_angle(bone.world_to_local_rotation(90.0), 0.0);
+
+    bone.set_a(1.0);
+    bone.set_b(0.0);
+    bone.set_c(0.0);
+    bone.set_d(1.0);
+    bone.rotate_world(90.0);
+
+    assert_approx(bone.a(), 0.0);
+    assert_approx(bone.b(), -1.0);
+    assert_approx(bone.c(), 1.0);
+    assert_approx(bone.d(), 0.0);
 }
 
 #[test]

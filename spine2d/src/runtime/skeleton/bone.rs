@@ -44,6 +44,17 @@ impl Bone {
         self.parent
     }
 
+    /// The immediate child bone indices for this bone in the given skeleton.
+    ///
+    /// Mirrors the official runtimes' `Bone.getChildren` while keeping Rust's
+    /// index-based skeleton storage public surface.
+    pub fn child_indices<'a>(&self, skeleton: &'a Skeleton) -> &'a [usize] {
+        skeleton
+            .bone_children
+            .get(self.data_index)
+            .map_or(&[], Vec::as_slice)
+    }
+
     pub fn is_active(&self) -> bool {
         self.active
     }
@@ -311,6 +322,71 @@ impl Bone {
             local_x * self.a + local_y * self.b + self.world_x,
             local_x * self.c + local_y * self.d + self.world_y,
         )
+    }
+
+    /// Transforms a point from world coordinates into the parent bone's local
+    /// coordinates, or returns the point unchanged for a root bone.
+    ///
+    /// Mirrors the official runtimes' `BonePose.worldToParent`.
+    pub fn world_to_parent(&self, skeleton: &Skeleton, world_x: f32, world_y: f32) -> (f32, f32) {
+        match self.parent.and_then(|index| skeleton.bones.get(index)) {
+            Some(parent) => parent.world_to_local(world_x, world_y),
+            None => (world_x, world_y),
+        }
+    }
+
+    /// Transforms a point from the parent bone's local coordinates into world
+    /// coordinates, or returns the point unchanged for a root bone.
+    ///
+    /// Mirrors the official runtimes' `BonePose.parentToWorld`.
+    pub fn parent_to_world(&self, skeleton: &Skeleton, parent_x: f32, parent_y: f32) -> (f32, f32) {
+        match self.parent.and_then(|index| skeleton.bones.get(index)) {
+            Some(parent) => parent.local_to_world(parent_x, parent_y),
+            None => (parent_x, parent_y),
+        }
+    }
+
+    /// Transforms a world rotation into this bone's applied local rotation.
+    ///
+    /// Mirrors the official runtimes' `BonePose.worldToLocalRotation`.
+    pub fn world_to_local_rotation(&self, world_rotation: f32) -> f32 {
+        let world_rotation = world_rotation.to_radians();
+        let sin_rot = sin_f32(world_rotation);
+        let cos_rot = cos_f32(world_rotation);
+        atan2_degrees(
+            self.a * sin_rot - self.c * cos_rot,
+            self.d * cos_rot - self.b * sin_rot,
+        ) + self.arotation
+            - self.ashear_x
+    }
+
+    /// Transforms an applied local rotation into world rotation.
+    ///
+    /// Mirrors the official runtimes' `BonePose.localToWorldRotation`.
+    pub fn local_to_world_rotation(&self, local_rotation: f32) -> f32 {
+        let local_rotation = (local_rotation - self.arotation - self.ashear_x).to_radians();
+        let sin_rot = sin_f32(local_rotation);
+        let cos_rot = cos_f32(local_rotation);
+        atan2_degrees(
+            cos_rot * self.c + sin_rot * self.d,
+            cos_rot * self.a + sin_rot * self.b,
+        )
+    }
+
+    /// Rotates this bone's world transform matrix by the specified degrees.
+    ///
+    /// Mirrors the official runtimes' `BonePose.rotateWorld`. Like the world
+    /// matrix setters, this mutates only this bone's stored world transform.
+    pub fn rotate_world(&mut self, degrees: f32) {
+        let degrees = degrees.to_radians();
+        let sin_rot = sin_f32(degrees);
+        let cos_rot = cos_f32(degrees);
+        let ra = self.a;
+        let rb = self.b;
+        self.a = cos_rot * ra - sin_rot * self.c;
+        self.b = cos_rot * rb - sin_rot * self.d;
+        self.c = sin_rot * ra + cos_rot * self.c;
+        self.d = sin_rot * rb + cos_rot * self.d;
     }
 }
 
