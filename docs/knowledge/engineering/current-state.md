@@ -31,7 +31,7 @@ status: "active"
   - Preserved `spine-cpp` delay branch behavior in commit `f36cfa7`; negative delay is special-cased without coercing non-comparable delay values.
   - Started U6 Skeleton extraction in commit `3edaa0b`; path constraint scratch storage and capacity estimation now live in private `skeleton::path`.
   - Continued U6 Skeleton extraction in commit `0dab0fb`; path attachment lookup and path world-position helpers now live in private `skeleton::path`. Generic attachment world-vertex computation intentionally remains in `skeleton.rs` because it is still shared by `Skeleton::world_vertices`.
-  - Continued U6 Skeleton extraction in commit `190a119`; update-cache ordering and debug formatting now live in private `skeleton::cache`, mirroring the official C++ `Skeleton::updateCache`/constraint `sort` responsibility boundary while preserving the Rust centralized constraint model.
+  - Continued U6 Skeleton extraction in commit `190a119`; update-cache ordering now lives in private `skeleton::cache`, mirroring the official C++ `Skeleton::updateCache`/constraint `sort` responsibility boundary while preserving the Rust centralized constraint model.
   - Continued U6 Skeleton extraction in commit `757b2f7`; BonePose-equivalent world/local transform helpers and root/child world-transform math now live in private `skeleton::bone`, while the `Bone` type itself remains in `skeleton.rs` for now.
   - Continued U6 Skeleton extraction in commit `a37abac`; BonePose-equivalent `modifyWorld`, `modifyLocal`, child world-reset, and applied-transform decomposition now live in private `skeleton::bone`.
   - Continued U6 Skeleton extraction in commit `fc3ef3c`; the bone world-transform update entry now delegates to private `skeleton::bone`, completing the low-risk BonePose helper extraction slice.
@@ -64,6 +64,7 @@ status: "active"
   - Added BonePose update/local helper surface in commit `b2cadd4`; `Skeleton` now exposes single-bone world/local transform update, validation, and local/world modification markers without exposing C++'s raw update counter.
   - Fixed the public BonePose local-update wrapper in commit `e3e96c0`; `Skeleton::update_bone_local_transform` and validation now keep the bone world epoch current like C++ `BonePose::updateLocalTransform`.
   - Added `Bone::is_y_down/set_y_down` in commit `d374ddf`; `Skeleton::scale_y()` and world transforms now honor the C++-style global Y-down switch, while the default stays false to preserve the repo's Y-up oracle baseline.
+  - Removed hidden `Skeleton::debug_update_cache` in commit `71ddc60`; debugging callers now format the typed `update_cache_items()` view locally instead of keeping a Rust-only public compatibility helper.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
