@@ -1576,6 +1576,9 @@ impl Skeleton {
     /// Mirrors `BonePose::updateLocalTransform` in the official runtime.
     pub fn update_bone_local_transform(&mut self, bone_index: usize) {
         bone::update_applied_transform(self, bone_index);
+        if let Some(bone) = self.bones.get_mut(bone_index) {
+            bone.world_epoch = self.update_epoch;
+        }
     }
 
     /// Computes one bone's applied local transform if its world transform has
@@ -1589,6 +1592,9 @@ impl Skeleton {
             .is_some_and(|bone| bone.local_epoch == self.update_epoch)
         {
             bone::update_applied_transform(self, bone_index);
+            if let Some(bone) = self.bones.get_mut(bone_index) {
+                bone.world_epoch = self.update_epoch;
+            }
         }
     }
 

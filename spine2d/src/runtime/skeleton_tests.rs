@@ -1113,6 +1113,7 @@ fn skeleton_bone_local_transform_helper_rebuilds_applied_pose_from_world() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
     skeleton.set_position(2.0, 3.0);
     skeleton.update_world_transform();
+    skeleton.modify_bone_local(0);
 
     let bone = &mut skeleton.bones_mut()[0];
     bone.set_world_position(12.0, 18.0);
@@ -1128,6 +1129,10 @@ fn skeleton_bone_local_transform_helper_rebuilds_applied_pose_from_world() {
     assert_approx(bone.applied_rotation(), 90.0);
     assert_approx_pair(bone.applied_scale(), (1.0, 1.0));
     assert_approx_pair(bone.applied_shear(), (0.0, 0.0));
+
+    skeleton.bones_mut()[0].set_applied_position(99.0, 99.0);
+    skeleton.update_bone_world_transform(0);
+    assert_approx_pair(skeleton.bones()[0].world_position(), (12.0, 18.0));
 }
 
 #[test]
