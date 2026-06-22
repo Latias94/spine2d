@@ -5,9 +5,6 @@ pub enum Error {
     #[error("unknown animation: {name}")]
     UnknownAnimation { name: String },
 
-    #[error("unknown skin: {name}")]
-    UnknownSkin { name: String },
-
     #[error("invalid track index: {index}")]
     InvalidTrackIndex { index: usize },
 

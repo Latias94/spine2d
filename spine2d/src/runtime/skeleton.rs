@@ -696,22 +696,50 @@ impl Skeleton {
         (self.wind_x, self.wind_y)
     }
 
+    pub fn wind_x(&self) -> f32 {
+        self.wind_x
+    }
+
+    pub fn set_wind_x(&mut self, wind_x: f32) {
+        self.wind_x = wind_x;
+    }
+
+    pub fn wind_y(&self) -> f32 {
+        self.wind_y
+    }
+
+    pub fn set_wind_y(&mut self, wind_y: f32) {
+        self.wind_y = wind_y;
+    }
+
     pub fn set_wind(&mut self, x: f32, y: f32) {
-        if x.is_finite() && y.is_finite() {
-            self.wind_x = x;
-            self.wind_y = y;
-        }
+        self.set_wind_x(x);
+        self.set_wind_y(y);
     }
 
     pub fn gravity(&self) -> (f32, f32) {
         (self.gravity_x, self.gravity_y)
     }
 
+    pub fn gravity_x(&self) -> f32 {
+        self.gravity_x
+    }
+
+    pub fn set_gravity_x(&mut self, gravity_x: f32) {
+        self.gravity_x = gravity_x;
+    }
+
+    pub fn gravity_y(&self) -> f32 {
+        self.gravity_y
+    }
+
+    pub fn set_gravity_y(&mut self, gravity_y: f32) {
+        self.gravity_y = gravity_y;
+    }
+
     pub fn set_gravity(&mut self, x: f32, y: f32) {
-        if x.is_finite() && y.is_finite() {
-            self.gravity_x = x;
-            self.gravity_y = y;
-        }
+        self.set_gravity_x(x);
+        self.set_gravity_y(y);
     }
 
     pub fn physics_translate(&mut self, x: f32, y: f32) {
@@ -727,15 +755,11 @@ impl Skeleton {
     }
 
     pub fn set_time(&mut self, time: f32) {
-        if time.is_finite() {
-            self.time = time;
-        }
+        self.time = time;
     }
 
     pub fn update(&mut self, delta: f32) {
-        if delta.is_finite() && delta >= 0.0 {
-            self.time += delta;
-        }
+        self.time += delta;
     }
 
     pub fn update_cache(&mut self) {
@@ -845,13 +869,10 @@ impl Skeleton {
                 self.skin = None;
             }
             Some(name) => {
-                if self.data.skins.contains_key(name) {
-                    self.skin = Some(name.to_string());
-                } else {
-                    return Err(crate::Error::UnknownSkin {
-                        name: name.to_string(),
-                    });
+                if !self.data.skins.contains_key(name) {
+                    return Ok(());
                 }
+                self.skin = Some(name.to_string());
             }
         }
         let new_skin = self.skin.as_deref().and_then(|n| self.data.skin(n));

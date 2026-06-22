@@ -450,32 +450,42 @@ fn clipping_bounds_skeleton_data() -> Arc<SkeletonData> {
 }
 
 #[test]
-fn skeleton_world_controls_are_public_and_ignore_non_finite_inputs() {
+fn skeleton_world_controls_follow_cpp_direct_assignment() {
     let mut skeleton = Skeleton::new(empty_skeleton_data());
 
     assert_eq!(skeleton.wind(), (1.0, 0.0));
+    assert_eq!(skeleton.wind_x(), 1.0);
+    assert_eq!(skeleton.wind_y(), 0.0);
     assert_eq!(skeleton.gravity(), (0.0, 1.0));
+    assert_eq!(skeleton.gravity_x(), 0.0);
+    assert_eq!(skeleton.gravity_y(), 1.0);
     assert_eq!(skeleton.time(), 0.0);
 
-    skeleton.set_wind(2.0, 3.0);
-    skeleton.set_gravity(4.0, 5.0);
+    skeleton.set_wind_x(2.0);
+    skeleton.set_wind_y(3.0);
+    skeleton.set_gravity_x(4.0);
+    skeleton.set_gravity_y(5.0);
     skeleton.set_time(1.5);
 
     assert_eq!(skeleton.wind(), (2.0, 3.0));
+    assert_eq!(skeleton.wind_x(), 2.0);
+    assert_eq!(skeleton.wind_y(), 3.0);
     assert_eq!(skeleton.gravity(), (4.0, 5.0));
+    assert_eq!(skeleton.gravity_x(), 4.0);
+    assert_eq!(skeleton.gravity_y(), 5.0);
     assert_eq!(skeleton.time(), 1.5);
 
-    skeleton.set_wind(f32::NAN, 6.0);
-    skeleton.set_gravity(7.0, f32::INFINITY);
-    skeleton.set_time(f32::NAN);
+    skeleton.set_wind(-2.0, 6.0);
+    skeleton.set_gravity(7.0, -5.0);
+    skeleton.set_time(0.5);
     skeleton.update(-1.0);
 
-    assert_eq!(skeleton.wind(), (2.0, 3.0));
-    assert_eq!(skeleton.gravity(), (4.0, 5.0));
-    assert_eq!(skeleton.time(), 1.5);
+    assert_eq!(skeleton.wind(), (-2.0, 6.0));
+    assert_eq!(skeleton.gravity(), (7.0, -5.0));
+    assert_eq!(skeleton.time(), -0.5);
 
     skeleton.update(0.25);
-    assert_eq!(skeleton.time(), 1.75);
+    assert_eq!(skeleton.time(), -0.25);
 }
 
 #[test]
@@ -715,6 +725,13 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
     );
     assert!(skeleton.attachment(0, "").is_none());
     assert!(skeleton.attachment_by_slot_name("", "shared").is_none());
+
+    skeleton.set_skin(Some("missing")).unwrap();
+    assert_eq!(skeleton.skin(), None);
+    assert_eq!(
+        skeleton.attachment(0, "shared").unwrap().name(),
+        "default-shared"
+    );
 
     skeleton.set_skin(Some("custom")).unwrap();
     assert_eq!(
