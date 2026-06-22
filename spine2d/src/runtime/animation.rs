@@ -80,173 +80,22 @@ pub fn apply_animation(
     // Plain animation apply does not model AnimationState's attachmentState gating. Use the legacy
     // behaviour: always apply attachments.
     for kind in animation.timeline_order.iter().copied() {
-        match kind {
-            TimelineKind::SlotAttachment(i) => {
-                apply_attachment(
-                    &animation.slot_attachment_timelines[i],
-                    skeleton,
-                    time,
-                    blend,
-                    true,
-                    0,
-                );
-            }
-            TimelineKind::Deform(i) => {
-                apply_deform(&animation.deform_timelines[i], skeleton, time, alpha, blend);
-            }
-            TimelineKind::Sequence(i) => {
-                apply_sequence_timeline(
-                    &animation.sequence_timelines[i],
-                    skeleton,
-                    time,
-                    blend,
-                    MixDirection::In,
-                );
-            }
-            TimelineKind::Bone(i) => match &animation.bone_timelines[i] {
-                BoneTimeline::Rotate(t) => apply_rotate(t, skeleton, time, alpha, blend),
-                BoneTimeline::Translate(t) => apply_translate(t, skeleton, time, alpha, blend),
-                BoneTimeline::TranslateX(t) => apply_translate_x(t, skeleton, time, alpha, blend),
-                BoneTimeline::TranslateY(t) => apply_translate_y(t, skeleton, time, alpha, blend),
-                BoneTimeline::Scale(t) => {
-                    apply_scale(t, skeleton, time, alpha, blend, MixDirection::In)
-                }
-                BoneTimeline::ScaleX(t) => {
-                    apply_scale_x(t, skeleton, time, alpha, blend, MixDirection::In)
-                }
-                BoneTimeline::ScaleY(t) => {
-                    apply_scale_y(t, skeleton, time, alpha, blend, MixDirection::In)
-                }
-                BoneTimeline::Shear(t) => apply_shear(t, skeleton, time, alpha, blend),
-                BoneTimeline::ShearX(t) => apply_shear_x(t, skeleton, time, alpha, blend),
-                BoneTimeline::ShearY(t) => apply_shear_y(t, skeleton, time, alpha, blend),
-                BoneTimeline::Inherit(t) => {
-                    apply_inherit(t, skeleton, time, blend, MixDirection::In)
-                }
+        apply_animation_timeline(
+            animation,
+            kind,
+            skeleton,
+            RuntimeTimelineApply {
+                time,
+                alpha,
+                blend,
+                direction: MixDirection::In,
+                applied_pose: false,
+                attachments: true,
+                unkeyed_state: 0,
+                physics_last_time: time,
+                physics_time: time,
             },
-            TimelineKind::SlotColor(i) => {
-                apply_slot_color(
-                    &animation.slot_color_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::SlotRgb(i) => {
-                apply_slot_rgb(
-                    &animation.slot_rgb_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::SlotAlpha(i) => {
-                apply_slot_alpha(
-                    &animation.slot_alpha_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::SlotRgba2(i) => {
-                apply_slot_rgba2(
-                    &animation.slot_rgba2_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::SlotRgb2(i) => {
-                apply_slot_rgb2(
-                    &animation.slot_rgb2_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::IkConstraint(i) => {
-                apply_ik_constraint_timeline(
-                    &animation.ik_constraint_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                    MixDirection::In,
-                );
-            }
-            TimelineKind::TransformConstraint(i) => {
-                apply_transform_constraint_timeline(
-                    &animation.transform_constraint_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::PathConstraint(i) => {
-                apply_path_constraint_timeline(
-                    &animation.path_constraint_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::PhysicsConstraint(i) => {
-                apply_physics_constraint_timeline(
-                    &animation.physics_constraint_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::PhysicsReset(i) => {
-                apply_physics_reset_timeline(
-                    &animation.physics_reset_timelines[i],
-                    skeleton,
-                    time,
-                    time,
-                );
-            }
-            TimelineKind::SliderTime(i) => {
-                apply_slider_time_timeline(
-                    &animation.slider_time_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::SliderMix(i) => {
-                apply_slider_mix_timeline(
-                    &animation.slider_mix_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::DrawOrder => {
-                if let Some(timeline) = animation.draw_order_timeline.as_ref() {
-                    apply_draw_order(timeline, skeleton, time, mix_blend_is_current(blend), false);
-                }
-            }
-            TimelineKind::DrawOrderFolder(i) => {
-                apply_draw_order_folder(
-                    &animation.draw_order_folder_timelines[i],
-                    skeleton,
-                    time,
-                    mix_blend_is_current(blend),
-                    false,
-                );
-            }
-        }
+        );
     }
 }
 
@@ -290,178 +139,566 @@ pub(crate) fn apply_animation_applied(
     }
 
     for kind in animation.timeline_order.iter().copied() {
-        match kind {
-            TimelineKind::SlotAttachment(i) => {
-                apply_attachment(
-                    &animation.slot_attachment_timelines[i],
-                    skeleton,
-                    time,
-                    blend,
-                    true,
-                    0,
-                );
-            }
-            TimelineKind::Deform(i) => {
-                apply_deform(&animation.deform_timelines[i], skeleton, time, alpha, blend);
-            }
-            TimelineKind::Sequence(i) => {
-                apply_sequence_timeline(
-                    &animation.sequence_timelines[i],
-                    skeleton,
-                    time,
-                    blend,
-                    MixDirection::In,
-                );
-            }
-            TimelineKind::Bone(i) => match &animation.bone_timelines[i] {
-                BoneTimeline::Rotate(t) => apply_rotate_applied(t, skeleton, time, alpha, blend),
-                BoneTimeline::Translate(t) => {
-                    apply_translate_applied(t, skeleton, time, alpha, blend)
-                }
-                BoneTimeline::TranslateX(t) => {
-                    apply_translate_x_applied(t, skeleton, time, alpha, blend)
-                }
-                BoneTimeline::TranslateY(t) => {
-                    apply_translate_y_applied(t, skeleton, time, alpha, blend)
-                }
-                BoneTimeline::Scale(t) => {
-                    apply_scale_applied(t, skeleton, time, alpha, blend, MixDirection::In)
-                }
-                BoneTimeline::ScaleX(t) => {
-                    apply_scale_x_applied(t, skeleton, time, alpha, blend, MixDirection::In)
-                }
-                BoneTimeline::ScaleY(t) => {
-                    apply_scale_y_applied(t, skeleton, time, alpha, blend, MixDirection::In)
-                }
-                BoneTimeline::Shear(t) => apply_shear_applied(t, skeleton, time, alpha, blend),
-                BoneTimeline::ShearX(t) => apply_shear_x_applied(t, skeleton, time, alpha, blend),
-                BoneTimeline::ShearY(t) => apply_shear_y_applied(t, skeleton, time, alpha, blend),
-                BoneTimeline::Inherit(t) => {
-                    apply_inherit(t, skeleton, time, blend, MixDirection::In)
-                }
+        apply_animation_timeline(
+            animation,
+            kind,
+            skeleton,
+            RuntimeTimelineApply {
+                time,
+                alpha,
+                blend,
+                direction: MixDirection::In,
+                applied_pose: true,
+                attachments: true,
+                unkeyed_state: 0,
+                physics_last_time: time,
+                physics_time: time,
             },
-            TimelineKind::SlotColor(i) => {
-                apply_slot_color(
-                    &animation.slot_color_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::SlotRgb(i) => {
-                apply_slot_rgb(
-                    &animation.slot_rgb_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::SlotAlpha(i) => {
-                apply_slot_alpha(
-                    &animation.slot_alpha_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::SlotRgba2(i) => {
-                apply_slot_rgba2(
-                    &animation.slot_rgba2_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::SlotRgb2(i) => {
-                apply_slot_rgb2(
-                    &animation.slot_rgb2_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::IkConstraint(i) => {
-                apply_ik_constraint_timeline(
-                    &animation.ik_constraint_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                    MixDirection::In,
-                );
-            }
-            TimelineKind::TransformConstraint(i) => {
-                apply_transform_constraint_timeline(
-                    &animation.transform_constraint_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::PathConstraint(i) => {
-                apply_path_constraint_timeline(
-                    &animation.path_constraint_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::PhysicsConstraint(i) => {
-                apply_physics_constraint_timeline(
-                    &animation.physics_constraint_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::PhysicsReset(i) => {
-                apply_physics_reset_timeline(
-                    &animation.physics_reset_timelines[i],
-                    skeleton,
-                    time,
-                    time,
-                );
-            }
-            TimelineKind::SliderTime(i) => {
-                apply_slider_time_timeline(
-                    &animation.slider_time_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::SliderMix(i) => {
-                apply_slider_mix_timeline(
-                    &animation.slider_mix_timelines[i],
-                    skeleton,
-                    time,
-                    alpha,
-                    blend,
-                );
-            }
-            TimelineKind::DrawOrder => {
-                if let Some(timeline) = animation.draw_order_timeline.as_ref() {
-                    apply_draw_order(timeline, skeleton, time, mix_blend_is_current(blend), false);
+        );
+    }
+}
+
+#[derive(Copy, Clone)]
+struct RuntimeTimelineApply {
+    time: f32,
+    alpha: f32,
+    blend: MixBlend,
+    direction: MixDirection,
+    applied_pose: bool,
+    attachments: bool,
+    unkeyed_state: i32,
+    physics_last_time: f32,
+    physics_time: f32,
+}
+
+pub(crate) struct RotateTimelineState<'a> {
+    pub state: &'a mut [f32],
+    pub index: usize,
+    pub first_frame: bool,
+}
+
+pub(crate) struct StateTimelineApply<'a> {
+    pub time: f32,
+    pub alpha: f32,
+    pub timeline_blend: MixBlend,
+    pub additive_blend: MixBlend,
+    pub from: MixFrom,
+    pub additive: bool,
+    pub transform_additive: bool,
+    pub direction: MixDirection,
+    pub attachments: bool,
+    pub unkeyed_state: i32,
+    pub draw_order_from_current: bool,
+    pub draw_order_out: Option<bool>,
+    pub draw_order_folder_out: bool,
+    pub physics_last_time: f32,
+    pub physics_time: f32,
+    pub rotate: Option<RotateTimelineState<'a>>,
+}
+
+fn apply_animation_timeline(
+    animation: &Animation,
+    kind: TimelineKind,
+    skeleton: &mut Skeleton,
+    ctx: RuntimeTimelineApply,
+) {
+    match kind {
+        TimelineKind::SlotAttachment(i) => {
+            apply_attachment(
+                &animation.slot_attachment_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.blend,
+                ctx.attachments,
+                ctx.unkeyed_state,
+            );
+        }
+        TimelineKind::Deform(i) => {
+            apply_deform(
+                &animation.deform_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::Sequence(i) => {
+            apply_sequence_timeline(
+                &animation.sequence_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.blend,
+                ctx.direction,
+            );
+        }
+        TimelineKind::Bone(i) => match &animation.bone_timelines[i] {
+            BoneTimeline::Rotate(t) => {
+                if ctx.applied_pose {
+                    apply_rotate_applied(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                } else {
+                    apply_rotate(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
                 }
             }
-            TimelineKind::DrawOrderFolder(i) => {
-                apply_draw_order_folder(
-                    &animation.draw_order_folder_timelines[i],
+            BoneTimeline::Translate(t) => {
+                if ctx.applied_pose {
+                    apply_translate_applied(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                } else {
+                    apply_translate(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                }
+            }
+            BoneTimeline::TranslateX(t) => {
+                if ctx.applied_pose {
+                    apply_translate_x_applied(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                } else {
+                    apply_translate_x(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                }
+            }
+            BoneTimeline::TranslateY(t) => {
+                if ctx.applied_pose {
+                    apply_translate_y_applied(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                } else {
+                    apply_translate_y(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                }
+            }
+            BoneTimeline::Scale(t) => {
+                if ctx.applied_pose {
+                    apply_scale_applied(t, skeleton, ctx.time, ctx.alpha, ctx.blend, ctx.direction);
+                } else {
+                    apply_scale(t, skeleton, ctx.time, ctx.alpha, ctx.blend, ctx.direction);
+                }
+            }
+            BoneTimeline::ScaleX(t) => {
+                if ctx.applied_pose {
+                    apply_scale_x_applied(
+                        t,
+                        skeleton,
+                        ctx.time,
+                        ctx.alpha,
+                        ctx.blend,
+                        ctx.direction,
+                    );
+                } else {
+                    apply_scale_x(t, skeleton, ctx.time, ctx.alpha, ctx.blend, ctx.direction);
+                }
+            }
+            BoneTimeline::ScaleY(t) => {
+                if ctx.applied_pose {
+                    apply_scale_y_applied(
+                        t,
+                        skeleton,
+                        ctx.time,
+                        ctx.alpha,
+                        ctx.blend,
+                        ctx.direction,
+                    );
+                } else {
+                    apply_scale_y(t, skeleton, ctx.time, ctx.alpha, ctx.blend, ctx.direction);
+                }
+            }
+            BoneTimeline::Shear(t) => {
+                if ctx.applied_pose {
+                    apply_shear_applied(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                } else {
+                    apply_shear(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                }
+            }
+            BoneTimeline::ShearX(t) => {
+                if ctx.applied_pose {
+                    apply_shear_x_applied(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                } else {
+                    apply_shear_x(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                }
+            }
+            BoneTimeline::ShearY(t) => {
+                if ctx.applied_pose {
+                    apply_shear_y_applied(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                } else {
+                    apply_shear_y(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                }
+            }
+            BoneTimeline::Inherit(t) => {
+                apply_inherit(t, skeleton, ctx.time, ctx.blend, ctx.direction);
+            }
+        },
+        TimelineKind::SlotColor(i) => {
+            apply_slot_color(
+                &animation.slot_color_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::SlotRgb(i) => {
+            apply_slot_rgb(
+                &animation.slot_rgb_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::SlotAlpha(i) => {
+            apply_slot_alpha(
+                &animation.slot_alpha_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::SlotRgba2(i) => {
+            apply_slot_rgba2(
+                &animation.slot_rgba2_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::SlotRgb2(i) => {
+            apply_slot_rgb2(
+                &animation.slot_rgb2_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::IkConstraint(i) => {
+            apply_ik_constraint_timeline(
+                &animation.ik_constraint_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+                ctx.direction,
+            );
+        }
+        TimelineKind::TransformConstraint(i) => {
+            apply_transform_constraint_timeline(
+                &animation.transform_constraint_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::PathConstraint(i) => {
+            apply_path_constraint_timeline(
+                &animation.path_constraint_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::PhysicsConstraint(i) => {
+            apply_physics_constraint_timeline(
+                &animation.physics_constraint_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::PhysicsReset(i) => {
+            apply_physics_reset_timeline(
+                &animation.physics_reset_timelines[i],
+                skeleton,
+                ctx.physics_last_time,
+                ctx.physics_time,
+            );
+        }
+        TimelineKind::SliderTime(i) => {
+            apply_slider_time_timeline(
+                &animation.slider_time_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::SliderMix(i) => {
+            apply_slider_mix_timeline(
+                &animation.slider_mix_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.blend,
+            );
+        }
+        TimelineKind::DrawOrder => {
+            if let Some(timeline) = animation.draw_order_timeline.as_ref() {
+                apply_draw_order(
+                    timeline,
                     skeleton,
-                    time,
-                    mix_blend_is_current(blend),
+                    ctx.time,
+                    mix_blend_is_current(ctx.blend),
                     false,
                 );
             }
+        }
+        TimelineKind::DrawOrderFolder(i) => {
+            apply_draw_order_folder(
+                &animation.draw_order_folder_timelines[i],
+                skeleton,
+                ctx.time,
+                mix_blend_is_current(ctx.blend),
+                false,
+            );
+        }
+    }
+}
+
+pub(crate) fn apply_state_timeline(
+    animation: &Animation,
+    kind: TimelineKind,
+    skeleton: &mut Skeleton,
+    ctx: StateTimelineApply<'_>,
+) {
+    match kind {
+        TimelineKind::SlotAttachment(i) => {
+            apply_attachment(
+                &animation.slot_attachment_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.timeline_blend,
+                ctx.attachments,
+                ctx.unkeyed_state,
+            );
+        }
+        TimelineKind::Deform(i) => {
+            apply_deform(
+                &animation.deform_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.additive_blend,
+            );
+        }
+        TimelineKind::Sequence(i) => {
+            apply_sequence_timeline(
+                &animation.sequence_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.timeline_blend,
+                ctx.direction,
+            );
+        }
+        TimelineKind::Bone(i) => match &animation.bone_timelines[i] {
+            BoneTimeline::Rotate(t) => {
+                if let Some(rotate) = ctx.rotate {
+                    apply_rotate_mixed(
+                        t,
+                        skeleton,
+                        ctx.time,
+                        ctx.alpha,
+                        ctx.from,
+                        rotate.state,
+                        rotate.index,
+                        rotate.first_frame,
+                    );
+                } else {
+                    apply_rotate_with(
+                        t,
+                        skeleton,
+                        ctx.time,
+                        ctx.alpha,
+                        ctx.from,
+                        ctx.additive_blend == MixBlend::Add,
+                    );
+                }
+            }
+            BoneTimeline::Translate(t) => {
+                apply_translate(t, skeleton, ctx.time, ctx.alpha, ctx.additive_blend);
+            }
+            BoneTimeline::TranslateX(t) => {
+                apply_translate_x(t, skeleton, ctx.time, ctx.alpha, ctx.additive_blend);
+            }
+            BoneTimeline::TranslateY(t) => {
+                apply_translate_y(t, skeleton, ctx.time, ctx.alpha, ctx.additive_blend);
+            }
+            BoneTimeline::Scale(t) => {
+                apply_scale_with(
+                    t,
+                    skeleton,
+                    ctx.time,
+                    ctx.alpha,
+                    ctx.from,
+                    ctx.additive,
+                    ctx.direction,
+                );
+            }
+            BoneTimeline::ScaleX(t) => {
+                apply_scale_x_with(
+                    t,
+                    skeleton,
+                    ctx.time,
+                    ctx.alpha,
+                    ctx.from,
+                    ctx.additive,
+                    ctx.direction,
+                );
+            }
+            BoneTimeline::ScaleY(t) => {
+                apply_scale_y_with(
+                    t,
+                    skeleton,
+                    ctx.time,
+                    ctx.alpha,
+                    ctx.from,
+                    ctx.additive,
+                    ctx.direction,
+                );
+            }
+            BoneTimeline::Shear(t) => {
+                apply_shear(t, skeleton, ctx.time, ctx.alpha, ctx.additive_blend);
+            }
+            BoneTimeline::ShearX(t) => {
+                apply_shear_x(t, skeleton, ctx.time, ctx.alpha, ctx.additive_blend);
+            }
+            BoneTimeline::ShearY(t) => {
+                apply_shear_y(t, skeleton, ctx.time, ctx.alpha, ctx.additive_blend);
+            }
+            BoneTimeline::Inherit(t) => {
+                apply_inherit(t, skeleton, ctx.time, ctx.timeline_blend, ctx.direction);
+            }
+        },
+        TimelineKind::SlotColor(i) => {
+            apply_slot_color(
+                &animation.slot_color_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.timeline_blend,
+            );
+        }
+        TimelineKind::SlotRgb(i) => {
+            apply_slot_rgb(
+                &animation.slot_rgb_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.timeline_blend,
+            );
+        }
+        TimelineKind::SlotAlpha(i) => {
+            apply_slot_alpha(
+                &animation.slot_alpha_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.timeline_blend,
+            );
+        }
+        TimelineKind::SlotRgba2(i) => {
+            apply_slot_rgba2(
+                &animation.slot_rgba2_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.timeline_blend,
+            );
+        }
+        TimelineKind::SlotRgb2(i) => {
+            apply_slot_rgb2(
+                &animation.slot_rgb2_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.timeline_blend,
+            );
+        }
+        TimelineKind::IkConstraint(i) => {
+            apply_ik_constraint_timeline(
+                &animation.ik_constraint_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.timeline_blend,
+                ctx.direction,
+            );
+        }
+        TimelineKind::TransformConstraint(i) => {
+            apply_transform_constraint_timeline_with(
+                &animation.transform_constraint_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.from,
+                ctx.transform_additive,
+            );
+        }
+        TimelineKind::PathConstraint(i) => {
+            apply_path_constraint_timeline_with(
+                &animation.path_constraint_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.from,
+                ctx.additive,
+            );
+        }
+        TimelineKind::PhysicsConstraint(i) => {
+            apply_physics_constraint_timeline_with(
+                &animation.physics_constraint_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.from,
+                ctx.additive,
+            );
+        }
+        TimelineKind::SliderTime(i) => {
+            apply_slider_time_timeline_with(
+                &animation.slider_time_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.from,
+                ctx.additive,
+            );
+        }
+        TimelineKind::SliderMix(i) => {
+            apply_slider_mix_timeline_with(
+                &animation.slider_mix_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.alpha,
+                ctx.from,
+                ctx.additive,
+            );
+        }
+        TimelineKind::DrawOrder => {
+            if let Some(timeline) = animation.draw_order_timeline.as_ref()
+                && let Some(out) = ctx.draw_order_out
+            {
+                apply_draw_order(
+                    timeline,
+                    skeleton,
+                    ctx.time,
+                    ctx.draw_order_from_current,
+                    out,
+                );
+            }
+        }
+        TimelineKind::DrawOrderFolder(i) => {
+            apply_draw_order_folder(
+                &animation.draw_order_folder_timelines[i],
+                skeleton,
+                ctx.time,
+                ctx.draw_order_from_current,
+                ctx.draw_order_folder_out,
+            );
+        }
+        TimelineKind::PhysicsReset(i) => {
+            apply_physics_reset_timeline(
+                &animation.physics_reset_timelines[i],
+                skeleton,
+                ctx.physics_last_time,
+                ctx.physics_time,
+            );
         }
     }
 }
