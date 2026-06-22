@@ -58,6 +58,54 @@ fn skeleton_world_controls_are_public_and_ignore_non_finite_inputs() {
 }
 
 #[test]
+fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
+    let mut skeleton = Skeleton::new(empty_skeleton_data());
+
+    assert_eq!(skeleton.data().bones.len(), 0);
+    assert_eq!(skeleton.bones().len(), 0);
+    assert_eq!(skeleton.bones_mut().len(), 0);
+    assert_eq!(skeleton.slots().len(), 0);
+    assert_eq!(skeleton.slots_mut().len(), 0);
+    assert!(skeleton.draw_order().is_empty());
+    assert!(skeleton.draw_order_mut().is_empty());
+    assert_eq!(skeleton.skin(), None);
+    assert_eq!(skeleton.ik_constraints().len(), 0);
+    assert_eq!(skeleton.ik_constraints_mut().len(), 0);
+    assert_eq!(skeleton.transform_constraints().len(), 0);
+    assert_eq!(skeleton.transform_constraints_mut().len(), 0);
+    assert_eq!(skeleton.path_constraints().len(), 0);
+    assert_eq!(skeleton.path_constraints_mut().len(), 0);
+    assert_eq!(skeleton.physics_constraints().len(), 0);
+    assert_eq!(skeleton.physics_constraints_mut().len(), 0);
+    assert_eq!(skeleton.slider_constraints().len(), 0);
+    assert_eq!(skeleton.slider_constraints_mut().len(), 0);
+
+    assert_eq!(skeleton.color(), [1.0, 1.0, 1.0, 1.0]);
+    skeleton.set_color([0.25, 0.5, 0.75, 0.875]);
+    assert_eq!(skeleton.color(), [0.25, 0.5, 0.75, 0.875]);
+
+    assert_eq!(skeleton.position(), (0.0, 0.0));
+    skeleton.set_position(10.0, -2.0);
+    assert_eq!(skeleton.position(), (10.0, -2.0));
+    assert_eq!(skeleton.x(), 10.0);
+    assert_eq!(skeleton.y(), -2.0);
+
+    skeleton.set_x(3.0);
+    skeleton.set_y(4.0);
+    assert_eq!(skeleton.position(), (3.0, 4.0));
+
+    assert_eq!(skeleton.scale(), (1.0, 1.0));
+    skeleton.set_scale(2.0, -3.0);
+    assert_eq!(skeleton.scale(), (2.0, -3.0));
+    assert_eq!(skeleton.scale_x(), 2.0);
+    assert_eq!(skeleton.scale_y(), -3.0);
+
+    skeleton.set_scale_x(5.0);
+    skeleton.set_scale_y(6.0);
+    assert_eq!(skeleton.scale(), (5.0, 6.0));
+}
+
+#[test]
 fn update_world_transform_root_and_child() {
     let data = Arc::new(SkeletonData {
         spine_version: None,

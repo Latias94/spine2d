@@ -60,26 +60,26 @@ impl crate::PointAttachmentData {
 
 #[derive(Clone, Debug)]
 pub struct Skeleton {
-    pub data: Arc<SkeletonData>,
-    pub bones: Vec<Bone>,
+    pub(crate) data: Arc<SkeletonData>,
+    pub(crate) bones: Vec<Bone>,
     bone_children: Vec<Vec<usize>>,
-    pub slots: Vec<Slot>,
-    pub draw_order: Vec<usize>,
-    pub skin: Option<String>,
-    pub color: [f32; 4],
+    pub(crate) slots: Vec<Slot>,
+    pub(crate) draw_order: Vec<usize>,
+    pub(crate) skin: Option<String>,
+    pub(crate) color: [f32; 4],
     wind_x: f32,
     wind_y: f32,
     gravity_x: f32,
     gravity_y: f32,
-    pub ik_constraints: Vec<IkConstraint>,
-    pub transform_constraints: Vec<TransformConstraint>,
-    pub path_constraints: Vec<PathConstraint>,
-    pub physics_constraints: Vec<PhysicsConstraint>,
-    pub slider_constraints: Vec<SliderConstraint>,
-    pub x: f32,
-    pub y: f32,
-    pub scale_x: f32,
-    pub scale_y: f32,
+    pub(crate) ik_constraints: Vec<IkConstraint>,
+    pub(crate) transform_constraints: Vec<TransformConstraint>,
+    pub(crate) path_constraints: Vec<PathConstraint>,
+    pub(crate) physics_constraints: Vec<PhysicsConstraint>,
+    pub(crate) slider_constraints: Vec<SliderConstraint>,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) scale_x: f32,
+    pub(crate) scale_y: f32,
     time: f32,
     update_epoch: u32,
     update_cache: Vec<UpdateCacheItem>,
@@ -343,6 +343,136 @@ impl Skeleton {
         out.set_to_setup_pose();
         out.update_cache();
         out
+    }
+
+    pub fn data(&self) -> &SkeletonData {
+        self.data.as_ref()
+    }
+
+    pub fn bones(&self) -> &[Bone] {
+        &self.bones
+    }
+
+    pub fn bones_mut(&mut self) -> &mut [Bone] {
+        &mut self.bones
+    }
+
+    pub fn slots(&self) -> &[Slot] {
+        &self.slots
+    }
+
+    pub fn slots_mut(&mut self) -> &mut [Slot] {
+        &mut self.slots
+    }
+
+    pub fn draw_order(&self) -> &[usize] {
+        &self.draw_order
+    }
+
+    pub fn draw_order_mut(&mut self) -> &mut [usize] {
+        &mut self.draw_order
+    }
+
+    pub fn skin(&self) -> Option<&str> {
+        self.skin.as_deref()
+    }
+
+    pub fn color(&self) -> [f32; 4] {
+        self.color
+    }
+
+    pub fn set_color(&mut self, color: [f32; 4]) {
+        self.color = color;
+    }
+
+    pub fn ik_constraints(&self) -> &[IkConstraint] {
+        &self.ik_constraints
+    }
+
+    pub fn ik_constraints_mut(&mut self) -> &mut [IkConstraint] {
+        &mut self.ik_constraints
+    }
+
+    pub fn transform_constraints(&self) -> &[TransformConstraint] {
+        &self.transform_constraints
+    }
+
+    pub fn transform_constraints_mut(&mut self) -> &mut [TransformConstraint] {
+        &mut self.transform_constraints
+    }
+
+    pub fn path_constraints(&self) -> &[PathConstraint] {
+        &self.path_constraints
+    }
+
+    pub fn path_constraints_mut(&mut self) -> &mut [PathConstraint] {
+        &mut self.path_constraints
+    }
+
+    pub fn physics_constraints(&self) -> &[PhysicsConstraint] {
+        &self.physics_constraints
+    }
+
+    pub fn physics_constraints_mut(&mut self) -> &mut [PhysicsConstraint] {
+        &mut self.physics_constraints
+    }
+
+    pub fn slider_constraints(&self) -> &[SliderConstraint] {
+        &self.slider_constraints
+    }
+
+    pub fn slider_constraints_mut(&mut self) -> &mut [SliderConstraint] {
+        &mut self.slider_constraints
+    }
+
+    pub fn x(&self) -> f32 {
+        self.x
+    }
+
+    pub fn set_x(&mut self, x: f32) {
+        self.x = x;
+    }
+
+    pub fn y(&self) -> f32 {
+        self.y
+    }
+
+    pub fn set_y(&mut self, y: f32) {
+        self.y = y;
+    }
+
+    pub fn position(&self) -> (f32, f32) {
+        (self.x, self.y)
+    }
+
+    pub fn set_position(&mut self, x: f32, y: f32) {
+        self.x = x;
+        self.y = y;
+    }
+
+    pub fn scale_x(&self) -> f32 {
+        self.scale_x
+    }
+
+    pub fn set_scale_x(&mut self, scale_x: f32) {
+        self.scale_x = scale_x;
+    }
+
+    pub fn scale_y(&self) -> f32 {
+        self.scale_y
+    }
+
+    pub fn set_scale_y(&mut self, scale_y: f32) {
+        self.scale_y = scale_y;
+    }
+
+    pub fn scale(&self) -> (f32, f32) {
+        (self.scale_x, self.scale_y)
+    }
+
+    pub fn set_scale(&mut self, scale_x: f32, scale_y: f32) {
+        self.scale_x = scale_x;
+        self.scale_y = scale_y;
     }
 
     pub fn time(&self) -> f32 {

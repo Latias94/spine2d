@@ -69,12 +69,12 @@ fn main() {
     skeleton.update_world_transform();
 
     let bones: Vec<_> = skeleton
-        .bones
+        .bones()
         .iter()
         .enumerate()
         .map(|(i, bone)| {
             let name = skeleton
-                .data
+                .data()
                 .bones
                 .get(i)
                 .map(|b| b.name.as_str())
@@ -90,12 +90,12 @@ fn main() {
         .collect();
 
     let slots: Vec<_> = skeleton
-        .slots
+        .slots()
         .iter()
         .enumerate()
         .map(|(i, slot)| {
             let name = skeleton
-                .data
+                .data()
                 .slots
                 .get(i)
                 .map(|s| s.name.as_str())
@@ -126,19 +126,19 @@ fn main() {
         .collect();
 
     let draw_order: Vec<_> = skeleton
-        .draw_order
+        .draw_order()
         .iter()
         .copied()
         .map(|slot_index| slot_index as i32)
         .collect();
 
     let ik_constraints: Vec<_> = skeleton
-        .ik_constraints
+        .ik_constraints()
         .iter()
         .enumerate()
         .map(|(i, c)| {
             let name = skeleton
-                .data
+                .data()
                 .ik_constraints
                 .get(i)
                 .map(|d| d.name.as_str())
@@ -155,12 +155,12 @@ fn main() {
         .collect();
 
     let transform_constraints: Vec<_> = skeleton
-        .transform_constraints
+        .transform_constraints()
         .iter()
         .enumerate()
         .map(|(i, c)| {
             let name = skeleton
-                .data
+                .data()
                 .transform_constraints
                 .get(i)
                 .map(|d| d.name.as_str())
@@ -180,12 +180,12 @@ fn main() {
         .collect();
 
     let path_constraints: Vec<_> = skeleton
-        .path_constraints
+        .path_constraints()
         .iter()
         .enumerate()
         .map(|(i, c)| {
             let name = skeleton
-                .data
+                .data()
                 .path_constraints
                 .get(i)
                 .map(|d| d.name.as_str())
@@ -205,7 +205,7 @@ fn main() {
 
     let debug = dump_slot_vertices.as_deref().and_then(|slot_name| {
         let slot_index = skeleton
-            .data
+            .data()
             .slots
             .iter()
             .position(|s| s.name == slot_name)?;

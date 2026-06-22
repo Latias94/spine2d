@@ -330,12 +330,13 @@ fn debug_dump_bones(label: &str, skeleton: &Skeleton, total_time: f32) {
 
     eprintln!("[DEBUG-runwalk] {label} t={total_time:.6}");
     for name in names {
-        let Some((i, bone)) = skeleton
-            .bones
-            .iter()
-            .enumerate()
-            .find(|(i, _)| skeleton.data.bones.get(*i).is_some_and(|b| b.name == name))
-        else {
+        let Some((i, bone)) = skeleton.bones().iter().enumerate().find(|(i, _)| {
+            skeleton
+                .data()
+                .bones
+                .get(*i)
+                .is_some_and(|b| b.name == name)
+        }) else {
             eprintln!("[DEBUG-runwalk] missing bone {name}");
             continue;
         };
@@ -557,12 +558,12 @@ fn main() {
     }
 
     let bones: Vec<_> = skeleton
-        .bones
+        .bones()
         .iter()
         .enumerate()
         .map(|(i, bone)| {
             let name = skeleton
-                .data
+                .data()
                 .bones
                 .get(i)
                 .map(|b| b.name.as_str())
@@ -578,12 +579,12 @@ fn main() {
         .collect();
 
     let slots: Vec<_> = skeleton
-        .slots
+        .slots()
         .iter()
         .enumerate()
         .map(|(i, slot)| {
             let name = skeleton
-                .data
+                .data()
                 .slots
                 .get(i)
                 .map(|s| s.name.as_str())
@@ -614,19 +615,19 @@ fn main() {
         .collect();
 
     let draw_order: Vec<_> = skeleton
-        .draw_order
+        .draw_order()
         .iter()
         .copied()
         .map(|slot_index| slot_index as i32)
         .collect();
 
     let ik_constraints: Vec<_> = skeleton
-        .ik_constraints
+        .ik_constraints()
         .iter()
         .enumerate()
         .map(|(i, c)| {
             let name = skeleton
-                .data
+                .data()
                 .ik_constraints
                 .get(i)
                 .map(|d| d.name.as_str())
@@ -643,12 +644,12 @@ fn main() {
         .collect();
 
     let transform_constraints: Vec<_> = skeleton
-        .transform_constraints
+        .transform_constraints()
         .iter()
         .enumerate()
         .map(|(i, c)| {
             let name = skeleton
-                .data
+                .data()
                 .transform_constraints
                 .get(i)
                 .map(|d| d.name.as_str())
@@ -668,12 +669,12 @@ fn main() {
         .collect();
 
     let path_constraints: Vec<_> = skeleton
-        .path_constraints
+        .path_constraints()
         .iter()
         .enumerate()
         .map(|(i, c)| {
             let name = skeleton
-                .data
+                .data()
                 .path_constraints
                 .get(i)
                 .map(|d| d.name.as_str())
@@ -698,17 +699,17 @@ fn main() {
             json!(skeleton.debug_update_cache()),
         );
         let transform_constraint_data: Vec<_> = skeleton
-            .data
+            .data()
             .transform_constraints
             .iter()
             .map(|c| {
                 let bone_names: Vec<_> = c
                     .bones
                     .iter()
-                    .filter_map(|&i| skeleton.data.bones.get(i).map(|b| b.name.as_str()))
+                    .filter_map(|&i| skeleton.data().bones.get(i).map(|b| b.name.as_str()))
                     .collect();
                 let source_name = skeleton
-                    .data
+                    .data()
                     .bones
                     .get(c.source)
                     .map(|b| b.name.as_str())
@@ -734,7 +735,11 @@ fn main() {
         );
     }
     if let Some(slot_name) = dump_slot_vertices.as_deref()
-        && let Some(slot_index) = skeleton.data.slots.iter().position(|s| s.name == slot_name)
+        && let Some(slot_index) = skeleton
+            .data()
+            .slots
+            .iter()
+            .position(|s| s.name == slot_name)
         && let Some(world_vertices) = skeleton.slot_vertex_attachment_world_vertices(slot_index)
     {
         debug_map.insert("slot".to_string(), json!(slot_name));
