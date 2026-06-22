@@ -42,12 +42,13 @@ status: "active"
   - Continued U6 Skeleton extraction in commit `7f98a3d`; generic attachment world-vertices computation now lives in private `skeleton::vertices`, matching the official `VertexAttachment::computeWorldVertices` responsibility more closely.
   - Continued U6 Skeleton extraction in commit `b712f53`; the `Bone` runtime type now lives in private `skeleton::bone` and is re-exported from `skeleton` so the external type path stays stable.
   - Continued U6 Skeleton extraction in commit `6f56a26`; the `Slot` runtime type now lives in private `skeleton::slot` and is re-exported from `skeleton` so the external type path stays stable.
+  - Continued U6 Skeleton extraction in commit `fcf3389`; IK, transform, path, physics, and slider runtime constraint types now live in their matching private modules and are re-exported from `skeleton`.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: continue auditing remaining `skeleton.rs` runtime type boundaries, likely constraint runtime structs, before considering public field hardening.
+  - Continue U6: audit public field/accessor hardening for `Skeleton`, `Bone`, `Slot`, and runtime constraint structs against the official C++ getter/setter shape.
 
 # Citations
 
