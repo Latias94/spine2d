@@ -724,11 +724,13 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     skeleton.physics_constraints_mut()[0].set_gravity(0.55);
     skeleton.slider_constraints_mut()[0].set_time(0.65);
     skeleton.slots_mut()[0].set_color([0.9, 0.8, 0.7, 0.6]);
-    skeleton.slots_mut()[0].set_attachment_name(Some("manual".to_string()));
-    skeleton.slots_mut()[0].set_sequence_index(7);
-    skeleton.slots_mut()[0]
-        .deform_mut()
-        .extend_from_slice(&[1.0, 2.0]);
+    {
+        let slot = &mut skeleton.slots_mut()[0];
+        slot.attachment = Some("manual".to_string());
+        slot.attachment_skin = None;
+        slot.sequence_index = 7;
+        slot.deform.extend_from_slice(&[1.0, 2.0]);
+    }
     skeleton.draw_order_mut().swap(0, 1);
 
     skeleton.setup_pose_bones();
@@ -1510,16 +1512,8 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
 
     slot.set_sequence_index(4);
     slot.deform_mut().extend_from_slice(&[1.0, 2.0, 3.0]);
-    slot.set_attachment_name(Some("mesh".to_string()));
-    assert_eq!(slot.attachment_name(), Some("mesh"));
-    assert_eq!(slot.sequence_index(), -1);
-    assert!(slot.deform().is_empty());
-
-    slot.set_sequence_index(6);
-    slot.deform_mut().extend_from_slice(&[9.0]);
-    slot.set_attachment_name(Some("mesh".to_string()));
-    assert_eq!(slot.sequence_index(), 6);
-    assert_eq!(slot.deform(), &[9.0]);
+    assert_eq!(slot.sequence_index(), 4);
+    assert_eq!(slot.deform(), &[1.0, 2.0, 3.0]);
 }
 
 #[test]

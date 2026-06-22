@@ -201,16 +201,6 @@ impl Slot {
         }
     }
 
-    pub fn set_attachment_name(&mut self, attachment: Option<String>) {
-        if self.attachment == attachment {
-            return;
-        }
-        self.attachment = attachment;
-        self.attachment_skin = None;
-        self.deform.clear();
-        self.sequence_index = -1;
-    }
-
     pub fn sequence_index(&self) -> i32 {
         self.sequence_index
     }
