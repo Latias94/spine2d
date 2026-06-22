@@ -1218,7 +1218,7 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
     }
 
     skeleton.set_skin(None);
-    assert!(skeleton.set_attachment("slot0", "shared"));
+    skeleton.set_attachment("slot0", "shared");
     assert_eq!(skeleton.slots()[0].attachment_name(), Some("shared"));
     assert_eq!(
         skeleton.slots()[0].attachment_skin.as_deref(),
@@ -1233,7 +1233,7 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
         slot.set_sequence_index(9);
     }
 
-    assert!(!skeleton.set_attachment("slot0", "shared"));
+    skeleton.set_attachment("slot0", "shared");
     assert_eq!(
         skeleton.slots()[0].attachment_skin.as_deref(),
         Some("default")
@@ -1241,13 +1241,15 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
     assert_eq!(skeleton.slots()[0].sequence_index(), 9);
     assert_eq!(skeleton.slots()[0].deform(), &[3.0]);
 
-    assert!(skeleton.set_attachment("slot0", ""));
+    skeleton.set_attachment("slot0", "");
     assert_eq!(skeleton.slots()[0].attachment_name(), None);
     assert_eq!(skeleton.slots()[0].attachment_skin, None);
     assert!(skeleton.slots()[0].deform().is_empty());
     assert_eq!(skeleton.slots()[0].sequence_index(), -1);
-    assert!(!skeleton.set_attachment("missing", "shared"));
-    assert!(!skeleton.set_attachment("", "shared"));
+    skeleton.set_attachment("missing", "shared");
+    skeleton.set_attachment("", "shared");
+    assert_eq!(skeleton.slots()[0].attachment_name(), None);
+    assert_eq!(skeleton.slots()[0].attachment_skin, None);
 }
 
 #[test]
@@ -1260,13 +1262,13 @@ fn skeleton_set_attachment_preserves_deform_for_matching_timeline_attachment() {
         slot.set_sequence_index(7);
     }
 
-    assert!(skeleton.set_attachment("slot0", "child"));
+    skeleton.set_attachment("slot0", "child");
     assert_eq!(skeleton.slots()[0].attachment_name(), Some("child"));
     assert_eq!(skeleton.slots()[0].sequence_index(), -1);
     assert_eq!(skeleton.slots()[0].deform(), &[1.0, 2.0, 3.0, 4.0]);
 
     skeleton.slots_mut()[0].set_sequence_index(9);
-    assert!(skeleton.set_attachment("slot0", "other"));
+    skeleton.set_attachment("slot0", "other");
     assert_eq!(skeleton.slots()[0].attachment_name(), Some("other"));
     assert_eq!(skeleton.slots()[0].sequence_index(), -1);
     assert!(skeleton.slots()[0].deform().is_empty());

@@ -1418,12 +1418,12 @@ impl Skeleton {
         self.attachment(slot_index, attachment_name)
     }
 
-    pub fn set_attachment(&mut self, slot_name: &str, attachment_name: &str) -> bool {
+    pub fn set_attachment(&mut self, slot_name: &str, attachment_name: &str) {
         if slot_name.is_empty() {
-            return false;
+            return;
         }
         let Some(slot_index) = self.find_slot_index(slot_name) else {
-            return false;
+            return;
         };
 
         if attachment_name.is_empty() {
@@ -1439,7 +1439,7 @@ impl Skeleton {
             };
             let slot = &mut self.slots[slot_index];
             if slot.attachment.is_none() && slot.attachment_skin.is_none() {
-                return false;
+                return;
             }
             slot.attachment = None;
             slot.attachment_skin = None;
@@ -1447,12 +1447,12 @@ impl Skeleton {
                 slot.deform.clear();
             }
             slot.sequence_index = -1;
-            return true;
+            return;
         }
 
         let Some(source_skin) = self.attachment_source_skin_name(slot_index, attachment_name)
         else {
-            return false;
+            return;
         };
         let (old_key, old_skin) = {
             let slot = &self.slots[slot_index];
@@ -1461,7 +1461,7 @@ impl Skeleton {
         if old_key.as_deref() == Some(attachment_name)
             && old_skin.as_deref() == Some(source_skin.as_str())
         {
-            return false;
+            return;
         }
 
         let clear_deform = self.attachment_change_clears_deform(
@@ -1478,7 +1478,6 @@ impl Skeleton {
             slot.deform.clear();
         }
         slot.sequence_index = -1;
-        true
     }
 
     pub fn bounds(&self) -> Option<(f32, f32, f32, f32)> {
