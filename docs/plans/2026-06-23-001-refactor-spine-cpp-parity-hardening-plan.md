@@ -238,7 +238,7 @@ flowchart TB
 
 **Goal:** Split the largest live `Skeleton` responsibilities after dead code has been removed and solver coverage is confirmed.
 
-**Status:** In progress. Commit `3edaa0b` moved path constraint scratch storage and capacity estimation into private `skeleton::path`. Commit `0dab0fb` moved path attachment lookup, path world-position calculation, and private path curve helpers into `skeleton::path`; the generic attachment world-vertex helper remains in `skeleton.rs` because it is shared by path solving and `Skeleton::world_vertices`. Commit `190a119` moved update-cache ordering and debug formatting into private `skeleton::cache`, keeping Rust's centralized constraint storage while matching the official C++ responsibility boundary more closely.
+**Status:** In progress. Commit `3edaa0b` moved path constraint scratch storage and capacity estimation into private `skeleton::path`. Commit `0dab0fb` moved path attachment lookup, path world-position calculation, and private path curve helpers into `skeleton::path`; the generic attachment world-vertex helper remains in `skeleton.rs` because it is shared by path solving and `Skeleton::world_vertices`. Commit `190a119` moved update-cache ordering and debug formatting into private `skeleton::cache`, keeping Rust's centralized constraint storage while matching the official C++ responsibility boundary more closely. Commit `757b2f7` moved BonePose-equivalent world/local transform helpers and root/child world-transform math into private `skeleton::bone`, while `Bone` itself remains in `skeleton.rs` for now.
 
 **Requirements:** R2, R3, R7.
 
