@@ -36,12 +36,13 @@ status: "active"
   - Continued U6 Skeleton extraction in commit `fc3ef3c`; the bone world-transform update entry now delegates to private `skeleton::bone`, completing the low-risk BonePose helper extraction slice.
   - Continued U6 Skeleton extraction in commit `e076419`; IK solver entry and helper routines now live in private `skeleton::ik`.
   - Continued U6 Skeleton extraction in commit `d772a9f`; transform constraint solver entry and helper routines now live in private `skeleton::transform`.
+  - Continued U6 Skeleton extraction in commit `6be2f7b`; physics constraint solver entry and helper routines now live in private `skeleton::physics`.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: audit remaining `Skeleton` constraint solver bodies and choose the next low-risk extraction, likely physics or slider helpers before broader public API movement.
+  - Continue U6: audit remaining `Skeleton` constraint solver bodies and choose the next low-risk extraction, likely slider helpers before broader public API movement.
 
 # Citations
 
