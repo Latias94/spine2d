@@ -70,12 +70,13 @@ status: "active"
   - Separated applied slot pose from the unconstrained slot pose in commit `9147966`; slider-driven slot, attachment, sequence, and deform timelines now target the applied `SlotPose` when C++ `Animation::apply(..., appliedPose=true)` would, and rendering/oracle/world-vertex reads use the applied pose.
   - Removed the Rust-only `Slot::set_attachment_name` helper in breaking commit `068263d`; runtime callers must use `Skeleton::set_attachment` for name-based attachment changes so source-skin lookup and deform/sequence reset semantics stay aligned with C++.
   - Removed the Rust-only `Slot::set_bone_index` helper in breaking commit `7b83c3c`; slot-to-bone binding remains construction data plus read-only `bone_index()`, matching C++ `Slot::getBone()`.
+  - Removed runtime `Slot` blend storage in breaking commit `9afff8b`; rendering now reads blend mode from `SlotData`, matching C++ `SlotData::getBlendMode()`.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: audit remaining Rust-only `Slot` surfaces such as runtime blend mutation, then continue base-vs-applied pose read audits.
+  - Continue U6: audit remaining `SlotPose` read/write semantics and any base-vs-applied pose reads that still choose the wrong buffer.
 
 # Citations
 

@@ -270,6 +270,8 @@ flowchart TB
 
 **Recent update:** Commit `7b83c3c` removed the Rust-only `Slot::set_bone_index` public helper. C++ exposes `Slot::getBone()` but not runtime slot rebinding, so Rust keeps `bone_index()` read-only for external callers.
 
+**Recent update:** Commit `9afff8b` removed runtime `Slot` blend storage and moved draw extraction back to `SlotData.blend`, matching C++ where blend mode is a `SlotData` property rather than mutable `SlotPose` state.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
