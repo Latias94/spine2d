@@ -5,8 +5,8 @@ This document tracks which test suites from the official Spine runtimes have bee
 Reference upstream:
 - Example exports used by smoke tests are imported into `assets/spine-runtimes` (see `assets/spine-runtimes/SOURCE.txt` for the exact upstream commit).
 - C++ oracle scripts require a local checkout of `spine-runtimes` sources (not committed). For best parity, use the same commit as `assets/spine-runtimes/SOURCE.txt`.
-- Current refresh target: upstream tag `spine-flutter-4.3.4` commit `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`.
-- Note: this pinned latest tag commit ships `spine-c`, `spine-cpp`, and `spine-ts` sources used by the parity oracle.
+- Current refresh target: upstream tag `spine-ts-4.3.8` commit `8e12b1250ab88c0f890849ea45aab80338cead63`.
+- Note: this pinned latest tag commit ships `spine-cpp`, which is the sole behaviour reference used by the parity oracle.
   - The tag currently includes only small headless test programs under `spine-c/tests` and `spine-cpp/tests`.
   - Historical test suites from removed runtimes (eg. `spine-csharp`, `spine-libgdx`) are still useful as behavioural specs, so `spine2d` keeps their ported cases even though they are no longer present on the current upstream tag.
 

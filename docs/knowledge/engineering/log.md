@@ -14,3 +14,6 @@
 * **Latest upstream parity suite green**: `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast` passed with `533 passed, 10 skipped`.
 * **Golden baseline refreshed**: Re-recorded stale `sack_*` physics oracle goldens against `spine-flutter-4.3.4` commit `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`.
 * **Formatting gate green**: `cargo fmt --all --check` passed.
+
+## 2026-06-23
+* **C++ reference narrowed**: Active baseline moved to latest verified 4.3 tag `spine-ts-4.3.8` (`8e12b1250ab88c0f890849ea45aab80338cead63`) as the reproducibility anchor. Runtime parity now treats `spine-cpp` as the sole behaviour reference; other runtime tags are metadata only.

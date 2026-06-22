@@ -23,8 +23,8 @@ Rationale: `wasm32-unknown-unknown` should not require Emscripten/emsdk or a C++
 - We pin our upstream reference by commit:
   - Example exports used by smoke tests and demos live under `assets/spine-runtimes`.
   - The exact upstream commit is recorded in `assets/spine-runtimes/SOURCE.txt`.
-  - Current refresh target: upstream tag `spine-flutter-4.3.4` at `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`.
-  - Runtime-specific tags such as `spine-libgdx-4.3.2` remain auxiliary release markers; the runtime reference is the pinned latest tag commit above.
+  - Current refresh target: upstream tag `spine-ts-4.3.8` at `8e12b1250ab88c0f890849ea45aab80338cead63`.
+  - `spine-cpp` is the sole behaviour reference for runtime parity; runtime-specific tags are only release/reproducibility markers.
 
 ## Workspace / crate layout
 

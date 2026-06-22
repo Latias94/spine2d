@@ -6,30 +6,30 @@ This document anchors module-by-module parity work to the latest official Spine 
 
 - Upstream repo: `https://github.com/EsotericSoftware/spine-runtimes`
 - Target version: `4.3-latest-tag`
-- Pinned ref: `spine-flutter-4.3.4`
-- Pinned commit: `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`
-- Primary reference paths: `spine-cpp/`, `spine-c/`, `examples/`
+- Pinned ref: `spine-ts-4.3.8`
+- Pinned commit: `8e12b1250ab88c0f890849ea45aab80338cead63`
+- Primary reference path: `spine-cpp/`
 
 ## Why This Tag
 
 Official 4.3 refs currently include:
 
+- `spine-ts-4.3.8`
 - `spine-libgdx-4.3.2`
 - `spine-flutter-4.3.3`
 - `spine-flutter-4.3.4`
 
-There is no plain `4.3.2` tag in the official repository. Local verification shows empty diffs for `spine-c` and `spine-cpp` between `spine-libgdx-4.3.2` and both the current `4.3` branch and `spine-flutter-4.3.4`.
+There is no plain `4.3.2` tag in the official repository. Local verification shows no behaviour-relevant `spine-cpp` drift between the pinned tag and the current `4.3` branch.
 
-The project now pins `spine-flutter-4.3.4` because it is the newest official 4.3 tag. The comparison gate still checks the moving `4.3` branch for drift across `spine-c`, `spine-cpp`, and `examples`.
+The project now pins `spine-ts-4.3.8` because it is the newest official 4.3 tag. The comparison gate checks the moving `4.3` branch for drift in `spine-cpp`.
 
 ## Audit Workflow
 
 For each runtime module:
 
 1. Compare Rust behavior against `spine-cpp` first.
-2. Use `spine-c` when C symbols or generated code define the behavior more directly.
-3. Add or update an oracle scenario before changing behavior when the difference is observable.
-4. Record any intentional deviation in a follow-up decision document.
+2. Add or update an oracle scenario before changing behavior when the difference is observable.
+3. Record any intentional deviation in a follow-up decision document.
 
 ## Priority Areas
 

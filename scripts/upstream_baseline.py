@@ -12,6 +12,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = ROOT_DIR / "spine-upstream.toml"
 BASELINE_PATH = Path(__file__).resolve().with_name("upstream_baseline.json")
 UPSTREAM_MARKERS = ("spine-cpp", "spine-c", "examples")
+REFERENCE_RUNTIME_PATHS = ("spine-cpp",)
 
 
 @dataclass(frozen=True)
@@ -45,7 +46,7 @@ def load_baseline() -> UpstreamBaseline:
         upstream_ref=rev,
         target_commit=commit,
         comparison_branch="4.3",
-        runtime_paths=("spine-c", "spine-cpp", "examples"),
+        runtime_paths=REFERENCE_RUNTIME_PATHS,
     )
 
 

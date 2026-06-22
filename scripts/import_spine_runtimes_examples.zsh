@@ -94,7 +94,8 @@ fi
 {
   echo "Source: ${REMOTE}"
   echo "TargetVersion: 4.3-latest-tag"
-  echo "UpstreamRef: spine-flutter-4.3.4"
+  echo "UpstreamRef: spine-ts-4.3.8"
+  echo "ReferenceRuntime: spine-cpp"
   echo "Commit: ${COMMIT}"
   echo "ImportedAtUTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "Mode: ${MODE}"

@@ -11,12 +11,12 @@ status: "active"
 
 - Goal: 对齐 `spine2d` 与官方 `spine-runtimes` latest 4.3 tag 的运行时行为。
 - Branch: 当前工作区有大量既有未提交变更；不要回退用户或其他 agent 的改动。
-- Baseline: `spine-flutter-4.3.4` / commit `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`。
+- Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
   - `cargo fmt --all --check` passed.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast` passed with `533 passed, 10 skipped`.
 - Done:
-  - Confirmed `4.3.2` is not the latest 4.3 tag; current explicit baseline is `spine-flutter-4.3.4`.
+  - Confirmed `4.3.2` is not the latest 4.3 tag; current explicit baseline is `spine-ts-4.3.8`.
   - Confirmed official 4.3.4 IK uses `ScaleYMode/scaleY`, not development HEAD `uniform`.
   - Confirmed `.json` and `.skel` run-to-walk scenarios are green after refreshing stale goldens.
   - Re-recorded stale `sack_*` physics goldens against the pinned official oracle.
