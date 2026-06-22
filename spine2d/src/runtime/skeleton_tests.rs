@@ -236,6 +236,123 @@ fn constraint_lookup_skeleton_data() -> Arc<SkeletonData> {
     })
 }
 
+fn setup_pose_split_skeleton_data() -> Arc<SkeletonData> {
+    let mut physics = physics_constraint_data("physics", 3, 0);
+    physics.inertia = 0.1;
+    physics.strength = 0.2;
+    physics.damping = 0.3;
+    physics.mass_inverse = 0.4;
+    physics.wind = 0.5;
+    physics.gravity = 0.6;
+    physics.mix = 0.7;
+
+    Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            x: 1.0,
+            y: 2.0,
+            rotation: 3.0,
+            scale_x: 4.0,
+            scale_y: 5.0,
+            shear_x: 6.0,
+            shear_y: 7.0,
+            ..Default::default()
+        }],
+        slots: vec![
+            SlotData {
+                name: "slot0".to_string(),
+                bone: 0,
+                attachment: None,
+                color: [0.1, 0.2, 0.3, 0.4],
+                has_dark: true,
+                dark_color: [0.5, 0.6, 0.7],
+                blend: BlendMode::Additive,
+                visible: true,
+            },
+            SlotData {
+                name: "slot1".to_string(),
+                bone: 0,
+                attachment: None,
+                ..Default::default()
+            },
+        ],
+        skins: HashMap::new(),
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: vec![IkConstraintData {
+            name: "ik".to_string(),
+            order: 0,
+            skin_required: false,
+            bones: vec![0],
+            target: 0,
+            scale_y_mode: ScaleYMode::Volume,
+            mix: 0.8,
+            softness: 0.9,
+            compress: true,
+            stretch: true,
+            bend_direction: -1,
+        }],
+        transform_constraints: vec![TransformConstraintData {
+            name: "transform".to_string(),
+            order: 1,
+            skin_required: false,
+            bones: vec![0],
+            source: 0,
+            local_source: false,
+            local_target: false,
+            additive: false,
+            clamp: false,
+            offsets: [0.0; 6],
+            properties: Vec::new(),
+            mix_rotate: 0.11,
+            mix_x: 0.12,
+            mix_y: 0.13,
+            mix_scale_x: 0.14,
+            mix_scale_y: 0.15,
+            mix_shear_y: 0.16,
+        }],
+        path_constraints: vec![PathConstraintData {
+            name: "path".to_string(),
+            order: 2,
+            bones: vec![0],
+            target: 0,
+            position_mode: PositionMode::Fixed,
+            spacing_mode: SpacingMode::Length,
+            rotate_mode: RotateMode::Tangent,
+            offset_rotation: 0.0,
+            position: 1.1,
+            spacing: 1.2,
+            mix_rotate: 1.3,
+            mix_x: 1.4,
+            mix_y: 1.5,
+            skin_required: false,
+        }],
+        physics_constraints: vec![physics],
+        slider_constraints: vec![SliderConstraintData {
+            name: "slider".to_string(),
+            order: 4,
+            skin_required: false,
+            setup_time: 2.1,
+            setup_mix: 2.2,
+            additive: false,
+            looped: false,
+            bone: Some(0),
+            property: None,
+            property_from: 0.0,
+            to: 0.0,
+            scale: 1.0,
+            local: false,
+            animation: None,
+        }],
+    })
+}
+
 #[test]
 fn skeleton_world_controls_are_public_and_ignore_non_finite_inputs() {
     let mut skeleton = Skeleton::new(empty_skeleton_data());
@@ -263,6 +380,72 @@ fn skeleton_world_controls_are_public_and_ignore_non_finite_inputs() {
 
     skeleton.update(0.25);
     assert_eq!(skeleton.time(), 1.75);
+}
+
+#[test]
+fn skeleton_setup_pose_methods_match_cpp_split() {
+    let mut skeleton = Skeleton::new(setup_pose_split_skeleton_data());
+
+    skeleton.bones_mut()[0].set_position(10.0, 20.0);
+    skeleton.bones_mut()[0].set_rotation(30.0);
+    skeleton.ik_constraints_mut()[0].set_mix(0.25);
+    skeleton.ik_constraints_mut()[0].set_bend_direction(1);
+    skeleton.transform_constraints_mut()[0].set_mix_x(0.35);
+    skeleton.path_constraints_mut()[0].set_position(0.45);
+    skeleton.physics_constraints_mut()[0].set_gravity(0.55);
+    skeleton.slider_constraints_mut()[0].set_time(0.65);
+    skeleton.slots_mut()[0].set_color([0.9, 0.8, 0.7, 0.6]);
+    skeleton.slots_mut()[0].set_attachment_name(Some("manual".to_string()));
+    skeleton.slots_mut()[0].set_sequence_index(7);
+    skeleton.slots_mut()[0]
+        .deform_mut()
+        .extend_from_slice(&[1.0, 2.0]);
+    skeleton.draw_order_mut().swap(0, 1);
+
+    skeleton.setup_pose_bones();
+
+    assert_eq!(skeleton.bones()[0].position(), (1.0, 2.0));
+    assert_eq!(skeleton.bones()[0].rotation(), 3.0);
+    assert_eq!(skeleton.bones()[0].applied_position(), (1.0, 2.0));
+    assert_eq!(skeleton.ik_constraints()[0].mix(), 0.8);
+    assert_eq!(skeleton.ik_constraints()[0].bend_direction(), -1);
+    assert_eq!(skeleton.transform_constraints()[0].mix_x(), 0.12);
+    assert_eq!(skeleton.path_constraints()[0].position(), 1.1);
+    assert_eq!(skeleton.physics_constraints()[0].gravity(), 0.6);
+    assert_eq!(skeleton.slider_constraints()[0].time(), 2.1);
+    assert_eq!(skeleton.slots()[0].color(), [0.9, 0.8, 0.7, 0.6]);
+    assert_eq!(skeleton.slots()[0].attachment_name(), Some("manual"));
+    assert_eq!(skeleton.slots()[0].sequence_index(), 7);
+    assert_eq!(skeleton.draw_order(), &[1, 0]);
+
+    skeleton.bones_mut()[0].set_position(40.0, 50.0);
+    skeleton.ik_constraints_mut()[0].set_mix(0.33);
+
+    skeleton.setup_pose_slots();
+
+    assert_eq!(skeleton.bones()[0].position(), (40.0, 50.0));
+    assert_eq!(skeleton.ik_constraints()[0].mix(), 0.33);
+    assert_eq!(skeleton.slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
+    assert!(skeleton.slots()[0].has_dark());
+    assert_eq!(skeleton.slots()[0].dark_color(), [0.5, 0.6, 0.7]);
+    assert_eq!(skeleton.slots()[0].blend(), BlendMode::Additive);
+    assert_eq!(skeleton.slots()[0].attachment_name(), None);
+    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
+    assert!(skeleton.slots()[0].deform().is_empty());
+    assert_eq!(skeleton.draw_order(), &[0, 1]);
+
+    skeleton.bones_mut()[0].set_position(70.0, 80.0);
+    skeleton.ik_constraints_mut()[0].set_mix(0.44);
+    skeleton.slots_mut()[0].set_color([0.2, 0.3, 0.4, 0.5]);
+    skeleton.draw_order_mut().swap(0, 1);
+
+    skeleton.setup_pose();
+
+    assert_eq!(skeleton.bones()[0].position(), (1.0, 2.0));
+    assert_eq!(skeleton.ik_constraints()[0].mix(), 0.8);
+    assert_eq!(skeleton.slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(skeleton.slots()[0].sequence_index(), 0);
+    assert_eq!(skeleton.draw_order(), &[0, 1]);
 }
 
 #[test]

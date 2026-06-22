@@ -374,7 +374,7 @@ impl Skeleton {
         // Match upstream runtime initialization:
         // - Slots start in setup pose (including setup attachments resolved via default skin fallback).
         // - The cache is built after setup values are in place.
-        out.set_to_setup_pose();
+        out.setup_pose();
         out.update_cache();
         out
     }
@@ -884,7 +884,12 @@ impl Skeleton {
         Ok(())
     }
 
-    pub fn set_to_setup_pose(&mut self) {
+    pub fn setup_pose(&mut self) {
+        self.setup_pose_bones();
+        self.setup_pose_slots();
+    }
+
+    pub fn setup_pose_bones(&mut self) {
         for (i, bone) in self.bones.iter_mut().enumerate() {
             let Some(data) = self.data.bones.get(i) else {
                 continue;
@@ -906,70 +911,6 @@ impl Skeleton {
             bone.ashear_x = data.shear_x;
             bone.ashear_y = data.shear_y;
         }
-
-        let skin_name = self.skin.as_deref();
-        let skin = skin_name.and_then(|n| self.data.skin(n));
-        let default_skin = if skin_name != Some("default") {
-            self.data.skin("default")
-        } else {
-            None
-        };
-
-        for (i, slot) in self.slots.iter_mut().enumerate() {
-            let Some(data) = self.data.slots.get(i) else {
-                continue;
-            };
-            let setup_name = data.attachment.as_deref();
-
-            match setup_name {
-                None => {
-                    // Match spine-cpp `Slot::setToSetupPose`:
-                    // - When setup attachment is empty, it calls `setAttachment(NULL)`.
-                    // - If the slot already has `NULL`, `setAttachment` early returns and does not
-                    //   modify `sequenceIndex`.
-                    if slot.attachment.is_some() || slot.attachment_skin.is_some() {
-                        slot.attachment = None;
-                        slot.attachment_skin = None;
-                        slot.deform.clear();
-                        slot.sequence_index = -1;
-                    } else {
-                        slot.attachment = None;
-                        slot.attachment_skin = None;
-                    }
-                }
-                Some(name) => {
-                    let mut resolved = None;
-                    if skin.and_then(|s| s.attachment(i, name)).is_some() {
-                        resolved = Some((name.to_string(), skin_name.map(|n| n.to_string())));
-                    } else if default_skin.and_then(|s| s.attachment(i, name)).is_some() {
-                        resolved = Some((name.to_string(), Some("default".to_string())));
-                    }
-
-                    if let Some((key, source_skin)) = resolved {
-                        // Match spine-cpp: `Slot::setToSetupPose` forces `_attachment=NULL` before
-                        // calling `setAttachment`, so even if the same attachment is already set
-                        // we reset the sequence index to `-1`.
-                        slot.attachment = Some(key);
-                        slot.attachment_skin = source_skin;
-                        slot.deform.clear();
-                        slot.sequence_index = -1;
-                    } else {
-                        // Setup attachment name exists but can't be resolved to an attachment.
-                        // Match spine-cpp: it sets `_attachment=NULL` and then `setAttachment(NULL)`
-                        // which early-returns, leaving `sequenceIndex` unchanged.
-                        slot.attachment = None;
-                        slot.attachment_skin = None;
-                    }
-                }
-            }
-
-            slot.color = data.color;
-            slot.has_dark = data.has_dark;
-            slot.dark_color = data.dark_color;
-            slot.blend = data.blend;
-        }
-
-        self.draw_order = (0..self.slots.len()).collect::<Vec<_>>();
 
         for ik in &mut self.ik_constraints {
             if let Some(data) = self.data.ik_constraints.get(ik.data_index) {
@@ -1021,6 +962,76 @@ impl Skeleton {
                 c.mix = data.setup_mix;
             }
         }
+    }
+
+    pub fn setup_pose_slots(&mut self) {
+        let skin_name = self.skin.as_deref();
+        let skin = skin_name.and_then(|n| self.data.skin(n));
+        let default_skin = if skin_name != Some("default") {
+            self.data.skin("default")
+        } else {
+            None
+        };
+
+        for (i, slot) in self.slots.iter_mut().enumerate() {
+            let Some(data) = self.data.slots.get(i) else {
+                continue;
+            };
+            let setup_name = data.attachment.as_deref();
+
+            match setup_name {
+                None => {
+                    // Match spine-cpp `Slot::setToSetupPose`:
+                    // - When setup attachment is empty, it calls `setAttachment(NULL)`.
+                    if slot.attachment.is_some() || slot.attachment_skin.is_some() {
+                        slot.attachment = None;
+                        slot.attachment_skin = None;
+                        slot.deform.clear();
+                        slot.sequence_index = -1;
+                    } else {
+                        slot.attachment = None;
+                        slot.attachment_skin = None;
+                        slot.sequence_index = 0;
+                    }
+                }
+                Some(name) => {
+                    let mut resolved = None;
+                    if skin.and_then(|s| s.attachment(i, name)).is_some() {
+                        resolved = Some((name.to_string(), skin_name.map(|n| n.to_string())));
+                    } else if default_skin.and_then(|s| s.attachment(i, name)).is_some() {
+                        resolved = Some((name.to_string(), Some("default".to_string())));
+                    }
+
+                    if let Some((key, source_skin)) = resolved {
+                        // Match spine-cpp: `Slot::setToSetupPose` forces `_attachment=NULL` before
+                        // calling `setAttachment`, so even if the same attachment is already set
+                        // we reset the sequence index to `-1`.
+                        slot.attachment = Some(key);
+                        slot.attachment_skin = source_skin;
+                        slot.deform.clear();
+                        slot.sequence_index = -1;
+                    } else {
+                        // Setup attachment name exists but can't be resolved to an attachment.
+                        // Match spine-cpp: it sets `_attachment=NULL` and then `setAttachment(NULL)`
+                        // which early-returns, leaving `sequenceIndex` at the setup value.
+                        slot.attachment = None;
+                        slot.attachment_skin = None;
+                        slot.sequence_index = 0;
+                    }
+                }
+            }
+
+            slot.color = data.color;
+            slot.has_dark = data.has_dark;
+            slot.dark_color = data.dark_color;
+            slot.blend = data.blend;
+        }
+
+        self.draw_order = (0..self.slots.len()).collect::<Vec<_>>();
+    }
+
+    pub fn set_to_setup_pose(&mut self) {
+        self.setup_pose();
     }
 
     pub fn attachment(
