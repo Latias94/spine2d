@@ -902,14 +902,10 @@ fn oracle_mix_and_match_skin_switch_backpack_to_hat_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("accessories/backpack"))
-        .expect("set skin backpack");
+    skeleton.set_skin(Some("accessories/backpack"));
     step(&mut state, &mut skeleton, 0.0);
 
-    skeleton
-        .set_skin(Some("accessories/hat-red-yellow"))
-        .expect("set skin hat");
+    skeleton.set_skin(Some("accessories/hat-red-yellow"));
     step(&mut state, &mut skeleton, 0.0);
 
     let rust = dump_pose(&skeleton, 0.0, None);
@@ -929,14 +925,10 @@ fn oracle_skel_mix_and_match_skin_switch_backpack_to_hat_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("accessories/backpack"))
-        .expect("set skin backpack");
+    skeleton.set_skin(Some("accessories/backpack"));
     step(&mut state, &mut skeleton, 0.0);
 
-    skeleton
-        .set_skin(Some("accessories/hat-red-yellow"))
-        .expect("set skin hat");
+    skeleton.set_skin(Some("accessories/hat-red-yellow"));
     step(&mut state, &mut skeleton, 0.0);
 
     let rust = dump_pose(&skeleton, 0.0, None);
@@ -1233,14 +1225,10 @@ fn oracle_mix_and_match_skin_switch_hat_aware_t0_1667_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("accessories/backpack"))
-        .expect("set skin backpack");
+    skeleton.set_skin(Some("accessories/backpack"));
     step(&mut state, &mut skeleton, 0.0);
 
-    skeleton
-        .set_skin(Some("accessories/hat-red-yellow"))
-        .expect("set skin hat");
+    skeleton.set_skin(Some("accessories/hat-red-yellow"));
     state.set_animation(0, "aware", true).expect("set aware");
     step(&mut state, &mut skeleton, 0.1667);
 
@@ -1261,14 +1249,10 @@ fn oracle_skel_mix_and_match_skin_switch_hat_aware_t0_1667_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("accessories/backpack"))
-        .expect("set skin backpack");
+    skeleton.set_skin(Some("accessories/backpack"));
     step(&mut state, &mut skeleton, 0.0);
 
-    skeleton
-        .set_skin(Some("accessories/hat-red-yellow"))
-        .expect("set skin hat");
+    skeleton.set_skin(Some("accessories/hat-red-yellow"));
     state.set_animation(0, "aware", true).expect("set aware");
     step(&mut state, &mut skeleton, 0.1667);
 
@@ -1288,9 +1272,7 @@ fn oracle_mix_and_match_walk_plus_dress_up_add_t0_4_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("full-skins/boy"))
-        .expect("set skin full-skins/boy");
+    skeleton.set_skin(Some("full-skins/boy"));
     step(&mut state, &mut skeleton, 0.0);
 
     state.set_animation(0, "walk", true).expect("set walk");
@@ -1319,9 +1301,7 @@ fn oracle_skel_mix_and_match_walk_plus_dress_up_add_t0_4_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("full-skins/boy"))
-        .expect("set skin full-skins/boy");
+    skeleton.set_skin(Some("full-skins/boy"));
     step(&mut state, &mut skeleton, 0.0);
 
     state.set_animation(0, "walk", true).expect("set walk");
@@ -1347,7 +1327,7 @@ fn oracle_goblins_walk_dagger_deform_vertices_t0_3_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton.set_skin(Some("goblin")).expect("set skin goblin");
+    skeleton.set_skin(Some("goblin"));
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -1363,7 +1343,7 @@ fn oracle_goblins_walk_skin_goblin_left_foot_deform_t0_3_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton.set_skin(Some("goblin")).expect("set skin goblin");
+    skeleton.set_skin(Some("goblin"));
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -1381,9 +1361,7 @@ fn oracle_goblins_walk_skin_goblingirl_left_foot_deform_t0_3_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("goblingirl"))
-        .expect("set skin goblingirl");
+    skeleton.set_skin(Some("goblingirl"));
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -1401,7 +1379,7 @@ fn oracle_goblins_walk_skin_goblin_left_foot_deform_jitter_dt_t0_3_matches_cpp()
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton.set_skin(Some("goblin")).expect("set skin goblin");
+    skeleton.set_skin(Some("goblin"));
     state.set_animation(0, "walk", true).expect("set walk");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -1424,9 +1402,7 @@ fn oracle_goblins_walk_skin_goblingirl_left_foot_deform_jitter_dt_t0_3_matches_c
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("goblingirl"))
-        .expect("set skin goblingirl");
+    skeleton.set_skin(Some("goblingirl"));
     state.set_animation(0, "walk", true).expect("set walk");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -1450,7 +1426,7 @@ fn oracle_skel_goblins_walk_dagger_deform_vertices_t0_3_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton.set_skin(Some("goblin")).expect("set skin goblin");
+    skeleton.set_skin(Some("goblin"));
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -3209,7 +3185,7 @@ fn oracle_skel_goblins_walk_skin_goblin_left_foot_deform_t0_3_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton.set_skin(Some("goblin")).expect("set skin goblin");
+    skeleton.set_skin(Some("goblin"));
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -3228,9 +3204,7 @@ fn oracle_skel_goblins_walk_skin_goblingirl_left_foot_deform_t0_3_matches_cpp() 
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("goblingirl"))
-        .expect("set skin goblingirl");
+    skeleton.set_skin(Some("goblingirl"));
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -3249,7 +3223,7 @@ fn oracle_skel_goblins_walk_skin_goblin_left_foot_deform_jitter_dt_t0_3_matches_
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton.set_skin(Some("goblin")).expect("set skin goblin");
+    skeleton.set_skin(Some("goblin"));
     state.set_animation(0, "walk", true).expect("set walk");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3273,9 +3247,7 @@ fn oracle_skel_goblins_walk_skin_goblingirl_left_foot_deform_jitter_dt_t0_3_matc
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("goblingirl"))
-        .expect("set skin goblingirl");
+    skeleton.set_skin(Some("goblingirl"));
     state.set_animation(0, "walk", true).expect("set walk");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -6584,14 +6556,10 @@ fn oracle_mix_and_match_skin_switch_boy_to_girl_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("full-skins/boy"))
-        .expect("set skin boy");
+    skeleton.set_skin(Some("full-skins/boy"));
     step(&mut state, &mut skeleton, 0.0);
 
-    skeleton
-        .set_skin(Some("full-skins/girl"))
-        .expect("set skin girl");
+    skeleton.set_skin(Some("full-skins/girl"));
     step(&mut state, &mut skeleton, 0.0);
 
     let rust = dump_pose(&skeleton, 0.0, None);
@@ -6609,14 +6577,10 @@ fn oracle_skel_mix_and_match_skin_switch_boy_to_girl_matches_cpp() {
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("full-skins/boy"))
-        .expect("set skin boy");
+    skeleton.set_skin(Some("full-skins/boy"));
     step(&mut state, &mut skeleton, 0.0);
 
-    skeleton
-        .set_skin(Some("full-skins/girl"))
-        .expect("set skin girl");
+    skeleton.set_skin(Some("full-skins/girl"));
     step(&mut state, &mut skeleton, 0.0);
 
     let rust = dump_pose(&skeleton, 0.0, None);

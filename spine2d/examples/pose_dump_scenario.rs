@@ -411,9 +411,9 @@ fn main() {
             "--set-skin" if i + 1 < args.len() => {
                 let name = args[i + 1].as_str();
                 if name == "none" {
-                    skeleton.set_skin(None).expect("set skin");
+                    skeleton.set_skin(None);
                 } else {
-                    skeleton.set_skin(Some(name)).expect("set skin");
+                    skeleton.set_skin(Some(name));
                 }
                 i += 2;
             }

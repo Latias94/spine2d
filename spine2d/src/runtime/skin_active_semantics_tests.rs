@@ -116,9 +116,7 @@ fn skin_required_active_and_gating_match_spine_cpp_semantics() {
     skeleton.setup_pose();
 
     // Start from no skin, then set a skin. Upstream applies setup attachments from the new skin.
-    skeleton
-        .set_skin(Some("accessories/backpack"))
-        .expect("set skin");
+    skeleton.set_skin(Some("accessories/backpack"));
 
     let backpack_bone = bone_index(&data, "backpack");
     assert!(skeleton.bones[backpack_bone].active);
@@ -261,9 +259,7 @@ fn mix_and_match_add_skin_composition_matches_upstream_demo_semantics() {
     let data = std::sync::Arc::new(data);
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some(custom.name.as_str()))
-        .expect("set custom skin");
+    skeleton.set_skin(Some(custom.name.as_str()));
 
     let hat_control_bone = bone_index(&data, "hat-control");
     assert!(
@@ -304,9 +300,7 @@ fn set_skin_from_skin_to_skin_replaces_shared_attachments_and_preserves_missing_
 
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
-    skeleton
-        .set_skin(Some("full-skins/boy"))
-        .expect("set boy skin");
+    skeleton.set_skin(Some("full-skins/boy"));
 
     let mouth_slot = slot_index(&data, "mouth");
     let zip_slot = slot_index(&data, "zip-boy");
@@ -328,9 +322,7 @@ fn set_skin_from_skin_to_skin_replaces_shared_attachments_and_preserves_missing_
         Some("full-skins/boy")
     );
 
-    skeleton
-        .set_skin(Some("full-skins/girl"))
-        .expect("set girl skin");
+    skeleton.set_skin(Some("full-skins/girl"));
 
     assert_eq!(
         skeleton.slots[mouth_slot].attachment.as_deref(),

@@ -586,11 +586,8 @@ impl App {
                 choose_default_skin(&example, &data)
             }
         };
-        if let Some(skin_name) = chosen_skin.as_deref()
-            && let Err(e) = skeleton.set_skin(Some(skin_name))
-        {
-            self.last_error = Some(format!("set_skin({skin_name:?}) failed: {e:?}"));
-            return;
+        if let Some(skin_name) = chosen_skin.as_deref() {
+            skeleton.set_skin(Some(skin_name));
         }
         skeleton.setup_pose();
         skeleton.update_world_transform();

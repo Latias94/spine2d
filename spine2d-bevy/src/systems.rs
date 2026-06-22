@@ -150,9 +150,7 @@ pub fn spawn_spine_instances(
         }
 
         let mut skeleton = Skeleton::new(skeleton_data.clone());
-        if let Err(err) = skeleton.set_skin(skin_component.name.as_deref()) {
-            warn!("Failed to set Spine skin for {entity:?}: {err}");
-        }
+        skeleton.set_skin(skin_component.name.as_deref());
         apply_skeleton_control_to_skeleton(&mut skeleton, skeleton_control);
         skeleton.update_world_transform_with_physics(skeleton_control.physics);
 
@@ -530,12 +528,8 @@ pub fn update_spine_animations(
             && skin_ref.is_changed()
             && instance.skin_name != skin_ref.name
         {
-            match instance.skeleton.set_skin(skin_ref.name.as_deref()) {
-                Ok(()) => {
-                    instance.skin_name = skin_ref.name.clone();
-                }
-                Err(err) => warn!("Failed to set Spine skin for {entity:?}: {err}"),
-            }
+            instance.skeleton.set_skin(skin_ref.name.as_deref());
+            instance.skin_name = skin_ref.name.clone();
         }
 
         if let Some(animation_ref) = animation_ref {

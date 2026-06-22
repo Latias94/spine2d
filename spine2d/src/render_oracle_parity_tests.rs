@@ -920,9 +920,7 @@ fn assert_render_parity(case: &RenderCase, golden_path: &Path) {
     skeleton.setup_pose();
 
     if let Some(skin_name) = case.skin {
-        skeleton
-            .set_skin(Some(skin_name))
-            .unwrap_or_else(|e| panic!("set skin {skin_name:?}: {e}"));
+        skeleton.set_skin(Some(skin_name));
         skeleton.setup_pose();
         skeleton.update_cache();
     }
@@ -1137,9 +1135,7 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
                 );
             }
             RenderScenarioCommand::SetSkin(name) => {
-                skeleton
-                    .set_skin(name)
-                    .unwrap_or_else(|e| panic!("set skin {name:?}: {e}"));
+                skeleton.set_skin(name);
             }
             RenderScenarioCommand::Physics(p) => physics = p,
             RenderScenarioCommand::Step(dt) => {

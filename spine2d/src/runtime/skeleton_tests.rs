@@ -726,14 +726,14 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
     assert!(skeleton.attachment(0, "").is_none());
     assert!(skeleton.attachment_by_slot_name("", "shared").is_none());
 
-    skeleton.set_skin(Some("missing")).unwrap();
+    skeleton.set_skin(Some("missing"));
     assert_eq!(skeleton.skin(), None);
     assert_eq!(
         skeleton.attachment(0, "shared").unwrap().name(),
         "default-shared"
     );
 
-    skeleton.set_skin(Some("custom")).unwrap();
+    skeleton.set_skin(Some("custom"));
     assert_eq!(
         skeleton.attachment(0, "shared").unwrap().name(),
         "custom-shared"
@@ -758,7 +758,7 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
 fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
 
-    skeleton.set_skin(Some("custom")).unwrap();
+    skeleton.set_skin(Some("custom"));
     assert_eq!(
         skeleton.slots()[0].attachment_skin.as_deref(),
         Some("custom")
@@ -770,7 +770,7 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
         slot.set_sequence_index(7);
     }
 
-    skeleton.set_skin(None).unwrap();
+    skeleton.set_skin(None);
     assert!(skeleton.set_attachment("slot0", "shared"));
     assert_eq!(skeleton.slots()[0].attachment_name(), Some("shared"));
     assert_eq!(

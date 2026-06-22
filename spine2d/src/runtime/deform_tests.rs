@@ -263,7 +263,7 @@ fn deform_timeline_applies_to_linked_mesh_inheriting_parent_deform_from_default_
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("d").unwrap();
 
-    skeleton.set_skin(Some("skinA")).unwrap();
+    skeleton.set_skin(Some("skinA"));
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
@@ -295,7 +295,7 @@ fn json_linkedmesh_source_resolves_parent_mesh_and_timeline_attachment() {
     }
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_skin(Some("variant")).unwrap();
+    skeleton.set_skin(Some("variant"));
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
@@ -310,7 +310,7 @@ fn attachment_switch_between_linked_mesh_and_parent_preserves_deform_when_timeli
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("d").unwrap();
 
-    skeleton.set_skin(Some("skinA")).unwrap();
+    skeleton.set_skin(Some("skinA"));
     skeleton.setup_pose();
     skeleton.update_world_transform();
 

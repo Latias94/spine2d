@@ -158,9 +158,7 @@ mod web {
 
         let mut skeleton = Skeleton::new(bundle.data.clone());
         if let Some(skin) = default_skin.as_deref() {
-            skeleton
-                .set_skin(Some(skin))
-                .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
+            skeleton.set_skin(Some(skin));
         }
         skeleton.setup_pose();
         skeleton.update_world_transform();
@@ -882,10 +880,7 @@ mod web {
             self.skeleton = Skeleton::new(self.data.clone());
             self.current_skin = pick_default_skin(&self.current_example, &self.data, None);
             if let Some(skin) = self.current_skin.as_deref() {
-                if let Err(e) = self.skeleton.set_skin(Some(skin)) {
-                    log::warn!("set_skin({skin}) failed: {e:?}");
-                    self.current_skin = None;
-                }
+                self.skeleton.set_skin(Some(skin));
             }
             self.skeleton.setup_pose();
             self.skeleton.update_world_transform();
@@ -922,10 +917,7 @@ mod web {
             self.last_ts_ms = None;
             self.initial_bounds = None;
 
-            if let Err(e) = self.skeleton.set_skin(skin) {
-                log::warn!("set_skin({skin:?}) failed: {e:?}");
-                self.current_skin = None;
-            }
+            self.skeleton.set_skin(skin);
         }
 
         fn set_animation(&mut self, name: &str, looping: bool) {

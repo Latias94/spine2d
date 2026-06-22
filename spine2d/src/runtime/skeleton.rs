@@ -862,7 +862,7 @@ impl Skeleton {
         self.update_cache = cache::rebuild_update_cache(self);
     }
 
-    pub fn set_skin(&mut self, skin_name: Option<&str>) -> Result<(), crate::Error> {
+    pub fn set_skin(&mut self, skin_name: Option<&str>) {
         let old_skin = self.skin.clone();
         match skin_name {
             None => {
@@ -870,7 +870,7 @@ impl Skeleton {
             }
             Some(name) => {
                 if !self.data.skins.contains_key(name) {
-                    return Ok(());
+                    return;
                 }
                 self.skin = Some(name.to_string());
             }
@@ -921,7 +921,6 @@ impl Skeleton {
         }
 
         self.update_cache();
-        Ok(())
     }
 
     pub fn setup_pose(&mut self) {
