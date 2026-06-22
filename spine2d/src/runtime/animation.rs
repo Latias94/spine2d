@@ -77,8 +77,8 @@ pub fn apply_animation(
         time = time.rem_euclid(animation.duration);
     }
 
-    // Plain animation apply does not model AnimationState's attachmentState gating. Use the legacy
-    // behaviour: always apply attachments.
+    // Plain animation apply does not model AnimationState's attachmentState gating.
+    // Always apply attachments for standalone animation sampling.
     for kind in animation.timeline_order.iter().copied() {
         apply_animation_timeline(
             animation,
