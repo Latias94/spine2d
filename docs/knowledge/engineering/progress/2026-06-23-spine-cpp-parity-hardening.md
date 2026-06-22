@@ -27,6 +27,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U6 path world-position commit `0dab0fb` moved path attachment lookup, `compute_path_world_positions`, and private path curve helpers into private `skeleton::path`.
 - U6 update-cache commit `190a119` moved cache ordering helpers and debug formatting into private `skeleton::cache`.
 - U6 bone transform commit `757b2f7` moved BonePose-equivalent world/local transform helpers and root/child world-transform math into private `skeleton::bone`.
+- U6 applied-transform commit `a37abac` moved BonePose-equivalent `modifyWorld`, `modifyLocal`, child world reset, and applied-transform decomposition into private `skeleton::bone`.
 - Post-U2 verification passed:
   - `cargo fmt --all --check`
   - `git diff --check`
@@ -73,6 +74,12 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
   - `cargo check -p spine2d --features json,binary,upstream-smoke`
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke skeleton upstream_ik_demo ik path_constraint transform_constraint physics slider --no-fail-fast` (`112 passed, 444 skipped`)
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast` (`546 passed, 10 skipped`)
+- Post-U6 applied-transform verification passed:
+  - `cargo fmt --all --check`
+  - `git diff --check`
+  - `cargo check -p spine2d --features json,binary,upstream-smoke`
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke skeleton upstream_ik_demo ik path_constraint transform_constraint physics slider --no-fail-fast` (`112 passed, 444 skipped`)
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast` (`546 passed, 10 skipped`)
 - The worktree was clean before creating the hardening plan and memory updates.
 - Existing golden metadata is intentionally not rewritten unless assets or oracle outputs are regenerated.
 
@@ -83,11 +90,11 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U3 is complete: timeline dispatch is centralized behind internal runtime/state helpers, while `AnimationState` keeps only policy decisions for alpha, hold, additive, thresholds, and draw-order output.
 - U4 is complete: binary parser timeline-order ownership is centralized behind `TimelineOrderBuilder`, and JSON already had explicit local lookup/order builders.
 - U5 is complete: the shared `TrackEntrySettings` value object is now owned by the core runtime and used by Bevy, direct `TrackEntry` field exposure has been removed, and delay setter branches now follow the official C++ shape. The final numeric setter audit found no additional guard changes needed because `spine-cpp` setters are intentionally sparse.
-- U6 is in progress: path constraint scratch storage, capacity estimation, path attachment lookup, path world-position calculation, and private path curve helpers have moved into `skeleton::path`; update-cache ordering and debug formatting have moved into `skeleton::cache`; BonePose-equivalent world/local transform helpers and root/child world-transform math have moved into `skeleton::bone`. The generic `compute_attachment_world_vertices` helper intentionally remains in `skeleton.rs` because it is still shared by path solving and `Skeleton::world_vertices`.
+- U6 is in progress: path constraint scratch storage, capacity estimation, path attachment lookup, path world-position calculation, and private path curve helpers have moved into `skeleton::path`; update-cache ordering and debug formatting have moved into `skeleton::cache`; BonePose-equivalent world/local transform helpers, root/child world-transform math, `modifyWorld`, `modifyLocal`, child reset, and applied-transform decomposition have moved into `skeleton::bone`. The generic `compute_attachment_world_vertices` helper intentionally remains in `skeleton.rs` because it is still shared by path solving and `Skeleton::world_vertices`.
 
 # Next Action
 
-Audit the remaining `Skeleton` helper ownership and decide the next low-risk extraction, likely around `update_applied_transform` or other remaining shared pose math. Keep the same verification shape: focused solver tests first, then the full core parity gate.
+Audit the remaining `Skeleton` constraint solver bodies and choose the next low-risk extraction, likely IK or transform constraint helpers before broader path/physics movement. Keep the same verification shape: focused solver tests first, then the full core parity gate.
 
 # Citations
 
