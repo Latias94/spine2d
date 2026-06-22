@@ -65,12 +65,13 @@ status: "active"
   - Fixed the public BonePose local-update wrapper in commit `e3e96c0`; `Skeleton::update_bone_local_transform` and validation now keep the bone world epoch current like C++ `BonePose::updateLocalTransform`.
   - Added `Bone::is_y_down/set_y_down` in commit `d374ddf`; `Skeleton::scale_y()` and world transforms now honor the C++-style global Y-down switch, while the default stays false to preserve the repo's Y-up oracle baseline.
   - Removed hidden `Skeleton::debug_update_cache` in commit `71ddc60`; debugging callers now format the typed `update_cache_items()` view locally instead of keeping a Rust-only public compatibility helper.
+  - Renamed hidden `Skeleton::slot_vertex_attachment_world_vertices` to documented `slot_attachment_world_vertices` in breaking commit `9ea3c43`, matching the C++ `VertexAttachment::computeWorldVertices` role without keeping the old hidden Rust-only name.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: audit the remaining `Skeleton.h` debug/internal public helpers and decide whether any more low-risk surface should be exposed or deleted.
+  - Continue U6: audit pinned C++ `DrawOrder` pose/applied split against Rust's `draw_order` vector, especially slider-constrained draw-order behavior.
 
 # Citations
 

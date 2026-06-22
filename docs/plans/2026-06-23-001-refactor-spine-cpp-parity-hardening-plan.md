@@ -260,6 +260,8 @@ flowchart TB
 
 **Recent update:** Commit `71ddc60` removed the Rust-only hidden `Skeleton::debug_update_cache` helper; debug callers now format the typed `update_cache_items()` view locally.
 
+**Recent update:** Commit `9ea3c43` renamed the hidden vertex helper to documented `Skeleton::slot_attachment_world_vertices`, keeping the useful C++ `VertexAttachment::computeWorldVertices` equivalent while deleting the old hidden name.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
