@@ -90,9 +90,14 @@ Run the built-in Bevy examples:
 - `cargo run -p spine2d-bevy --example metadata`
 - `cargo run -p spine2d-bevy --example bounds`
 - `cargo run -p spine2d-bevy --example multi_spine`
+- `cargo run -p spine2d-bevy --example mixing`
+- `cargo run -p spine2d-bevy --example mixing_inspector`
+- `cargo run -p spine2d-bevy --example runtime_controls`
 - `cargo run -p spine2d-bevy --example viewer`
 
 The viewer reads `assets/spine-runtimes/web_manifest.json` and lets you switch examples, animations, skins, playback state, speed, and camera fit from the keyboard.
+The `mixing` example auto-runs gameplay-style presets for idle, walk, run, one-shot actions, queued recovery, and empty-animation fades without manual setup.
+The `mixing_inspector` example provides an egui tuning panel for default mix, pair mix, entry mix duration, queue mix duration, empty mix duration, alpha, additive, and reverse settings.
 
 The Bevy integration is centered on a public `Spine` component plus optional runtime control components:
 
@@ -116,9 +121,42 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 ```
 
-Add `SpineAnimation` or `SpineSkin` only when you want component-driven runtime control after spawn. Use `SpineFlipY(true)` when your project uses a Y-down space and you want the backend to mirror Spine geometry for you. Gameplay systems can also write `SpineAnimationCommand` messages to set, queue, or clear track animations without accessing internal runtime handles. Animation lifecycle and custom Spine timeline events are published as `SpineAnimationEvent` messages.
+Add `SpineAnimation` or `SpineSkin` only when you want component-driven runtime control after spawn. Add `SpineAnimationStateConfig` when you want to configure `AnimationStateData` mix settings at spawn time or update them later through component changes:
 
-Use the public `SpineReady` marker or `SpineLifecycleEvent` messages to observe when an entity has an active runtime instance. `SpineLifecycleEvent` also reports when that instance is released because the component was removed, the entity was despawned, or a skeleton/atlas asset reload invalidated the runtime. The backend maintains a public `SpineBounds` component with the current Bevy local-space bounds for camera fitting, hit areas, and gameplay queries.
+```rust
+use spine2d_bevy::{Spine, SpineAnimationStateConfig};
+
+commands.spawn((
+    Spine::new(
+        asset_server.load("character.json"),
+        asset_server.load("character.atlas"),
+    )
+    .with_animation("idle", true),
+    SpineAnimationStateConfig::new()
+        .with_default_mix(0.2)
+        .with_mix("run", "walk", 0.1),
+));
+```
+
+Use `SpineSkeletonControl` for durable skeleton-level controls such as physics mode, wind, gravity, and skeleton time. Gameplay systems can also write `SpineAnimationCommand` messages to set, queue, clear, mix out, or configure track animations, and `SpineSkeletonCommand` messages for one-shot skeleton operations such as setup-pose reset. Track-entry options are carried by `SpineTrackEntrySettings` and applied immediately to the entry returned by the runtime:
+
+```rust
+use spine2d_bevy::{SpineAnimationCommand, SpineTrackEntrySettings};
+
+animation_commands.write(
+    SpineAnimationCommand::set(entity, 0, "run", true).with_entry_settings(
+        SpineTrackEntrySettings::new()
+            .with_mix_duration(0.2)
+            .with_alpha(0.85),
+    ),
+);
+```
+
+Use the public `SpineReady` marker or `SpineLifecycleEvent` messages to observe when an entity has an active runtime instance. `SpineLifecycleEvent` also reports when that instance is released because the component was removed, the entity was despawned, or a skeleton/atlas asset reload invalidated the runtime. The backend maintains public `SpineBounds` and `SpineRuntimeState` components with the current Bevy local-space bounds, active tracks, skeleton time, physics mode, wind, and gravity for camera fitting, hit areas, and gameplay queries.
+
+Migration note: the temporary `SpineAnimationMixes` API has been replaced by `SpineAnimationStateConfig`. Mix commands remain available through `SpineAnimationCommand::set_default_mix`, `set_mix`, `remove_mix`, and `clear_mixes`. Per-entry options should move to `SpineTrackEntrySettings` rather than storing raw runtime handles.
+
+Use `SpineFlipY(true)` when your project uses a Y-down space and you want the backend to mirror Spine geometry for you.
 
 Coordinate note: `spine2d-bevy` forwards Spine-local positions into Bevy without an implicit Y flip by default. Bevy world space is also Y-up, so the backend stays convention-neutral unless you opt in to `SpineFlipY(true)`. If a project uses Y-down or screen-space coordinates, attach `SpineFlipY(true)` to the entity or apply that conversion in the game's own transform/camera layer.
 

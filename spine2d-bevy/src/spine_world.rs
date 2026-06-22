@@ -6,7 +6,7 @@ use spine2d::{
     TrackEntrySnapshot,
 };
 
-use crate::{SpineAnimationEventKind, components::SpineInstanceId};
+use crate::{SpineAnimationEventKind, SpineSkeletonControl, components::SpineInstanceId};
 
 pub(crate) struct SpineInstance {
     pub skeleton: Skeleton,
@@ -19,6 +19,7 @@ pub(crate) struct SpineInstance {
     pub time_scale: f32,
     pub skin_name: Option<String>,
     pub flip_y: bool,
+    pub skeleton_control: SpineSkeletonControl,
     pending_events: SpineEventBuffer,
 }
 
@@ -32,6 +33,7 @@ pub(crate) struct SpineInstanceParts {
     pub time_scale: f32,
     pub skin_name: Option<String>,
     pub flip_y: bool,
+    pub skeleton_control: SpineSkeletonControl,
 }
 
 impl SpineInstance {
@@ -47,6 +49,7 @@ impl SpineInstance {
             time_scale: parts.time_scale,
             skin_name: parts.skin_name,
             flip_y: parts.flip_y,
+            skeleton_control: parts.skeleton_control,
             pending_events: SpineEventBuffer::default(),
         }
     }
@@ -217,6 +220,7 @@ mod tests {
             time_scale: 1.0,
             skin_name: None,
             flip_y: false,
+            skeleton_control: SpineSkeletonControl::default(),
         })
     }
 

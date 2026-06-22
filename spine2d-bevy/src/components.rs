@@ -96,6 +96,96 @@ impl SpineSkin {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpineAnimationStateMix {
+    pub from: String,
+    pub to: String,
+    pub duration: f32,
+}
+
+impl SpineAnimationStateMix {
+    pub fn new(from: impl Into<String>, to: impl Into<String>, duration: f32) -> Self {
+        Self {
+            from: from.into(),
+            to: to.into(),
+            duration,
+        }
+    }
+}
+
+#[derive(Component, Clone, Debug, Default, PartialEq)]
+pub struct SpineAnimationStateConfig {
+    pub default_mix: f32,
+    pub mixes: Vec<SpineAnimationStateMix>,
+}
+
+impl SpineAnimationStateConfig {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_default_mix(mut self, default_mix: f32) -> Self {
+        self.default_mix = default_mix;
+        self
+    }
+
+    pub fn with_mix(
+        mut self,
+        from: impl Into<String>,
+        to: impl Into<String>,
+        duration: f32,
+    ) -> Self {
+        self.mixes
+            .push(SpineAnimationStateMix::new(from, to, duration));
+        self
+    }
+}
+
+#[derive(Component, Clone, Copy, Debug, PartialEq)]
+pub struct SpineSkeletonControl {
+    pub physics: spine2d::Physics,
+    pub wind: Vec2,
+    pub gravity: Vec2,
+    pub time: Option<f32>,
+}
+
+impl SpineSkeletonControl {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_physics(mut self, physics: spine2d::Physics) -> Self {
+        self.physics = physics;
+        self
+    }
+
+    pub fn with_wind(mut self, wind: Vec2) -> Self {
+        self.wind = wind;
+        self
+    }
+
+    pub fn with_gravity(mut self, gravity: Vec2) -> Self {
+        self.gravity = gravity;
+        self
+    }
+
+    pub fn with_time(mut self, time: f32) -> Self {
+        self.time = Some(time);
+        self
+    }
+}
+
+impl Default for SpineSkeletonControl {
+    fn default() -> Self {
+        Self {
+            physics: spine2d::Physics::None,
+            wind: Vec2::new(1.0, 0.0),
+            gravity: Vec2::new(0.0, 1.0),
+            time: None,
+        }
+    }
+}
+
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
 pub struct SpineBounds {
     pub min: Vec2,
@@ -118,6 +208,33 @@ impl SpineBounds {
 
 #[derive(Component, Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SpineReady;
+
+#[derive(Component, Clone, Debug, PartialEq)]
+pub struct SpineRuntimeState {
+    pub ready: bool,
+    pub tracks: Vec<SpineTrackState>,
+    pub skeleton_time: f32,
+    pub physics: spine2d::Physics,
+    pub wind: Vec2,
+    pub gravity: Vec2,
+    pub bounds: SpineBounds,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpineTrackState {
+    pub track_index: usize,
+    pub animation_index: i32,
+    pub animation_name: String,
+    pub track_time: f32,
+    pub animation_time: f32,
+    pub loop_animation: bool,
+    pub delay: f32,
+    pub mix_duration: f32,
+    pub mix_time: f32,
+    pub alpha: f32,
+    pub additive: bool,
+    pub reverse: bool,
+}
 
 #[derive(Message, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SpineLifecycleEvent {
@@ -164,7 +281,86 @@ pub struct SpineAnimationCommand {
     pub command: SpineAnimationCommandKind,
 }
 
+#[derive(Message, Clone, Debug)]
+pub struct SpineSkeletonCommand {
+    pub entity: Entity,
+    pub command: SpineSkeletonCommandKind,
+}
+
+impl SpineSkeletonCommand {
+    pub fn set_control(entity: Entity, control: SpineSkeletonControl) -> Self {
+        Self {
+            entity,
+            command: SpineSkeletonCommandKind::SetControl(control),
+        }
+    }
+
+    pub fn set_physics(entity: Entity, physics: spine2d::Physics) -> Self {
+        Self {
+            entity,
+            command: SpineSkeletonCommandKind::SetPhysics(physics),
+        }
+    }
+
+    pub fn set_wind(entity: Entity, wind: Vec2) -> Self {
+        Self {
+            entity,
+            command: SpineSkeletonCommandKind::SetWind(wind),
+        }
+    }
+
+    pub fn set_gravity(entity: Entity, gravity: Vec2) -> Self {
+        Self {
+            entity,
+            command: SpineSkeletonCommandKind::SetGravity(gravity),
+        }
+    }
+
+    pub fn set_time(entity: Entity, time: f32) -> Self {
+        Self {
+            entity,
+            command: SpineSkeletonCommandKind::SetTime(time),
+        }
+    }
+
+    pub fn reset_to_setup_pose(entity: Entity) -> Self {
+        Self {
+            entity,
+            command: SpineSkeletonCommandKind::ResetToSetupPose,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum SpineSkeletonCommandKind {
+    SetControl(SpineSkeletonControl),
+    SetPhysics(spine2d::Physics),
+    SetWind(Vec2),
+    SetGravity(Vec2),
+    SetTime(f32),
+    ResetToSetupPose,
+}
+
 impl SpineAnimationCommand {
+    pub fn with_entry_settings(mut self, settings: SpineTrackEntrySettings) -> Self {
+        match &mut self.command {
+            SpineAnimationCommandKind::Set { settings: slot, .. }
+            | SpineAnimationCommandKind::Add { settings: slot, .. }
+            | SpineAnimationCommandKind::SetEmpty { settings: slot, .. }
+            | SpineAnimationCommandKind::AddEmpty { settings: slot, .. } => {
+                *slot = settings;
+            }
+            SpineAnimationCommandKind::ClearTrack { .. }
+            | SpineAnimationCommandKind::ClearTracks
+            | SpineAnimationCommandKind::SetEmptyAnimations { .. }
+            | SpineAnimationCommandKind::SetDefaultMix { .. }
+            | SpineAnimationCommandKind::SetMix { .. }
+            | SpineAnimationCommandKind::RemoveMix { .. }
+            | SpineAnimationCommandKind::ClearMixes => {}
+        }
+        self
+    }
+
     pub fn set(
         entity: Entity,
         track_index: usize,
@@ -177,6 +373,7 @@ impl SpineAnimationCommand {
                 track_index,
                 animation: animation.into(),
                 loop_animation,
+                settings: SpineTrackEntrySettings::default(),
             },
         }
     }
@@ -195,6 +392,7 @@ impl SpineAnimationCommand {
                 animation: animation.into(),
                 loop_animation,
                 delay,
+                settings: SpineTrackEntrySettings::default(),
             },
         }
     }
@@ -205,6 +403,7 @@ impl SpineAnimationCommand {
             command: SpineAnimationCommandKind::SetEmpty {
                 track_index,
                 mix_duration,
+                settings: SpineTrackEntrySettings::default(),
             },
         }
     }
@@ -216,7 +415,15 @@ impl SpineAnimationCommand {
                 track_index,
                 mix_duration,
                 delay,
+                settings: SpineTrackEntrySettings::default(),
             },
+        }
+    }
+
+    pub fn set_empty_animations(entity: Entity, mix_duration: f32) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::SetEmptyAnimations { mix_duration },
         }
     }
 
@@ -233,6 +440,46 @@ impl SpineAnimationCommand {
             command: SpineAnimationCommandKind::ClearTracks,
         }
     }
+
+    pub fn set_default_mix(entity: Entity, default_mix: f32) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::SetDefaultMix { default_mix },
+        }
+    }
+
+    pub fn set_mix(
+        entity: Entity,
+        from: impl Into<String>,
+        to: impl Into<String>,
+        duration: f32,
+    ) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::SetMix {
+                from: from.into(),
+                to: to.into(),
+                duration,
+            },
+        }
+    }
+
+    pub fn remove_mix(entity: Entity, from: impl Into<String>, to: impl Into<String>) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::RemoveMix {
+                from: from.into(),
+                to: to.into(),
+            },
+        }
+    }
+
+    pub fn clear_mixes(entity: Entity) -> Self {
+        Self {
+            entity,
+            command: SpineAnimationCommandKind::ClearMixes,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -241,32 +488,165 @@ pub enum SpineAnimationCommandKind {
         track_index: usize,
         animation: String,
         loop_animation: bool,
+        settings: SpineTrackEntrySettings,
     },
     Add {
         track_index: usize,
         animation: String,
         loop_animation: bool,
         delay: f32,
+        settings: SpineTrackEntrySettings,
     },
     SetEmpty {
         track_index: usize,
         mix_duration: f32,
+        settings: SpineTrackEntrySettings,
     },
     AddEmpty {
         track_index: usize,
         mix_duration: f32,
         delay: f32,
+        settings: SpineTrackEntrySettings,
+    },
+    SetEmptyAnimations {
+        mix_duration: f32,
     },
     ClearTrack {
         track_index: usize,
     },
     ClearTracks,
+    SetDefaultMix {
+        default_mix: f32,
+    },
+    SetMix {
+        from: String,
+        to: String,
+        duration: f32,
+    },
+    RemoveMix {
+        from: String,
+        to: String,
+    },
+    ClearMixes,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SpineTrackEntrySettings {
+    pub track_end: Option<f32>,
+    pub delay: Option<f32>,
+    pub time_scale: Option<f32>,
+    pub mix_duration: Option<f32>,
+    pub mix_interpolation: Option<spine2d::MixInterpolation>,
+    pub additive: Option<bool>,
+    pub alpha: Option<f32>,
+    pub reverse: Option<bool>,
+    pub shortest_rotation: Option<bool>,
+    pub reset_rotation_directions: bool,
+    pub alpha_attachment_threshold: Option<f32>,
+    pub mix_attachment_threshold: Option<f32>,
+    pub mix_draw_order_threshold: Option<f32>,
+    pub event_threshold: Option<f32>,
+    pub animation_start: Option<f32>,
+    pub animation_end: Option<f32>,
+    pub animation_last: Option<f32>,
+}
+
+impl SpineTrackEntrySettings {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_track_end(mut self, track_end: f32) -> Self {
+        self.track_end = Some(track_end);
+        self
+    }
+
+    pub fn with_delay(mut self, delay: f32) -> Self {
+        self.delay = Some(delay);
+        self
+    }
+
+    pub fn with_time_scale(mut self, time_scale: f32) -> Self {
+        self.time_scale = Some(time_scale);
+        self
+    }
+
+    pub fn with_mix_duration(mut self, mix_duration: f32) -> Self {
+        self.mix_duration = Some(mix_duration);
+        self
+    }
+
+    pub fn with_mix_interpolation(mut self, mix_interpolation: spine2d::MixInterpolation) -> Self {
+        self.mix_interpolation = Some(mix_interpolation);
+        self
+    }
+
+    pub fn with_additive(mut self, additive: bool) -> Self {
+        self.additive = Some(additive);
+        self
+    }
+
+    pub fn with_alpha(mut self, alpha: f32) -> Self {
+        self.alpha = Some(alpha);
+        self
+    }
+
+    pub fn with_reverse(mut self, reverse: bool) -> Self {
+        self.reverse = Some(reverse);
+        self
+    }
+
+    pub fn with_shortest_rotation(mut self, shortest_rotation: bool) -> Self {
+        self.shortest_rotation = Some(shortest_rotation);
+        self
+    }
+
+    pub fn with_reset_rotation_directions(mut self) -> Self {
+        self.reset_rotation_directions = true;
+        self
+    }
+
+    pub fn with_alpha_attachment_threshold(mut self, threshold: f32) -> Self {
+        self.alpha_attachment_threshold = Some(threshold);
+        self
+    }
+
+    pub fn with_mix_attachment_threshold(mut self, threshold: f32) -> Self {
+        self.mix_attachment_threshold = Some(threshold);
+        self
+    }
+
+    pub fn with_mix_draw_order_threshold(mut self, threshold: f32) -> Self {
+        self.mix_draw_order_threshold = Some(threshold);
+        self
+    }
+
+    pub fn with_event_threshold(mut self, threshold: f32) -> Self {
+        self.event_threshold = Some(threshold);
+        self
+    }
+
+    pub fn with_animation_start(mut self, animation_start: f32) -> Self {
+        self.animation_start = Some(animation_start);
+        self
+    }
+
+    pub fn with_animation_end(mut self, animation_end: f32) -> Self {
+        self.animation_end = Some(animation_end);
+        self
+    }
+
+    pub fn with_animation_last(mut self, animation_last: f32) -> Self {
+        self.animation_last = Some(animation_last);
+        self
+    }
 }
 
 #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SpineSystemSet {
     Cleanup,
     Spawn,
+    Config,
     Commands,
     Update,
     Render,

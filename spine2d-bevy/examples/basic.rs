@@ -1,7 +1,7 @@
 use bevy::{asset::AssetPlugin, prelude::*, window::WindowPlugin};
 use spine2d_bevy::{
     Spine, Spine2dPlugin, SpineAnimationCommand, SpineAnimationEvent, SpineLifecycleEvent,
-    SpineReady,
+    SpineReady, SpineTrackEntrySettings,
 };
 
 #[derive(Component)]
@@ -63,7 +63,10 @@ fn handle_input(
         if paused.0 {
             animation_commands.write(SpineAnimationCommand::clear_track(entity, 0));
         } else {
-            animation_commands.write(SpineAnimationCommand::set(entity, 0, "spin", true));
+            animation_commands.write(
+                SpineAnimationCommand::set(entity, 0, "spin", true)
+                    .with_entry_settings(SpineTrackEntrySettings::new().with_mix_duration(0.2)),
+            );
         }
     }
 }

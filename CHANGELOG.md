@@ -5,7 +5,14 @@ Version numbers follow SemVer, but the public API is expected to change rapidly 
 
 ## Unreleased
 
-- TBD
+TBD
+
+## 0.4.0
+
+- Breaking Bevy API: replace the temporary `SpineAnimationMixes` surface with `SpineAnimationStateConfig`, add settings-bearing `SpineAnimationCommand` paths, and expose `SpineTrackEntrySettings` for per-entry playback controls.
+- Bevy: add `SpineSkeletonControl`, `SpineSkeletonCommand`, and `SpineRuntimeState` so gameplay code can configure physics/wind/gravity/time and observe active tracks without accessing internal runtime handles.
+- Runtime: make `AnimationStateData` mix configuration a validated API, add `set_empty_animations`, expose queued/current track snapshots, and add skeleton wind/gravity getters.
+- Examples: add `spine2d-bevy --example runtime_controls`, a gameplay-style `spine2d-bevy --example mixing` demo for locomotion, one-shot actions, queued recovery, and empty-animation fades, plus an egui-powered `spine2d-bevy --example mixing_inspector` for live mix tuning.
 
 ## 0.3.0
 

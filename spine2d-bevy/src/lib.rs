@@ -23,6 +23,7 @@ impl Plugin for Spine2dPlugin {
         app.add_message::<SpineLifecycleEvent>();
         app.add_message::<SpineAnimationEvent>();
         app.add_message::<SpineAnimationCommand>();
+        app.add_message::<SpineSkeletonCommand>();
 
         app.insert_non_send(SpineWorld::new());
 
@@ -31,6 +32,7 @@ impl Plugin for Spine2dPlugin {
             (
                 SpineSystemSet::Cleanup,
                 SpineSystemSet::Spawn,
+                SpineSystemSet::Config,
                 SpineSystemSet::Commands,
                 SpineSystemSet::Update,
                 SpineSystemSet::Render,
@@ -42,7 +44,17 @@ impl Plugin for Spine2dPlugin {
             (
                 systems::cleanup_spine_instances.in_set(SpineSystemSet::Cleanup),
                 systems::spawn_spine_instances.in_set(SpineSystemSet::Spawn),
-                systems::apply_spine_animation_commands.in_set(SpineSystemSet::Commands),
+                (
+                    systems::apply_spine_animation_state_config,
+                    systems::apply_spine_skeleton_control,
+                )
+                    .in_set(SpineSystemSet::Config),
+                (
+                    systems::apply_spine_skeleton_commands,
+                    systems::apply_spine_animation_commands,
+                )
+                    .chain()
+                    .in_set(SpineSystemSet::Commands),
                 systems::update_spine_animations.in_set(SpineSystemSet::Update),
                 systems::render_spines.in_set(SpineSystemSet::Render),
             ),

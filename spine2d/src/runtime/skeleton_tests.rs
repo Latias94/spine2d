@@ -10,6 +10,53 @@ fn assert_approx(actual: f32, expected: f32) {
     );
 }
 
+fn empty_skeleton_data() -> Arc<SkeletonData> {
+    Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: Vec::new(),
+        slots: Vec::new(),
+        skins: HashMap::new(),
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    })
+}
+
+#[test]
+fn skeleton_world_controls_are_public_and_ignore_non_finite_inputs() {
+    let mut skeleton = Skeleton::new(empty_skeleton_data());
+
+    assert_eq!(skeleton.wind(), (1.0, 0.0));
+    assert_eq!(skeleton.gravity(), (0.0, 1.0));
+    assert_eq!(skeleton.time(), 0.0);
+
+    skeleton.set_wind(2.0, 3.0);
+    skeleton.set_gravity(4.0, 5.0);
+    skeleton.set_time(1.5);
+
+    assert_eq!(skeleton.wind(), (2.0, 3.0));
+    assert_eq!(skeleton.gravity(), (4.0, 5.0));
+    assert_eq!(skeleton.time(), 1.5);
+
+    skeleton.set_wind(f32::NAN, 6.0);
+    skeleton.set_gravity(7.0, f32::INFINITY);
+    skeleton.set_time(f32::NAN);
+    skeleton.update(-1.0);
+
+    assert_eq!(skeleton.wind(), (2.0, 3.0));
+    assert_eq!(skeleton.gravity(), (4.0, 5.0));
+    assert_eq!(skeleton.time(), 1.5);
+
+    skeleton.update(0.25);
+    assert_eq!(skeleton.time(), 1.75);
+}
+
 #[test]
 fn update_world_transform_root_and_child() {
     let data = Arc::new(SkeletonData {

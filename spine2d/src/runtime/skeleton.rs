@@ -670,11 +670,19 @@ impl Skeleton {
         self.time
     }
 
+    pub fn wind(&self) -> (f32, f32) {
+        (self.wind_x, self.wind_y)
+    }
+
     pub fn set_wind(&mut self, x: f32, y: f32) {
         if x.is_finite() && y.is_finite() {
             self.wind_x = x;
             self.wind_y = y;
         }
+    }
+
+    pub fn gravity(&self) -> (f32, f32) {
+        (self.gravity_x, self.gravity_y)
     }
 
     pub fn set_gravity(&mut self, x: f32, y: f32) {

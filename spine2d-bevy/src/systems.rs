@@ -4,7 +4,9 @@ use bevy::asset::AssetEvent;
 use bevy::ecs::lifecycle::RemovedComponents;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use spine2d::{AnimationState, AnimationStateData, Skeleton, build_draw_list_with_atlas};
+use spine2d::{
+    AnimationState, AnimationStateData, Skeleton, TrackEntryHandle, build_draw_list_with_atlas,
+};
 use std::collections::HashSet;
 
 use render::despawn_mesh_children;
@@ -12,9 +14,11 @@ pub use render::render_spines;
 
 use crate::{
     Spine, SpineAnimation, SpineAnimationCommand, SpineAnimationCommandKind, SpineAnimationEvent,
-    SpineAtlasAsset, SpineBounds, SpineDrawSignatureCache, SpineFlipY, SpineInstance,
-    SpineInstanceKey, SpineInstanceParts, SpineLifecycleEvent, SpineLifecycleEventKind,
-    SpineMeshChild, SpineReady, SpineReleaseReason, SpineSkeletonAsset, SpineSkin, SpineWorld,
+    SpineAnimationStateConfig, SpineAtlasAsset, SpineBounds, SpineDrawSignatureCache, SpineFlipY,
+    SpineInstance, SpineInstanceKey, SpineInstanceParts, SpineLifecycleEvent,
+    SpineLifecycleEventKind, SpineMeshChild, SpineReady, SpineReleaseReason, SpineRuntimeState,
+    SpineSkeletonAsset, SpineSkeletonCommand, SpineSkeletonCommandKind, SpineSkeletonControl,
+    SpineSkin, SpineTrackEntrySettings, SpineTrackState, SpineWorld,
 };
 
 type SpawnSpineQuery<'w, 's> = Query<
@@ -25,6 +29,8 @@ type SpawnSpineQuery<'w, 's> = Query<
         &'static Spine,
         Option<&'static SpineInstanceKey>,
         Option<&'static SpineAnimation>,
+        Option<&'static SpineAnimationStateConfig>,
+        Option<&'static SpineSkeletonControl>,
         Option<&'static SpineSkin>,
         Option<&'static SpineFlipY>,
         Option<&'static SpineDrawSignatureCache>,
@@ -42,6 +48,7 @@ type UpdateSpineQuery<'w, 's> = Query<
         Option<Ref<'static, SpineSkin>>,
         Option<&'static SpineFlipY>,
         Option<&'static mut SpineBounds>,
+        Option<&'static mut SpineRuntimeState>,
     ),
 >;
 
@@ -49,6 +56,26 @@ type SpineEntityQuery<'w, 's> =
     Query<'w, 's, (Entity, &'static Spine, Option<&'static SpineInstanceKey>)>;
 
 type SpineKeyQuery<'w, 's> = Query<'w, 's, &'static SpineInstanceKey>;
+
+type AnimationStateConfigQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        Entity,
+        &'static SpineInstanceKey,
+        Ref<'static, SpineAnimationStateConfig>,
+    ),
+>;
+
+type SkeletonControlQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        Entity,
+        &'static SpineInstanceKey,
+        Ref<'static, SpineSkeletonControl>,
+    ),
+>;
 
 #[derive(SystemParam)]
 pub(crate) struct SpineMeshChildrenParam<'w, 's> {
@@ -71,7 +98,18 @@ pub fn spawn_spine_instances(
     query: SpawnSpineQuery,
     mesh_children: SpineMeshChildrenParam,
 ) {
-    for (entity, spine, existing_key, animation, skin, flip_y, draw_signature_cache) in &query {
+    for (
+        entity,
+        spine,
+        existing_key,
+        animation,
+        animation_state_config,
+        skeleton_control,
+        skin,
+        flip_y,
+        draw_signature_cache,
+    ) in &query
+    {
         if existing_key.is_some() {
             if spine_world.remove_by_owner(entity).is_some() {
                 lifecycle_events.write(SpineLifecycleEvent {
@@ -85,6 +123,7 @@ pub fn spawn_spine_instances(
                 .remove::<SpineInstanceKey>()
                 .remove::<SpineReady>()
                 .remove::<SpineBounds>()
+                .remove::<SpineRuntimeState>()
                 .remove::<SpineDrawSignatureCache>();
         }
 
@@ -103,18 +142,25 @@ pub fn spawn_spine_instances(
         let skin_component = skin.cloned().unwrap_or_else(|| SpineSkin {
             name: spine.skin.clone(),
         });
+        let skeleton_control = skeleton_control.copied().unwrap_or_default();
         let flip_y = flip_y.map(|flip_y| flip_y.0).unwrap_or(false);
 
         let skeleton_data = skeleton_asset.data.clone();
+        let mut state_data = AnimationStateData::new(skeleton_data.clone());
+        if let Some(animation_state_config) = animation_state_config {
+            apply_animation_state_config(&mut state_data, animation_state_config, entity);
+        }
+
         let mut skeleton = Skeleton::new(skeleton_data.clone());
         if let Err(err) = skeleton.set_skin(skin_component.name.as_deref()) {
             warn!("Failed to set Spine skin for {entity:?}: {err}");
         }
-        skeleton.update_world_transform();
+        apply_skeleton_control_to_skeleton(&mut skeleton, skeleton_control);
+        skeleton.update_world_transform_with_physics(skeleton_control.physics);
 
         let mut instance = SpineInstance::new(SpineInstanceParts {
             skeleton,
-            animation_state: AnimationState::new(AnimationStateData::new(skeleton_data.clone())),
+            animation_state: AnimationState::new(state_data),
             atlas: atlas_asset.atlas.clone(),
             atlas_directory: atlas_asset.directory.clone(),
             animation_name: animation_component.name.clone(),
@@ -122,6 +168,7 @@ pub fn spawn_spine_instances(
             time_scale: animation_component.time_scale,
             skin_name: skin_component.name.clone(),
             flip_y,
+            skeleton_control,
         });
         instance.attach_event_listener();
         if let Some(animation_name) = animation_component.name.as_deref() {
@@ -137,11 +184,13 @@ pub fn spawn_spine_instances(
         let _ = instance.drain_events();
 
         let new_bounds = draw_list_bounds(&instance.draw_list, instance.flip_y);
+        let runtime_state = runtime_state_from_instance(&instance, new_bounds);
         let id = spine_world.insert(entity, instance);
         let mut entity_commands = commands.entity(entity);
         entity_commands.insert(SpineInstanceKey(id));
         entity_commands.insert(SpineReady);
         entity_commands.insert(new_bounds);
+        entity_commands.insert(runtime_state);
         if existing_key.is_some() || draw_signature_cache.is_none() {
             entity_commands.insert(SpineDrawSignatureCache::default());
         }
@@ -149,6 +198,41 @@ pub fn spawn_spine_instances(
             entity,
             kind: SpineLifecycleEventKind::Ready,
         });
+    }
+}
+
+pub fn apply_spine_animation_state_config(
+    mut spine_world: NonSendMut<SpineWorld>,
+    query: AnimationStateConfigQuery,
+) {
+    for (entity, key, config) in &query {
+        if !config.is_changed() {
+            continue;
+        }
+        let Some(instance) = spine_world.get_mut(key.0) else {
+            warn!("Missing Spine runtime instance for {entity:?}");
+            continue;
+        };
+
+        apply_animation_state_config(instance.animation_state.data_mut(), &config, entity);
+    }
+}
+
+pub fn apply_spine_skeleton_control(
+    mut spine_world: NonSendMut<SpineWorld>,
+    query: SkeletonControlQuery,
+) {
+    for (entity, key, control) in &query {
+        if !control.is_changed() {
+            continue;
+        }
+        let Some(instance) = spine_world.get_mut(key.0) else {
+            warn!("Missing Spine runtime instance for {entity:?}");
+            continue;
+        };
+
+        instance.skeleton_control = *control;
+        apply_skeleton_control_to_skeleton(&mut instance.skeleton, instance.skeleton_control);
     }
 }
 
@@ -177,6 +261,7 @@ pub fn cleanup_spine_instances(
                 .remove::<SpineInstanceKey>()
                 .remove::<SpineReady>()
                 .remove::<SpineBounds>()
+                .remove::<SpineRuntimeState>()
                 .remove::<SpineDrawSignatureCache>();
         }
     }
@@ -219,6 +304,7 @@ pub fn reload_modified_spine_assets(
             .remove::<SpineInstanceKey>()
             .remove::<SpineReady>()
             .remove::<SpineBounds>()
+            .remove::<SpineRuntimeState>()
             .remove::<SpineDrawSignatureCache>();
     }
 }
@@ -242,18 +328,23 @@ pub fn apply_spine_animation_commands(
                 track_index,
                 animation,
                 loop_animation,
+                settings,
             } => {
-                if let Err(err) =
-                    instance
-                        .animation_state
-                        .set_animation(*track_index, animation, *loop_animation)
-                {
-                    warn!(
-                        "Failed to set Spine animation for {:?}: {err}",
-                        message.entity
-                    );
-                    continue;
-                }
+                let handle = match instance.animation_state.set_animation(
+                    *track_index,
+                    animation,
+                    *loop_animation,
+                ) {
+                    Ok(handle) => handle,
+                    Err(err) => {
+                        warn!(
+                            "Failed to set Spine animation for {:?}: {err}",
+                            message.entity
+                        );
+                        continue;
+                    }
+                };
+                apply_track_entry_settings(&mut instance.animation_state, handle, settings);
                 if *track_index == 0 {
                     instance.animation_name = Some(animation.clone());
                     instance.loop_animation = *loop_animation;
@@ -264,33 +355,44 @@ pub fn apply_spine_animation_commands(
                 animation,
                 loop_animation,
                 delay,
+                settings,
             } => {
-                if let Err(err) = instance.animation_state.add_animation(
+                let handle = match instance.animation_state.add_animation(
                     *track_index,
                     animation,
                     *loop_animation,
                     *delay,
                 ) {
-                    warn!(
-                        "Failed to queue Spine animation for {:?}: {err}",
-                        message.entity
-                    );
-                }
+                    Ok(handle) => handle,
+                    Err(err) => {
+                        warn!(
+                            "Failed to queue Spine animation for {:?}: {err}",
+                            message.entity
+                        );
+                        continue;
+                    }
+                };
+                apply_track_entry_settings(&mut instance.animation_state, handle, settings);
             }
             SpineAnimationCommandKind::SetEmpty {
                 track_index,
                 mix_duration,
+                settings,
             } => {
-                if let Err(err) = instance
+                let handle = match instance
                     .animation_state
                     .set_empty_animation(*track_index, *mix_duration)
                 {
-                    warn!(
-                        "Failed to set empty Spine animation for {:?}: {err}",
-                        message.entity
-                    );
-                    continue;
-                }
+                    Ok(handle) => handle,
+                    Err(err) => {
+                        warn!(
+                            "Failed to set empty Spine animation for {:?}: {err}",
+                            message.entity
+                        );
+                        continue;
+                    }
+                };
+                apply_track_entry_settings(&mut instance.animation_state, handle, settings);
                 if *track_index == 0 {
                     instance.animation_name = None;
                     instance.loop_animation = false;
@@ -300,17 +402,34 @@ pub fn apply_spine_animation_commands(
                 track_index,
                 mix_duration,
                 delay,
+                settings,
             } => {
-                if let Err(err) = instance.animation_state.add_empty_animation(
+                let handle = match instance.animation_state.add_empty_animation(
                     *track_index,
                     *mix_duration,
                     *delay,
                 ) {
+                    Ok(handle) => handle,
+                    Err(err) => {
+                        warn!(
+                            "Failed to queue empty Spine animation for {:?}: {err}",
+                            message.entity
+                        );
+                        continue;
+                    }
+                };
+                apply_track_entry_settings(&mut instance.animation_state, handle, settings);
+            }
+            SpineAnimationCommandKind::SetEmptyAnimations { mix_duration } => {
+                if let Err(err) = instance.animation_state.set_empty_animations(*mix_duration) {
                     warn!(
-                        "Failed to queue empty Spine animation for {:?}: {err}",
+                        "Failed to set empty Spine animations for {:?}: {err}",
                         message.entity
                     );
+                    continue;
                 }
+                instance.animation_name = None;
+                instance.loop_animation = false;
             }
             SpineAnimationCommandKind::ClearTrack { track_index } => {
                 instance.animation_state.clear_track(*track_index);
@@ -324,17 +443,86 @@ pub fn apply_spine_animation_commands(
                 instance.animation_name = None;
                 instance.loop_animation = false;
             }
+            SpineAnimationCommandKind::SetDefaultMix { default_mix } => {
+                apply_default_mix(
+                    instance.animation_state.data_mut(),
+                    *default_mix,
+                    message.entity,
+                );
+            }
+            SpineAnimationCommandKind::SetMix { from, to, duration } => {
+                apply_animation_mix(
+                    instance.animation_state.data_mut(),
+                    from,
+                    to,
+                    *duration,
+                    message.entity,
+                );
+            }
+            SpineAnimationCommandKind::RemoveMix { from, to } => {
+                if let Err(err) = instance.animation_state.data_mut().remove_mix(from, to) {
+                    warn!(
+                        "Failed to remove Spine animation mix for {:?} ({from} -> {to}): {err}",
+                        message.entity
+                    );
+                }
+            }
+            SpineAnimationCommandKind::ClearMixes => {
+                instance.animation_state.data_mut().clear();
+            }
+        }
+    }
+}
+
+pub fn apply_spine_skeleton_commands(
+    mut spine_world: NonSendMut<SpineWorld>,
+    mut commands: MessageReader<SpineSkeletonCommand>,
+    key_query: SpineKeyQuery,
+) {
+    for message in commands.read() {
+        let Ok(key) = key_query.get(message.entity) else {
+            continue;
+        };
+        let Some(instance) = spine_world.get_mut(key.0) else {
+            warn!("Missing Spine runtime instance for {:?}", message.entity);
+            continue;
+        };
+
+        match message.command {
+            SpineSkeletonCommandKind::SetControl(control) => {
+                instance.skeleton_control = control;
+                apply_skeleton_control_to_skeleton(&mut instance.skeleton, control);
+            }
+            SpineSkeletonCommandKind::SetPhysics(physics) => {
+                instance.skeleton_control.physics = physics;
+            }
+            SpineSkeletonCommandKind::SetWind(wind) => {
+                instance.skeleton_control.wind = wind;
+                instance.skeleton.set_wind(wind.x, wind.y);
+            }
+            SpineSkeletonCommandKind::SetGravity(gravity) => {
+                instance.skeleton_control.gravity = gravity;
+                instance.skeleton.set_gravity(gravity.x, gravity.y);
+            }
+            SpineSkeletonCommandKind::SetTime(time) => {
+                instance.skeleton_control.time = Some(time);
+                instance.skeleton.set_time(time);
+            }
+            SpineSkeletonCommandKind::ResetToSetupPose => {
+                instance.skeleton.set_to_setup_pose();
+            }
         }
     }
 }
 
 pub fn update_spine_animations(
+    mut commands: Commands,
     mut spine_world: NonSendMut<SpineWorld>,
     mut animation_events: MessageWriter<SpineAnimationEvent>,
     mut query: UpdateSpineQuery,
     time: Res<Time>,
 ) {
-    for (entity, key, animation_ref, skin_ref, flip_y, bounds) in &mut query {
+    for (entity, key, animation_ref, skin_ref, flip_y, bounds, runtime_state) in &mut query {
         let Some(instance) = spine_world.get_mut(key.0) else {
             warn!("Missing Spine runtime instance for {entity:?}");
             continue;
@@ -378,8 +566,15 @@ pub fn update_spine_animations(
             instance.flip_y = new_flip_y;
         }
         rebuild_pose(instance, time.delta().as_secs_f32() * instance.time_scale);
+        let new_bounds = draw_list_bounds(&instance.draw_list, instance.flip_y);
         if let Some(mut bounds) = bounds {
-            *bounds = draw_list_bounds(&instance.draw_list, instance.flip_y);
+            *bounds = new_bounds;
+        }
+        let new_runtime_state = runtime_state_from_instance(instance, new_bounds);
+        if let Some(mut runtime_state) = runtime_state {
+            *runtime_state = new_runtime_state;
+        } else {
+            commands.entity(entity).insert(new_runtime_state);
         }
         for event in instance.drain_events() {
             animation_events.write(SpineAnimationEvent {
@@ -409,8 +604,137 @@ fn changed_asset_ids<'a, A: Asset>(
 fn rebuild_pose(instance: &mut SpineInstance, delta: f32) {
     instance.animation_state.update(delta.max(0.0));
     instance.animation_state.apply(&mut instance.skeleton);
-    instance.skeleton.update_world_transform();
+    instance
+        .skeleton
+        .update_world_transform_with_physics(instance.skeleton_control.physics);
     instance.draw_list = build_draw_list_with_atlas(&instance.skeleton, &instance.atlas);
+}
+
+fn apply_skeleton_control_to_skeleton(skeleton: &mut Skeleton, control: SpineSkeletonControl) {
+    skeleton.set_wind(control.wind.x, control.wind.y);
+    skeleton.set_gravity(control.gravity.x, control.gravity.y);
+    if let Some(time) = control.time {
+        skeleton.set_time(time);
+    }
+}
+
+fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) -> SpineRuntimeState {
+    let (wind_x, wind_y) = instance.skeleton.wind();
+    let (gravity_x, gravity_y) = instance.skeleton.gravity();
+    SpineRuntimeState {
+        ready: true,
+        tracks: instance
+            .animation_state
+            .track_snapshots()
+            .into_iter()
+            .map(|track| SpineTrackState {
+                track_index: track.track_index,
+                animation_index: track.animation_index,
+                animation_name: track.animation_name,
+                track_time: track.track_time,
+                animation_time: track.animation_time,
+                loop_animation: track.looped,
+                delay: track.delay,
+                mix_duration: track.mix_duration,
+                mix_time: track.mix_time,
+                alpha: track.alpha,
+                additive: track.additive,
+                reverse: track.reverse,
+            })
+            .collect(),
+        skeleton_time: instance.skeleton.time(),
+        physics: instance.skeleton_control.physics,
+        wind: Vec2::new(wind_x, wind_y),
+        gravity: Vec2::new(gravity_x, gravity_y),
+        bounds,
+    }
+}
+
+fn apply_animation_state_config(
+    state_data: &mut AnimationStateData,
+    config: &SpineAnimationStateConfig,
+    entity: Entity,
+) {
+    apply_default_mix(state_data, config.default_mix, entity);
+    for mix in &config.mixes {
+        apply_animation_mix(state_data, &mix.from, &mix.to, mix.duration, entity);
+    }
+}
+
+fn apply_track_entry_settings(
+    animation_state: &mut AnimationState,
+    handle: TrackEntryHandle,
+    settings: &SpineTrackEntrySettings,
+) {
+    if let Some(track_end) = settings.track_end {
+        handle.set_track_end(animation_state, track_end);
+    }
+    if let Some(delay) = settings.delay {
+        handle.set_delay(animation_state, delay);
+    }
+    if let Some(time_scale) = settings.time_scale {
+        handle.set_time_scale(animation_state, time_scale);
+    }
+    if let Some(mix_duration) = settings.mix_duration {
+        handle.set_mix_duration(animation_state, mix_duration);
+    }
+    if let Some(mix_interpolation) = settings.mix_interpolation {
+        handle.set_mix_interpolation(animation_state, mix_interpolation);
+    }
+    if let Some(additive) = settings.additive {
+        handle.set_additive(animation_state, additive);
+    }
+    if let Some(alpha) = settings.alpha {
+        handle.set_alpha(animation_state, alpha);
+    }
+    if let Some(reverse) = settings.reverse {
+        handle.set_reverse(animation_state, reverse);
+    }
+    if let Some(shortest_rotation) = settings.shortest_rotation {
+        handle.set_shortest_rotation(animation_state, shortest_rotation);
+    }
+    if settings.reset_rotation_directions {
+        handle.reset_rotation_directions(animation_state);
+    }
+    if let Some(threshold) = settings.alpha_attachment_threshold {
+        handle.set_alpha_attachment_threshold(animation_state, threshold);
+    }
+    if let Some(threshold) = settings.mix_attachment_threshold {
+        handle.set_mix_attachment_threshold(animation_state, threshold);
+    }
+    if let Some(threshold) = settings.mix_draw_order_threshold {
+        handle.set_mix_draw_order_threshold(animation_state, threshold);
+    }
+    if let Some(threshold) = settings.event_threshold {
+        handle.set_event_threshold(animation_state, threshold);
+    }
+    if let Some(animation_start) = settings.animation_start {
+        handle.set_animation_start(animation_state, animation_start);
+    }
+    if let Some(animation_end) = settings.animation_end {
+        handle.set_animation_end(animation_state, animation_end);
+    }
+    if let Some(animation_last) = settings.animation_last {
+        handle.set_animation_last(animation_state, animation_last);
+    }
+}
+
+fn apply_default_mix(state_data: &mut AnimationStateData, default_mix: f32, entity: Entity) {
+    if let Err(err) = state_data.set_default_mix(default_mix) {
+        warn!("Failed to set Spine default mix for {entity:?}: {err}");
+    }
+}
+
+fn apply_animation_mix(
+    state_data: &mut AnimationStateData,
+    from: &str,
+    to: &str,
+    duration: f32,
+    entity: Entity,
+) {
+    if let Err(err) = state_data.set_mix(from, to, duration) {
+        warn!("Failed to set Spine animation mix for {entity:?} ({from} -> {to}): {err}");
+    }
 }
 
 fn draw_list_bounds(draw_list: &spine2d::DrawList, flip_y: bool) -> SpineBounds {
@@ -478,13 +802,17 @@ mod tests {
         .add_message::<SpineLifecycleEvent>()
         .add_message::<SpineAnimationEvent>()
         .add_message::<SpineAnimationCommand>()
+        .add_message::<SpineSkeletonCommand>()
         .init_resource::<Time>()
-        .insert_non_send_resource(SpineWorld::new())
+        .insert_non_send(SpineWorld::new())
         .add_systems(
             Update,
             (
                 cleanup_spine_instances,
                 spawn_spine_instances,
+                apply_spine_animation_state_config,
+                apply_spine_skeleton_control,
+                apply_spine_skeleton_commands,
                 apply_spine_animation_commands,
                 update_spine_animations,
             )
@@ -628,6 +956,60 @@ mod tests {
             .collect()
     }
 
+    fn current_track_mix_duration(app: &App, entity: Entity) -> f32 {
+        current_track_entry(app, entity, 0, |entry| entry.mix_duration)
+    }
+
+    fn current_track_entry<F: FnOnce(&spine2d::TrackEntry) -> R, R>(
+        app: &App,
+        entity: Entity,
+        track_index: usize,
+        f: F,
+    ) -> R {
+        let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        app.world()
+            .non_send::<SpineWorld>()
+            .get(key.0)
+            .unwrap()
+            .animation_state
+            .with_track_entry(track_index, f)
+            .unwrap()
+    }
+
+    fn queued_track_entry<F: FnOnce(&spine2d::TrackEntry) -> R, R>(
+        app: &App,
+        entity: Entity,
+        track_index: usize,
+        queue_index: usize,
+        f: F,
+    ) -> R {
+        let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        app.world()
+            .non_send::<SpineWorld>()
+            .get(key.0)
+            .unwrap()
+            .animation_state
+            .with_queued_track_entry(track_index, queue_index, f)
+            .unwrap()
+    }
+
+    fn spine_instance<F: FnOnce(&SpineInstance) -> R, R>(app: &App, entity: Entity, f: F) -> R {
+        let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        let spine_world = app.world().non_send::<SpineWorld>();
+        f(spine_world.get(key.0).unwrap())
+    }
+
+    fn animation_state_default_mix(app: &mut App, entity: Entity) -> f32 {
+        let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
+        app.world_mut()
+            .non_send_mut::<SpineWorld>()
+            .get_mut(key.0)
+            .unwrap()
+            .animation_state
+            .data_mut()
+            .default_mix()
+    }
+
     #[test]
     fn spawn_adds_only_internal_runtime_components_after_assets_are_ready() {
         let mut app = app_with_lifecycle_systems();
@@ -640,7 +1022,7 @@ mod tests {
 
         app.update();
 
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 1);
         assert!(app.world().get::<SpineInstanceKey>(entity).is_some());
         assert!(app.world().get::<SpineReady>(entity).is_some());
         assert!(app.world().get::<SpineDrawSignatureCache>(entity).is_some());
@@ -652,7 +1034,7 @@ mod tests {
         assert!(app.world().get::<SpineSkin>(entity).is_none());
 
         let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
-        let spine_world = app.world().non_send_resource::<SpineWorld>();
+        let spine_world = app.world().non_send::<SpineWorld>();
         let instance = spine_world.get(key.0).unwrap();
         assert_eq!(instance.animation_name, Some("spin".to_owned()));
         assert!(instance.loop_animation);
@@ -696,7 +1078,7 @@ mod tests {
         assert_eq!(app.world().get::<SpineSkin>(entity).unwrap().name, None);
 
         let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
-        let spine_world = app.world().non_send_resource::<SpineWorld>();
+        let spine_world = app.world().non_send::<SpineWorld>();
         let instance = spine_world.get(key.0).unwrap();
         assert_eq!(instance.animation_name, None);
         assert!(!instance.loop_animation);
@@ -814,7 +1196,7 @@ mod tests {
         app.update();
 
         let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
-        let spine_world = app.world().non_send_resource::<SpineWorld>();
+        let spine_world = app.world().non_send::<SpineWorld>();
         let instance = spine_world.get(key.0).unwrap();
         assert!(instance.flip_y);
     }
@@ -986,7 +1368,7 @@ mod tests {
         let old_key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
         let old_mesh_children = mesh_child_entities(&app, entity);
         assert!(!old_mesh_children.is_empty());
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 1);
 
         app.world_mut().entity_mut(entity).insert(
             Spine::new(second_skeleton, second_atlas)
@@ -1000,7 +1382,7 @@ mod tests {
         let new_mesh_children = mesh_child_entities(&app, entity);
         assert_ne!(old_key, new_key);
         assert!(!new_mesh_children.is_empty());
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 1);
         for child in old_mesh_children {
             assert!(app.world().get_entity(child).is_err());
         }
@@ -1037,7 +1419,7 @@ mod tests {
 
         let old_mesh_children = mesh_child_entities(&app, entity);
         assert!(!old_mesh_children.is_empty());
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 1);
 
         app.world_mut().entity_mut(entity).insert(
             Spine::new(
@@ -1052,7 +1434,7 @@ mod tests {
         assert!(app.world().get::<SpineReady>(entity).is_none());
         assert!(app.world().get::<SpineBounds>(entity).is_none());
         assert!(app.world().get::<SpineDrawSignatureCache>(entity).is_none());
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 0);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 0);
         for child in old_mesh_children {
             assert!(app.world().get_entity(child).is_err());
         }
@@ -1147,7 +1529,7 @@ mod tests {
         app.update();
 
         let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
-        let spine_world = app.world().non_send_resource::<SpineWorld>();
+        let spine_world = app.world().non_send::<SpineWorld>();
         let instance = spine_world.get(key.0).unwrap();
         assert_eq!(instance.animation_name, Some("first".to_owned()));
         assert!(instance.loop_animation);
@@ -1158,6 +1540,498 @@ mod tests {
                 && event.animation_name == "first"
                 && matches!(event.kind, SpineAnimationEventKind::Start)
         }));
+    }
+
+    #[test]
+    fn animation_state_config_applies_spawn_mix_settings() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn((
+                Spine::new(skeleton, atlas).with_animation("first", true),
+                SpineAnimationStateConfig::new()
+                    .with_default_mix(0.35)
+                    .with_mix("first", "second", 0.2),
+            ))
+            .id();
+        app.update();
+
+        assert_eq!(animation_state_default_mix(&mut app, entity), 0.35);
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(SpineAnimationCommand::set(entity, 0, "second", true));
+        app.update();
+
+        assert_eq!(current_track_mix_duration(&app, entity), 0.2);
+    }
+
+    #[test]
+    fn changed_animation_state_config_updates_existing_instance() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn((
+                Spine::new(skeleton, atlas).with_animation("first", true),
+                SpineAnimationStateConfig::new().with_default_mix(0.1),
+            ))
+            .id();
+        app.update();
+        assert_eq!(animation_state_default_mix(&mut app, entity), 0.1);
+
+        app.world_mut()
+            .entity_mut(entity)
+            .insert(SpineAnimationStateConfig::new().with_default_mix(0.45));
+        app.update();
+
+        assert_eq!(animation_state_default_mix(&mut app, entity), 0.45);
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(SpineAnimationCommand::set(entity, 0, "second", true));
+        app.update();
+
+        assert_eq!(current_track_mix_duration(&app, entity), 0.45);
+    }
+
+    #[test]
+    fn animation_state_commands_override_changed_config_in_same_frame() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn((
+                Spine::new(skeleton, atlas).with_animation("first", true),
+                SpineAnimationStateConfig::new().with_default_mix(0.1),
+            ))
+            .id();
+        app.update();
+
+        app.world_mut()
+            .entity_mut(entity)
+            .insert(SpineAnimationStateConfig::new().with_default_mix(0.2));
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(SpineAnimationCommand::set_default_mix(entity, 0.5));
+        app.update();
+
+        assert_eq!(animation_state_default_mix(&mut app, entity), 0.5);
+    }
+
+    #[test]
+    fn animation_state_config_commands_configure_existing_instance() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+        app.update();
+
+        {
+            let mut messages = app
+                .world_mut()
+                .resource_mut::<Messages<SpineAnimationCommand>>();
+            messages.write(SpineAnimationCommand::set_default_mix(entity, 0.35));
+            messages.write(SpineAnimationCommand::set_mix(
+                entity, "first", "second", 0.2,
+            ));
+            messages.write(SpineAnimationCommand::set(entity, 0, "second", true));
+        }
+        app.update();
+
+        assert_eq!(animation_state_default_mix(&mut app, entity), 0.35);
+        assert_eq!(current_track_mix_duration(&app, entity), 0.2);
+    }
+
+    #[test]
+    fn set_animation_command_applies_track_entry_settings_to_current_entry() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app.world_mut().spawn(Spine::new(skeleton, atlas)).id();
+        app.update();
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(
+                SpineAnimationCommand::set(entity, 0, "first", true).with_entry_settings(
+                    SpineTrackEntrySettings::new()
+                        .with_alpha(0.5)
+                        .with_additive(true)
+                        .with_reverse(true)
+                        .with_shortest_rotation(true)
+                        .with_mix_duration(0.25)
+                        .with_mix_interpolation(spine2d::MixInterpolation::Smooth)
+                        .with_event_threshold(0.75),
+                ),
+            );
+        app.update();
+
+        current_track_entry(&app, entity, 0, |entry| {
+            assert_eq!(entry.animation.name, "first");
+            assert_eq!(entry.alpha, 0.5);
+            assert!(entry.additive);
+            assert!(entry.reverse);
+            assert!(entry.shortest_rotation);
+            assert_eq!(entry.mix_duration, 0.25);
+            assert_eq!(entry.mix_interpolation, spine2d::MixInterpolation::Smooth);
+            assert_eq!(entry.event_threshold, 0.75);
+        });
+    }
+
+    #[test]
+    fn add_animation_command_applies_track_entry_settings_to_queued_entry() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+        app.update();
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(
+                SpineAnimationCommand::add(entity, 0, "second", false, 0.0).with_entry_settings(
+                    SpineTrackEntrySettings::new()
+                        .with_delay(0.3)
+                        .with_track_end(0.8)
+                        .with_mix_duration(0.4)
+                        .with_animation_start(0.1)
+                        .with_animation_end(0.9)
+                        .with_animation_last(0.2),
+                ),
+            );
+        app.update();
+
+        queued_track_entry(&app, entity, 0, 0, |entry| {
+            assert_eq!(entry.animation.name, "second");
+            assert_eq!(entry.delay, 0.3);
+            assert_eq!(entry.track_end, 0.8);
+            assert_eq!(entry.mix_duration, 0.4);
+            assert_eq!(entry.animation_start, 0.1);
+            assert_eq!(entry.animation_end, 0.9);
+            assert_eq!(entry.animation_last_time, 0.2);
+        });
+    }
+
+    #[test]
+    fn empty_animation_command_accepts_track_entry_settings() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+        app.update();
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(
+                SpineAnimationCommand::set_empty(entity, 0, 0.5).with_entry_settings(
+                    SpineTrackEntrySettings::new()
+                        .with_track_end(0.7)
+                        .with_alpha_attachment_threshold(0.2)
+                        .with_mix_attachment_threshold(0.3)
+                        .with_mix_draw_order_threshold(0.4),
+                ),
+            );
+        app.update();
+
+        current_track_entry(&app, entity, 0, |entry| {
+            assert_eq!(entry.animation.name, "<empty>");
+            assert_eq!(entry.mix_duration, 0.5);
+            assert_eq!(entry.track_end, 0.7);
+            assert_eq!(entry.alpha_attachment_threshold, 0.2);
+            assert_eq!(entry.mix_attachment_threshold, 0.3);
+            assert_eq!(entry.mix_draw_order_threshold, 0.4);
+        });
+    }
+
+    #[test]
+    fn failed_animation_command_does_not_apply_settings_to_prior_entry() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+        app.update();
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(
+                SpineAnimationCommand::set(entity, 0, "missing", true).with_entry_settings(
+                    SpineTrackEntrySettings::new()
+                        .with_alpha(0.25)
+                        .with_additive(true),
+                ),
+            );
+        app.update();
+
+        current_track_entry(&app, entity, 0, |entry| {
+            assert_eq!(entry.animation.name, "first");
+            assert_eq!(entry.alpha, 1.0);
+            assert!(!entry.additive);
+        });
+    }
+
+    #[test]
+    fn mix_remove_and_clear_commands_update_state_data() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+        app.update();
+
+        {
+            let mut messages = app
+                .world_mut()
+                .resource_mut::<Messages<SpineAnimationCommand>>();
+            messages.write(SpineAnimationCommand::set_default_mix(entity, 0.3));
+            messages.write(SpineAnimationCommand::set_mix(
+                entity, "first", "second", 0.1,
+            ));
+        }
+        app.update();
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(SpineAnimationCommand::remove_mix(entity, "first", "second"));
+        app.update();
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(SpineAnimationCommand::set(entity, 0, "second", true));
+        app.update();
+        assert_eq!(current_track_mix_duration(&app, entity), 0.3);
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(SpineAnimationCommand::clear_mixes(entity));
+        app.update();
+        assert_eq!(animation_state_default_mix(&mut app, entity), 0.0);
+    }
+
+    #[test]
+    fn skeleton_control_component_applies_spawn_settings() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn((
+                Spine::new(skeleton, atlas),
+                SpineSkeletonControl::new()
+                    .with_physics(spine2d::Physics::Update)
+                    .with_wind(Vec2::new(2.0, 3.0))
+                    .with_gravity(Vec2::new(4.0, 5.0))
+                    .with_time(1.25),
+            ))
+            .id();
+        app.update();
+
+        spine_instance(&app, entity, |instance| {
+            assert_eq!(instance.skeleton_control.physics, spine2d::Physics::Update);
+            assert_eq!(instance.skeleton.wind(), (2.0, 3.0));
+            assert_eq!(instance.skeleton.gravity(), (4.0, 5.0));
+            assert_eq!(instance.skeleton.time(), 1.25);
+        });
+    }
+
+    #[test]
+    fn changed_skeleton_control_component_updates_existing_instance() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app.world_mut().spawn(Spine::new(skeleton, atlas)).id();
+        app.update();
+
+        app.world_mut().entity_mut(entity).insert(
+            SpineSkeletonControl::new()
+                .with_physics(spine2d::Physics::Pose)
+                .with_wind(Vec2::new(6.0, 7.0)),
+        );
+        app.update();
+
+        spine_instance(&app, entity, |instance| {
+            assert_eq!(instance.skeleton_control.physics, spine2d::Physics::Pose);
+            assert_eq!(instance.skeleton.wind(), (6.0, 7.0));
+            assert_eq!(instance.skeleton.gravity(), (0.0, 1.0));
+        });
+    }
+
+    #[test]
+    fn skeleton_commands_update_existing_instance() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app.world_mut().spawn(Spine::new(skeleton, atlas)).id();
+        app.update();
+
+        {
+            let mut messages = app
+                .world_mut()
+                .resource_mut::<Messages<SpineSkeletonCommand>>();
+            messages.write(SpineSkeletonCommand::set_physics(
+                entity,
+                spine2d::Physics::Reset,
+            ));
+            messages.write(SpineSkeletonCommand::set_wind(entity, Vec2::new(8.0, 9.0)));
+            messages.write(SpineSkeletonCommand::set_gravity(
+                entity,
+                Vec2::new(10.0, 11.0),
+            ));
+            messages.write(SpineSkeletonCommand::set_time(entity, 2.5));
+        }
+        app.update();
+
+        spine_instance(&app, entity, |instance| {
+            assert_eq!(instance.skeleton_control.physics, spine2d::Physics::Reset);
+            assert_eq!(instance.skeleton.wind(), (8.0, 9.0));
+            assert_eq!(instance.skeleton.gravity(), (10.0, 11.0));
+            assert_eq!(instance.skeleton.time(), 2.5);
+        });
+    }
+
+    #[test]
+    fn skeleton_command_overrides_changed_control_component_in_same_frame() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn((
+                Spine::new(skeleton, atlas),
+                SpineSkeletonControl::new().with_physics(spine2d::Physics::None),
+            ))
+            .id();
+        app.update();
+
+        app.world_mut().entity_mut(entity).insert(
+            SpineSkeletonControl::new()
+                .with_physics(spine2d::Physics::Pose)
+                .with_wind(Vec2::new(1.0, 1.0)),
+        );
+        app.world_mut()
+            .resource_mut::<Messages<SpineSkeletonCommand>>()
+            .write(SpineSkeletonCommand::set_control(
+                entity,
+                SpineSkeletonControl::new()
+                    .with_physics(spine2d::Physics::Update)
+                    .with_wind(Vec2::new(2.0, 2.0)),
+            ));
+        app.update();
+
+        spine_instance(&app, entity, |instance| {
+            assert_eq!(instance.skeleton_control.physics, spine2d::Physics::Update);
+            assert_eq!(instance.skeleton.wind(), (2.0, 2.0));
+        });
+    }
+
+    #[test]
+    fn runtime_state_snapshot_is_inserted_after_spawn() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn((
+                Spine::new(skeleton, atlas).with_animation("first", true),
+                SpineSkeletonControl::new()
+                    .with_physics(spine2d::Physics::Update)
+                    .with_wind(Vec2::new(3.0, 4.0)),
+            ))
+            .id();
+        app.update();
+
+        let state = app.world().get::<SpineRuntimeState>(entity).unwrap();
+        assert!(state.ready);
+        assert_eq!(state.physics, spine2d::Physics::Update);
+        assert_eq!(state.wind, Vec2::new(3.0, 4.0));
+        assert_eq!(state.tracks.len(), 1);
+        assert_eq!(state.tracks[0].track_index, 0);
+        assert_eq!(state.tracks[0].animation_name, "first");
+        assert!(state.tracks[0].loop_animation);
+    }
+
+    #[test]
+    fn runtime_state_snapshot_reflects_same_frame_commands() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+        app.update();
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(
+                SpineAnimationCommand::set(entity, 0, "second", false).with_entry_settings(
+                    SpineTrackEntrySettings::new()
+                        .with_alpha(0.5)
+                        .with_mix_duration(0.25),
+                ),
+            );
+        app.update();
+
+        let state = app.world().get::<SpineRuntimeState>(entity).unwrap();
+        assert_eq!(state.tracks.len(), 1);
+        assert_eq!(state.tracks[0].animation_name, "second");
+        assert!(!state.tracks[0].loop_animation);
+        assert_eq!(state.tracks[0].alpha, 0.5);
+        assert_eq!(state.tracks[0].mix_duration, 0.25);
+    }
+
+    #[test]
+    fn runtime_state_snapshot_tracks_clear_commands() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+        app.update();
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(SpineAnimationCommand::clear_track(entity, 0));
+        app.update();
+
+        let state = app.world().get::<SpineRuntimeState>(entity).unwrap();
+        assert!(state.tracks.is_empty());
+    }
+
+    #[test]
+    fn runtime_state_snapshot_is_removed_when_instance_releases() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+        app.update();
+        assert!(app.world().get::<SpineRuntimeState>(entity).is_some());
+
+        app.world_mut().entity_mut(entity).remove::<Spine>();
+        app.update();
+
+        assert!(app.world().get::<SpineRuntimeState>(entity).is_none());
     }
 
     #[test]
@@ -1182,7 +2056,7 @@ mod tests {
         app.update();
 
         let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
-        let spine_world = app.world().non_send_resource::<SpineWorld>();
+        let spine_world = app.world().non_send::<SpineWorld>();
         let instance = spine_world.get(key.0).unwrap();
         assert_eq!(instance.animation_name, None);
 
@@ -1233,7 +2107,7 @@ mod tests {
         assert!(app.world().get::<SpineInstanceKey>(entity).is_none());
         assert!(app.world().get::<SpineReady>(entity).is_none());
         assert!(app.world().get::<SpineBounds>(entity).is_none());
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 0);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 0);
         assert!(drain_lifecycle_events(&mut app).iter().any(|event| {
             *event
                 == SpineLifecycleEvent {
@@ -1247,7 +2121,7 @@ mod tests {
         assert!(app.world().get::<SpineReady>(entity).is_some());
         assert!(app.world().get::<SpineBounds>(entity).is_some());
         assert_ne!(old_key, new_key);
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 1);
     }
 
     #[test]
@@ -1268,13 +2142,13 @@ mod tests {
             ))
             .id();
         app.update();
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 1);
         drain_lifecycle_events(&mut app);
 
         app.world_mut().entity_mut(entity).remove::<Spine>();
         app.update();
 
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 0);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 0);
         assert!(app.world().get::<SpineInstanceKey>(entity).is_none());
         assert!(app.world().get::<SpineReady>(entity).is_none());
         assert!(app.world().get::<SpineBounds>(entity).is_none());
@@ -1300,13 +2174,13 @@ mod tests {
             .spawn(Spine::new(skeleton, atlas).with_animation("spin", true))
             .id();
         app.update();
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 1);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 1);
         drain_lifecycle_events(&mut app);
 
         app.world_mut().entity_mut(entity).despawn();
         app.update();
 
-        assert_eq!(app.world().non_send_resource::<SpineWorld>().len(), 0);
+        assert_eq!(app.world().non_send::<SpineWorld>().len(), 0);
         assert_eq!(
             drain_lifecycle_events(&mut app),
             vec![SpineLifecycleEvent {

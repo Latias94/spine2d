@@ -467,7 +467,7 @@ struct EntrySlot {
 #[derive(Clone, Debug)]
 pub struct AnimationStateData {
     pub skeleton_data: Arc<SkeletonData>,
-    pub default_mix: f32,
+    default_mix: f32,
     mixes: HashMap<(usize, usize), f32>,
 }
 
@@ -480,24 +480,54 @@ impl AnimationStateData {
         }
     }
 
+    pub fn default_mix(&self) -> f32 {
+        self.default_mix
+    }
+
+    pub fn set_default_mix(&mut self, duration: f32) -> Result<(), Error> {
+        validate_mix_duration(duration)?;
+        self.default_mix = duration;
+        Ok(())
+    }
+
     pub fn set_mix(&mut self, from: &str, to: &str, duration: f32) -> Result<(), Error> {
-        if duration.is_nan() || duration < 0.0 {
-            return Err(Error::InvalidValue {
-                message: "mix duration must be finite and >= 0".to_string(),
-            });
-        }
-        let Some((from_index, _)) = self.skeleton_data.animation(from) else {
-            return Err(Error::UnknownAnimation {
-                name: from.to_string(),
-            });
-        };
-        let Some((to_index, _)) = self.skeleton_data.animation(to) else {
-            return Err(Error::UnknownAnimation {
-                name: to.to_string(),
-            });
-        };
+        validate_mix_duration(duration)?;
+        let from_index = self.animation_index_by_name(from)?;
+        let to_index = self.animation_index_by_name(to)?;
         self.mixes.insert((from_index, to_index), duration);
         Ok(())
+    }
+
+    pub fn get_mix(&self, from: &str, to: &str) -> Result<f32, Error> {
+        let from_index = self.animation_index_by_name(from)?;
+        let to_index = self.animation_index_by_name(to)?;
+        Ok(self.mix_duration(from_index, to_index))
+    }
+
+    pub fn pair_mix(&self, from: &str, to: &str) -> Result<Option<f32>, Error> {
+        let from_index = self.animation_index_by_name(from)?;
+        let to_index = self.animation_index_by_name(to)?;
+        Ok(self.mixes.get(&(from_index, to_index)).copied())
+    }
+
+    pub fn remove_mix(&mut self, from: &str, to: &str) -> Result<Option<f32>, Error> {
+        let from_index = self.animation_index_by_name(from)?;
+        let to_index = self.animation_index_by_name(to)?;
+        Ok(self.mixes.remove(&(from_index, to_index)))
+    }
+
+    pub fn clear(&mut self) {
+        self.default_mix = 0.0;
+        self.mixes.clear();
+    }
+
+    fn animation_index_by_name(&self, name: &str) -> Result<usize, Error> {
+        self.skeleton_data
+            .animation(name)
+            .map(|(index, _)| index)
+            .ok_or_else(|| Error::UnknownAnimation {
+                name: name.to_string(),
+            })
     }
 
     fn mix_duration(&self, from_index: usize, to_index: usize) -> f32 {
@@ -506,6 +536,15 @@ impl AnimationStateData {
             .copied()
             .unwrap_or(self.default_mix)
     }
+}
+
+fn validate_mix_duration(duration: f32) -> Result<(), Error> {
+    if !duration.is_finite() || duration < 0.0 {
+        return Err(Error::InvalidValue {
+            message: "mix duration must be finite and >= 0".to_string(),
+        });
+    }
+    Ok(())
 }
 
 pub struct TrackEntry {
@@ -815,6 +854,14 @@ pub struct TrackEntrySnapshot {
     pub animation_index: i32,
     pub animation_name: String,
     pub track_time: f32,
+    pub animation_time: f32,
+    pub looped: bool,
+    pub delay: f32,
+    pub mix_duration: f32,
+    pub mix_time: f32,
+    pub alpha: f32,
+    pub additive: bool,
+    pub reverse: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -867,6 +914,7 @@ pub struct AnimationState {
     time_scale: f32,
     listener: Option<Box<dyn AnimationStateListener>>,
     draining_events: bool,
+    drain_disabled: bool,
     animations_changed: bool,
     property_ids: HashMap<u64, EntryId>,
     unkeyed_state: i32,
@@ -884,6 +932,7 @@ impl AnimationState {
             time_scale: 1.0,
             listener: None,
             draining_events: false,
+            drain_disabled: false,
             animations_changed: false,
             property_ids: HashMap::new(),
             unkeyed_state: 0,
@@ -1083,6 +1132,26 @@ impl AnimationState {
         Some(f(entry))
     }
 
+    pub fn with_queued_track_entry<F: FnOnce(&TrackEntry) -> R, R>(
+        &self,
+        track_index: usize,
+        queue_index: usize,
+        f: F,
+    ) -> Option<R> {
+        let track = self.tracks.get(track_index)?;
+        let id = *track.queue.get(queue_index)?;
+        let entry = self.entry(id)?;
+        Some(f(entry))
+    }
+
+    pub fn track_snapshots(&self) -> Vec<TrackEntrySnapshot> {
+        self.tracks
+            .iter()
+            .filter_map(|track| track.current)
+            .map(|id| self.snapshot(id))
+            .collect()
+    }
+
     pub fn set_animation(
         &mut self,
         track_index: usize,
@@ -1118,6 +1187,37 @@ impl AnimationState {
         entry.set_mix_duration(self, mix_duration);
         entry.set_track_end(self, mix_duration);
         Ok(entry)
+    }
+
+    pub fn set_empty_animations(&mut self, mix_duration: f32) -> Result<(), Error> {
+        if !mix_duration.is_finite() || mix_duration < 0.0 {
+            return Err(Error::InvalidValue {
+                message: "mix duration must be finite and >= 0".to_string(),
+            });
+        }
+
+        let current_track_indices = self
+            .tracks
+            .iter()
+            .enumerate()
+            .filter_map(|(track_index, track)| track.current.map(|_| track_index))
+            .collect::<Vec<_>>();
+        if current_track_indices.is_empty() {
+            return Ok(());
+        }
+
+        let old_drain_disabled = self.drain_disabled;
+        self.drain_disabled = true;
+        let mut result = Ok(());
+        for track_index in current_track_indices {
+            if let Err(err) = self.set_empty_animation(track_index, mix_duration) {
+                result = Err(err);
+                break;
+            }
+        }
+        self.drain_disabled = old_drain_disabled;
+        self.drain_event_queue();
+        result
     }
 
     fn set_animation_internal(
@@ -2342,6 +2442,14 @@ impl AnimationState {
                 animation_index,
                 animation_name: entry.animation.name.clone(),
                 track_time: entry.track_time,
+                animation_time: entry.animation_time(),
+                looped: entry.looped,
+                delay: entry.delay,
+                mix_duration: entry.mix_duration,
+                mix_time: entry.mix_time,
+                alpha: entry.alpha,
+                additive: entry.additive,
+                reverse: entry.reverse,
             }
         } else {
             TrackEntrySnapshot {
@@ -2349,6 +2457,14 @@ impl AnimationState {
                 animation_index: -2,
                 animation_name: "<disposed>".to_string(),
                 track_time: 0.0,
+                animation_time: 0.0,
+                looped: false,
+                delay: 0.0,
+                mix_duration: 0.0,
+                mix_time: 0.0,
+                alpha: 0.0,
+                additive: false,
+                reverse: false,
             }
         }
     }
@@ -2588,7 +2704,7 @@ impl AnimationState {
     }
 
     fn drain_event_queue(&mut self) {
-        if self.draining_events {
+        if self.draining_events || self.drain_disabled {
             return;
         }
         self.draining_events = true;
