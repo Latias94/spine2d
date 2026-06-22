@@ -58,6 +58,40 @@ impl crate::PointAttachmentData {
     }
 }
 
+fn region_world_vertices(region: &crate::RegionAttachmentData, bone: &Bone) -> [(f32, f32); 4] {
+    let local_x = -region.width * 0.5 * region.scale_x;
+    let local_y = -region.height * 0.5 * region.scale_y;
+    let local_x2 = region.width * 0.5 * region.scale_x;
+    let local_y2 = region.height * 0.5 * region.scale_y;
+
+    let r = region.rotation.to_radians();
+    let cos = cos_f32(r);
+    let sin = sin_f32(r);
+    let x = region.x;
+    let y = region.y;
+
+    let local_x_cos = local_x * cos + x;
+    let local_x_sin = local_x * sin;
+    let local_y_cos = local_y * cos + y;
+    let local_y_sin = local_y * sin;
+    let local_x2_cos = local_x2 * cos + x;
+    let local_x2_sin = local_x2 * sin;
+    let local_y2_cos = local_y2 * cos + y;
+    let local_y2_sin = local_y2 * sin;
+
+    let bl = (local_x_cos - local_y_sin, local_y_cos + local_x_sin);
+    let ul = (local_x_cos - local_y2_sin, local_y2_cos + local_x_sin);
+    let ur = (local_x2_cos - local_y2_sin, local_y2_cos + local_x2_sin);
+    let br = (local_x2_cos - local_y_sin, local_y_cos + local_x2_sin);
+
+    [br, bl, ul, ur].map(|(x, y)| {
+        (
+            bone.a * x + bone.b * y + bone.world_x,
+            bone.c * x + bone.d * y + bone.world_y,
+        )
+    })
+}
+
 #[derive(Clone, Debug)]
 pub struct Skeleton {
     pub(crate) data: Arc<SkeletonData>,
@@ -953,6 +987,56 @@ impl Skeleton {
         slot.deform.clear();
         slot.sequence_index = -1;
         true
+    }
+
+    pub fn bounds(&self) -> Option<(f32, f32, f32, f32)> {
+        let mut min_x = f32::INFINITY;
+        let mut min_y = f32::INFINITY;
+        let mut max_x = f32::NEG_INFINITY;
+        let mut max_y = f32::NEG_INFINITY;
+        let mut has_vertices = false;
+
+        for &slot_index in &self.draw_order {
+            let Some(slot) = self.slots.get(slot_index) else {
+                continue;
+            };
+            let Some(bone) = self.bones.get(slot.bone) else {
+                continue;
+            };
+            if !bone.active {
+                continue;
+            }
+
+            match self.slot_attachment_data(slot_index) {
+                Some(crate::AttachmentData::Region(region)) => {
+                    for (x, y) in region_world_vertices(region, bone) {
+                        has_vertices = true;
+                        min_x = min_x.min(x);
+                        min_y = min_y.min(y);
+                        max_x = max_x.max(x);
+                        max_y = max_y.max(y);
+                    }
+                }
+                Some(crate::AttachmentData::Mesh(_)) => {
+                    let Some(vertices) = self.slot_vertex_attachment_world_vertices(slot_index)
+                    else {
+                        continue;
+                    };
+                    for point in vertices.chunks_exact(2) {
+                        let x = point[0];
+                        let y = point[1];
+                        has_vertices = true;
+                        min_x = min_x.min(x);
+                        min_y = min_y.min(y);
+                        max_x = max_x.max(x);
+                        max_y = max_y.max(y);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        has_vertices.then_some((min_x, min_y, max_x - min_x, max_y - min_y))
     }
 
     fn attachment_source_skin_name(

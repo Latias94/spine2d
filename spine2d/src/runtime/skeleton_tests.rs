@@ -1,7 +1,7 @@
 use crate::{
-    AttachmentData, BlendMode, BoneData, IkConstraint, Inherit, PathConstraint, PhysicsConstraint,
-    PhysicsConstraintData, RegionAttachmentData, ScaleYMode, Skeleton, SkeletonData, SkinData,
-    SliderConstraintData, SlotData, TransformConstraint,
+    AttachmentData, BlendMode, BoneData, IkConstraint, Inherit, MeshAttachmentData, MeshVertices,
+    PathConstraint, PhysicsConstraint, PhysicsConstraintData, RegionAttachmentData, ScaleYMode,
+    Skeleton, SkeletonData, SkinData, SliderConstraintData, SlotData, TransformConstraint,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -342,6 +342,90 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
     assert_eq!(skeleton.slots()[0].sequence_index(), -1);
     assert!(!skeleton.set_attachment("missing", "shared"));
     assert!(!skeleton.set_attachment("", "shared"));
+}
+
+#[test]
+fn skeleton_bounds_cover_region_and_mesh_attachments() {
+    let mut default_skin = SkinData::new("default", 2);
+    default_skin.attachments[0].insert(
+        "region".to_string(),
+        AttachmentData::Region(RegionAttachmentData {
+            name: "region".to_string(),
+            path: "region".to_string(),
+            sequence: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            width: 2.0,
+            height: 2.0,
+        }),
+    );
+    default_skin.attachments[1].insert(
+        "mesh".to_string(),
+        AttachmentData::Mesh(MeshAttachmentData {
+            vertex_id: 1,
+            name: "mesh".to_string(),
+            path: "mesh".to_string(),
+            timeline_skin: "default".to_string(),
+            timeline_attachment: "mesh".to_string(),
+            timeline_slots: vec![1],
+            sequence: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            vertices: MeshVertices::Unweighted(vec![
+                [3.0, 4.0],
+                [5.0, 4.0],
+                [5.0, 6.0],
+                [3.0, 6.0],
+            ]),
+            uvs: vec![[0.0, 0.0]; 4],
+            triangles: vec![0, 1, 2, 2, 3, 0],
+        }),
+    );
+
+    let mut skins = HashMap::new();
+    skins.insert("default".to_string(), default_skin);
+
+    let data = Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: vec![
+            SlotData {
+                name: "region-slot".to_string(),
+                bone: 0,
+                attachment: Some("region".to_string()),
+                ..Default::default()
+            },
+            SlotData {
+                name: "mesh-slot".to_string(),
+                bone: 0,
+                attachment: Some("mesh".to_string()),
+                ..Default::default()
+            },
+        ],
+        skins,
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    });
+
+    let mut skeleton = Skeleton::new(data);
+    skeleton.update_world_transform();
+    assert_eq!(skeleton.bounds(), Some((-1.0, -1.0, 6.0, 7.0)));
 }
 
 #[test]
