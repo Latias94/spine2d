@@ -10,11 +10,12 @@ status: "active"
 # Current State
 
 - Goal: 对齐 `spine2d` 与官方 `spine-runtimes` latest 4.3 tag 的运行时行为。
-- Branch: 当前工作区有大量既有未提交变更；不要回退用户或其他 agent 的改动。
+- Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast` passed with `546 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `547 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast` passed with `42 passed, 0 skipped` on 2026-06-23.
+  - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-wgpu`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
   - Confirmed `4.3.2` is not the latest 4.3 tag; current explicit baseline is `spine-ts-4.3.8`.
   - Confirmed official 4.3.4 IK uses `ScaleYMode/scaleY`, not development HEAD `uniform`.
@@ -43,12 +44,13 @@ status: "active"
   - Continued U6 Skeleton extraction in commit `b712f53`; the `Bone` runtime type now lives in private `skeleton::bone` and is re-exported from `skeleton` so the external type path stays stable.
   - Continued U6 Skeleton extraction in commit `6f56a26`; the `Slot` runtime type now lives in private `skeleton::slot` and is re-exported from `skeleton` so the external type path stays stable.
   - Continued U6 Skeleton extraction in commit `fcf3389`; IK, transform, path, physics, and slider runtime constraint types now live in their matching private modules and are re-exported from `skeleton`.
+  - Continued U6 Skeleton API hardening in commit `047be09`; `Skeleton` container/state fields are now crate-visible with public accessor and setter methods aligned to the official C++ getter/setter shape.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: audit public field/accessor hardening for `Skeleton`, `Bone`, `Slot`, and runtime constraint structs against the official C++ getter/setter shape.
+  - Continue U6: audit public field/accessor hardening for `Bone`, `Slot`, and runtime constraint structs after the `Skeleton` container/state field cleanup.
 
 # Citations
 
