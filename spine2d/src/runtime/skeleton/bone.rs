@@ -207,6 +207,50 @@ pub(super) fn modify_world(skeleton: &mut Skeleton, bone_index: usize) {
     reset_world_children_if_updated(skeleton, bone_index, epoch);
 }
 
+pub(super) fn update_world_transform(skeleton: &mut Skeleton, bone_index: usize) {
+    if bone_index >= skeleton.bones.len() {
+        return;
+    }
+    if !skeleton.bones[bone_index].active {
+        return;
+    }
+    if skeleton.bones[bone_index].world_epoch == skeleton.update_epoch {
+        return;
+    }
+    if skeleton.bones[bone_index].local_epoch == skeleton.update_epoch {
+        update_applied_transform(skeleton, bone_index);
+        skeleton.bones[bone_index].local_epoch = 0;
+    }
+
+    let parent_index = skeleton.bones[bone_index].parent;
+    if let Some(parent_index) = parent_index {
+        if parent_index >= skeleton.bones.len() {
+            return;
+        }
+        if !skeleton.bones[parent_index].active {
+            return;
+        }
+
+        let parent = ParentTransform::from_bone(&skeleton.bones[parent_index]);
+        update_world_transform_child(
+            &mut skeleton.bones[bone_index],
+            skeleton.scale_x,
+            skeleton.scale_y,
+            &parent,
+        );
+    } else {
+        update_world_transform_root(
+            &mut skeleton.bones[bone_index],
+            skeleton.x,
+            skeleton.y,
+            skeleton.scale_x,
+            skeleton.scale_y,
+        );
+    }
+
+    skeleton.bones[bone_index].world_epoch = skeleton.update_epoch;
+}
+
 pub(super) fn modify_local(skeleton: &mut Skeleton, bone_index: usize) {
     if bone_index >= skeleton.bones.len() {
         return;

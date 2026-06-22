@@ -3,7 +3,6 @@ mod cache;
 mod path;
 
 use crate::SkeletonData;
-use bone::{ParentTransform, update_world_transform_child, update_world_transform_root};
 use cache::UpdateCacheItem;
 use path::{
     PathConstraintScratch, compute_path_world_positions,
@@ -990,47 +989,7 @@ impl Skeleton {
     }
 
     fn update_bone_world_transform(&mut self, bone_index: usize) {
-        if bone_index >= self.bones.len() {
-            return;
-        }
-        if !self.bones[bone_index].active {
-            return;
-        }
-        if self.bones[bone_index].world_epoch == self.update_epoch {
-            return;
-        }
-        if self.bones[bone_index].local_epoch == self.update_epoch {
-            self.update_applied_transform(bone_index);
-            self.bones[bone_index].local_epoch = 0;
-        }
-
-        let parent_index = self.bones[bone_index].parent;
-        if let Some(parent_index) = parent_index {
-            if parent_index >= self.bones.len() {
-                return;
-            }
-            if !self.bones[parent_index].active {
-                return;
-            }
-
-            let parent = ParentTransform::from_bone(&self.bones[parent_index]);
-            update_world_transform_child(
-                &mut self.bones[bone_index],
-                self.scale_x,
-                self.scale_y,
-                &parent,
-            );
-        } else {
-            update_world_transform_root(
-                &mut self.bones[bone_index],
-                self.x,
-                self.y,
-                self.scale_x,
-                self.scale_y,
-            );
-        }
-
-        self.bones[bone_index].world_epoch = self.update_epoch;
+        bone::update_world_transform(self, bone_index);
     }
 
     fn apply_ik_constraint(&mut self, constraint_index: usize) -> bool {
