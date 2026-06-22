@@ -595,15 +595,64 @@ impl SkinData {
         }
         for (slot_index, slot_map) in other.attachments.iter().enumerate() {
             for (key, attachment) in slot_map {
-                self.attachments[slot_index].insert(key.clone(), attachment.clone());
+                self.set_attachment(slot_index, key.clone(), attachment.clone());
             }
         }
+    }
+
+    /// Adds or replaces an attachment for the specified slot index and name.
+    ///
+    /// Mirrors the official runtimes' `Skin::setAttachment`, including growing the internal
+    /// slot bucket storage when the slot index is beyond the current skin capacity.
+    pub fn set_attachment(
+        &mut self,
+        slot_index: usize,
+        attachment_name: impl Into<String>,
+        attachment: AttachmentData,
+    ) {
+        if self.attachments.len() <= slot_index {
+            self.attachments.resize_with(slot_index + 1, IndexMap::new);
+        }
+        self.attachments[slot_index].insert(attachment_name.into(), attachment);
     }
 
     pub fn attachment(&self, slot_index: usize, attachment_name: &str) -> Option<&AttachmentData> {
         self.attachments
             .get(slot_index)
             .and_then(|slot_map| slot_map.get(attachment_name))
+    }
+
+    /// Removes an attachment from the skin. Missing slots or names are no-ops, matching C++.
+    pub fn remove_attachment(&mut self, slot_index: usize, attachment_name: &str) {
+        if let Some(slot_map) = self.attachments.get_mut(slot_index) {
+            slot_map.shift_remove(attachment_name);
+        }
+    }
+
+    pub fn names_for_slot(&self, slot_index: usize) -> Vec<&str> {
+        self.attachments
+            .get(slot_index)
+            .map(|slot_map| slot_map.keys().map(String::as_str).collect())
+            .unwrap_or_default()
+    }
+
+    pub fn attachments_for_slot(&self, slot_index: usize) -> Vec<&AttachmentData> {
+        self.attachments
+            .get(slot_index)
+            .map(|slot_map| slot_map.values().collect())
+            .unwrap_or_default()
+    }
+
+    pub fn attachment_entries(&self) -> Vec<(usize, &str, &AttachmentData)> {
+        self.attachments
+            .iter()
+            .enumerate()
+            .flat_map(|(slot_index, slot_map)| {
+                slot_map
+                    .iter()
+                    .map(move |(name, attachment)| (slot_index, name.as_str(), attachment))
+            })
+            .collect()
     }
 }
 

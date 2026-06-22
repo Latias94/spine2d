@@ -1,6 +1,5 @@
 use crate::runtime::{AnimationState, AnimationStateData};
 use crate::{AttachmentData, RegionAttachmentData, Skeleton, SkeletonData, SkinData};
-use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -446,8 +445,8 @@ fn add_skin_is_idempotent_for_lists_and_last_write_wins_for_attachments() {
 #[test]
 fn skin_attachment_iteration_preserves_insertion_order() {
     let mut skin = SkinData::new("ordered", 1);
-    skin.attachments[0] = IndexMap::new();
-    skin.attachments[0].insert(
+    skin.set_attachment(
+        0,
         "first".to_string(),
         AttachmentData::Region(RegionAttachmentData {
             name: "first".to_string(),
@@ -463,7 +462,8 @@ fn skin_attachment_iteration_preserves_insertion_order() {
             height: 0.0,
         }),
     );
-    skin.attachments[0].insert(
+    skin.set_attachment(
+        0,
         "second".to_string(),
         AttachmentData::Region(RegionAttachmentData {
             name: "second".to_string(),
@@ -480,6 +480,40 @@ fn skin_attachment_iteration_preserves_insertion_order() {
         }),
     );
 
-    let keys = skin.attachments[0].keys().cloned().collect::<Vec<_>>();
-    assert_eq!(keys, vec!["first".to_string(), "second".to_string()]);
+    assert_eq!(skin.names_for_slot(0), vec!["first", "second"]);
+    let entries = skin.attachment_entries();
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0].0, 0);
+    assert_eq!(entries[0].1, "first");
+    assert_eq!(entries[1].1, "second");
+}
+
+#[test]
+fn skin_set_attachment_grows_slot_storage_and_remove_is_noop_on_missing_entries() {
+    let mut skin = SkinData::new("growing", 1);
+    skin.set_attachment(
+        2,
+        "grown",
+        AttachmentData::Region(RegionAttachmentData {
+            name: "grown".to_string(),
+            path: "grown.png".to_string(),
+            sequence: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            width: 0.0,
+            height: 0.0,
+        }),
+    );
+    assert_eq!(skin.attachments.len(), 3);
+    assert_eq!(skin.names_for_slot(2), vec!["grown"]);
+    assert_eq!(skin.attachments_for_slot(2).len(), 1);
+
+    skin.remove_attachment(2, "missing");
+    assert_eq!(skin.names_for_slot(2), vec!["grown"]);
+    skin.remove_attachment(2, "grown");
+    assert!(skin.names_for_slot(2).is_empty());
 }
