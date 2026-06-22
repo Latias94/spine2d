@@ -36,6 +36,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U6 path apply commit `5e93794` moved the path constraint apply entry into private `skeleton::path` and narrowed path-only helper visibility.
 - U6 vertices commit `7f98a3d` moved generic attachment world-vertices computation into private `skeleton::vertices`, closer to official `VertexAttachment::computeWorldVertices`.
 - U6 Bone type commit `b712f53` moved the `Bone` runtime type into private `skeleton::bone` and re-exported it from `skeleton`.
+- U6 Slot type commit `6f56a26` moved the `Slot` runtime type into private `skeleton::slot` and re-exported it from `skeleton`.
 - Post-U2 verification passed:
   - `cargo fmt --all --check`
   - `git diff --check`
@@ -136,6 +137,12 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
   - `cargo check -p spine2d --features json,binary,upstream-smoke`
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke skeleton bone upstream_ik_demo ik path_constraint transform_constraint physics slider --no-fail-fast --status-level fail` (`119 passed, 437 skipped`)
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` (`546 passed, 10 skipped`)
+- Post-U6 Slot type verification passed:
+  - `cargo fmt --all --check`
+  - `git diff --check`
+  - `cargo check -p spine2d --features json,binary,upstream-smoke`
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke slot attachment render deform sequence skeleton path_constraint --no-fail-fast --status-level fail` (`173 passed, 383 skipped`)
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` (`546 passed, 10 skipped`)
 - The worktree was clean before creating the hardening plan and memory updates.
 - Existing golden metadata is intentionally not rewritten unless assets or oracle outputs are regenerated.
 
@@ -146,11 +153,11 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U3 is complete: timeline dispatch is centralized behind internal runtime/state helpers, while `AnimationState` keeps only policy decisions for alpha, hold, additive, thresholds, and draw-order output.
 - U4 is complete: binary parser timeline-order ownership is centralized behind `TimelineOrderBuilder`, and JSON already had explicit local lookup/order builders.
 - U5 is complete: the shared `TrackEntrySettings` value object is now owned by the core runtime and used by Bevy, direct `TrackEntry` field exposure has been removed, and delay setter branches now follow the official C++ shape. The final numeric setter audit found no additional guard changes needed because `spine-cpp` setters are intentionally sparse.
-- U6 is in progress: path constraint scratch storage, capacity estimation, path attachment lookup, path world-position calculation, path apply, and private path curve helpers have moved into `skeleton::path`; update-cache ordering and debug formatting have moved into `skeleton::cache`; `Bone` plus BonePose-equivalent world/local transform helpers, root/child world-transform math, `modifyWorld`, `modifyLocal`, child reset, applied-transform decomposition, and the bone world-update entry have moved into `skeleton::bone`; IK, transform, physics, and slider constraint solver helpers have moved into `skeleton::ik`, `skeleton::transform`, `skeleton::physics`, and `skeleton::slider`; generic attachment world-vertices computation has moved into `skeleton::vertices`.
+- U6 is in progress: path constraint scratch storage, capacity estimation, path attachment lookup, path world-position calculation, path apply, and private path curve helpers have moved into `skeleton::path`; update-cache ordering and debug formatting have moved into `skeleton::cache`; `Bone` plus BonePose-equivalent world/local transform helpers, root/child world-transform math, `modifyWorld`, `modifyLocal`, child reset, applied-transform decomposition, and the bone world-update entry have moved into `skeleton::bone`; `Slot` has moved into `skeleton::slot`; IK, transform, physics, and slider constraint solver helpers have moved into `skeleton::ik`, `skeleton::transform`, `skeleton::physics`, and `skeleton::slider`; generic attachment world-vertices computation has moved into `skeleton::vertices`.
 
 # Next Action
 
-Continue auditing remaining `skeleton.rs` runtime type boundaries, likely `Slot` or constraint runtime structs, before considering public field hardening. Keep the same verification shape: focused tests first, then the full core parity gate.
+Continue auditing remaining `skeleton.rs` runtime type boundaries, likely constraint runtime structs, before considering public field hardening. Keep the same verification shape: focused tests first, then the full core parity gate.
 
 # Citations
 
