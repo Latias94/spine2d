@@ -91,7 +91,7 @@ fn sequence_timeline_drives_slot_sequence_index_and_render_path() {
     .unwrap();
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     assert_eq!(skeleton.slots[0].sequence_index, -1);
     let draw_list = build_draw_list(&skeleton);
@@ -139,7 +139,7 @@ fn sequence_timeline_applies_to_cross_slot_linked_mesh_timeline_slots() {
     assert_eq!(source.timeline_slots, vec![1]);
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     assert_eq!(skeleton.slots[0].sequence_index, -1);
     assert_eq!(skeleton.slots[1].sequence_index, -1);
 

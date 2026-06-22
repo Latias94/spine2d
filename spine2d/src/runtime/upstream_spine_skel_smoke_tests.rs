@@ -136,7 +136,7 @@ fn run_each_animation_sample_smoke(path: &Path, example_label: &str) {
 
     for anim in animations {
         let mut skeleton = Skeleton::new(data.clone());
-        skeleton.set_to_setup_pose();
+        skeleton.setup_pose();
         skeleton.update_world_transform_with_physics(crate::Physics::Update);
 
         let mut state_data = AnimationStateData::new(data.clone());
@@ -173,7 +173,7 @@ fn run_queued_animations_smoke(data: Arc<SkeletonData>, example_label: &str) {
     }
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::Update);
 
     let mut state_data = AnimationStateData::new(data.clone());
@@ -215,7 +215,7 @@ fn run_multitrack_overlay_smoke(data: Arc<SkeletonData>, example_label: &str) {
     }
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::Update);
 
     let mut state_data = AnimationStateData::new(data.clone());

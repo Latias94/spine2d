@@ -917,13 +917,13 @@ fn assert_render_parity(case: &RenderCase, golden_path: &Path) {
 
     let data = load_skeleton_data(&skeleton_path);
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     if let Some(skin_name) = case.skin {
         skeleton
             .set_skin(Some(skin_name))
             .unwrap_or_else(|e| panic!("set skin {skin_name:?}: {e}"));
-        skeleton.set_to_setup_pose();
+        skeleton.setup_pose();
         skeleton.update_cache();
     }
 
@@ -1078,7 +1078,7 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
 
     let data = load_skeleton_data(&skeleton_path);
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     let mut state = AnimationState::new(AnimationStateData::new(data));
 

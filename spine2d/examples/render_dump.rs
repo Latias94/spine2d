@@ -163,14 +163,14 @@ fn main() {
     });
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     if let Some(skin_name) = skin.as_deref() {
         skeleton.set_skin(Some(skin_name)).unwrap_or_else(|e| {
             eprintln!("failed to set skin {skin_name}: {e}");
             std::process::exit(2);
         });
-        skeleton.set_to_setup_pose();
+        skeleton.setup_pose();
         skeleton.update_cache();
     }
 

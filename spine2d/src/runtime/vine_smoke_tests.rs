@@ -26,7 +26,7 @@ fn vine_pro_json_parses_and_updates_world_transform() {
     let data = SkeletonData::from_json_str(&json).expect("parse vine-pro.json");
 
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     for bone in &skeleton.bones {

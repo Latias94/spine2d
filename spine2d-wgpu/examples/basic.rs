@@ -175,7 +175,7 @@ impl ApplicationHandler for App {
 
         let data = SkeletonData::from_json_str(SKELETON_JSON).unwrap();
         let mut skeleton = spine2d::Skeleton::new(data);
-        skeleton.set_to_setup_pose();
+        skeleton.setup_pose();
         skeleton.update_world_transform();
         self.draw_list = spine2d::build_draw_list_with_atlas(&skeleton, &atlas);
 

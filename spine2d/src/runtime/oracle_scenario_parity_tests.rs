@@ -901,7 +901,7 @@ fn oracle_mix_and_match_skin_switch_backpack_to_hat_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("accessories/backpack"))
         .expect("set skin backpack");
@@ -928,7 +928,7 @@ fn oracle_skel_mix_and_match_skin_switch_backpack_to_hat_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("accessories/backpack"))
         .expect("set skin backpack");
@@ -952,7 +952,7 @@ fn oracle_diamond_idle_rotating_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "idle-rotating", true)
         .expect("set animation idle-rotating");
@@ -971,7 +971,7 @@ fn oracle_diamond_idle_rotating_plus_rotation_add_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "idle-rotating", true)
         .expect("set animation idle-rotating");
@@ -996,7 +996,7 @@ fn oracle_diamond_idle_rotating_plus_idle_still_add_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "idle-rotating", true)
         .expect("set animation idle-rotating");
@@ -1021,7 +1021,7 @@ fn oracle_diamond_idle_rotating_plus_idle_still_add_to_empty_mix0_2_t0_1_matches
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "idle-rotating", true)
         .expect("set animation idle-rotating");
@@ -1050,7 +1050,7 @@ fn oracle_skel_diamond_idle_rotating_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "idle-rotating", true)
         .expect("set animation idle-rotating");
@@ -1070,7 +1070,7 @@ fn oracle_skel_diamond_idle_rotating_plus_idle_still_add_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "idle-rotating", true)
         .expect("set animation idle-rotating");
@@ -1096,7 +1096,7 @@ fn oracle_skel_diamond_idle_rotating_plus_idle_still_add_to_empty_mix0_2_t0_1_ma
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "idle-rotating", true)
         .expect("set animation idle-rotating");
@@ -1125,7 +1125,7 @@ fn oracle_skel_diamond_idle_rotating_plus_rotation_add_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "idle-rotating", true)
         .expect("set animation idle-rotating");
@@ -1150,7 +1150,7 @@ fn oracle_diamond_disappear_t0_8_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "disappear", false)
         .expect("set animation disappear");
@@ -1169,7 +1169,7 @@ fn oracle_diamond_size_changing_rotation_t3_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "size-changing-rotation", false)
         .expect("set animation size-changing-rotation");
@@ -1189,7 +1189,7 @@ fn oracle_skel_diamond_disappear_t0_8_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "disappear", false)
         .expect("set animation disappear");
@@ -1209,7 +1209,7 @@ fn oracle_skel_diamond_size_changing_rotation_t3_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "size-changing-rotation", false)
         .expect("set animation size-changing-rotation");
@@ -1232,7 +1232,7 @@ fn oracle_mix_and_match_skin_switch_hat_aware_t0_1667_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("accessories/backpack"))
         .expect("set skin backpack");
@@ -1260,7 +1260,7 @@ fn oracle_skel_mix_and_match_skin_switch_hat_aware_t0_1667_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("accessories/backpack"))
         .expect("set skin backpack");
@@ -1287,7 +1287,7 @@ fn oracle_mix_and_match_walk_plus_dress_up_add_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("full-skins/boy"))
         .expect("set skin full-skins/boy");
@@ -1318,7 +1318,7 @@ fn oracle_skel_mix_and_match_walk_plus_dress_up_add_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("full-skins/boy"))
         .expect("set skin full-skins/boy");
@@ -1346,7 +1346,7 @@ fn oracle_goblins_walk_dagger_deform_vertices_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.set_skin(Some("goblin")).expect("set skin goblin");
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.3);
@@ -1362,7 +1362,7 @@ fn oracle_goblins_walk_skin_goblin_left_foot_deform_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.set_skin(Some("goblin")).expect("set skin goblin");
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.3);
@@ -1380,7 +1380,7 @@ fn oracle_goblins_walk_skin_goblingirl_left_foot_deform_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("goblingirl"))
         .expect("set skin goblingirl");
@@ -1400,7 +1400,7 @@ fn oracle_goblins_walk_skin_goblin_left_foot_deform_jitter_dt_t0_3_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.set_skin(Some("goblin")).expect("set skin goblin");
     state.set_animation(0, "walk", true).expect("set walk");
     for _ in 0..12 {
@@ -1423,7 +1423,7 @@ fn oracle_goblins_walk_skin_goblingirl_left_foot_deform_jitter_dt_t0_3_matches_c
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("goblingirl"))
         .expect("set skin goblingirl");
@@ -1449,7 +1449,7 @@ fn oracle_skel_goblins_walk_dagger_deform_vertices_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.set_skin(Some("goblin")).expect("set skin goblin");
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.3);
@@ -1467,7 +1467,7 @@ fn oracle_stretchyman_sneak_t1_366667_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "sneak", true).expect("set sneak");
     step(&mut state, &mut skeleton, 1.366_667);
 
@@ -1485,7 +1485,7 @@ fn oracle_skel_stretchyman_sneak_t1_366667_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "sneak", true).expect("set sneak");
     step(&mut state, &mut skeleton, 1.366_667);
 
@@ -1500,7 +1500,7 @@ fn oracle_hero_idle_head_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     step(&mut state, &mut skeleton, 0.55);
 
@@ -1515,7 +1515,7 @@ fn oracle_hero_idle_head_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -1535,7 +1535,7 @@ fn oracle_hero_idle_plus_run_add_head_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -1556,7 +1556,7 @@ fn oracle_hero_idle_plus_run_add_head_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -1587,7 +1587,7 @@ fn oracle_hero_idle_plus_run_add_to_empty_mix0_2_head_deform_t0_55_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -1613,7 +1613,7 @@ fn oracle_hero_idle_plus_run_add_to_empty_mix0_2_head_deform_jitter_dt_t0_55_mat
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -1655,7 +1655,7 @@ fn oracle_skel_hero_idle_head_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     step(&mut state, &mut skeleton, 0.55);
 
@@ -1671,7 +1671,7 @@ fn oracle_skel_hero_idle_head_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -1694,7 +1694,7 @@ fn oracle_skel_hero_idle_plus_run_add_head_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -1716,7 +1716,7 @@ fn oracle_skel_hero_idle_plus_run_add_head_deform_jitter_dt_t0_55_matches_cpp() 
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -1748,7 +1748,7 @@ fn oracle_skel_hero_idle_plus_run_add_to_empty_mix0_2_head_deform_t0_55_matches_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -1775,7 +1775,7 @@ fn oracle_skel_hero_idle_plus_run_add_to_empty_mix0_2_head_deform_jitter_dt_t0_5
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -1816,7 +1816,7 @@ fn oracle_owl_up_head_base_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.55);
 
@@ -1831,7 +1831,7 @@ fn oracle_owl_up_head_base_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -1851,7 +1851,7 @@ fn oracle_owl_idle_physics_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -1870,7 +1870,7 @@ fn oracle_owl_idle_physics_jitter_dt_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     for _ in 0..10 {
@@ -1894,7 +1894,7 @@ fn oracle_owl_idle_physics_update_pose_update_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -1921,7 +1921,7 @@ fn oracle_owl_idle_physics_update_reset_update_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -1946,7 +1946,7 @@ fn oracle_owl_up_plus_left_add_head_base_deform_physics_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
 
     let dt = 1.0 / 60.0;
@@ -1973,7 +1973,7 @@ fn oracle_owl_up_plus_left_add_head_base_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -1994,7 +1994,7 @@ fn oracle_owl_up_plus_left_add_head_base_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2025,7 +2025,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_head_base_deform_t0_55_matches_cp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -2051,7 +2051,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_head_base_deform_jitter_dt_t0_55_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2092,7 +2092,7 @@ fn oracle_owl_up_l_wing_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.55);
 
@@ -2107,7 +2107,7 @@ fn oracle_owl_up_l_wing_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2127,7 +2127,7 @@ fn oracle_owl_up_plus_left_add_l_wing_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -2148,7 +2148,7 @@ fn oracle_owl_up_plus_left_add_l_wing_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2179,7 +2179,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_l_wing_deform_t0_55_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -2205,7 +2205,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_l_wing_deform_jitter_dt_t0_55_mat
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2246,7 +2246,7 @@ fn oracle_owl_up_r_wing_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.55);
 
@@ -2261,7 +2261,7 @@ fn oracle_owl_up_r_wing_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2281,7 +2281,7 @@ fn oracle_owl_up_plus_left_add_r_wing_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -2302,7 +2302,7 @@ fn oracle_owl_up_plus_left_add_r_wing_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2333,7 +2333,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_r_wing_deform_t0_55_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -2359,7 +2359,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_r_wing_deform_jitter_dt_t0_55_mat
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2400,7 +2400,7 @@ fn oracle_owl_up_plus_blink_l_wing_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -2418,7 +2418,7 @@ fn oracle_owl_up_plus_blink_l_wing_jitter_dt_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     state.set_animation(1, "blink", false).expect("set blink");
     for _ in 0..12 {
@@ -2439,7 +2439,7 @@ fn oracle_owl_up_plus_blink_to_empty_mix0_2_l_wing_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -2464,7 +2464,7 @@ fn oracle_owl_up_plus_blink_to_empty_mix0_2_l_wing_jitter_dt_t0_55_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     state.set_animation(1, "blink", false).expect("set blink");
     for _ in 0..12 {
@@ -2495,7 +2495,7 @@ fn oracle_skel_owl_up_head_base_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.55);
 
@@ -2511,7 +2511,7 @@ fn oracle_skel_owl_up_head_base_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2534,7 +2534,7 @@ fn oracle_skel_owl_idle_physics_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -2554,7 +2554,7 @@ fn oracle_skel_owl_idle_physics_jitter_dt_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     for _ in 0..10 {
@@ -2579,7 +2579,7 @@ fn oracle_skel_owl_idle_physics_update_pose_update_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -2607,7 +2607,7 @@ fn oracle_skel_owl_idle_physics_update_reset_update_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -2633,7 +2633,7 @@ fn oracle_skel_owl_up_plus_left_add_head_base_deform_physics_t0_55_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
 
     let dt = 1.0 / 60.0;
@@ -2661,7 +2661,7 @@ fn oracle_skel_owl_up_plus_left_add_head_base_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -2683,7 +2683,7 @@ fn oracle_skel_owl_up_plus_left_add_head_base_deform_jitter_dt_t0_55_matches_cpp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2715,7 +2715,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_head_base_deform_t0_55_match
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -2742,7 +2742,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_head_base_deform_jitter_dt_t
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2784,7 +2784,7 @@ fn oracle_skel_owl_up_plus_blink_l_wing_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -2803,7 +2803,7 @@ fn oracle_skel_owl_up_plus_blink_l_wing_jitter_dt_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     state.set_animation(1, "blink", false).expect("set blink");
     for _ in 0..12 {
@@ -2827,7 +2827,7 @@ fn oracle_skel_owl_up_plus_blink_to_empty_mix0_2_l_wing_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -2853,7 +2853,7 @@ fn oracle_skel_owl_up_plus_blink_to_empty_mix0_2_l_wing_jitter_dt_t0_55_matches_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     state.set_animation(1, "blink", false).expect("set blink");
     for _ in 0..12 {
@@ -2884,7 +2884,7 @@ fn oracle_skel_owl_up_l_wing_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.55);
 
@@ -2900,7 +2900,7 @@ fn oracle_skel_owl_up_l_wing_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2923,7 +2923,7 @@ fn oracle_skel_owl_up_plus_left_add_l_wing_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -2945,7 +2945,7 @@ fn oracle_skel_owl_up_plus_left_add_l_wing_deform_jitter_dt_t0_55_matches_cpp() 
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -2977,7 +2977,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_l_wing_deform_t0_55_matches_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3004,7 +3004,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_l_wing_deform_jitter_dt_t0_5
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3046,7 +3046,7 @@ fn oracle_skel_owl_up_r_wing_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.55);
 
@@ -3062,7 +3062,7 @@ fn oracle_skel_owl_up_r_wing_deform_jitter_dt_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..12 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3085,7 +3085,7 @@ fn oracle_skel_owl_up_plus_left_add_r_wing_deform_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3107,7 +3107,7 @@ fn oracle_skel_owl_up_plus_left_add_r_wing_deform_jitter_dt_t0_55_matches_cpp() 
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3139,7 +3139,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_r_wing_deform_t0_55_matches_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3166,7 +3166,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_r_wing_deform_jitter_dt_t0_5
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "up", true).expect("set up");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3208,7 +3208,7 @@ fn oracle_skel_goblins_walk_skin_goblin_left_foot_deform_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.set_skin(Some("goblin")).expect("set skin goblin");
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.3);
@@ -3227,7 +3227,7 @@ fn oracle_skel_goblins_walk_skin_goblingirl_left_foot_deform_t0_3_matches_cpp() 
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("goblingirl"))
         .expect("set skin goblingirl");
@@ -3248,7 +3248,7 @@ fn oracle_skel_goblins_walk_skin_goblin_left_foot_deform_jitter_dt_t0_3_matches_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.set_skin(Some("goblin")).expect("set skin goblin");
     state.set_animation(0, "walk", true).expect("set walk");
     for _ in 0..12 {
@@ -3272,7 +3272,7 @@ fn oracle_skel_goblins_walk_skin_goblingirl_left_foot_deform_jitter_dt_t0_3_matc
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("goblingirl"))
         .expect("set skin goblingirl");
@@ -3297,7 +3297,7 @@ fn oracle_tank_shoot_clipping_deform_vertices_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "shoot", false).expect("set shoot");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -3313,7 +3313,7 @@ fn oracle_skel_tank_shoot_clipping_deform_vertices_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "shoot", false).expect("set shoot");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -3328,7 +3328,7 @@ fn oracle_tank_drive_plus_shoot_add_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3347,7 +3347,7 @@ fn oracle_tank_drive_plus_shoot_add_smoke_glow_deform_t0_25_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3368,7 +3368,7 @@ fn oracle_tank_drive_plus_shoot_add_smoke_glow_deform_jitter_dt_t0_25_matches_cp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3399,7 +3399,7 @@ fn oracle_tank_drive_plus_shoot_add_alpha0_5_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3419,7 +3419,7 @@ fn oracle_tank_drive_plus_shoot_add_alpha0_5_jitter_dt_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3453,7 +3453,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3473,7 +3473,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_smoke_glow_deform_t0_25_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3495,7 +3495,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_smoke_glow_deform_jitter_dt_t0_25_match
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3527,7 +3527,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_alpha0_5_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3550,7 +3550,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_alpha0_5_jitter_dt_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3584,7 +3584,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_1_t0_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3613,7 +3613,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_1_jit
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3656,7 +3656,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_0_t0_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3685,7 +3685,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_0_jit
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3727,7 +3727,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_t0_35_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3753,7 +3753,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_immediate_mix0_2_t0_1_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
 
     let shoot = state.set_animation(1, "shoot", false).expect("set shoot");
@@ -3780,7 +3780,7 @@ fn oracle_tank_shoot_plus_drive_add_to_empty_immediate_mix0_2_t0_1_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "shoot", false).expect("set shoot");
 
     let drive = state.set_animation(1, "drive", true).expect("set drive");
@@ -3808,7 +3808,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_to_empty_immediate_mix0_2_t0_1_matches_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
 
     let shoot = state.set_animation(1, "shoot", false).expect("set shoot");
@@ -3835,7 +3835,7 @@ fn oracle_skel_tank_shoot_plus_drive_add_to_empty_immediate_mix0_2_t0_1_matches_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "shoot", false).expect("set shoot");
 
     let drive = state.set_animation(1, "drive", true).expect("set drive");
@@ -3861,7 +3861,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_smoke_glow_deform_t0_35_matches_cpp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3887,7 +3887,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_smoke_glow_deform_jitter_dt_t0_35_m
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3928,7 +3928,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_1_t0_55_ma
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -3956,7 +3956,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_1_jitter_d
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -3998,7 +3998,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_0_t0_55_ma
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -4026,7 +4026,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_0_jitter_d
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -4068,7 +4068,7 @@ fn oracle_tank_drive_plus_shoot_add_alpha0_5_to_empty_t0_35_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -4095,7 +4095,7 @@ fn oracle_tank_drive_plus_shoot_add_alpha0_5_to_empty_jitter_dt_t0_35_matches_cp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
@@ -4144,7 +4144,7 @@ fn oracle_tank_shoot_to_shoot_mix_draw_order_threshold_0_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     let shoot = state.set_animation(1, "shoot", false).expect("set shoot");
     shoot.set_alpha(&mut state, 0.0);
@@ -4175,7 +4175,7 @@ fn oracle_skel_tank_shoot_to_shoot_mix_draw_order_threshold_0_t0_4_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     let shoot = state.set_animation(1, "shoot", false).expect("set shoot");
     shoot.set_alpha(&mut state, 0.0);
@@ -4205,7 +4205,7 @@ fn oracle_tank_shoot_to_shoot_mix_draw_order_threshold_1_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     let shoot = state.set_animation(1, "shoot", false).expect("set shoot");
     shoot.set_alpha(&mut state, 0.0);
@@ -4236,7 +4236,7 @@ fn oracle_tank_drive_t2_shoot_add_alpha0_5_t1_shoot_to_shoot_mix_draw_order_thre
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
 
     let shoot_add = state
@@ -4274,7 +4274,7 @@ fn oracle_tank_drive_t2_shoot_add_alpha0_5_t1_shoot_to_shoot_mix_draw_order_thre
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
 
     let shoot_add = state
@@ -4312,7 +4312,7 @@ fn oracle_tank_drive_t2_shoot_add_alpha0_5_t1_shoot_to_shoot_mix_attachment_thre
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
 
     let shoot_add = state
@@ -4350,7 +4350,7 @@ fn oracle_tank_drive_t2_shoot_add_alpha0_5_t1_shoot_to_shoot_mix_attachment_thre
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
 
     let shoot_add = state
@@ -4390,7 +4390,7 @@ fn oracle_tank_shoot_to_shoot_to_drive_hold_mix_smoke_glow_t0_2_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     state.set_animation(1, "shoot", false).expect("set shoot");
     step(&mut state, &mut skeleton, 0.1);
@@ -4424,7 +4424,7 @@ fn oracle_skel_tank_shoot_to_shoot_to_drive_hold_mix_smoke_glow_t0_2_matches_cpp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     state.set_animation(1, "shoot", false).expect("set shoot");
     step(&mut state, &mut skeleton, 0.1);
@@ -4455,7 +4455,7 @@ fn oracle_skel_tank_shoot_to_shoot_mix_draw_order_threshold_1_t0_4_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     let shoot = state.set_animation(1, "shoot", false).expect("set shoot");
     shoot.set_alpha(&mut state, 0.0);
@@ -4487,7 +4487,7 @@ fn oracle_skel_tank_drive_t2_shoot_add_alpha0_5_t1_shoot_to_shoot_mix_draw_order
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
 
     let shoot_add = state
@@ -4526,7 +4526,7 @@ fn oracle_skel_tank_drive_t2_shoot_add_alpha0_5_t1_shoot_to_shoot_mix_draw_order
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
 
     let shoot_add = state
@@ -4565,7 +4565,7 @@ fn oracle_skel_tank_drive_t2_shoot_add_alpha0_5_t1_shoot_to_shoot_mix_attachment
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
 
     let shoot_add = state
@@ -4604,7 +4604,7 @@ fn oracle_skel_tank_drive_t2_shoot_add_alpha0_5_t1_shoot_to_shoot_mix_attachment
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
 
     let shoot_add = state
@@ -4636,7 +4636,7 @@ fn oracle_tank_drive_t1_shoot_add_alpha0_5_t2_shoot_replace_alpha0_5_t0_3_smoke_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -4665,7 +4665,7 @@ fn oracle_skel_tank_drive_t1_shoot_add_alpha0_5_t2_shoot_replace_alpha0_5_t0_3_s
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "drive", true).expect("set drive");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -4691,7 +4691,7 @@ fn oracle_spineboy_run_plus_aim_add_t0_2_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -4710,7 +4710,7 @@ fn oracle_spineboy_run_plus_aim_add_to_empty_immediate_mix0_2_t0_1_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
 
     let aim = state.set_animation(1, "aim", true).expect("set aim");
@@ -4737,7 +4737,7 @@ fn oracle_spineboy_run_plus_portal_add_to_empty_mix0_2_t0_6_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
     step(&mut state, &mut skeleton, 0.2);
@@ -4764,7 +4764,7 @@ fn oracle_spineboy_run_plus_portal_add_to_empty_mix0_2_jitter_dt_t0_6_matches_cp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -4808,7 +4808,7 @@ fn oracle_spineboy_run_plus_portal_add_reverse_t0_35_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -4832,7 +4832,7 @@ fn oracle_spineboy_run_plus_portal_add_reverse_to_empty_immediate_mix0_2_t0_1_ma
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
 
     let portal = state.set_animation(1, "portal", false).expect("set portal");
@@ -4860,7 +4860,7 @@ fn oracle_spineboy_portal_reverse_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_reverse(&mut state, true);
 
@@ -4878,7 +4878,7 @@ fn oracle_spineboy_portal_alpha0_5_shortest_rotation_true_t2_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_alpha(&mut state, 0.5);
     portal.set_shortest_rotation(&mut state, true);
@@ -4905,7 +4905,7 @@ fn oracle_spineboy_run_to_portal_reverse_mix0_2_t0_1_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -4934,7 +4934,7 @@ fn oracle_spineboy_run_to_portal_mix0_2_shortest_rotation_true_t0_1_matches_cpp(
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -4963,7 +4963,7 @@ fn oracle_spineboy_portal_reverse_to_shoot_mix0_2_t0_1_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_reverse(&mut state, true);
     step(&mut state, &mut skeleton, 0.05);
@@ -4990,7 +4990,7 @@ fn oracle_spineboy_portal_shortest_rotation_true_to_shoot_mix0_2_t0_1_matches_cp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_shortest_rotation(&mut state, true);
     step(&mut state, &mut skeleton, 0.05);
@@ -5011,7 +5011,7 @@ fn oracle_spineboy_portal_alpha0_5_reset_rotation_directions_t0_4_matches_cpp() 
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_alpha(&mut state, 0.5);
 
@@ -5038,7 +5038,7 @@ fn oracle_spineboy_portal_add_reverse_to_shoot_replace_mix0_2_t0_1_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_additive(&mut state, true);
     portal.set_reverse(&mut state, true);
@@ -5071,7 +5071,7 @@ fn oracle_spineboy_aim_to_shoot_to_portal_hold_mix_t0_2_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
 
     state.set_animation(1, "aim", true).expect("set aim");
@@ -5106,7 +5106,7 @@ fn oracle_skel_spineboy_aim_to_shoot_to_portal_hold_mix_t0_2_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
 
     state.set_animation(1, "aim", true).expect("set aim");
@@ -5140,7 +5140,7 @@ fn oracle_spineboy_aim_to_shoot_interrupt_to_portal_mix0_2_t0_2_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
 
     state.set_animation(1, "aim", true).expect("set aim");
@@ -5176,7 +5176,7 @@ fn oracle_skel_spineboy_aim_to_shoot_interrupt_to_portal_mix0_2_t0_2_matches_cpp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
 
     state.set_animation(1, "aim", true).expect("set aim");
@@ -5201,7 +5201,7 @@ fn oracle_spineboy_run_t1_aim_add_alpha0_5_t2_shoot_replace_alpha0_5_t0_3_matche
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5228,7 +5228,7 @@ fn oracle_skel_spineboy_run_t1_aim_add_alpha0_5_t2_shoot_replace_alpha0_5_t0_3_m
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5254,7 +5254,7 @@ fn oracle_spineboy_run_t1_aim_add_alpha0_5_t2_shoot_add_alpha0_5_t0_3_matches_cp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5282,7 +5282,7 @@ fn oracle_skel_spineboy_run_t1_aim_add_alpha0_5_t2_shoot_add_alpha0_5_t0_3_match
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5319,7 +5319,7 @@ fn oracle_spineboy_run_t1_aim_add_alpha0_5_t2_aim_to_shoot_mix0_2_mix_attachment
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5365,7 +5365,7 @@ fn oracle_skel_spineboy_run_t1_aim_add_alpha0_5_t2_aim_to_shoot_mix0_2_mix_attac
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5409,7 +5409,7 @@ fn oracle_spineboy_run_t1_aim_add_alpha0_5_t2_aim_to_shoot_mix0_2_mix_attachment
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5454,7 +5454,7 @@ fn oracle_skel_spineboy_run_t1_aim_add_alpha0_5_t2_aim_to_shoot_mix0_2_mix_attac
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5498,7 +5498,7 @@ fn oracle_spineboy_run_t1_shoot_add_alpha0_5_t2_aim_to_shoot_mix0_2_mix_attachme
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5542,7 +5542,7 @@ fn oracle_skel_spineboy_run_t1_shoot_add_alpha0_5_t2_aim_to_shoot_mix0_2_mix_att
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5585,7 +5585,7 @@ fn oracle_spineboy_run_t1_shoot_add_alpha0_5_t2_aim_to_shoot_mix0_2_mix_attachme
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5629,7 +5629,7 @@ fn oracle_skel_spineboy_run_t1_shoot_add_alpha0_5_t2_aim_to_shoot_mix0_2_mix_att
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.1);
 
@@ -5662,7 +5662,7 @@ fn oracle_alien_run_plus_death_add_to_empty_immediate_mix0_2_t0_1_matches_cpp() 
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
 
     let death = state.set_animation(1, "death", false).expect("set death");
@@ -5690,7 +5690,7 @@ fn oracle_skel_spineboy_run_plus_aim_add_t0_2_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -5710,7 +5710,7 @@ fn oracle_skel_spineboy_run_plus_aim_add_to_empty_immediate_mix0_2_t0_1_matches_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
 
     let aim = state.set_animation(1, "aim", true).expect("set aim");
@@ -5737,7 +5737,7 @@ fn oracle_skel_spineboy_run_plus_portal_add_to_empty_mix0_2_t0_6_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
     step(&mut state, &mut skeleton, 0.2);
@@ -5765,7 +5765,7 @@ fn oracle_skel_spineboy_run_plus_portal_add_to_empty_mix0_2_jitter_dt_t0_6_match
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -5810,7 +5810,7 @@ fn oracle_skel_spineboy_run_plus_portal_add_reverse_t0_35_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -5835,7 +5835,7 @@ fn oracle_skel_spineboy_run_plus_portal_add_reverse_to_empty_immediate_mix0_2_t0
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
 
     let portal = state.set_animation(1, "portal", false).expect("set portal");
@@ -5863,7 +5863,7 @@ fn oracle_skel_spineboy_portal_reverse_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_reverse(&mut state, true);
 
@@ -5882,7 +5882,7 @@ fn oracle_skel_spineboy_portal_alpha0_5_shortest_rotation_true_t2_0_matches_cpp(
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_alpha(&mut state, 0.5);
     portal.set_shortest_rotation(&mut state, true);
@@ -5910,7 +5910,7 @@ fn oracle_skel_spineboy_run_to_portal_reverse_mix0_2_t0_1_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -5940,7 +5940,7 @@ fn oracle_skel_spineboy_run_to_portal_mix0_2_shortest_rotation_true_t0_1_matches
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -5970,7 +5970,7 @@ fn oracle_skel_spineboy_portal_reverse_to_shoot_mix0_2_t0_1_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_reverse(&mut state, true);
     step(&mut state, &mut skeleton, 0.05);
@@ -5998,7 +5998,7 @@ fn oracle_skel_spineboy_portal_shortest_rotation_true_to_shoot_mix0_2_t0_1_match
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_shortest_rotation(&mut state, true);
     step(&mut state, &mut skeleton, 0.05);
@@ -6020,7 +6020,7 @@ fn oracle_skel_spineboy_portal_alpha0_5_reset_rotation_directions_t0_4_matches_c
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_alpha(&mut state, 0.5);
 
@@ -6048,7 +6048,7 @@ fn oracle_skel_spineboy_portal_add_reverse_to_shoot_replace_mix0_2_t0_1_matches_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     let portal = state.set_animation(0, "portal", false).expect("set portal");
     portal.set_additive(&mut state, true);
     portal.set_reverse(&mut state, true);
@@ -6071,7 +6071,7 @@ fn oracle_skel_alien_run_plus_death_add_to_empty_immediate_mix0_2_t0_1_matches_c
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
 
     let death = state.set_animation(1, "death", false).expect("set death");
@@ -6097,7 +6097,7 @@ fn oracle_spineboy_run_plus_shoot_add_to_empty_mix0_2_t0_6_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
     step(&mut state, &mut skeleton, 0.2);
@@ -6124,7 +6124,7 @@ fn oracle_spineboy_run_plus_shoot_add_to_empty_mix0_2_jitter_dt_t0_6_matches_cpp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -6169,7 +6169,7 @@ fn oracle_skel_spineboy_run_plus_shoot_add_to_empty_mix0_2_t0_6_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
     step(&mut state, &mut skeleton, 0.2);
@@ -6197,7 +6197,7 @@ fn oracle_skel_spineboy_run_plus_shoot_add_to_empty_mix0_2_jitter_dt_t0_6_matche
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -6241,7 +6241,7 @@ fn oracle_spineboy_run_plus_shoot_add_alpha0_5_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
     step(&mut state, &mut skeleton, 0.2);
@@ -6264,7 +6264,7 @@ fn oracle_spineboy_run_plus_shoot_add_alpha0_5_jitter_dt_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -6300,7 +6300,7 @@ fn oracle_skel_spineboy_run_plus_shoot_add_alpha0_5_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
     step(&mut state, &mut skeleton, 0.2);
@@ -6324,7 +6324,7 @@ fn oracle_skel_spineboy_run_plus_shoot_add_alpha0_5_jitter_dt_t0_4_matches_cpp()
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -6359,7 +6359,7 @@ fn oracle_spineboy_run_plus_aim_add_alpha0_5_t0_2_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -6381,7 +6381,7 @@ fn oracle_spineboy_aim_to_shoot_add_t0_4_matches_cpp() {
         SkeletonData::from_json_str(&json).expect("parse spineboy-pro.json");
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     let mut state_data = AnimationStateData::new(data.clone());
     state_data.set_mix("aim", "shoot", 0.2).expect("set mix");
@@ -6413,7 +6413,7 @@ fn oracle_spineboy_aim_add_to_shoot_replace_t0_4_matches_cpp() {
         SkeletonData::from_json_str(&json).expect("parse spineboy-pro.json");
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     let mut state_data = AnimationStateData::new(data.clone());
     state_data.set_mix("aim", "shoot", 0.2).expect("set mix");
@@ -6447,7 +6447,7 @@ fn oracle_spineboy_aim_replace_to_shoot_add_t0_4_matches_cpp() {
         SkeletonData::from_json_str(&json).expect("parse spineboy-pro.json");
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     let mut state_data = AnimationStateData::new(data.clone());
     state_data.set_mix("aim", "shoot", 0.2).expect("set mix");
@@ -6477,7 +6477,7 @@ fn oracle_spineboy_shoot_alpha_attachment_threshold_0_6_alpha_0_5_t0_1_matches_c
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -6500,7 +6500,7 @@ fn oracle_spineboy_shoot_to_empty_mix_attachment_threshold_0_mix_draw_order_thre
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.0);
 
@@ -6529,7 +6529,7 @@ fn oracle_spineboy_ess_run_to_empty_immediate_mix0_2_mix_attachment_threshold_1_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     // Force attachment + drawOrder timelines to apply during mixingFrom.
     let run = state.set_animation(0, "run", true).expect("set run");
@@ -6557,7 +6557,7 @@ fn oracle_skel_spineboy_ess_run_to_empty_immediate_mix0_2_mix_attachment_thresho
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     let run = state.set_animation(0, "run", true).expect("set run");
     run.set_mix_attachment_threshold(&mut state, 1.0);
@@ -6583,7 +6583,7 @@ fn oracle_mix_and_match_skin_switch_boy_to_girl_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("full-skins/boy"))
         .expect("set skin boy");
@@ -6608,7 +6608,7 @@ fn oracle_skel_mix_and_match_skin_switch_boy_to_girl_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("full-skins/boy"))
         .expect("set skin boy");
@@ -6634,7 +6634,7 @@ fn oracle_mix_and_match_dance_t0_25_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "dance", true).expect("set dance");
     step(&mut state, &mut skeleton, 0.25);
 
@@ -6652,7 +6652,7 @@ fn oracle_skel_mix_and_match_dance_t0_25_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "dance", true).expect("set dance");
     step(&mut state, &mut skeleton, 0.25);
 
@@ -6667,7 +6667,7 @@ fn oracle_coin_animation_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "animation", true)
         .expect("set animation");
@@ -6684,7 +6684,7 @@ fn oracle_6_arcs_arcs_t5_666667_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "arcs", false).expect("set arcs");
     step(&mut state, &mut skeleton, 5.666_667);
 
@@ -6701,7 +6701,7 @@ fn oracle_8_follow_through_ball_follow_through_t2_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "follow-through", false)
         .expect("set follow-through");
@@ -6722,7 +6722,7 @@ fn oracle_food_app_search_add_bread_t1_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "add-bread", false)
         .expect("set add-bread");
@@ -6741,7 +6741,7 @@ fn oracle_food_app_search_add_carrot_t0_2_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "add-carrot", false)
         .expect("set add-carrot");
@@ -6759,7 +6759,7 @@ fn oracle_skel_coin_animation_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "animation", true)
         .expect("set animation");
@@ -6777,7 +6777,7 @@ fn oracle_skel_6_arcs_arcs_t5_666667_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "arcs", false).expect("set arcs");
     step(&mut state, &mut skeleton, 5.666_667);
 
@@ -6795,7 +6795,7 @@ fn oracle_skel_8_follow_through_ball_follow_through_t2_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "follow-through", false)
         .expect("set follow-through");
@@ -6817,7 +6817,7 @@ fn oracle_skel_food_app_search_add_bread_t1_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "add-bread", false)
         .expect("set add-bread");
@@ -6837,7 +6837,7 @@ fn oracle_skel_food_app_search_add_carrot_t0_2_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "add-carrot", false)
         .expect("set add-carrot");
@@ -6854,7 +6854,7 @@ fn oracle_windmill_animation_t3_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "animation", true)
         .expect("set animation");
@@ -6872,7 +6872,7 @@ fn oracle_skel_windmill_animation_t3_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "animation", true)
         .expect("set animation");
@@ -6889,7 +6889,7 @@ fn oracle_powerup_bounce_t0_7_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "bounce", true).expect("set bounce");
     step(&mut state, &mut skeleton, 0.7);
 
@@ -6905,7 +6905,7 @@ fn oracle_skel_powerup_bounce_t0_7_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "bounce", true).expect("set bounce");
     step(&mut state, &mut skeleton, 0.7);
 
@@ -6920,7 +6920,7 @@ fn oracle_speedy_run_t0_433333_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.433_333_34);
 
@@ -6936,7 +6936,7 @@ fn oracle_skel_speedy_run_t0_433333_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.433_333_34);
 
@@ -6953,7 +6953,7 @@ fn oracle_chibi_stickers_movement_trot_front_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "movement/trot-front", true)
         .expect("set movement/trot-front");
@@ -6975,7 +6975,7 @@ fn oracle_skel_chibi_stickers_movement_trot_front_t0_3_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "movement/trot-front", true)
         .expect("set movement/trot-front");
@@ -6996,7 +6996,7 @@ fn oracle_chibi_stickers_emotes_excited_t0_35_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "emotes/excited", true)
         .expect("set emotes/excited");
@@ -7016,7 +7016,7 @@ fn oracle_skel_chibi_stickers_emotes_excited_t0_35_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "emotes/excited", true)
         .expect("set emotes/excited");
@@ -7037,7 +7037,7 @@ fn oracle_chibi_stickers_interactive_password_hooray_t0_25_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "interactive/password/hooray", true)
         .expect("set interactive/password/hooray");
@@ -7059,7 +7059,7 @@ fn oracle_skel_chibi_stickers_interactive_password_hooray_t0_25_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "interactive/password/hooray", true)
         .expect("set interactive/password/hooray");
@@ -7080,7 +7080,7 @@ fn oracle_chibi_stickers_emotes_dramatic_stare_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "emotes/dramatic-stare", true)
         .expect("set emotes/dramatic-stare");
@@ -7102,7 +7102,7 @@ fn oracle_skel_chibi_stickers_emotes_dramatic_stare_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "emotes/dramatic-stare", true)
         .expect("set emotes/dramatic-stare");
@@ -7121,7 +7121,7 @@ fn oracle_vine_grow_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "grow", false).expect("set grow");
     step(&mut state, &mut skeleton, 0.5);
 
@@ -7137,7 +7137,7 @@ fn oracle_skel_vine_grow_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "grow", false).expect("set grow");
     step(&mut state, &mut skeleton, 0.5);
 
@@ -7152,7 +7152,7 @@ fn oracle_raptor_walk_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.5);
 
@@ -7168,7 +7168,7 @@ fn oracle_skel_raptor_walk_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
     step(&mut state, &mut skeleton, 0.5);
 
@@ -7183,7 +7183,7 @@ fn oracle_dragon_flying_sequence_t0_25_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.25);
 
@@ -7199,7 +7199,7 @@ fn oracle_skel_dragon_flying_sequence_t0_25_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.25);
 
@@ -7214,7 +7214,7 @@ fn oracle_dragon_flying_sequence_t0_65_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.65);
 
@@ -7230,7 +7230,7 @@ fn oracle_skel_dragon_flying_sequence_t0_65_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.65);
 
@@ -7245,7 +7245,7 @@ fn oracle_dragon_flying_sequence_t0_76_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.76);
 
@@ -7261,7 +7261,7 @@ fn oracle_skel_dragon_flying_sequence_t0_76_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.76);
 
@@ -7276,7 +7276,7 @@ fn oracle_dragon_flying_sequence_t0_85_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.85);
 
@@ -7292,7 +7292,7 @@ fn oracle_skel_dragon_flying_sequence_t0_85_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.85);
 
@@ -7307,7 +7307,7 @@ fn oracle_dragon_flying_sequence_t0_98_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.98);
 
@@ -7323,7 +7323,7 @@ fn oracle_skel_dragon_flying_sequence_t0_98_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.98);
 
@@ -7338,7 +7338,7 @@ fn oracle_dragon_flying_to_empty_t0_35_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.25);
 
@@ -7359,7 +7359,7 @@ fn oracle_skel_dragon_flying_to_empty_t0_35_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.25);
 
@@ -7385,7 +7385,7 @@ fn oracle_spineboy_run_to_walk_mix0_2_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -7410,7 +7410,7 @@ fn oracle_skel_spineboy_run_to_walk_mix0_2_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -7434,7 +7434,7 @@ fn oracle_spineboy_run_to_walk_mix0_2_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -7453,7 +7453,7 @@ fn oracle_spineboy_run_to_walk_headless_t0_25_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 1.0 / 60.0);
@@ -7477,7 +7477,7 @@ fn oracle_skel_spineboy_run_to_walk_headless_t0_25_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 1.0 / 60.0);
@@ -7502,7 +7502,7 @@ fn oracle_spineboy_run_to_walk_headless_t0_333333_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 1.0 / 60.0);
@@ -7526,7 +7526,7 @@ fn oracle_skel_spineboy_run_to_walk_headless_t0_333333_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 1.0 / 60.0);
@@ -7551,7 +7551,7 @@ fn oracle_spineboy_run_to_walk_headless_t0_416667_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 1.0 / 60.0);
@@ -7575,7 +7575,7 @@ fn oracle_skel_spineboy_run_to_walk_headless_t0_416667_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 1.0 / 60.0);
@@ -7600,7 +7600,7 @@ fn oracle_spineboy_run_to_walk_headless_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 1.0 / 60.0);
@@ -7624,7 +7624,7 @@ fn oracle_skel_spineboy_run_to_walk_headless_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 1.0 / 60.0);
@@ -7653,7 +7653,7 @@ fn oracle_skel_spineboy_run_to_walk_mix0_2_t0_55_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", true).expect("set run");
     step(&mut state, &mut skeleton, 0.3);
 
@@ -7671,7 +7671,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -7694,7 +7694,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -7717,7 +7717,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_update_to_pose_t1_0_matches_cpp(
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -7743,7 +7743,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_update_reset_update_t1_0_matches
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -7770,7 +7770,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_t10_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -7793,7 +7793,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_jitter_dt_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -7821,7 +7821,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_jitter_dt_t10_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -7851,7 +7851,7 @@ fn oracle_sack_walk_physics_none_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
 
     let dt = 1.0 / 60.0;
@@ -7870,7 +7870,7 @@ fn oracle_sack_walk_physics_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
 
     let dt = 1.0 / 60.0;
@@ -7889,7 +7889,7 @@ fn oracle_sack_walk_physics_jitter_dt_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
 
     for _ in 0..10 {
@@ -7913,7 +7913,7 @@ fn oracle_sack_walk_physics_update_pose_update_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
 
     let dt = 1.0 / 60.0;
@@ -7945,7 +7945,7 @@ fn oracle_sack_walk_to_hello_mix0_2_physics_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
     step_physics(&mut state, &mut skeleton, 0.3);
 
@@ -7963,7 +7963,7 @@ fn oracle_sack_walk_plus_hello_add_physics_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
     step_physics(&mut state, &mut skeleton, 0.0);
     step_physics(&mut state, &mut skeleton, 0.2);
@@ -7983,7 +7983,7 @@ fn oracle_sack_walk_plus_hello_add_to_empty_mix0_2_physics_t0_6_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
     step_physics(&mut state, &mut skeleton, 0.0);
     step_physics(&mut state, &mut skeleton, 0.2);
@@ -8012,7 +8012,7 @@ fn oracle_celestial_circus_wind_idle_physics_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "wind-idle", true)
         .expect("set wind-idle");
@@ -8035,7 +8035,7 @@ fn oracle_celestial_circus_wind_idle_physics_jitter_dt_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "wind-idle", true)
         .expect("set wind-idle");
@@ -8065,7 +8065,7 @@ fn oracle_celestial_circus_wind_idle_physics_update_pose_update_t1_0_matches_cpp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "wind-idle", true)
         .expect("set wind-idle");
@@ -8096,7 +8096,7 @@ fn oracle_celestial_circus_wind_idle_physics_update_reset_update_t1_0_matches_cp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "wind-idle", true)
         .expect("set wind-idle");
@@ -8125,7 +8125,7 @@ fn oracle_celestial_circus_wind_idle_physics_t10_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "wind-idle", true)
         .expect("set wind-idle");
@@ -8148,7 +8148,7 @@ fn oracle_snowglobe_idle_physics_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -8167,7 +8167,7 @@ fn oracle_snowglobe_idle_physics_jitter_dt_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     for _ in 0..10 {
@@ -8191,7 +8191,7 @@ fn oracle_snowglobe_idle_physics_update_pose_update_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -8218,7 +8218,7 @@ fn oracle_snowglobe_idle_physics_update_reset_update_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -8243,7 +8243,7 @@ fn oracle_snowglobe_idle_physics_t10_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -8262,7 +8262,7 @@ fn oracle_snowglobe_idle_physics_jitter_dt_t10_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     for _ in 0..10 {
@@ -8289,7 +8289,7 @@ fn oracle_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_t0_6_matches_cpp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -8324,7 +8324,7 @@ fn oracle_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_jitter_dt_t0_6_m
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     // Phase1 ~0.3s.
@@ -8378,7 +8378,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -8402,7 +8402,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -8426,7 +8426,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_update_to_pose_t1_0_matches
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -8453,7 +8453,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_update_reset_update_t1_0_ma
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -8481,7 +8481,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_t10_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -8505,7 +8505,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_jitter_dt_t1_0_matches_cpp(
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -8534,7 +8534,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_jitter_dt_t10_0_matches_cpp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "playing-in-the-rain", true)
         .expect("set playing-in-the-rain");
@@ -8565,7 +8565,7 @@ fn oracle_skel_sack_walk_physics_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
 
     let dt = 1.0 / 60.0;
@@ -8585,7 +8585,7 @@ fn oracle_skel_sack_walk_physics_jitter_dt_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
 
     for _ in 0..10 {
@@ -8610,7 +8610,7 @@ fn oracle_skel_sack_walk_physics_update_pose_update_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
 
     let dt = 1.0 / 60.0;
@@ -8643,7 +8643,7 @@ fn oracle_skel_sack_walk_to_hello_mix0_2_physics_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(state_data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
     step_physics(&mut state, &mut skeleton, 0.3);
 
@@ -8664,7 +8664,7 @@ fn oracle_skel_sack_walk_plus_hello_add_physics_t0_4_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
     step_physics(&mut state, &mut skeleton, 0.0);
     step_physics(&mut state, &mut skeleton, 0.2);
@@ -8687,7 +8687,7 @@ fn oracle_skel_sack_walk_plus_hello_add_to_empty_mix0_2_physics_t0_6_matches_cpp
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "walk", true).expect("set walk");
     step_physics(&mut state, &mut skeleton, 0.0);
     step_physics(&mut state, &mut skeleton, 0.2);
@@ -8717,7 +8717,7 @@ fn oracle_skel_celestial_circus_wind_idle_physics_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "wind-idle", true)
         .expect("set wind-idle");
@@ -8743,7 +8743,7 @@ fn oracle_skel_celestial_circus_wind_idle_physics_jitter_dt_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "wind-idle", true)
         .expect("set wind-idle");
@@ -8774,7 +8774,7 @@ fn oracle_skel_celestial_circus_wind_idle_physics_update_pose_update_t1_0_matche
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "wind-idle", true)
         .expect("set wind-idle");
@@ -8806,7 +8806,7 @@ fn oracle_skel_celestial_circus_wind_idle_physics_update_reset_update_t1_0_match
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "wind-idle", true)
         .expect("set wind-idle");
@@ -8836,7 +8836,7 @@ fn oracle_skel_celestial_circus_wind_idle_physics_t10_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state
         .set_animation(0, "wind-idle", true)
         .expect("set wind-idle");
@@ -8860,7 +8860,7 @@ fn oracle_skel_snowglobe_idle_physics_t0_5_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -8880,7 +8880,7 @@ fn oracle_skel_snowglobe_idle_physics_jitter_dt_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     for _ in 0..10 {
@@ -8907,7 +8907,7 @@ fn oracle_skel_snowglobe_idle_physics_update_pose_update_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -8935,7 +8935,7 @@ fn oracle_skel_snowglobe_idle_physics_update_reset_update_t1_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -8961,7 +8961,7 @@ fn oracle_skel_snowglobe_idle_physics_t10_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -8981,7 +8981,7 @@ fn oracle_skel_snowglobe_idle_physics_jitter_dt_t10_0_matches_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     for _ in 0..10 {
@@ -9011,7 +9011,7 @@ fn oracle_skel_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_t0_6_matche
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     let dt = 1.0 / 60.0;
@@ -9047,7 +9047,7 @@ fn oracle_skel_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_jitter_dt_t
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "idle", true).expect("set idle");
 
     for _ in 0..10 {

@@ -64,7 +64,7 @@ fn main() {
         .expect("set animation");
     state.update(time.max(0.0));
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
     skeleton.update_world_transform();
 

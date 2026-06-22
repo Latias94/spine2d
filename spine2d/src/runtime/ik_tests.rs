@@ -88,7 +88,7 @@ fn assert_approx(actual: f32, expected: f32) {
 fn ik_two_bones_moves_end_effector_close_to_target() {
     let data = SkeletonData::from_json_str(SKELETON_IK_TWO_BONES).unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let target = &skeleton.bones[3];
@@ -105,7 +105,7 @@ fn ik_two_bones_moves_end_effector_close_to_target() {
 fn ik_one_bone_rotates_toward_target() {
     let data = SkeletonData::from_json_str(SKELETON_IK_ONE_BONE).unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let target = &skeleton.bones[2];
@@ -129,14 +129,14 @@ fn ik_constraint_bend_positive_defaults_to_true() {
 fn ik_scale_y_mode_controls_stretch_scale_y() {
     let data = SkeletonData::from_json_str(&one_bone_stretch_json(None)).unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
     assert_approx(skeleton.bones[1].ascale_x, 2.0);
     assert_approx(skeleton.bones[1].ascale_y, 2.0);
 
     let data = SkeletonData::from_json_str(&one_bone_stretch_json(Some("uniform"))).unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
     assert_approx(skeleton.bones[1].ascale_x, 2.0);
     assert_approx(skeleton.bones[1].ascale_y, 4.0);

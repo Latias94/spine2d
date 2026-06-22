@@ -592,7 +592,7 @@ impl App {
             self.last_error = Some(format!("set_skin({skin_name:?}) failed: {e:?}"));
             return;
         }
-        skeleton.set_to_setup_pose();
+        skeleton.setup_pose();
         skeleton.update_world_transform();
 
         let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
@@ -613,7 +613,7 @@ impl App {
             return;
         }
 
-        skeleton.set_to_setup_pose();
+        skeleton.setup_pose();
         state.apply(&mut skeleton);
         skeleton.update_world_transform();
 
@@ -807,7 +807,7 @@ impl ApplicationHandler for App {
         };
 
         let mut skeleton = Skeleton::new(data.clone());
-        skeleton.set_to_setup_pose();
+        skeleton.setup_pose();
         skeleton.update_world_transform();
 
         let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
@@ -847,7 +847,7 @@ impl ApplicationHandler for App {
 
         // IMPORTANT: Our current runtime path assumes a clean base pose each frame
         // (otherwise constraints/local transforms can accumulate and look like "no keyframes").
-        skeleton.set_to_setup_pose();
+        skeleton.setup_pose();
         state.apply(&mut skeleton);
         skeleton.update_world_transform();
 
@@ -1128,7 +1128,7 @@ impl ApplicationHandler for App {
                     )
                 {
                     state.update(dt);
-                    skeleton.set_to_setup_pose();
+                    skeleton.setup_pose();
                     state.apply(skeleton);
                     skeleton.update_world_transform();
 

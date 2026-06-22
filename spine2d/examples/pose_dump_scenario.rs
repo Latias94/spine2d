@@ -391,7 +391,7 @@ fn main() {
     let mut physics: Physics = Physics::None;
 
     // Setup pose once; scenario steps do not reset the skeleton each frame.
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     let mut i = 0;
     while i < args.len() {

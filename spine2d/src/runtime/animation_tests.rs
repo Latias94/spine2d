@@ -330,7 +330,7 @@ fn inherit_timeline_applies_to_the_keyed_bone() {
     });
 
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     apply_animation(
         &animation,
         &mut skeleton,
@@ -442,7 +442,7 @@ fn inherit_timeline_mix_out_restores_setup_for_first_and_setup_modes() {
     });
 
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     apply_animation(&animation, &mut skeleton, 0.0, false, 1.0, MixBlend::First);
     assert_eq!(skeleton.bones[0].inherit, Inherit::OnlyTranslation);

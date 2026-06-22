@@ -108,7 +108,7 @@ fn slot_attachment_timeline_switches_attachment() {
     let data = SkeletonData::from_json_str(SKELETON_ATTACHMENT_TIMELINE).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("anim").unwrap();
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     apply_animation(animation, &mut skeleton, 0.25, false, 1.0, MixBlend::First);
@@ -127,7 +127,7 @@ fn draw_order_timeline_reorders_slots() {
     let data = SkeletonData::from_json_str(SKELETON_DRAW_ORDER).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("anim").unwrap();
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
     assert_eq!(skeleton.draw_order, vec![0, 1]);
 
@@ -145,7 +145,7 @@ fn draw_order_folder_timeline_reorders_only_folder_slots() {
     let data = SkeletonData::from_json_str(SKELETON_DRAW_ORDER_FOLDER).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("anim").unwrap();
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::First);

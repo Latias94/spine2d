@@ -222,7 +222,7 @@ fn deform_timeline_unweighted_is_applied_to_slot_and_rendered() {
     let data = SkeletonData::from_json_str(SKELETON_UNWEIGHTED).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("d").unwrap();
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
@@ -242,7 +242,7 @@ fn deform_timeline_weighted_is_applied_as_offsets() {
     let data = SkeletonData::from_json_str(SKELETON_WEIGHTED).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("d").unwrap();
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
@@ -264,7 +264,7 @@ fn deform_timeline_applies_to_linked_mesh_inheriting_parent_deform_from_default_
     let (_, animation) = data.animation("d").unwrap();
 
     skeleton.set_skin(Some("skinA")).unwrap();
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
@@ -296,7 +296,7 @@ fn json_linkedmesh_source_resolves_parent_mesh_and_timeline_attachment() {
 
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.set_skin(Some("variant")).unwrap();
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let draw_list = build_draw_list(&skeleton);
@@ -311,7 +311,7 @@ fn attachment_switch_between_linked_mesh_and_parent_preserves_deform_when_timeli
     let (_, animation) = data.animation("d").unwrap();
 
     skeleton.set_skin(Some("skinA")).unwrap();
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
@@ -335,7 +335,7 @@ fn deform_timeline_applies_to_cross_slot_linked_mesh_timeline_slots() {
     let data = SkeletonData::from_json_str(SKELETON_CROSS_SLOT_LINKEDMESH_TIMELINE_SLOTS).unwrap();
     let (_, animation) = data.animation("d").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let source = data

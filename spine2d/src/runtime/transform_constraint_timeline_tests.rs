@@ -60,7 +60,7 @@ fn transform_timeline_mix_zero_disables_rotation() {
     let (_, anim) = data.animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
     skeleton.update_world_transform();
 
@@ -73,7 +73,7 @@ fn transform_timeline_interpolates_mix_rotate() {
     let (_, anim) = data.animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.5, false, 1.0, MixBlend::Replace);
     skeleton.update_world_transform();
 

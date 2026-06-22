@@ -79,7 +79,7 @@ fn path_constraint_timelines_update_runtime_values() {
     let (_, anim) = data.animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.5, false, 1.0, MixBlend::Replace);
 
     assert_approx(skeleton.path_constraints[0].mix_rotate, 0.5);

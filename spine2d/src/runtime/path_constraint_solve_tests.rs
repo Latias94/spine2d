@@ -499,7 +499,7 @@ fn wrap_pi(mut radians: f32) -> f32 {
 fn assert_path_constraint_solve(json: &str) {
     let data = SkeletonData::from_json_str(json).unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let bone = &skeleton.bones[1];
@@ -527,7 +527,7 @@ fn path_constraint_solve_position_percent_spacing_percent() {
     )
     .unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let bone = &skeleton.bones[1];
@@ -544,7 +544,7 @@ fn path_constraint_solve_rotate_mode_chain_two_bones() {
         SkeletonData::from_json_str(SKELETON_PATH_CONSTRAINT_SOLVE_ROTATE_MODE_CHAIN_TWO_BONES)
             .unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let b1 = &skeleton.bones[1];
@@ -576,7 +576,7 @@ fn path_constraint_solve_rotate_mode_chain_scale_scales_along_path() {
     let data = SkeletonData::from_json_str(SKELETON_PATH_CONSTRAINT_SOLVE_ROTATE_MODE_CHAIN_SCALE)
         .unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let bone = &skeleton.bones[1];
@@ -590,7 +590,7 @@ fn path_constraint_solve_spacing_proportional_two_bones() {
         SkeletonData::from_json_str(SKELETON_PATH_CONSTRAINT_SOLVE_SPACING_PROPORTIONAL_TWO_BONES)
             .unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let b1 = &skeleton.bones[1];
@@ -611,7 +611,7 @@ fn path_constraint_solve_spacing_proportional_two_bones() {
 fn path_constraint_solve_closed_wraps_position() {
     let data = SkeletonData::from_json_str(SKELETON_PATH_CONSTRAINT_SOLVE_CLOSED_WRAP).unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let bone = &skeleton.bones[1];
@@ -627,7 +627,7 @@ fn path_constraint_mix_zero_disables_effect() {
     let data =
         SkeletonData::from_json_str(SKELETON_PATH_CONSTRAINT_SOLVE_CONSTANT_SPEED_TRUE).unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     skeleton.path_constraints[0].mix_rotate = 0.0;
     skeleton.path_constraints[0].mix_x = 0.0;
@@ -649,7 +649,7 @@ fn path_constraint_chain_spacing_zero_uses_tangent_angle() {
         SkeletonData::from_json_str(SKELETON_PATH_CONSTRAINT_SOLVE_CHAIN_SPACING_ZERO_USES_TANGENT)
             .unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let bone = &skeleton.bones[1];
@@ -666,7 +666,7 @@ fn path_constraint_spacing_mode_length_two_bones() {
         SkeletonData::from_json_str(SKELETON_PATH_CONSTRAINT_SOLVE_SPACING_MODE_LENGTH_TWO_BONES)
             .unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let b1 = &skeleton.bones[1];
@@ -682,7 +682,7 @@ fn path_constraint_mix_rotate_partial_rotates_halfway() {
     let data =
         SkeletonData::from_json_str(SKELETON_PATH_CONSTRAINT_SOLVE_MIX_ROTATE_PARTIAL).unwrap();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let bone = &skeleton.bones[1];

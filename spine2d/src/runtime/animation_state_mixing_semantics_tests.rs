@@ -258,7 +258,7 @@ fn track_entry_additive_adds_current_pose_without_entry_mix_blend() {
     let overlay = state.set_animation(1, "overlay", false).unwrap();
     overlay.set_additive(&mut state, true);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
 
     assert_approx(skeleton.bones[0].x, 13.0);
@@ -348,7 +348,7 @@ fn track_entry_additive_mixes_out_as_additive() {
     state.set_empty_animation(1, 1.0).unwrap();
     state.update(0.5);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
 
     assert_approx(skeleton.bones[0].x, 11.5);
@@ -433,7 +433,7 @@ fn additive_next_entry_does_not_hold_outgoing_numeric_timeline() {
     let mut skeleton = Skeleton::new(data);
 
     state.set_animation(0, "base", false).unwrap();
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_approx(skeleton.bones[0].x, 10.0);
 
@@ -441,7 +441,7 @@ fn additive_next_entry_does_not_hold_outgoing_numeric_timeline() {
     overlay.set_additive(&mut state, true);
     state.update(0.5);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
 
     // Upstream does not hold the outgoing base timeline against an additive incoming
@@ -453,7 +453,7 @@ fn additive_next_entry_does_not_hold_outgoing_numeric_timeline() {
 fn additive_path_and_physics_timelines_follow_upstream_add_rules() {
     let (mut state, mut skeleton) = setup_additive_path_physics_state();
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.update(0.5);
     state.apply(&mut skeleton);
 
@@ -539,7 +539,7 @@ fn mix_interpolation_fast_slow_affects_mix_out_alpha() {
     let mut skeleton = Skeleton::new(data);
 
     state.set_animation(0, "a", false).unwrap();
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_approx(skeleton.bones[0].x, 10.0);
 
@@ -547,7 +547,7 @@ fn mix_interpolation_fast_slow_affects_mix_out_alpha() {
     b.set_mix_interpolation(&mut state, MixInterpolation::FastSlow);
 
     state.update(0.5);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
 
     // FastSlow maps raw 0.5 to 0.75, so the outgoing A timeline keeps 25% alpha.
@@ -721,7 +721,7 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
     a.set_mix_attachment_threshold(&mut state, 0.5);
     a.set_mix_draw_order_threshold(&mut state, 0.5);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("A"));
     assert_eq!(skeleton.draw_order, vec![1, 0]);
@@ -730,14 +730,14 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
 
     // mix=0.4: mixingFrom(A) still applies attachment/draw order.
     state.update(0.4);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("A"));
     assert_eq!(skeleton.draw_order, vec![1, 0]);
 
     // mix=0.6: mixingFrom(A) no longer applies attachment/draw order.
     state.update(0.2);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("setup0"));
     assert_eq!(skeleton.draw_order, vec![0, 1]);
@@ -906,14 +906,14 @@ fn mix_interpolation_gates_attachment_and_draw_order_thresholds() {
     let a = state.set_animation(0, "a", false).unwrap();
     a.set_mix_attachment_threshold(&mut state, 0.6);
     a.set_mix_draw_order_threshold(&mut state, 0.6);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
 
     let b = state.set_animation(0, "b", false).unwrap();
     b.set_mix_interpolation(&mut state, MixInterpolation::FastSlow);
 
     state.update(0.5);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
 
     // Raw 0.5 would still pass threshold 0.6; FastSlow interpolates to 0.75 and gates both.
@@ -1050,17 +1050,17 @@ fn draw_order_folder_applies_after_draw_order_timeline() {
 
     state.set_animation(0, "a", false).unwrap();
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_eq!(skeleton.draw_order, vec![1, 2, 0]);
 
     state.update(0.6);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_eq!(skeleton.draw_order, vec![2, 1, 0]);
 
     state.update(0.5);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_eq!(skeleton.draw_order, vec![1, 2, 0]);
 }
@@ -1193,7 +1193,7 @@ fn track0_additive_does_not_override_alpha_attachment_threshold_for_attachments(
     a.set_alpha_attachment_threshold(&mut state, 0.6);
     a.set_additive(&mut state, true);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("setup"));
 }

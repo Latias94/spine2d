@@ -1030,10 +1030,6 @@ impl Skeleton {
         self.draw_order = (0..self.slots.len()).collect::<Vec<_>>();
     }
 
-    pub fn set_to_setup_pose(&mut self) {
-        self.setup_pose();
-    }
-
     pub fn attachment(
         &self,
         slot_index: usize,

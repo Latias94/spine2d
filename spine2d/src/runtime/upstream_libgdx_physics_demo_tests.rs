@@ -96,7 +96,7 @@ fn physics_test2_celestial_circus_skel_scale_0_1_smoke() {
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.x = 320.0;
     skeleton.y = 100.0;
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(Physics::Update);
 
     let mut state = AnimationState::new(AnimationStateData::new(data));
@@ -110,7 +110,7 @@ fn physics_test3_snowglobe_shake_skel_scale_0_15_smoke() {
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.x = 320.0;
     skeleton.y = 100.0;
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(Physics::Update);
 
     let mut state = AnimationState::new(AnimationStateData::new(data));
@@ -127,7 +127,7 @@ fn physics_test4_cloud_pot_skel_scale_0_15_smoke() {
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.x = 320.0;
     skeleton.y = 100.0;
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(Physics::Update);
 
     let mut state = AnimationState::new(AnimationStateData::new(data));

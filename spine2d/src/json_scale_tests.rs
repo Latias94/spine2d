@@ -111,7 +111,7 @@ fn json_scale_applies_to_geometry_and_conditionally_to_path_fields() {
 
     let anim = data.animation("anim").unwrap().1.clone();
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     apply_animation(&anim, &mut skeleton, 1.0, false, 1.0, MixBlend::Replace);
 
     assert_approx(skeleton.path_constraints[0].position, 8.0);

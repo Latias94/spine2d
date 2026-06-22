@@ -23,7 +23,7 @@ const JSON: &str = r#"
 fn point_attachment_computes_world_position_and_rotation() {
     let data = SkeletonData::from_json_str(JSON).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     let attachment = skeleton.attachment(0, "p").unwrap();

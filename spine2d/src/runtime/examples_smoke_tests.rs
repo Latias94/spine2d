@@ -62,7 +62,7 @@ fn smoke_example(relative: &str) {
     let data: Arc<SkeletonData> = SkeletonData::from_json_str(&json).expect("parse example json");
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
     assert_skeleton_finite(&skeleton);
 
@@ -85,7 +85,7 @@ fn smoke_example(relative: &str) {
     if data.animations.len() >= 2 {
         let mut skeleton = Skeleton::new(data.clone());
         let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
-        skeleton.set_to_setup_pose();
+        skeleton.setup_pose();
 
         let a0 = data.animations[0].name.as_str();
         let a1 = data.animations[1].name.as_str();

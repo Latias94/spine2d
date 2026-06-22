@@ -26,7 +26,7 @@ fn parse_slots_and_default_skin_region_attachment() {
     assert_eq!(data.skins.len(), 1);
 
     let mut skeleton = Skeleton::new(data);
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     assert_eq!(skeleton.slots.len(), 1);
     assert_eq!(skeleton.draw_order, vec![0]);

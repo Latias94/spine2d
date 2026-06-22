@@ -41,7 +41,7 @@ fn slot_color_timeline_interpolates_and_affects_draw_list_vertex_colors() {
     let (_, animation) = data.animation("anim").unwrap();
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton.update_world_transform();
 
     apply_animation(animation, &mut skeleton, 0.5, false, 1.0, MixBlend::Replace);

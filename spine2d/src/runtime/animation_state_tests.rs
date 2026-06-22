@@ -455,7 +455,7 @@ fn physics_reset_timeline_uses_previous_animation_time() {
     let mut state = AnimationState::new(state_data);
     let mut skeleton = Skeleton::new(data);
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run", false).unwrap();
 
     state.update(0.75);
@@ -544,7 +544,7 @@ fn physics_reset_timelines_share_one_property_slot() {
     let mut state = AnimationState::new(state_data);
     let mut skeleton = Skeleton::new(data.clone());
 
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     state.set_animation(0, "run2", false).unwrap();
     state.update(0.1);
     state.apply(&mut skeleton);

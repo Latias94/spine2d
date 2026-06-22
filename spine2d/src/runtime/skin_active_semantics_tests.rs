@@ -113,7 +113,7 @@ fn skin_required_active_and_gating_match_spine_cpp_semantics() {
     let data = SkeletonData::from_json_str(&json).expect("parse mix-and-match-pro.json");
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
 
     // Start from no skin, then set a skin. Upstream applies setup attachments from the new skin.
     skeleton
@@ -260,7 +260,7 @@ fn mix_and_match_add_skin_composition_matches_upstream_demo_semantics() {
     data.skins.insert(custom.name.clone(), custom.clone());
     let data = std::sync::Arc::new(data);
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some(custom.name.as_str()))
         .expect("set custom skin");
@@ -303,7 +303,7 @@ fn set_skin_from_skin_to_skin_replaces_shared_attachments_and_preserves_missing_
     let data = SkeletonData::from_json_str(&json).expect("parse mix-and-match-pro.json");
 
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     skeleton
         .set_skin(Some("full-skins/boy"))
         .expect("set boy skin");

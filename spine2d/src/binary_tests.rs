@@ -252,7 +252,7 @@ fn load_example_string(rel: &str) -> String {
 fn pose_at(data: Arc<SkeletonData>, animation_name: &str, time: f32) -> Skeleton {
     let (_, anim) = data.animation(animation_name).expect("animation exists");
     let mut skeleton = Skeleton::new(data.clone());
-    skeleton.set_to_setup_pose();
+    skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, time, true, 1.0, MixBlend::Replace);
     skeleton.update_world_transform();
     skeleton
@@ -927,7 +927,7 @@ fn debug_dump_spineboy_run_to_walk_t04_skel_vs_json() {
 
     let mut skeleton_skel = Skeleton::new(data_skel.clone());
     let mut state_skel = crate::runtime::AnimationState::new(state_data_skel);
-    skeleton_skel.set_to_setup_pose();
+    skeleton_skel.setup_pose();
     state_skel
         .set_animation(0, "run", true)
         .expect("set run skel");
@@ -937,7 +937,7 @@ fn debug_dump_spineboy_run_to_walk_t04_skel_vs_json() {
 
     let mut skeleton_json = Skeleton::new(data_json.clone());
     let mut state_json = crate::runtime::AnimationState::new(state_data_json);
-    skeleton_json.set_to_setup_pose();
+    skeleton_json.setup_pose();
     state_json
         .set_animation(0, "run", true)
         .expect("set run json");
@@ -1320,7 +1320,7 @@ fn debug_dump_spineboy_run_to_walk_after_state_apply_before_world_skel_vs_json()
 
     let mut skeleton_skel = Skeleton::new(data_skel.clone());
     let mut state_skel = crate::runtime::AnimationState::new(state_data_skel);
-    skeleton_skel.set_to_setup_pose();
+    skeleton_skel.setup_pose();
     state_skel
         .set_animation(0, "run", true)
         .expect("set run skel");
@@ -1335,7 +1335,7 @@ fn debug_dump_spineboy_run_to_walk_after_state_apply_before_world_skel_vs_json()
 
     let mut skeleton_json = Skeleton::new(data_json.clone());
     let mut state_json = crate::runtime::AnimationState::new(state_data_json);
-    skeleton_json.set_to_setup_pose();
+    skeleton_json.setup_pose();
     state_json
         .set_animation(0, "run", true)
         .expect("set run json");

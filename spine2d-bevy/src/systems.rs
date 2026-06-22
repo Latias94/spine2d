@@ -507,7 +507,7 @@ pub fn apply_spine_skeleton_commands(
                 instance.skeleton.set_time(time);
             }
             SpineSkeletonCommandKind::ResetToSetupPose => {
-                instance.skeleton.set_to_setup_pose();
+                instance.skeleton.setup_pose();
             }
         }
     }

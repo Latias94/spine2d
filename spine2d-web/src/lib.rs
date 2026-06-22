@@ -162,7 +162,7 @@ mod web {
                 .set_skin(Some(skin))
                 .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
         }
-        skeleton.set_to_setup_pose();
+        skeleton.setup_pose();
         skeleton.update_world_transform();
 
         let state_data = AnimationStateData::new(bundle.data.clone());
@@ -887,7 +887,7 @@ mod web {
                     self.current_skin = None;
                 }
             }
-            self.skeleton.set_to_setup_pose();
+            self.skeleton.setup_pose();
             self.skeleton.update_world_transform();
 
             let state_data = AnimationStateData::new(self.data.clone());
@@ -968,7 +968,7 @@ mod web {
             }
 
             self.state.update(dt);
-            self.skeleton.set_to_setup_pose();
+            self.skeleton.setup_pose();
             self.state.apply(&mut self.skeleton);
             self.skeleton.update(dt);
             self.skeleton.update_world_transform();
