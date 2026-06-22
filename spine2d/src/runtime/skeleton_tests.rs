@@ -1,5 +1,5 @@
 use crate::{
-    AttachmentData, BlendMode, BoneData, ClippingAttachmentData, ConstraintRef, IkConstraint,
+    AttachmentData, BlendMode, Bone, BoneData, ClippingAttachmentData, ConstraintRef, IkConstraint,
     IkConstraintData, Inherit, MeshAttachmentData, MeshVertices, PathConstraint,
     PathConstraintData, PhysicsConstraint, PhysicsConstraintData, PositionMode,
     RegionAttachmentData, RotateMode, ScaleYMode, Skeleton, SkeletonData, SkinData,
@@ -1032,6 +1032,64 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
     assert_approx(bone.world_scale_y(), 2.0);
     assert_approx(bone.world_rotation_x(), 4.0f32.atan2(3.0).to_degrees());
     assert_approx(bone.world_rotation_y(), 90.0);
+}
+
+#[test]
+fn bone_y_down_switch_controls_skeleton_scale_y() {
+    struct ResetYDown;
+
+    impl Drop for ResetYDown {
+        fn drop(&mut self) {
+            Bone::set_y_down(false);
+        }
+    }
+
+    let _reset = ResetYDown;
+    Bone::set_y_down(false);
+
+    let data = Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            x: 1.0,
+            y: 2.0,
+            ..Default::default()
+        }],
+        slots: Vec::new(),
+        skins: HashMap::new(),
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    });
+
+    let mut skeleton = Skeleton::new(data.clone());
+    skeleton.set_scale(2.0, 3.0);
+    skeleton.update_world_transform();
+    assert!(!Bone::is_y_down());
+    assert_eq!(skeleton.scale(), (2.0, 3.0));
+    assert_eq!(skeleton.scale_y(), 3.0);
+    assert_approx_pair(skeleton.bones()[0].world_position(), (2.0, 6.0));
+    assert_approx(skeleton.bones()[0].d(), 3.0);
+
+    Bone::set_y_down(true);
+
+    let mut skeleton = Skeleton::new(data);
+    skeleton.set_scale(2.0, 3.0);
+    skeleton.update_world_transform();
+    assert!(Bone::is_y_down());
+    assert_eq!(skeleton.scale(), (2.0, -3.0));
+    assert_eq!(skeleton.scale_y(), -3.0);
+    assert_approx_pair(skeleton.bones()[0].world_position(), (2.0, -6.0));
+    assert_approx(skeleton.bones()[0].d(), -3.0);
 }
 
 #[test]

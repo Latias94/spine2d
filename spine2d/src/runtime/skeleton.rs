@@ -758,7 +758,7 @@ impl Skeleton {
     }
 
     pub fn scale_y(&self) -> f32 {
-        self.scale_y
+        self.effective_scale_y()
     }
 
     pub fn set_scale_y(&mut self, scale_y: f32) {
@@ -766,12 +766,16 @@ impl Skeleton {
     }
 
     pub fn scale(&self) -> (f32, f32) {
-        (self.scale_x, self.scale_y)
+        (self.scale_x, self.effective_scale_y())
     }
 
     pub fn set_scale(&mut self, scale_x: f32, scale_y: f32) {
         self.scale_x = scale_x;
         self.scale_y = scale_y;
+    }
+
+    pub(super) fn effective_scale_y(&self) -> f32 {
+        self.scale_y * if Bone::is_y_down() { -1.0 } else { 1.0 }
     }
 
     pub fn time(&self) -> f32 {

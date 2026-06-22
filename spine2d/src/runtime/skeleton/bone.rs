@@ -1,4 +1,7 @@
 use super::{Skeleton, atan2_degrees, cos_f32, sin_f32, sqrt_f32};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static Y_DOWN: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone, Debug)]
 pub struct Bone {
@@ -36,6 +39,21 @@ pub struct Bone {
 }
 
 impl Bone {
+    /// Whether skeleton Y scale is interpreted in a Y-down coordinate system.
+    ///
+    /// Mirrors the official runtimes' global `Bone.isYDown`. This crate keeps
+    /// the default `false` to preserve its Y-up runtime and oracle baseline.
+    pub fn is_y_down() -> bool {
+        Y_DOWN.load(Ordering::Relaxed)
+    }
+
+    /// Sets whether skeleton Y scale is interpreted in a Y-down coordinate system.
+    ///
+    /// Mirrors the official runtimes' global `Bone.setYDown`.
+    pub fn set_y_down(y_down: bool) {
+        Y_DOWN.store(y_down, Ordering::Relaxed);
+    }
+
     pub fn data_index(&self) -> usize {
         self.data_index
     }
@@ -588,6 +606,7 @@ pub(super) fn update_world_transform(skeleton: &mut Skeleton, bone_index: usize)
     }
 
     let parent_index = skeleton.bones[bone_index].parent;
+    let skeleton_scale_y = skeleton.effective_scale_y();
     if let Some(parent_index) = parent_index {
         if parent_index >= skeleton.bones.len() {
             return;
@@ -600,7 +619,7 @@ pub(super) fn update_world_transform(skeleton: &mut Skeleton, bone_index: usize)
         update_world_transform_child(
             &mut skeleton.bones[bone_index],
             skeleton.scale_x,
-            skeleton.scale_y,
+            skeleton_scale_y,
             &parent,
         );
     } else {
@@ -609,7 +628,7 @@ pub(super) fn update_world_transform(skeleton: &mut Skeleton, bone_index: usize)
             skeleton.x,
             skeleton.y,
             skeleton.scale_x,
-            skeleton.scale_y,
+            skeleton_scale_y,
         );
     }
 
@@ -640,10 +659,11 @@ pub(super) fn update_applied_transform(skeleton: &mut Skeleton, bone_index: usiz
     };
 
     let parent = skeleton.bones[bone_index].parent;
+    let skeleton_scale_y = skeleton.effective_scale_y();
 
     if parent.is_none() {
         let sxi = 1.0 / skeleton.scale_x;
-        let syi = 1.0 / skeleton.scale_y;
+        let syi = 1.0 / skeleton_scale_y;
         let ra = a * sxi;
         let rb = b * sxi;
         let rc = c0 * syi;
@@ -690,12 +710,12 @@ pub(super) fn update_applied_transform(skeleton: &mut Skeleton, bone_index: usiz
             }
             crate::Inherit::OnlyTranslation => {
                 let sxi = 1.0 / skeleton.scale_x;
-                let syi = 1.0 / skeleton.scale_y;
+                let syi = 1.0 / skeleton_scale_y;
                 decompose_local_with_rotation(a * sxi, b * sxi, c0 * syi, d * syi, 0.0)
             }
             crate::Inherit::NoRotationOrReflection => {
                 let sxi = 1.0 / skeleton.scale_x;
-                let syi = 1.0 / skeleton.scale_y;
+                let syi = 1.0 / skeleton_scale_y;
                 pa *= sxi;
                 pc *= syi;
                 let wa = a * sxi;
@@ -714,7 +734,7 @@ pub(super) fn update_applied_transform(skeleton: &mut Skeleton, bone_index: usiz
             }
             crate::Inherit::NoScale | crate::Inherit::NoScaleOrReflection => {
                 let sxi = 1.0 / skeleton.scale_x;
-                let syi = 1.0 / skeleton.scale_y;
+                let syi = 1.0 / skeleton_scale_y;
                 let wa = a * sxi;
                 let wb = b * sxi;
                 let wc = c0 * syi;
@@ -735,7 +755,7 @@ pub(super) fn update_applied_transform(skeleton: &mut Skeleton, bone_index: usiz
                 za *= s;
                 zc *= s;
                 let si = if skeleton.bones[bone_index].inherit == crate::Inherit::NoScale
-                    && (pad < 0.0) != ((skeleton.scale_x < 0.0) != (skeleton.scale_y < 0.0))
+                    && (pad < 0.0) != ((skeleton.scale_x < 0.0) != (skeleton_scale_y < 0.0))
                 {
                     -1.0
                 } else {
