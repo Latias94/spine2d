@@ -1,6 +1,7 @@
 use crate::{
-    BlendMode, BoneData, IkConstraint, Inherit, PathConstraint, PhysicsConstraint, ScaleYMode,
-    Skeleton, SkeletonData, SliderConstraintData, SlotData, TransformConstraint,
+    BlendMode, BoneData, IkConstraint, Inherit, PathConstraint, PhysicsConstraint,
+    PhysicsConstraintData, ScaleYMode, Skeleton, SkeletonData, SliderConstraintData, SlotData,
+    TransformConstraint,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -29,6 +30,37 @@ fn empty_skeleton_data() -> Arc<SkeletonData> {
         physics_constraints: Vec::new(),
         slider_constraints: Vec::new(),
     })
+}
+
+fn physics_constraint_data(name: &str, order: i32, bone: usize) -> PhysicsConstraintData {
+    PhysicsConstraintData {
+        name: name.to_string(),
+        order,
+        skin_required: false,
+        bone,
+        x: 0.0,
+        y: 0.0,
+        rotate: 0.0,
+        scale_x: 0.0,
+        scale_y_mode: ScaleYMode::None,
+        shear_x: 0.0,
+        limit: 0.0,
+        step: 0.0,
+        inertia: 0.0,
+        strength: 0.0,
+        damping: 0.0,
+        mass_inverse: 0.0,
+        wind: 0.0,
+        gravity: 0.0,
+        mix: 1.0,
+        inertia_global: false,
+        strength_global: false,
+        damping_global: false,
+        mass_global: false,
+        wind_global: false,
+        gravity_global: false,
+        mix_global: false,
+    }
 }
 
 #[test]
@@ -387,6 +419,22 @@ fn constraint_accessors_expose_pose_state() {
     assert_eq!(physics.scale_y_mode(), ScaleYMode::Uniform);
     assert!(!physics.is_active());
 
+    physics.translate(3.0, -2.0);
+    assert_eq!(
+        (physics.ux, physics.uy, physics.cx, physics.cy),
+        (-3.0, 2.0, -3.0, 2.0)
+    );
+
+    physics.ux = 0.0;
+    physics.uy = 0.0;
+    physics.cx = 1.0;
+    physics.cy = 0.0;
+    physics.rotate(0.0, 0.0, 90.0);
+    assert_approx(physics.ux, 1.0);
+    assert_approx(physics.uy, -1.0);
+    assert_approx(physics.cx, 2.0);
+    assert_approx(physics.cy, -1.0);
+
     let data = Arc::new(SkeletonData {
         spine_version: None,
         reference_scale: 100.0,
@@ -432,6 +480,89 @@ fn constraint_accessors_expose_pose_state() {
     assert_eq!(slider.time(), 2.5);
     assert_eq!(slider.mix(), 0.75);
     assert!(!slider.is_active());
+}
+
+#[test]
+fn skeleton_physics_controls_broadcast_to_all_constraints() {
+    let data = Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: Vec::new(),
+        skins: HashMap::new(),
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: vec![
+            physics_constraint_data("physics-a", 0, 0),
+            physics_constraint_data("physics-b", 1, 0),
+        ],
+        slider_constraints: Vec::new(),
+    });
+
+    let mut skeleton = Skeleton::new(data);
+    {
+        let constraints = skeleton.physics_constraints_mut();
+        constraints[0].ux = 10.0;
+        constraints[0].uy = 20.0;
+        constraints[0].cx = 30.0;
+        constraints[0].cy = 40.0;
+        constraints[1].ux = -5.0;
+        constraints[1].uy = -6.0;
+        constraints[1].cx = -7.0;
+        constraints[1].cy = -8.0;
+    }
+
+    skeleton.physics_translate(3.0, -2.0);
+    assert_eq!(
+        (
+            skeleton.physics_constraints()[0].ux,
+            skeleton.physics_constraints()[0].uy,
+            skeleton.physics_constraints()[0].cx,
+            skeleton.physics_constraints()[0].cy,
+        ),
+        (7.0, 22.0, 27.0, 42.0)
+    );
+    assert_eq!(
+        (
+            skeleton.physics_constraints()[1].ux,
+            skeleton.physics_constraints()[1].uy,
+            skeleton.physics_constraints()[1].cx,
+            skeleton.physics_constraints()[1].cy,
+        ),
+        (-8.0, -4.0, -10.0, -6.0)
+    );
+
+    {
+        let constraints = skeleton.physics_constraints_mut();
+        constraints[0].ux = 0.0;
+        constraints[0].uy = 0.0;
+        constraints[0].cx = 1.0;
+        constraints[0].cy = 0.0;
+        constraints[1].ux = 2.0;
+        constraints[1].uy = 3.0;
+        constraints[1].cx = 1.0;
+        constraints[1].cy = 0.0;
+    }
+
+    skeleton.physics_rotate(0.0, 0.0, 90.0);
+    assert_approx(skeleton.physics_constraints()[0].ux, 1.0);
+    assert_approx(skeleton.physics_constraints()[0].uy, -1.0);
+    assert_approx(skeleton.physics_constraints()[0].cx, 2.0);
+    assert_approx(skeleton.physics_constraints()[0].cy, -1.0);
+    assert_approx(skeleton.physics_constraints()[1].ux, 3.0);
+    assert_approx(skeleton.physics_constraints()[1].uy, 2.0);
+    assert_approx(skeleton.physics_constraints()[1].cx, 2.0);
+    assert_approx(skeleton.physics_constraints()[1].cy, -1.0);
 }
 
 #[test]

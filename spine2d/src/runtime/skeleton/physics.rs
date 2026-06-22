@@ -137,6 +137,25 @@ impl PhysicsConstraint {
         self.active = active;
     }
 
+    /// Translates the physics state so the next update reacts as if the constrained bone moved
+    /// by an additional amount in world space.
+    pub fn translate(&mut self, x: f32, y: f32) {
+        self.ux -= x;
+        self.uy -= y;
+        self.cx -= x;
+        self.cy -= y;
+    }
+
+    /// Rotates the physics state around a world-space point.
+    pub fn rotate(&mut self, x: f32, y: f32, degrees: f32) {
+        let r = degrees.to_radians();
+        let cos = r.cos();
+        let sin = r.sin();
+        let dx = self.cx - x;
+        let dy = self.cy - y;
+        self.translate(dx * cos - dy * sin - dx, dx * sin + dy * cos - dy);
+    }
+
     pub(crate) fn reset_with_time(&mut self, time: f32) {
         self.remaining = 0.0;
         self.last_time = time;

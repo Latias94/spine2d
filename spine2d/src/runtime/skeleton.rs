@@ -501,6 +501,18 @@ impl Skeleton {
         }
     }
 
+    pub fn physics_translate(&mut self, x: f32, y: f32) {
+        for constraint in &mut self.physics_constraints {
+            constraint.translate(x, y);
+        }
+    }
+
+    pub fn physics_rotate(&mut self, x: f32, y: f32, degrees: f32) {
+        for constraint in &mut self.physics_constraints {
+            constraint.rotate(x, y, degrees);
+        }
+    }
+
     pub fn set_time(&mut self, time: f32) {
         if time.is_finite() {
             self.time = time;
