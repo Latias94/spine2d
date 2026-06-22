@@ -1094,6 +1094,57 @@ fn bone_rotation_helpers_match_bone_pose_formulas() {
 }
 
 #[test]
+fn skeleton_bone_world_transform_helper_recomputes_modified_local_pose() {
+    let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
+    skeleton.update_world_transform();
+
+    skeleton.bones_mut()[0].set_applied_position(12.0, 34.0);
+    skeleton.bones_mut()[0].set_applied_rotation(90.0);
+    skeleton.modify_bone_local(0);
+    skeleton.update_bone_world_transform(0);
+
+    let bone = &skeleton.bones()[0];
+    assert_approx_pair(bone.world_position(), (12.0, 34.0));
+    assert_approx(bone.world_rotation_x(), 90.0);
+}
+
+#[test]
+fn skeleton_bone_local_transform_helper_rebuilds_applied_pose_from_world() {
+    let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
+    skeleton.set_position(2.0, 3.0);
+    skeleton.update_world_transform();
+
+    let bone = &mut skeleton.bones_mut()[0];
+    bone.set_world_position(12.0, 18.0);
+    bone.set_a(0.0);
+    bone.set_b(-1.0);
+    bone.set_c(1.0);
+    bone.set_d(0.0);
+
+    skeleton.update_bone_local_transform(0);
+
+    let bone = &skeleton.bones()[0];
+    assert_approx_pair(bone.applied_position(), (10.0, 15.0));
+    assert_approx(bone.applied_rotation(), 90.0);
+    assert_approx_pair(bone.applied_scale(), (1.0, 1.0));
+    assert_approx_pair(bone.applied_shear(), (0.0, 0.0));
+}
+
+#[test]
+fn skeleton_validate_bone_local_transform_uses_world_modified_marker() {
+    let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
+    skeleton.update_world_transform();
+
+    skeleton.bones_mut()[0].set_world_position(21.0, 22.0);
+    skeleton.validate_bone_local_transform(0);
+    assert_approx_pair(skeleton.bones()[0].applied_position(), (0.0, 0.0));
+
+    skeleton.modify_bone_world(0);
+    skeleton.validate_bone_local_transform(0);
+    assert_approx_pair(skeleton.bones()[0].applied_position(), (21.0, 22.0));
+}
+
+#[test]
 fn slot_accessors_expose_attachment_tint_and_deform_state() {
     let data = Arc::new(SkeletonData {
         spine_version: None,

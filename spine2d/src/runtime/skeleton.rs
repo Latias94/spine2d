@@ -1563,8 +1563,50 @@ impl Skeleton {
         }
     }
 
-    fn update_bone_world_transform(&mut self, bone_index: usize) {
+    /// Computes one bone's world transform from its applied local transform.
+    ///
+    /// Mirrors `BonePose::updateWorldTransform` in the official runtime. Child
+    /// bones are not updated by this method.
+    pub fn update_bone_world_transform(&mut self, bone_index: usize) {
         bone::update_world_transform(self, bone_index);
+    }
+
+    /// Computes one bone's applied local transform from its world transform.
+    ///
+    /// Mirrors `BonePose::updateLocalTransform` in the official runtime.
+    pub fn update_bone_local_transform(&mut self, bone_index: usize) {
+        bone::update_applied_transform(self, bone_index);
+    }
+
+    /// Computes one bone's applied local transform if its world transform has
+    /// been marked modified in the current update epoch.
+    ///
+    /// Mirrors `BonePose::validateLocalTransform` in the official runtime.
+    pub fn validate_bone_local_transform(&mut self, bone_index: usize) {
+        if self
+            .bones
+            .get(bone_index)
+            .is_some_and(|bone| bone.local_epoch == self.update_epoch)
+        {
+            bone::update_applied_transform(self, bone_index);
+        }
+    }
+
+    /// Marks one bone's applied local transform as modified for the current
+    /// update epoch, invalidating descendants that were already updated.
+    ///
+    /// Mirrors `BonePose::modifyLocal` in the official runtime.
+    pub fn modify_bone_local(&mut self, bone_index: usize) {
+        self.bone_modify_local(bone_index);
+    }
+
+    /// Marks one bone's world transform as modified for the current update
+    /// epoch, invalidating descendants that were already updated.
+    ///
+    /// Mirrors `BonePose::modifyWorld` in the official runtime without
+    /// exposing the raw update counter.
+    pub fn modify_bone_world(&mut self, bone_index: usize) {
+        self.bone_modify_world(bone_index);
     }
 
     fn apply_ik_constraint(&mut self, constraint_index: usize) -> bool {
