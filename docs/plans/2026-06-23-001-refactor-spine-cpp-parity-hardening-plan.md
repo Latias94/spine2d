@@ -264,6 +264,8 @@ flowchart TB
 
 **Recent update:** Commit `26c4709` split applied draw order from the unconstrained pose and routed slider draw-order timelines through the applied buffer, matching C++ `DrawOrder` semantics more closely without adding a dedicated wrapper type yet.
 
+**Recent update:** Commit `9147966` split applied slot pose from the unconstrained slot pose and routed slider-driven slot, attachment, sequence, and deform timelines through the applied buffer, matching C++ `Slot`/`SlotPose` applied-pose semantics more closely without exposing raw `PosedGeneric` internals.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.

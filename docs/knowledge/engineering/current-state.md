@@ -13,7 +13,7 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `568 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `569 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `42 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu`, `cargo check -p spine2d-wgpu --examples --features json`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
@@ -67,12 +67,13 @@ status: "active"
   - Removed hidden `Skeleton::debug_update_cache` in commit `71ddc60`; debugging callers now format the typed `update_cache_items()` view locally instead of keeping a Rust-only public compatibility helper.
   - Renamed hidden `Skeleton::slot_vertex_attachment_world_vertices` to documented `slot_attachment_world_vertices` in breaking commit `9ea3c43`, matching the C++ `VertexAttachment::computeWorldVertices` role without keeping the old hidden Rust-only name.
   - Separated applied draw order in commit `26c4709`; `Skeleton::draw_order()` now reports the applied buffer while `draw_order_pose()` keeps the unconstrained pose, matching C++ `DrawOrder` pose/applied semantics closely enough for slider-driven draw-order timelines.
+  - Separated applied slot pose from the unconstrained slot pose in commit `9147966`; slider-driven slot, attachment, sequence, and deform timelines now target the applied `SlotPose` when C++ `Animation::apply(..., appliedPose=true)` would, and rendering/oracle/world-vertex reads use the applied pose.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: audit pinned C++ `DrawOrder` pose/applied split against Rust's `draw_order` vector, especially slider-constrained draw-order behavior.
+  - Continue U6: audit remaining C++ `Slot`/`SlotPose` public and solver surfaces now that applied slot pose is split.
 
 # Citations
 
