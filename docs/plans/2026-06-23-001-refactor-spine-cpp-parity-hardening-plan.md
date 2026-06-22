@@ -274,6 +274,8 @@ flowchart TB
 
 **Recent update:** Commit `4f8b351` centralized attachment source-skin resolution and timeline-attachment comparison so public `Skeleton::set_attachment`, `set_skin` attachAll paths, and animation attachment timelines all follow C++ `SlotPose::setAttachment` deform reset semantics.
 
+**Recent update:** Commit `b3ca6c1` added official-style `SkinData` attachment helpers (`set_attachment`, `remove_attachment`, names/attachments/entries queries) and routed `add_skin` through the growable set path used by C++ `Skin::setAttachment`.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.

@@ -13,7 +13,7 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `572 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `573 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `42 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu`, `cargo check -p spine2d-wgpu --examples --features json`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
@@ -72,12 +72,13 @@ status: "active"
   - Removed the Rust-only `Slot::set_bone_index` helper in breaking commit `7b83c3c`; slot-to-bone binding remains construction data plus read-only `bone_index()`, matching C++ `Slot::getBone()`.
   - Removed runtime `Slot` blend storage in breaking commit `9afff8b`; rendering now reads blend mode from `SlotData`, matching C++ `SlotData::getBlendMode()`.
   - Aligned public attachment mutation in commit `4f8b351`; `Skeleton::set_attachment`, `set_skin` attachAll paths, and animation attachment timelines now share the C++ `SlotPose::setAttachment` deform-clear rule based on vertex timeline attachment identity.
+  - Added official-style `SkinData` attachment helpers in commit `b3ca6c1`; `set_attachment` grows slot storage like C++ `Skin::setAttachment`, and remove/find/list helpers are now available for runtime composition.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: audit remaining `SlotPose` edge cases and then move to the next C++ runtime surface with broad Rust-only API drift.
+  - Continue U6: consider gradually migrating internal skin fixture construction to `SkinData::set_attachment`, then audit the next C++ runtime surface with broad Rust-only API drift.
 
 # Citations
 
