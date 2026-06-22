@@ -56,11 +56,12 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U2 is complete: disabled `#[cfg(any())]` Skeleton legacy code has been removed.
 - U3 is complete: timeline dispatch is centralized behind internal runtime/state helpers, while `AnimationState` keeps only policy decisions for alpha, hold, additive, thresholds, and draw-order output.
 - U4 is complete: binary parser timeline-order ownership is centralized behind `TimelineOrderBuilder`, and JSON already had explicit local lookup/order builders.
-- U5 is in progress: the shared `TrackEntrySettings` value object is now owned by the core runtime and used by Bevy, direct `TrackEntry` field exposure has been removed, and delay setter branches now follow the official C++ shape. Remaining U5 work is a final numeric setter audit.
+- U5 is complete: the shared `TrackEntrySettings` value object is now owned by the core runtime and used by Bevy, direct `TrackEntry` field exposure has been removed, and delay setter branches now follow the official C++ shape. The final numeric setter audit found no additional guard changes needed because `spine-cpp` setters are intentionally sparse.
+- U6 is next: extract `Skeleton` pose and constraint solver boundaries incrementally.
 
 # Next Action
 
-Audit numeric handle setters and queued entry APIs against `spine-cpp/include/spine/AnimationState.h`. Decide whether Rust should reject non-finite mix/delay values with `Error::InvalidValue` or silently match C++ setter behavior where official code has no guard.
+Audit `spine2d/src/runtime/skeleton.rs` for cohesive solver helper groups that can move behind private modules without changing public `Skeleton` behavior. Start with pure helper groups before moving any cross-constraint code.
 
 # Citations
 

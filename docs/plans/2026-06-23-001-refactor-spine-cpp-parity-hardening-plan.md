@@ -213,7 +213,7 @@ flowchart TB
 
 **Goal:** Move public mutation toward value-object settings and validated methods instead of broad field access.
 
-**Status:** In progress. Commit `f36cfa7` aligned the delay setter branch shape with `spine-cpp`; commit `fc1c241` made `TrackEntry` state private and exposed read-only getters; commit `e1e827f` moved entry settings into core `TrackEntrySettings`, changed Bevy to alias that value object, deleted unused Rust-only completion flags, and added coverage for negative delay plus `spine-cpp`-style `setMixDuration(mixDuration, delay)`.
+**Status:** Complete. Commit `f36cfa7` aligned the delay setter branch shape with `spine-cpp`; commit `fc1c241` made `TrackEntry` state private and exposed read-only getters; commit `e1e827f` moved entry settings into core `TrackEntrySettings`, changed Bevy to alias that value object, deleted unused Rust-only completion flags, and added coverage for negative delay plus `spine-cpp`-style `setMixDuration(mixDuration, delay)`.
 
 **Requirements:** R1, R2, R8.
 

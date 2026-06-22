@@ -33,7 +33,7 @@ status: "active"
 - Blocked:
   - Not blocked.
 - Next action:
-  - Finish U5 numeric setter audit, then move to Skeleton solver extraction.
+  - Execute U6 from the hardening plan: extract `Skeleton` pose-solver boundaries incrementally while keeping solver parity gates green.
 
 # Citations
 
