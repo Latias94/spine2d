@@ -1,4 +1,4 @@
-use super::{Skeleton, compute_attachment_world_vertices};
+use super::{Skeleton, compute_attachment_world_vertices, wrap_pi};
 use crate::SkeletonData;
 
 #[derive(Clone, Debug, Default)]
@@ -58,7 +58,7 @@ pub(super) fn estimate_path_attachment_scratch_capacities(
     (max_world_floats, max_curves)
 }
 
-pub(super) fn path_attachment_for_slot(
+fn path_attachment_for_slot(
     skeleton: &Skeleton,
     slot_index: usize,
 ) -> Option<(usize, &crate::PathAttachmentData)> {
@@ -73,8 +73,316 @@ pub(super) fn path_attachment_for_slot(
     }
 }
 
+pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {
+    const EPSILON: f32 = 1.0e-5;
+
+    if constraint_index >= skeleton.path_constraints.len()
+        || constraint_index >= skeleton.path_constraint_scratch.len()
+    {
+        return false;
+    }
+
+    let (data_index, target, position, spacing, mix_rotate, mix_x, mix_y, bone_count) = {
+        let c = &skeleton.path_constraints[constraint_index];
+        (
+            c.data_index,
+            c.target,
+            c.position,
+            c.spacing,
+            c.mix_rotate,
+            c.mix_x,
+            c.mix_y,
+            c.bones.len(),
+        )
+    };
+
+    let Some(data) = skeleton.data.path_constraints.get(data_index) else {
+        return false;
+    };
+    if mix_rotate == 0.0 && mix_x == 0.0 && mix_y == 0.0 {
+        return false;
+    }
+
+    let tangents = data.rotate_mode == crate::RotateMode::Tangent;
+    let scale = data.rotate_mode == crate::RotateMode::ChainScale;
+    if bone_count == 0 {
+        return false;
+    }
+    let spaces_count = if tangents { bone_count } else { bone_count + 1 };
+
+    // Reduce per-frame allocations: avoid cloning the bone index list.
+    let bones = std::mem::take(&mut skeleton.path_constraints[constraint_index].bones);
+
+    let mut scratch = std::mem::take(&mut skeleton.path_constraint_scratch[constraint_index]);
+
+    let applied = 'applied: {
+        let Some((target_slot_index, path)) = path_attachment_for_slot(skeleton, target) else {
+            break 'applied false;
+        };
+        scratch.spaces.resize(spaces_count, 0.0);
+        scratch.spaces.fill(0.0);
+        scratch.lengths.clear();
+        if scale {
+            scratch.lengths.resize(bone_count, 0.0);
+        }
+        let spaces = scratch.spaces.as_mut_slice();
+        let lengths = scratch.lengths.as_mut_slice();
+
+        match data.spacing_mode {
+            crate::SpacingMode::Percent => {
+                if scale {
+                    for i in 0..spaces_count.saturating_sub(1) {
+                        let Some(bone_index) = bones.get(i).copied() else {
+                            continue;
+                        };
+                        let setup_length = skeleton
+                            .data
+                            .bones
+                            .get(bone_index)
+                            .map(|b| b.length)
+                            .unwrap_or(0.0);
+                        let Some(bone) = skeleton.bones.get(bone_index) else {
+                            continue;
+                        };
+                        let x = setup_length * bone.a;
+                        let y = setup_length * bone.c;
+                        if let Some(out) = lengths.get_mut(i) {
+                            *out = (x * x + y * y).sqrt();
+                        }
+                    }
+                }
+                for space in spaces.iter_mut().take(spaces_count).skip(1) {
+                    *space = spacing;
+                }
+            }
+            crate::SpacingMode::Proportional => {
+                let mut sum = 0.0f32;
+                let mut i = 0usize;
+                let n = spaces_count.saturating_sub(1);
+                while i < n {
+                    let Some(bone_index) = bones.get(i).copied() else {
+                        i += 1;
+                        continue;
+                    };
+                    let setup_length = skeleton
+                        .data
+                        .bones
+                        .get(bone_index)
+                        .map(|b| b.length)
+                        .unwrap_or(0.0);
+                    if setup_length < EPSILON {
+                        if scale && let Some(out) = lengths.get_mut(i) {
+                            *out = 0.0;
+                        }
+                        i += 1;
+                        spaces[i] = spacing;
+                        continue;
+                    }
+                    let Some(bone) = skeleton.bones.get(bone_index) else {
+                        i += 1;
+                        continue;
+                    };
+                    let x = setup_length * bone.a;
+                    let y = setup_length * bone.c;
+                    let length = (x * x + y * y).sqrt();
+                    if scale && let Some(out) = lengths.get_mut(i) {
+                        *out = length;
+                    }
+                    i += 1;
+                    spaces[i] = length;
+                    sum += length;
+                }
+                if sum > 0.0 {
+                    let scale_factor = spaces_count as f32 / sum * spacing;
+                    for space in spaces.iter_mut().take(spaces_count).skip(1) {
+                        *space *= scale_factor;
+                    }
+                }
+            }
+            spacing_mode => {
+                let length_spacing = spacing_mode == crate::SpacingMode::Length;
+                let mut i = 0usize;
+                let n = spaces_count.saturating_sub(1);
+                while i < n {
+                    let Some(bone_index) = bones.get(i).copied() else {
+                        i += 1;
+                        continue;
+                    };
+                    let setup_length = skeleton
+                        .data
+                        .bones
+                        .get(bone_index)
+                        .map(|b| b.length)
+                        .unwrap_or(0.0);
+                    if setup_length < EPSILON {
+                        if scale && let Some(out) = lengths.get_mut(i) {
+                            *out = 0.0;
+                        }
+                        i += 1;
+                        spaces[i] = spacing;
+                        continue;
+                    }
+                    let Some(bone) = skeleton.bones.get(bone_index) else {
+                        i += 1;
+                        continue;
+                    };
+                    let x = setup_length * bone.a;
+                    let y = setup_length * bone.c;
+                    let length = (x * x + y * y).sqrt();
+                    if scale && let Some(out) = lengths.get_mut(i) {
+                        *out = length;
+                    }
+                    i += 1;
+                    spaces[i] = (if length_spacing {
+                        setup_length + spacing
+                    } else {
+                        spacing
+                    }) * length
+                        / setup_length;
+                }
+            }
+        }
+
+        let positions = compute_path_world_positions(
+            skeleton,
+            &mut scratch.positions,
+            &mut scratch.world,
+            &mut scratch.curves,
+            target_slot_index,
+            path,
+            data.position_mode,
+            data.spacing_mode,
+            spaces_count,
+            tangents,
+            spaces,
+            position,
+        );
+        if positions.len() < 2 {
+            break 'applied false;
+        }
+
+        let mut bone_x = positions[0];
+        let mut bone_y = positions[1];
+        let mut offset_rotation = data.offset_rotation;
+        let tip = if offset_rotation == 0.0 {
+            data.rotate_mode == crate::RotateMode::Chain
+        } else {
+            let deg_rad_reflect = {
+                let Some(target_slot) = skeleton.slots.get(target_slot_index) else {
+                    break 'applied false;
+                };
+                let Some(parent) = skeleton.bones.get(target_slot.bone) else {
+                    break 'applied false;
+                };
+                if parent.a * parent.d - parent.b * parent.c > 0.0 {
+                    std::f32::consts::PI / 180.0
+                } else {
+                    -std::f32::consts::PI / 180.0
+                }
+            };
+            offset_rotation *= deg_rad_reflect;
+            false
+        };
+
+        let mut applied = false;
+        let mut p = 3usize;
+        for i in 0..bone_count {
+            let Some(&bone_index) = bones.get(i) else {
+                p = p.saturating_add(3);
+                continue;
+            };
+            if bone_index >= skeleton.bones.len() {
+                p = p.saturating_add(3);
+                continue;
+            }
+
+            let (mut a, mut b, mut c0, mut d, world_x, world_y) = {
+                let bone = &skeleton.bones[bone_index];
+                (bone.a, bone.b, bone.c, bone.d, bone.world_x, bone.world_y)
+            };
+            let new_world_x = world_x + (bone_x - world_x) * mix_x;
+            let new_world_y = world_y + (bone_y - world_y) * mix_y;
+
+            let x = *positions.get(p).unwrap_or(&bone_x);
+            let y = *positions.get(p + 1).unwrap_or(&bone_y);
+            let dx = x - bone_x;
+            let dy = y - bone_y;
+
+            if scale {
+                let length = *lengths.get(i).unwrap_or(&0.0);
+                if length >= EPSILON {
+                    let s = (((dx * dx + dy * dy).sqrt() / length) - 1.0) * mix_rotate + 1.0;
+                    a *= s;
+                    c0 *= s;
+                }
+            }
+
+            bone_x = x;
+            bone_y = y;
+
+            if mix_rotate > 0.0 {
+                let mut r = if tangents {
+                    *positions.get(p - 1).unwrap_or(&0.0)
+                } else if *spaces.get(i + 1).unwrap_or(&0.0) < EPSILON {
+                    *positions.get(p + 2).unwrap_or(&0.0)
+                } else {
+                    dy.atan2(dx)
+                };
+                r -= c0.atan2(a);
+                if tip {
+                    let cos = r.cos();
+                    let sin = r.sin();
+                    let length = skeleton
+                        .data
+                        .bones
+                        .get(bone_index)
+                        .map(|b| b.length)
+                        .unwrap_or(0.0);
+                    bone_x += (length * (cos * a - sin * c0) - dx) * mix_rotate;
+                    bone_y += (length * (sin * a + cos * c0) - dy) * mix_rotate;
+                } else {
+                    r += offset_rotation;
+                }
+
+                let r = wrap_pi(r) * mix_rotate;
+                let cos = r.cos();
+                let sin = r.sin();
+                let rotated_a = cos * a - sin * c0;
+                let rotated_b = cos * b - sin * d;
+                let rotated_c = sin * a + cos * c0;
+                let rotated_d = sin * b + cos * d;
+                a = rotated_a;
+                b = rotated_b;
+                c0 = rotated_c;
+                d = rotated_d;
+            }
+
+            {
+                let bone = &mut skeleton.bones[bone_index];
+                bone.world_x = new_world_x;
+                bone.world_y = new_world_y;
+                bone.a = a;
+                bone.b = b;
+                bone.c = c0;
+                bone.d = d;
+            }
+
+            skeleton.bone_modify_world(bone_index);
+
+            applied = true;
+            p += 3;
+        }
+
+        applied
+    };
+
+    skeleton.path_constraint_scratch[constraint_index] = scratch;
+    skeleton.path_constraints[constraint_index].bones = bones;
+    applied
+}
+
 #[allow(clippy::too_many_arguments)]
-pub(super) fn compute_path_world_positions<'a>(
+fn compute_path_world_positions<'a>(
     skeleton: &Skeleton,
     positions: &'a mut Vec<f32>,
     world: &mut Vec<f32>,
