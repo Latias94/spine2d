@@ -475,12 +475,55 @@ impl Skeleton {
         &mut self.ik_constraints
     }
 
+    pub fn find_ik_constraint_index(&self, constraint_name: &str) -> Option<usize> {
+        if constraint_name.is_empty() {
+            return None;
+        }
+        self.data
+            .ik_constraints
+            .iter()
+            .position(|constraint| constraint.name == constraint_name)
+    }
+
+    pub fn find_ik_constraint(&self, constraint_name: &str) -> Option<&IkConstraint> {
+        let index = self.find_ik_constraint_index(constraint_name)?;
+        self.ik_constraints.get(index)
+    }
+
+    pub fn find_ik_constraint_mut(&mut self, constraint_name: &str) -> Option<&mut IkConstraint> {
+        let index = self.find_ik_constraint_index(constraint_name)?;
+        self.ik_constraints.get_mut(index)
+    }
+
     pub fn transform_constraints(&self) -> &[TransformConstraint] {
         &self.transform_constraints
     }
 
     pub fn transform_constraints_mut(&mut self) -> &mut [TransformConstraint] {
         &mut self.transform_constraints
+    }
+
+    pub fn find_transform_constraint_index(&self, constraint_name: &str) -> Option<usize> {
+        if constraint_name.is_empty() {
+            return None;
+        }
+        self.data
+            .transform_constraints
+            .iter()
+            .position(|constraint| constraint.name == constraint_name)
+    }
+
+    pub fn find_transform_constraint(&self, constraint_name: &str) -> Option<&TransformConstraint> {
+        let index = self.find_transform_constraint_index(constraint_name)?;
+        self.transform_constraints.get(index)
+    }
+
+    pub fn find_transform_constraint_mut(
+        &mut self,
+        constraint_name: &str,
+    ) -> Option<&mut TransformConstraint> {
+        let index = self.find_transform_constraint_index(constraint_name)?;
+        self.transform_constraints.get_mut(index)
     }
 
     pub fn path_constraints(&self) -> &[PathConstraint] {
@@ -491,6 +534,29 @@ impl Skeleton {
         &mut self.path_constraints
     }
 
+    pub fn find_path_constraint_index(&self, constraint_name: &str) -> Option<usize> {
+        if constraint_name.is_empty() {
+            return None;
+        }
+        self.data
+            .path_constraints
+            .iter()
+            .position(|constraint| constraint.name == constraint_name)
+    }
+
+    pub fn find_path_constraint(&self, constraint_name: &str) -> Option<&PathConstraint> {
+        let index = self.find_path_constraint_index(constraint_name)?;
+        self.path_constraints.get(index)
+    }
+
+    pub fn find_path_constraint_mut(
+        &mut self,
+        constraint_name: &str,
+    ) -> Option<&mut PathConstraint> {
+        let index = self.find_path_constraint_index(constraint_name)?;
+        self.path_constraints.get_mut(index)
+    }
+
     pub fn physics_constraints(&self) -> &[PhysicsConstraint] {
         &self.physics_constraints
     }
@@ -499,12 +565,58 @@ impl Skeleton {
         &mut self.physics_constraints
     }
 
+    pub fn find_physics_constraint_index(&self, constraint_name: &str) -> Option<usize> {
+        if constraint_name.is_empty() {
+            return None;
+        }
+        self.data
+            .physics_constraints
+            .iter()
+            .position(|constraint| constraint.name == constraint_name)
+    }
+
+    pub fn find_physics_constraint(&self, constraint_name: &str) -> Option<&PhysicsConstraint> {
+        let index = self.find_physics_constraint_index(constraint_name)?;
+        self.physics_constraints.get(index)
+    }
+
+    pub fn find_physics_constraint_mut(
+        &mut self,
+        constraint_name: &str,
+    ) -> Option<&mut PhysicsConstraint> {
+        let index = self.find_physics_constraint_index(constraint_name)?;
+        self.physics_constraints.get_mut(index)
+    }
+
     pub fn slider_constraints(&self) -> &[SliderConstraint] {
         &self.slider_constraints
     }
 
     pub fn slider_constraints_mut(&mut self) -> &mut [SliderConstraint] {
         &mut self.slider_constraints
+    }
+
+    pub fn find_slider_constraint_index(&self, constraint_name: &str) -> Option<usize> {
+        if constraint_name.is_empty() {
+            return None;
+        }
+        self.data
+            .slider_constraints
+            .iter()
+            .position(|constraint| constraint.name == constraint_name)
+    }
+
+    pub fn find_slider_constraint(&self, constraint_name: &str) -> Option<&SliderConstraint> {
+        let index = self.find_slider_constraint_index(constraint_name)?;
+        self.slider_constraints.get(index)
+    }
+
+    pub fn find_slider_constraint_mut(
+        &mut self,
+        constraint_name: &str,
+    ) -> Option<&mut SliderConstraint> {
+        let index = self.find_slider_constraint_index(constraint_name)?;
+        self.slider_constraints.get_mut(index)
     }
 
     pub fn x(&self) -> f32 {

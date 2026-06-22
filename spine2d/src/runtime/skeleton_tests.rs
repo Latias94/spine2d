@@ -1,7 +1,9 @@
 use crate::{
-    AttachmentData, BlendMode, BoneData, IkConstraint, Inherit, MeshAttachmentData, MeshVertices,
-    PathConstraint, PhysicsConstraint, PhysicsConstraintData, RegionAttachmentData, ScaleYMode,
-    Skeleton, SkeletonData, SkinData, SliderConstraintData, SlotData, TransformConstraint,
+    AttachmentData, BlendMode, BoneData, IkConstraint, IkConstraintData, Inherit,
+    MeshAttachmentData, MeshVertices, PathConstraint, PathConstraintData, PhysicsConstraint,
+    PhysicsConstraintData, PositionMode, RegionAttachmentData, RotateMode, ScaleYMode, Skeleton,
+    SkeletonData, SkinData, SliderConstraintData, SlotData, SpacingMode, TransformConstraint,
+    TransformConstraintData,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -145,6 +147,95 @@ fn physics_constraint_data(name: &str, order: i32, bone: usize) -> PhysicsConstr
     }
 }
 
+fn constraint_lookup_skeleton_data() -> Arc<SkeletonData> {
+    Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: vec![SlotData {
+            name: "slot".to_string(),
+            bone: 0,
+            attachment: None,
+            ..Default::default()
+        }],
+        skins: HashMap::new(),
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: vec![IkConstraintData {
+            name: "ik".to_string(),
+            order: 0,
+            skin_required: false,
+            bones: vec![0],
+            target: 0,
+            scale_y_mode: ScaleYMode::None,
+            mix: 1.0,
+            softness: 0.0,
+            compress: false,
+            stretch: false,
+            bend_direction: 1,
+        }],
+        transform_constraints: vec![TransformConstraintData {
+            name: "transform".to_string(),
+            order: 1,
+            skin_required: false,
+            bones: vec![0],
+            source: 0,
+            local_source: false,
+            local_target: false,
+            additive: false,
+            clamp: false,
+            offsets: [0.0; 6],
+            properties: Vec::new(),
+            mix_rotate: 1.0,
+            mix_x: 1.0,
+            mix_y: 1.0,
+            mix_scale_x: 1.0,
+            mix_scale_y: 1.0,
+            mix_shear_y: 1.0,
+        }],
+        path_constraints: vec![PathConstraintData {
+            name: "path".to_string(),
+            order: 2,
+            bones: vec![0],
+            target: 0,
+            position_mode: PositionMode::Fixed,
+            spacing_mode: SpacingMode::Length,
+            rotate_mode: RotateMode::Tangent,
+            offset_rotation: 0.0,
+            position: 0.0,
+            spacing: 0.0,
+            mix_rotate: 1.0,
+            mix_x: 1.0,
+            mix_y: 1.0,
+            skin_required: false,
+        }],
+        physics_constraints: vec![physics_constraint_data("physics", 3, 0)],
+        slider_constraints: vec![SliderConstraintData {
+            name: "slider".to_string(),
+            order: 4,
+            skin_required: false,
+            setup_time: 0.0,
+            setup_mix: 1.0,
+            additive: false,
+            looped: false,
+            bone: Some(0),
+            property: None,
+            property_from: 0.0,
+            to: 0.0,
+            scale: 1.0,
+            local: false,
+            animation: None,
+        }],
+    })
+}
+
 #[test]
 fn skeleton_world_controls_are_public_and_ignore_non_finite_inputs() {
     let mut skeleton = Skeleton::new(empty_skeleton_data());
@@ -247,6 +338,78 @@ fn skeleton_finders_match_setup_order() {
         .unwrap()
         .set_color([0.2, 0.3, 0.4, 0.5]);
     assert_eq!(skeleton.slots()[1].color(), [0.2, 0.3, 0.4, 0.5]);
+}
+
+#[test]
+fn skeleton_constraint_finders_match_data_names() {
+    let mut skeleton = Skeleton::new(constraint_lookup_skeleton_data());
+
+    assert_eq!(skeleton.find_ik_constraint_index("ik"), Some(0));
+    assert_eq!(skeleton.find_ik_constraint("ik").unwrap().data_index(), 0);
+    skeleton.find_ik_constraint_mut("ik").unwrap().set_mix(0.25);
+    assert_eq!(skeleton.ik_constraints()[0].mix(), 0.25);
+
+    assert_eq!(
+        skeleton.find_transform_constraint_index("transform"),
+        Some(0)
+    );
+    assert_eq!(
+        skeleton
+            .find_transform_constraint("transform")
+            .unwrap()
+            .data_index(),
+        0
+    );
+    skeleton
+        .find_transform_constraint_mut("transform")
+        .unwrap()
+        .set_mix_x(0.5);
+    assert_eq!(skeleton.transform_constraints()[0].mix_x(), 0.5);
+
+    assert_eq!(skeleton.find_path_constraint_index("path"), Some(0));
+    assert_eq!(
+        skeleton.find_path_constraint("path").unwrap().data_index(),
+        0
+    );
+    skeleton
+        .find_path_constraint_mut("path")
+        .unwrap()
+        .set_position(2.0);
+    assert_eq!(skeleton.path_constraints()[0].position(), 2.0);
+
+    assert_eq!(skeleton.find_physics_constraint_index("physics"), Some(0));
+    assert_eq!(
+        skeleton
+            .find_physics_constraint("physics")
+            .unwrap()
+            .data_index(),
+        0
+    );
+    skeleton
+        .find_physics_constraint_mut("physics")
+        .unwrap()
+        .set_mix(0.75);
+    assert_eq!(skeleton.physics_constraints()[0].mix(), 0.75);
+
+    assert_eq!(skeleton.find_slider_constraint_index("slider"), Some(0));
+    assert_eq!(
+        skeleton
+            .find_slider_constraint("slider")
+            .unwrap()
+            .data_index(),
+        0
+    );
+    skeleton
+        .find_slider_constraint_mut("slider")
+        .unwrap()
+        .set_time(3.0);
+    assert_eq!(skeleton.slider_constraints()[0].time(), 3.0);
+
+    assert!(skeleton.find_ik_constraint("").is_none());
+    assert!(skeleton.find_transform_constraint("missing").is_none());
+    assert!(skeleton.find_path_constraint("").is_none());
+    assert!(skeleton.find_physics_constraint("missing").is_none());
+    assert!(skeleton.find_slider_constraint("").is_none());
 }
 
 #[test]
