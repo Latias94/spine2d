@@ -1,7 +1,7 @@
 use crate::{
-    BlendMode, BoneData, IkConstraint, Inherit, PathConstraint, PhysicsConstraint,
-    PhysicsConstraintData, ScaleYMode, Skeleton, SkeletonData, SliderConstraintData, SlotData,
-    TransformConstraint,
+    AttachmentData, BlendMode, BoneData, IkConstraint, Inherit, PathConstraint, PhysicsConstraint,
+    PhysicsConstraintData, RegionAttachmentData, ScaleYMode, Skeleton, SkeletonData, SkinData,
+    SliderConstraintData, SlotData, TransformConstraint,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -21,6 +21,88 @@ fn empty_skeleton_data() -> Arc<SkeletonData> {
         bones: Vec::new(),
         slots: Vec::new(),
         skins: HashMap::new(),
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    })
+}
+
+fn region_attachment(name: &str, color: [f32; 4]) -> AttachmentData {
+    AttachmentData::Region(RegionAttachmentData {
+        name: name.to_string(),
+        path: name.to_string(),
+        sequence: None,
+        color,
+        x: 0.0,
+        y: 0.0,
+        rotation: 0.0,
+        scale_x: 1.0,
+        scale_y: 1.0,
+        width: 1.0,
+        height: 1.0,
+    })
+}
+
+fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
+    let mut default_skin = SkinData::new("default", 2);
+    default_skin.attachments[0].insert(
+        "shared".to_string(),
+        region_attachment("default-shared", [1.0, 0.0, 0.0, 1.0]),
+    );
+    default_skin.attachments[1].insert(
+        "fallback".to_string(),
+        region_attachment("default-fallback", [0.0, 1.0, 0.0, 1.0]),
+    );
+
+    let mut custom_skin = SkinData::new("custom", 2);
+    custom_skin.attachments[0].insert(
+        "shared".to_string(),
+        region_attachment("custom-shared", [0.0, 0.0, 1.0, 1.0]),
+    );
+
+    let mut skins = HashMap::new();
+    skins.insert("default".to_string(), default_skin);
+    skins.insert("custom".to_string(), custom_skin);
+
+    Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![
+            BoneData {
+                name: "root".to_string(),
+                parent: None,
+                length: 0.0,
+                skin_required: false,
+                ..Default::default()
+            },
+            BoneData {
+                name: "child".to_string(),
+                parent: Some(0),
+                length: 0.0,
+                skin_required: false,
+                ..Default::default()
+            },
+        ],
+        slots: vec![
+            SlotData {
+                name: "slot0".to_string(),
+                bone: 0,
+                attachment: Some("shared".to_string()),
+                ..Default::default()
+            },
+            SlotData {
+                name: "slot1".to_string(),
+                bone: 1,
+                attachment: None,
+                ..Default::default()
+            },
+        ],
+        skins,
         events: HashMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
@@ -138,6 +220,128 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
     skeleton.set_scale_x(5.0);
     skeleton.set_scale_y(6.0);
     assert_eq!(skeleton.scale(), (5.0, 6.0));
+}
+
+#[test]
+fn skeleton_finders_match_setup_order() {
+    let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
+
+    assert_eq!(skeleton.root_bone().unwrap().data_index(), 0);
+    assert_eq!(skeleton.root_bone_mut().unwrap().data_index(), 0);
+    assert_eq!(skeleton.find_bone_index("root"), Some(0));
+    assert_eq!(skeleton.find_bone_index("child"), Some(1));
+    assert!(skeleton.find_bone("").is_none());
+    assert!(skeleton.find_slot("").is_none());
+    assert_eq!(skeleton.find_bone("child").unwrap().parent_index(), Some(0));
+
+    skeleton.root_bone_mut().unwrap().set_y(3.0);
+    assert_eq!(skeleton.bones()[0].y(), 3.0);
+
+    skeleton.find_bone_mut("child").unwrap().set_x(7.0);
+    assert_eq!(skeleton.bones()[1].x(), 7.0);
+
+    assert_eq!(skeleton.find_slot_index("slot1"), Some(1));
+    assert_eq!(skeleton.find_slot("slot0").unwrap().bone_index(), 0);
+    skeleton
+        .find_slot_mut("slot1")
+        .unwrap()
+        .set_color([0.2, 0.3, 0.4, 0.5]);
+    assert_eq!(skeleton.slots()[1].color(), [0.2, 0.3, 0.4, 0.5]);
+}
+
+#[test]
+fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
+    let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
+
+    assert_eq!(
+        skeleton.attachment(0, "shared").unwrap().name(),
+        "default-shared"
+    );
+    assert_eq!(
+        skeleton
+            .attachment_by_slot_name("slot0", "shared")
+            .unwrap()
+            .name(),
+        "default-shared"
+    );
+    assert_eq!(
+        skeleton
+            .attachment_by_slot_name("slot1", "fallback")
+            .unwrap()
+            .name(),
+        "default-fallback"
+    );
+    assert!(skeleton.attachment(0, "").is_none());
+    assert!(skeleton.attachment_by_slot_name("", "shared").is_none());
+
+    skeleton.set_skin(Some("custom")).unwrap();
+    assert_eq!(
+        skeleton.attachment(0, "shared").unwrap().name(),
+        "custom-shared"
+    );
+    assert_eq!(
+        skeleton
+            .attachment_by_slot_name("slot0", "shared")
+            .unwrap()
+            .name(),
+        "custom-shared"
+    );
+    assert_eq!(
+        skeleton
+            .attachment_by_slot_name("slot1", "fallback")
+            .unwrap()
+            .name(),
+        "default-fallback"
+    );
+}
+
+#[test]
+fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
+    let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
+
+    skeleton.set_skin(Some("custom")).unwrap();
+    assert_eq!(
+        skeleton.slots()[0].attachment_skin.as_deref(),
+        Some("custom")
+    );
+
+    {
+        let slot = &mut skeleton.slots_mut()[0];
+        slot.deform_mut().extend_from_slice(&[1.0, 2.0]);
+        slot.set_sequence_index(7);
+    }
+
+    skeleton.set_skin(None).unwrap();
+    assert!(skeleton.set_attachment("slot0", "shared"));
+    assert_eq!(skeleton.slots()[0].attachment_name(), Some("shared"));
+    assert_eq!(
+        skeleton.slots()[0].attachment_skin.as_deref(),
+        Some("default")
+    );
+    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
+    assert!(skeleton.slots()[0].deform().is_empty());
+
+    {
+        let slot = &mut skeleton.slots_mut()[0];
+        slot.deform_mut().extend_from_slice(&[3.0]);
+        slot.set_sequence_index(9);
+    }
+
+    assert!(!skeleton.set_attachment("slot0", "shared"));
+    assert_eq!(
+        skeleton.slots()[0].attachment_skin.as_deref(),
+        Some("default")
+    );
+    assert_eq!(skeleton.slots()[0].sequence_index(), 9);
+    assert_eq!(skeleton.slots()[0].deform(), &[3.0]);
+
+    assert!(skeleton.set_attachment("slot0", ""));
+    assert_eq!(skeleton.slots()[0].attachment_name(), None);
+    assert_eq!(skeleton.slots()[0].attachment_skin, None);
+    assert!(skeleton.slots()[0].deform().is_empty());
+    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
+    assert!(!skeleton.set_attachment("missing", "shared"));
+    assert!(!skeleton.set_attachment("", "shared"));
 }
 
 #[test]

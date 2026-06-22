@@ -357,12 +357,60 @@ impl Skeleton {
         &mut self.bones
     }
 
+    pub fn root_bone(&self) -> Option<&Bone> {
+        self.bones.first()
+    }
+
+    pub fn root_bone_mut(&mut self) -> Option<&mut Bone> {
+        self.bones.first_mut()
+    }
+
+    pub fn find_bone_index(&self, bone_name: &str) -> Option<usize> {
+        if bone_name.is_empty() {
+            return None;
+        }
+        self.data
+            .bones
+            .iter()
+            .position(|bone| bone.name == bone_name)
+    }
+
+    pub fn find_bone(&self, bone_name: &str) -> Option<&Bone> {
+        let index = self.find_bone_index(bone_name)?;
+        self.bones.get(index)
+    }
+
+    pub fn find_bone_mut(&mut self, bone_name: &str) -> Option<&mut Bone> {
+        let index = self.find_bone_index(bone_name)?;
+        self.bones.get_mut(index)
+    }
+
     pub fn slots(&self) -> &[Slot] {
         &self.slots
     }
 
     pub fn slots_mut(&mut self) -> &mut [Slot] {
         &mut self.slots
+    }
+
+    pub fn find_slot_index(&self, slot_name: &str) -> Option<usize> {
+        if slot_name.is_empty() {
+            return None;
+        }
+        self.data
+            .slots
+            .iter()
+            .position(|slot| slot.name == slot_name)
+    }
+
+    pub fn find_slot(&self, slot_name: &str) -> Option<&Slot> {
+        let index = self.find_slot_index(slot_name)?;
+        self.slots.get(index)
+    }
+
+    pub fn find_slot_mut(&mut self, slot_name: &str) -> Option<&mut Slot> {
+        let index = self.find_slot_index(slot_name)?;
+        self.slots.get_mut(index)
     }
 
     pub fn draw_order(&self) -> &[usize] {
@@ -834,6 +882,10 @@ impl Skeleton {
         slot_index: usize,
         attachment_name: &str,
     ) -> Option<&crate::AttachmentData> {
+        if attachment_name.is_empty() {
+            return None;
+        }
+
         let skin_name = self.skin.as_deref();
         if let Some(skin_name) = skin_name {
             if let Some(skin) = self.data.skin(skin_name)
@@ -851,6 +903,95 @@ impl Skeleton {
             && let Some(att) = default_skin.attachment(slot_index, attachment_name)
         {
             return Some(att);
+        }
+
+        None
+    }
+
+    pub fn attachment_by_slot_name(
+        &self,
+        slot_name: &str,
+        attachment_name: &str,
+    ) -> Option<&crate::AttachmentData> {
+        let slot_index = self.find_slot_index(slot_name)?;
+        self.attachment(slot_index, attachment_name)
+    }
+
+    pub fn set_attachment(&mut self, slot_name: &str, attachment_name: &str) -> bool {
+        if slot_name.is_empty() {
+            return false;
+        }
+        let Some(slot_index) = self.find_slot_index(slot_name) else {
+            return false;
+        };
+
+        if attachment_name.is_empty() {
+            let slot = &mut self.slots[slot_index];
+            if slot.attachment.is_none() && slot.attachment_skin.is_none() {
+                return false;
+            }
+            slot.attachment = None;
+            slot.attachment_skin = None;
+            slot.deform.clear();
+            slot.sequence_index = -1;
+            return true;
+        }
+
+        let Some(source_skin) = self.attachment_source_skin_name(slot_index, attachment_name)
+        else {
+            return false;
+        };
+        let slot = &mut self.slots[slot_index];
+        if slot.attachment.as_deref() == Some(attachment_name)
+            && slot.attachment_skin.as_deref() == Some(source_skin.as_str())
+        {
+            return false;
+        }
+
+        slot.attachment = Some(attachment_name.to_string());
+        slot.attachment_skin = Some(source_skin);
+        slot.deform.clear();
+        slot.sequence_index = -1;
+        true
+    }
+
+    fn attachment_source_skin_name(
+        &self,
+        slot_index: usize,
+        attachment_name: &str,
+    ) -> Option<String> {
+        if attachment_name.is_empty() {
+            return None;
+        }
+
+        if let Some(skin_name) = self.skin.as_deref() {
+            if self
+                .data
+                .skin(skin_name)
+                .and_then(|skin| skin.attachment(slot_index, attachment_name))
+                .is_some()
+            {
+                return Some(skin_name.to_string());
+            }
+            if skin_name != "default"
+                && self
+                    .data
+                    .skin("default")
+                    .and_then(|skin| skin.attachment(slot_index, attachment_name))
+                    .is_some()
+            {
+                return Some("default".to_string());
+            }
+            return None;
+        }
+
+        if self
+            .data
+            .skin("default")
+            .and_then(|skin| skin.attachment(slot_index, attachment_name))
+            .is_some()
+        {
+            return Some("default".to_string());
         }
 
         None
