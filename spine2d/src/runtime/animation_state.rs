@@ -821,7 +821,7 @@ impl TrackEntryHandle {
     }
 
     pub fn set_delay(&self, state: &mut AnimationState, delay: f32) {
-        if !delay.is_finite() || delay < 0.0 {
+        if delay < 0.0 {
             return;
         }
         self.with_entry_mut(state, |entry| {
@@ -850,11 +850,13 @@ impl TrackEntryHandle {
         let previous = state.previous_entry_for(self.id);
         let resolved_delay = if delay > 0.0 {
             delay
-        } else {
+        } else if delay <= 0.0 {
             previous
                 .and_then(|id| state.entry(id))
                 .map(|entry| (delay + entry.track_complete() - mix_duration).max(0.0))
                 .unwrap_or(0.0)
+        } else {
+            delay
         };
 
         self.with_entry_mut(state, |entry| {
