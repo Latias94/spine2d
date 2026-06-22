@@ -16,4 +16,5 @@
 * **Formatting gate green**: `cargo fmt --all --check` passed.
 
 ## 2026-06-23
+* **Autonomous parity hardening started**: Created `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`; full baseline gate `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast` passed with `544 passed, 10 skipped`.
 * **C++ reference narrowed**: Active baseline moved to latest verified 4.3 tag `spine-ts-4.3.8` (`8e12b1250ab88c0f890849ea45aab80338cead63`) as the reproducibility anchor. Runtime parity now treats `spine-cpp` as the sole behaviour reference; other runtime tags are metadata only.
