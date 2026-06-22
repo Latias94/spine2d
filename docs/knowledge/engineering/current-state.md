@@ -13,7 +13,7 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `567 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `568 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `42 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu`, `cargo check -p spine2d-wgpu --examples --features json`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
@@ -66,6 +66,7 @@ status: "active"
   - Added `Bone::is_y_down/set_y_down` in commit `d374ddf`; `Skeleton::scale_y()` and world transforms now honor the C++-style global Y-down switch, while the default stays false to preserve the repo's Y-up oracle baseline.
   - Removed hidden `Skeleton::debug_update_cache` in commit `71ddc60`; debugging callers now format the typed `update_cache_items()` view locally instead of keeping a Rust-only public compatibility helper.
   - Renamed hidden `Skeleton::slot_vertex_attachment_world_vertices` to documented `slot_attachment_world_vertices` in breaking commit `9ea3c43`, matching the C++ `VertexAttachment::computeWorldVertices` role without keeping the old hidden Rust-only name.
+  - Separated applied draw order in commit `26c4709`; `Skeleton::draw_order()` now reports the applied buffer while `draw_order_pose()` keeps the unconstrained pose, matching C++ `DrawOrder` pose/applied semantics closely enough for slider-driven draw-order timelines.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:

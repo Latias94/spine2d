@@ -262,6 +262,8 @@ flowchart TB
 
 **Recent update:** Commit `9ea3c43` renamed the hidden vertex helper to documented `Skeleton::slot_attachment_world_vertices`, keeping the useful C++ `VertexAttachment::computeWorldVertices` equivalent while deleting the old hidden name.
 
+**Recent update:** Commit `26c4709` split applied draw order from the unconstrained pose and routed slider draw-order timelines through the applied buffer, matching C++ `DrawOrder` semantics more closely without adding a dedicated wrapper type yet.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
