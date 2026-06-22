@@ -21,6 +21,67 @@ use crate::{SkeletonData, geometry::SkeletonClipper};
 use path::{PathConstraintScratch, estimate_path_attachment_scratch_capacities};
 use std::sync::Arc;
 
+#[derive(Copy, Clone, Debug)]
+pub enum ConstraintRef<'a> {
+    Ik(&'a IkConstraint),
+    Transform(&'a TransformConstraint),
+    Path(&'a PathConstraint),
+    Physics(&'a PhysicsConstraint),
+    Slider(&'a SliderConstraint),
+}
+
+impl ConstraintRef<'_> {
+    pub fn data_index(&self) -> usize {
+        match self {
+            ConstraintRef::Ik(constraint) => constraint.data_index(),
+            ConstraintRef::Transform(constraint) => constraint.data_index(),
+            ConstraintRef::Path(constraint) => constraint.data_index(),
+            ConstraintRef::Physics(constraint) => constraint.data_index(),
+            ConstraintRef::Slider(constraint) => constraint.data_index(),
+        }
+    }
+
+    fn order(&self, data: &SkeletonData) -> i32 {
+        match self {
+            ConstraintRef::Ik(constraint) => data
+                .ik_constraints
+                .get(constraint.data_index())
+                .map(|constraint| constraint.order)
+                .unwrap_or(0),
+            ConstraintRef::Transform(constraint) => data
+                .transform_constraints
+                .get(constraint.data_index())
+                .map(|constraint| constraint.order)
+                .unwrap_or(0),
+            ConstraintRef::Path(constraint) => data
+                .path_constraints
+                .get(constraint.data_index())
+                .map(|constraint| constraint.order)
+                .unwrap_or(0),
+            ConstraintRef::Physics(constraint) => data
+                .physics_constraints
+                .get(constraint.data_index())
+                .map(|constraint| constraint.order)
+                .unwrap_or(0),
+            ConstraintRef::Slider(constraint) => data
+                .slider_constraints
+                .get(constraint.data_index())
+                .map(|constraint| constraint.order)
+                .unwrap_or(0),
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        match self {
+            ConstraintRef::Ik(constraint) => constraint.is_active(),
+            ConstraintRef::Transform(constraint) => constraint.is_active(),
+            ConstraintRef::Path(constraint) => constraint.is_active(),
+            ConstraintRef::Physics(constraint) => constraint.is_active(),
+            ConstraintRef::Slider(constraint) => constraint.is_active(),
+        }
+    }
+}
+
 fn atan2_degrees(y: f32, x: f32) -> f32 {
     atan2_radians(y, x).to_degrees()
 }
@@ -492,6 +553,27 @@ impl Skeleton {
 
     pub fn ik_constraints(&self) -> &[IkConstraint] {
         &self.ik_constraints
+    }
+
+    pub fn constraints(&self) -> Vec<ConstraintRef<'_>> {
+        let mut constraints = Vec::with_capacity(
+            self.ik_constraints.len()
+                + self.transform_constraints.len()
+                + self.path_constraints.len()
+                + self.physics_constraints.len()
+                + self.slider_constraints.len(),
+        );
+        constraints.extend(self.ik_constraints.iter().map(ConstraintRef::Ik));
+        constraints.extend(
+            self.transform_constraints
+                .iter()
+                .map(ConstraintRef::Transform),
+        );
+        constraints.extend(self.path_constraints.iter().map(ConstraintRef::Path));
+        constraints.extend(self.physics_constraints.iter().map(ConstraintRef::Physics));
+        constraints.extend(self.slider_constraints.iter().map(ConstraintRef::Slider));
+        constraints.sort_by_key(|constraint| constraint.order(self.data.as_ref()));
+        constraints
     }
 
     pub fn ik_constraints_mut(&mut self) -> &mut [IkConstraint] {

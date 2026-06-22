@@ -1,9 +1,10 @@
 use crate::{
-    AttachmentData, BlendMode, BoneData, ClippingAttachmentData, IkConstraint, IkConstraintData,
-    Inherit, MeshAttachmentData, MeshVertices, PathConstraint, PathConstraintData,
-    PhysicsConstraint, PhysicsConstraintData, PositionMode, RegionAttachmentData, RotateMode,
-    ScaleYMode, Skeleton, SkeletonData, SkinData, SliderConstraintData, SlotData, SpacingMode,
-    TransformConstraint, TransformConstraintData, UpdateCacheItem,
+    AttachmentData, BlendMode, BoneData, ClippingAttachmentData, ConstraintRef, IkConstraint,
+    IkConstraintData, Inherit, MeshAttachmentData, MeshVertices, PathConstraint,
+    PathConstraintData, PhysicsConstraint, PhysicsConstraintData, PositionMode,
+    RegionAttachmentData, RotateMode, ScaleYMode, Skeleton, SkeletonData, SkinData,
+    SliderConstraintData, SlotData, SpacingMode, TransformConstraint, TransformConstraintData,
+    UpdateCacheItem,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -719,6 +720,31 @@ fn skeleton_constraint_finders_match_data_names() {
     assert!(skeleton.find_path_constraint("").is_none());
     assert!(skeleton.find_physics_constraint("missing").is_none());
     assert!(skeleton.find_slider_constraint("").is_none());
+}
+
+#[test]
+fn skeleton_constraints_expose_ordered_typed_constraint_refs() {
+    let skeleton = Skeleton::new(constraint_lookup_skeleton_data());
+    let constraints = skeleton.constraints();
+
+    assert_eq!(constraints.len(), 5);
+    assert!(constraints.iter().all(ConstraintRef::is_active));
+    match constraints.as_slice() {
+        [
+            ConstraintRef::Ik(ik),
+            ConstraintRef::Transform(transform),
+            ConstraintRef::Path(path),
+            ConstraintRef::Physics(physics),
+            ConstraintRef::Slider(slider),
+        ] => {
+            assert_eq!(ik.data_index(), 0);
+            assert_eq!(transform.data_index(), 0);
+            assert_eq!(path.data_index(), 0);
+            assert_eq!(physics.data_index(), 0);
+            assert_eq!(slider.data_index(), 0);
+        }
+        other => panic!("unexpected constraint order: {other:?}"),
+    }
 }
 
 #[test]
