@@ -4,9 +4,7 @@ use bevy::asset::AssetEvent;
 use bevy::ecs::lifecycle::RemovedComponents;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use spine2d::{
-    AnimationState, AnimationStateData, Skeleton, TrackEntryHandle, build_draw_list_with_atlas,
-};
+use spine2d::{AnimationState, AnimationStateData, Skeleton, build_draw_list_with_atlas};
 use std::collections::HashSet;
 
 use render::despawn_mesh_children;
@@ -18,7 +16,7 @@ use crate::{
     SpineInstance, SpineInstanceKey, SpineInstanceParts, SpineLifecycleEvent,
     SpineLifecycleEventKind, SpineMeshChild, SpineReady, SpineReleaseReason, SpineRuntimeState,
     SpineSkeletonAsset, SpineSkeletonCommand, SpineSkeletonCommandKind, SpineSkeletonControl,
-    SpineSkin, SpineTrackEntrySettings, SpineTrackState, SpineWorld,
+    SpineSkin, SpineTrackState, SpineWorld,
 };
 
 type SpawnSpineQuery<'w, 's> = Query<
@@ -344,7 +342,7 @@ pub fn apply_spine_animation_commands(
                         continue;
                     }
                 };
-                apply_track_entry_settings(&mut instance.animation_state, handle, settings);
+                settings.apply(&mut instance.animation_state, handle);
                 if *track_index == 0 {
                     instance.animation_name = Some(animation.clone());
                     instance.loop_animation = *loop_animation;
@@ -372,7 +370,7 @@ pub fn apply_spine_animation_commands(
                         continue;
                     }
                 };
-                apply_track_entry_settings(&mut instance.animation_state, handle, settings);
+                settings.apply(&mut instance.animation_state, handle);
             }
             SpineAnimationCommandKind::SetEmpty {
                 track_index,
@@ -392,7 +390,7 @@ pub fn apply_spine_animation_commands(
                         continue;
                     }
                 };
-                apply_track_entry_settings(&mut instance.animation_state, handle, settings);
+                settings.apply(&mut instance.animation_state, handle);
                 if *track_index == 0 {
                     instance.animation_name = None;
                     instance.loop_animation = false;
@@ -418,7 +416,7 @@ pub fn apply_spine_animation_commands(
                         continue;
                     }
                 };
-                apply_track_entry_settings(&mut instance.animation_state, handle, settings);
+                settings.apply(&mut instance.animation_state, handle);
             }
             SpineAnimationCommandKind::SetEmptyAnimations { mix_duration } => {
                 if let Err(err) = instance.animation_state.set_empty_animations(*mix_duration) {
@@ -661,64 +659,6 @@ fn apply_animation_state_config(
     }
 }
 
-fn apply_track_entry_settings(
-    animation_state: &mut AnimationState,
-    handle: TrackEntryHandle,
-    settings: &SpineTrackEntrySettings,
-) {
-    if let Some(track_end) = settings.track_end {
-        handle.set_track_end(animation_state, track_end);
-    }
-    if let Some(delay) = settings.delay {
-        handle.set_delay(animation_state, delay);
-    }
-    if let Some(time_scale) = settings.time_scale {
-        handle.set_time_scale(animation_state, time_scale);
-    }
-    if let Some(mix_duration) = settings.mix_duration {
-        handle.set_mix_duration(animation_state, mix_duration);
-    }
-    if let Some(mix_interpolation) = settings.mix_interpolation {
-        handle.set_mix_interpolation(animation_state, mix_interpolation);
-    }
-    if let Some(additive) = settings.additive {
-        handle.set_additive(animation_state, additive);
-    }
-    if let Some(alpha) = settings.alpha {
-        handle.set_alpha(animation_state, alpha);
-    }
-    if let Some(reverse) = settings.reverse {
-        handle.set_reverse(animation_state, reverse);
-    }
-    if let Some(shortest_rotation) = settings.shortest_rotation {
-        handle.set_shortest_rotation(animation_state, shortest_rotation);
-    }
-    if settings.reset_rotation_directions {
-        handle.reset_rotation_directions(animation_state);
-    }
-    if let Some(threshold) = settings.alpha_attachment_threshold {
-        handle.set_alpha_attachment_threshold(animation_state, threshold);
-    }
-    if let Some(threshold) = settings.mix_attachment_threshold {
-        handle.set_mix_attachment_threshold(animation_state, threshold);
-    }
-    if let Some(threshold) = settings.mix_draw_order_threshold {
-        handle.set_mix_draw_order_threshold(animation_state, threshold);
-    }
-    if let Some(threshold) = settings.event_threshold {
-        handle.set_event_threshold(animation_state, threshold);
-    }
-    if let Some(animation_start) = settings.animation_start {
-        handle.set_animation_start(animation_state, animation_start);
-    }
-    if let Some(animation_end) = settings.animation_end {
-        handle.set_animation_end(animation_state, animation_end);
-    }
-    if let Some(animation_last) = settings.animation_last {
-        handle.set_animation_last(animation_state, animation_last);
-    }
-}
-
 fn apply_default_mix(state_data: &mut AnimationStateData, default_mix: f32, entity: Entity) {
     if let Err(err) = state_data.set_default_mix(default_mix) {
         warn!("Failed to set Spine default mix for {entity:?}: {err}");
@@ -773,7 +713,7 @@ mod tests {
     use super::render::texture_asset_path;
     use super::*;
     use crate::{
-        SpineAnimationEventKind, SpineDrawSignature, SpineRenderSignature,
+        SpineAnimationEventKind, SpineDrawSignature, SpineRenderSignature, SpineTrackEntrySettings,
         materials::{
             SpineAdditiveMaterial, SpineAdditivePmaMaterial, SpineMaterialCache,
             SpineMultiplyMaterial, SpineMultiplyPmaMaterial, SpineNormalMaterial,
@@ -1719,6 +1659,39 @@ mod tests {
             assert_eq!(entry.animation_start, 0.1);
             assert_eq!(entry.animation_end, 0.9);
             assert_eq!(entry.animation_last_time, 0.2);
+        });
+    }
+
+    #[test]
+    fn add_animation_settings_adjust_queued_delay_with_mix_duration() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+        app.update();
+
+        let previous_duration =
+            current_track_entry(&app, entity, 0, |entry| entry.animation.duration);
+        let mix_duration = previous_duration * 0.25;
+        let expected_delay = previous_duration - mix_duration;
+
+        app.world_mut()
+            .resource_mut::<Messages<SpineAnimationCommand>>()
+            .write(
+                SpineAnimationCommand::add(entity, 0, "second", false, 0.0).with_entry_settings(
+                    SpineTrackEntrySettings::new()
+                        .with_delay(0.0)
+                        .with_mix_duration(mix_duration),
+                ),
+            );
+        app.update();
+
+        queued_track_entry(&app, entity, 0, 0, |entry| {
+            assert!((entry.delay - expected_delay).abs() <= 0.0001);
+            assert!((entry.mix_duration - mix_duration).abs() <= 0.0001);
         });
     }
 

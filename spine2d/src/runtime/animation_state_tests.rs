@@ -285,6 +285,41 @@ fn add_empty_animation_delay_is_adjusted_to_end_with_previous_entry() {
 }
 
 #[test]
+fn track_entry_set_delay_ignores_negative_values() {
+    let (mut state, _skeleton, _recording) = setup();
+
+    let entry = state.set_animation(0, "events0", false).unwrap();
+    entry.set_delay(&mut state, 0.25);
+    entry.set_delay(&mut state, -0.5);
+
+    let delay = state
+        .with_track_entry(0, |entry| entry.delay)
+        .expect("current entry");
+    assert_eq!(round3(delay), 0.25);
+}
+
+#[test]
+fn track_entry_set_mix_duration_with_delay_adjusts_queued_delay() {
+    let data = crate::SkeletonData::from_json_str(EMPTY_DELAY_JSON).unwrap();
+    let state_data = AnimationStateData::new(data);
+    let mut state = AnimationState::new(state_data);
+
+    state.set_animation(0, "a", false).unwrap();
+    let queued = state.add_animation(0, "a", false, 0.0).unwrap();
+    queued.set_mix_duration_with_delay(&mut state, 0.4, 0.0);
+
+    let delay = state
+        .queue_front_delay_for_tests(0)
+        .expect("queued entry delay");
+    assert_eq!(round3(delay), 0.6);
+
+    let mix_duration = state
+        .with_queued_track_entry(0, 0, |entry| entry.mix_duration)
+        .expect("queued entry");
+    assert_eq!(round3(mix_duration), 0.4);
+}
+
+#[test]
 fn events_0p1_time_step() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(RecordingListener {
