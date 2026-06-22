@@ -268,6 +268,8 @@ flowchart TB
 
 **Recent update:** Commit `068263d` removed the Rust-only `Slot::set_attachment_name` public helper. Bare name mutation cannot match C++ `SlotPose::setAttachment(Attachment*)` because it lacks attachment object identity and timeline-attachment comparison; runtime name changes now use `Skeleton::set_attachment`.
 
+**Recent update:** Commit `7b83c3c` removed the Rust-only `Slot::set_bone_index` public helper. C++ exposes `Slot::getBone()` but not runtime slot rebinding, so Rust keeps `bone_index()` read-only for external callers.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
