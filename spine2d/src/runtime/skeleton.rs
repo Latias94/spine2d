@@ -179,6 +179,8 @@ pub struct Skeleton {
     bone_children: Vec<Vec<usize>>,
     pub(crate) slots: Vec<Slot>,
     pub(crate) draw_order: Vec<usize>,
+    applied_draw_order: Vec<usize>,
+    draw_order_constrained: bool,
     pub(crate) skin: Option<String>,
     pub(crate) color: [f32; 4],
     wind_x: f32,
@@ -265,6 +267,7 @@ impl Skeleton {
             .collect::<Vec<_>>();
 
         let draw_order = (0..slots.len()).collect::<Vec<_>>();
+        let applied_draw_order = Vec::new();
         // Match upstream: skeletons start with no skin. The "default" skin (if present) is only
         // used as a fallback for attachment resolution.
         let skin = None;
@@ -431,6 +434,8 @@ impl Skeleton {
             bone_children,
             slots,
             draw_order,
+            applied_draw_order,
+            draw_order_constrained: false,
             skin,
             color,
             wind_x: 1.0,
@@ -527,12 +532,71 @@ impl Skeleton {
         self.slots.get_mut(index)
     }
 
+    /// The draw order used for rendering.
+    ///
+    /// This matches C++ `DrawOrder::getAppliedPose()`: it is normally the same as
+    /// `draw_order_pose`, but slider constraints with draw-order timelines may modify this
+    /// applied order during world transform updates.
     pub fn draw_order(&self) -> &[usize] {
+        if self.draw_order_constrained {
+            &self.applied_draw_order
+        } else {
+            &self.draw_order
+        }
+    }
+
+    /// The unconstrained draw order pose set by animations or application code.
+    pub fn draw_order_pose(&self) -> &[usize] {
         &self.draw_order
     }
 
+    /// Mutates the unconstrained draw order pose.
     pub fn draw_order_mut(&mut self) -> &mut [usize] {
         &mut self.draw_order
+    }
+
+    pub(crate) fn draw_order_target_mut(&mut self, applied_pose: bool) -> &mut Vec<usize> {
+        if applied_pose {
+            self.ensure_draw_order_constrained();
+            &mut self.applied_draw_order
+        } else {
+            &mut self.draw_order
+        }
+    }
+
+    pub(crate) fn set_draw_order_to_setup(&mut self, applied_pose: bool) {
+        let slot_count = self.slots.len();
+        let target = self.draw_order_target_mut(applied_pose);
+        target.clear();
+        target.extend(0..slot_count);
+    }
+
+    pub(crate) fn set_draw_order_from_slice(&mut self, applied_pose: bool, order: &[usize]) {
+        let target = self.draw_order_target_mut(applied_pose);
+        target.clear();
+        target.extend_from_slice(order);
+    }
+
+    fn ensure_draw_order_constrained(&mut self) {
+        if !self.draw_order_constrained {
+            self.draw_order_constrained = true;
+            self.applied_draw_order.clone_from(&self.draw_order);
+        }
+    }
+
+    fn set_draw_order_constrained(&mut self, constrained: bool) {
+        self.draw_order_constrained = constrained;
+        if constrained {
+            self.applied_draw_order.clone_from(&self.draw_order);
+        } else {
+            self.applied_draw_order.clear();
+        }
+    }
+
+    fn reset_constrained_draw_order(&mut self) {
+        if self.draw_order_constrained {
+            self.applied_draw_order.clone_from(&self.draw_order);
+        }
     }
 
     pub fn skin_name(&self) -> Option<&str> {
@@ -941,6 +1005,7 @@ impl Skeleton {
         }
 
         self.rebuild_update_cache();
+        self.update_draw_order_constrained_state();
     }
 
     pub fn update_cache_items(&self) -> &[UpdateCacheItem] {
@@ -949,6 +1014,24 @@ impl Skeleton {
 
     fn rebuild_update_cache(&mut self) {
         self.update_cache = cache::rebuild_update_cache(self);
+    }
+
+    fn update_draw_order_constrained_state(&mut self) {
+        let constrained = self.slider_constraints.iter().any(|slider| {
+            if !slider.is_active() {
+                return false;
+            }
+            self.data
+                .slider_constraints
+                .get(slider.data_index())
+                .and_then(|data| data.animation)
+                .and_then(|animation_index| self.data.animations.get(animation_index))
+                .is_some_and(|animation| {
+                    animation.draw_order_timeline.is_some()
+                        || !animation.draw_order_folder_timelines.is_empty()
+                })
+        });
+        self.set_draw_order_constrained(constrained);
     }
 
     pub fn set_skin(&mut self, skin_name: Option<&str>) {
@@ -1156,6 +1239,7 @@ impl Skeleton {
         }
 
         self.draw_order = (0..self.slots.len()).collect::<Vec<_>>();
+        self.reset_constrained_draw_order();
     }
 
     pub fn attachment(
@@ -1243,7 +1327,7 @@ impl Skeleton {
         let mut max_y = f32::NEG_INFINITY;
         let mut has_vertices = false;
 
-        for &slot_index in &self.draw_order {
+        for &slot_index in self.draw_order() {
             let Some(slot) = self.slots.get(slot_index) else {
                 continue;
             };
@@ -1299,7 +1383,7 @@ impl Skeleton {
         let mut clipper = SkeletonClipper::default();
         let mut clip_end_slot = None;
 
-        for &slot_index in &self.draw_order {
+        for &slot_index in self.draw_order() {
             let Some(slot) = self.slots.get(slot_index) else {
                 continue;
             };
@@ -1523,6 +1607,7 @@ impl Skeleton {
 
     pub fn update_world_transform_with_physics(&mut self, physics: Physics) {
         self.update_epoch = self.update_epoch.wrapping_add(1);
+        self.reset_constrained_draw_order();
         self.reset_applied_transforms();
 
         let cache = std::mem::take(&mut self.update_cache);

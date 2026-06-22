@@ -1,8 +1,8 @@
 use crate::{
-    AttachmentData, BlendMode, Bone, BoneData, ClippingAttachmentData, ConstraintRef, IkConstraint,
-    IkConstraintData, Inherit, MeshAttachmentData, MeshVertices, PathConstraint,
-    PathConstraintData, PhysicsConstraint, PhysicsConstraintData, PositionMode,
-    RegionAttachmentData, RotateMode, ScaleYMode, Skeleton, SkeletonData, SkinData,
+    AttachmentData, BlendMode, Bone, BoneData, ClippingAttachmentData, ConstraintRef,
+    DrawOrderFrame, DrawOrderTimeline, IkConstraint, IkConstraintData, Inherit, MeshAttachmentData,
+    MeshVertices, PathConstraint, PathConstraintData, PhysicsConstraint, PhysicsConstraintData,
+    PositionMode, RegionAttachmentData, RotateMode, ScaleYMode, Skeleton, SkeletonData, SkinData,
     SliderConstraintData, SlotData, SpacingMode, TransformConstraint, TransformConstraintData,
     UpdateCacheItem,
 };
@@ -246,6 +246,91 @@ fn constraint_lookup_skeleton_data() -> Arc<SkeletonData> {
             scale: 1.0,
             local: false,
             animation: None,
+        }],
+    })
+}
+
+fn slider_draw_order_skeleton_data() -> Arc<SkeletonData> {
+    let animation = crate::runtime::finalize_animation(crate::Animation {
+        name: "slider-draw".to_string(),
+        duration: 0.0,
+        event_timeline: None,
+        bone_timelines: Vec::new(),
+        deform_timelines: Vec::new(),
+        sequence_timelines: Vec::new(),
+        slot_attachment_timelines: Vec::new(),
+        slot_color_timelines: Vec::new(),
+        slot_rgb_timelines: Vec::new(),
+        slot_alpha_timelines: Vec::new(),
+        slot_rgba2_timelines: Vec::new(),
+        slot_rgb2_timelines: Vec::new(),
+        ik_constraint_timelines: Vec::new(),
+        transform_constraint_timelines: Vec::new(),
+        path_constraint_timelines: Vec::new(),
+        physics_constraint_timelines: Vec::new(),
+        physics_reset_timelines: Vec::new(),
+        slider_time_timelines: Vec::new(),
+        slider_mix_timelines: Vec::new(),
+        draw_order_timeline: Some(DrawOrderTimeline {
+            frames: vec![DrawOrderFrame {
+                time: 0.0,
+                draw_order_to_setup_index: Some(vec![1, 0]),
+            }],
+        }),
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    });
+
+    let mut animation_index = HashMap::new();
+    animation_index.insert("slider-draw".to_string(), 0);
+
+    Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: vec![
+            SlotData {
+                name: "slot0".to_string(),
+                bone: 0,
+                attachment: None,
+                ..Default::default()
+            },
+            SlotData {
+                name: "slot1".to_string(),
+                bone: 0,
+                attachment: None,
+                ..Default::default()
+            },
+        ],
+        skins: HashMap::new(),
+        events: HashMap::new(),
+        animations: vec![animation],
+        animation_index,
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: vec![SliderConstraintData {
+            name: "slider".to_string(),
+            order: 0,
+            skin_required: false,
+            setup_time: 0.0,
+            setup_mix: 1.0,
+            additive: false,
+            looped: false,
+            bone: None,
+            property: None,
+            property_from: 0.0,
+            to: 0.0,
+            scale: 1.0,
+            local: false,
+            animation: Some(0),
         }],
     })
 }
@@ -565,6 +650,25 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     assert_eq!(skeleton.ik_constraints()[0].mix(), 0.8);
     assert_eq!(skeleton.slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
     assert_eq!(skeleton.slots()[0].sequence_index(), 0);
+    assert_eq!(skeleton.draw_order(), &[0, 1]);
+}
+
+#[test]
+fn slider_draw_order_uses_applied_buffer_without_mutating_pose() {
+    let mut skeleton = Skeleton::new(slider_draw_order_skeleton_data());
+
+    assert_eq!(skeleton.draw_order_pose(), &[0, 1]);
+    assert_eq!(skeleton.draw_order(), &[0, 1]);
+
+    skeleton.update_world_transform();
+
+    assert_eq!(skeleton.draw_order_pose(), &[0, 1]);
+    assert_eq!(skeleton.draw_order(), &[1, 0]);
+
+    skeleton.slider_constraints_mut()[0].set_mix(0.0);
+    skeleton.update_world_transform();
+
+    assert_eq!(skeleton.draw_order_pose(), &[0, 1]);
     assert_eq!(skeleton.draw_order(), &[0, 1]);
 }
 

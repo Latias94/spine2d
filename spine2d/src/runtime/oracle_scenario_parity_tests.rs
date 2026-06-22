@@ -339,7 +339,7 @@ fn dump_pose(skeleton: &Skeleton, time: f32, debug_slot: Option<&str>) -> PoseDu
         .collect();
 
     let draw_order = skeleton
-        .draw_order
+        .draw_order()
         .iter()
         .copied()
         .map(|i| i as i32)

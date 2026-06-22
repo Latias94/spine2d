@@ -436,6 +436,7 @@ fn apply_animation_timeline(
                     ctx.time,
                     mix_blend_is_current(ctx.blend),
                     false,
+                    ctx.applied_pose,
                 );
             }
         }
@@ -446,6 +447,7 @@ fn apply_animation_timeline(
                 ctx.time,
                 mix_blend_is_current(ctx.blend),
                 false,
+                ctx.applied_pose,
             );
         }
     }
@@ -680,6 +682,7 @@ pub(crate) fn apply_state_timeline(
                     ctx.time,
                     ctx.draw_order_from_current,
                     out,
+                    false,
                 );
             }
         }
@@ -690,6 +693,7 @@ pub(crate) fn apply_state_timeline(
                 ctx.time,
                 ctx.draw_order_from_current,
                 ctx.draw_order_folder_out,
+                false,
             );
         }
         TimelineKind::PhysicsReset(i) => {
@@ -2783,10 +2787,11 @@ pub(crate) fn apply_draw_order(
     time: f32,
     from_current: bool,
     out: bool,
+    applied_pose: bool,
 ) {
     if out {
         if !from_current {
-            skeleton.draw_order = (0..skeleton.slots.len()).collect::<Vec<_>>();
+            skeleton.set_draw_order_to_setup(applied_pose);
         }
         return;
     }
@@ -2797,7 +2802,7 @@ pub(crate) fn apply_draw_order(
 
     if time < timeline.frames[0].time {
         if !from_current {
-            skeleton.draw_order = (0..skeleton.slots.len()).collect::<Vec<_>>();
+            skeleton.set_draw_order_to_setup(applied_pose);
         }
         return;
     }
@@ -2811,10 +2816,10 @@ pub(crate) fn apply_draw_order(
         .as_ref()
     {
         if order.len() == skeleton.slots.len() {
-            skeleton.draw_order.clone_from(order);
+            skeleton.set_draw_order_from_slice(applied_pose, order);
         }
     } else {
-        skeleton.draw_order = (0..skeleton.slots.len()).collect::<Vec<_>>();
+        skeleton.set_draw_order_to_setup(applied_pose);
     }
 }
 
@@ -2824,6 +2829,7 @@ pub(crate) fn apply_draw_order_folder(
     time: f32,
     from_current: bool,
     out: bool,
+    applied_pose: bool,
 ) {
     if timeline.slots.is_empty() || timeline.frames.is_empty() {
         return;
@@ -2831,7 +2837,7 @@ pub(crate) fn apply_draw_order_folder(
 
     if out || time < timeline.frames[0].time {
         if !from_current {
-            setup_draw_order_folder(timeline, skeleton);
+            setup_draw_order_folder(timeline, skeleton, applied_pose);
         }
         return;
     }
@@ -2841,9 +2847,9 @@ pub(crate) fn apply_draw_order_folder(
         .partition_point(|f| f.time <= time)
         .saturating_sub(1);
     if let Some(draw_order) = timeline.frames[frame_index].folder_draw_order.as_ref() {
-        apply_draw_order_folder_frame(timeline, skeleton, draw_order);
+        apply_draw_order_folder_frame(timeline, skeleton, draw_order, applied_pose);
     } else {
-        setup_draw_order_folder(timeline, skeleton);
+        setup_draw_order_folder(timeline, skeleton, applied_pose);
     }
 }
 
@@ -2851,11 +2857,15 @@ fn mix_blend_is_current(blend: MixBlend) -> bool {
     matches!(blend, MixBlend::Replace | MixBlend::Add)
 }
 
-fn setup_draw_order_folder(timeline: &DrawOrderFolderTimeline, skeleton: &mut Skeleton) {
+fn setup_draw_order_folder(
+    timeline: &DrawOrderFolderTimeline,
+    skeleton: &mut Skeleton,
+    applied_pose: bool,
+) {
     let mut found = 0usize;
     let done = timeline.slots.len();
     let in_folder = draw_order_folder_mask(timeline, skeleton.slots.len());
-    for slot_index in &mut skeleton.draw_order {
+    for slot_index in skeleton.draw_order_target_mut(applied_pose) {
         if in_folder.get(*slot_index).copied().unwrap_or(false) {
             *slot_index = timeline.slots[found];
             found += 1;
@@ -2870,6 +2880,7 @@ fn apply_draw_order_folder_frame(
     timeline: &DrawOrderFolderTimeline,
     skeleton: &mut Skeleton,
     draw_order: &[usize],
+    applied_pose: bool,
 ) {
     if draw_order.len() != timeline.slots.len() {
         return;
@@ -2878,7 +2889,7 @@ fn apply_draw_order_folder_frame(
     let mut found = 0usize;
     let done = timeline.slots.len();
     let in_folder = draw_order_folder_mask(timeline, skeleton.slots.len());
-    for slot_index in &mut skeleton.draw_order {
+    for slot_index in skeleton.draw_order_target_mut(applied_pose) {
         if in_folder.get(*slot_index).copied().unwrap_or(false) {
             let Some(&folder_index) = draw_order.get(found) else {
                 return;
