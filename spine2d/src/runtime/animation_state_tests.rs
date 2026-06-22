@@ -293,7 +293,7 @@ fn track_entry_set_delay_ignores_negative_values() {
     entry.set_delay(&mut state, -0.5);
 
     let delay = state
-        .with_track_entry(0, |entry| entry.delay)
+        .with_track_entry(0, |entry| entry.delay())
         .expect("current entry");
     assert_eq!(round3(delay), 0.25);
 }
@@ -314,7 +314,7 @@ fn track_entry_set_mix_duration_with_delay_adjusts_queued_delay() {
     assert_eq!(round3(delay), 0.6);
 
     let mix_duration = state
-        .with_queued_track_entry(0, 0, |entry| entry.mix_duration)
+        .with_queued_track_entry(0, 0, |entry| entry.mix_duration())
         .expect("queued entry");
     assert_eq!(round3(mix_duration), 0.4);
 }
@@ -2847,13 +2847,13 @@ fn state_time_scale_scales_update_and_queue_progression() {
     assert_eq!(round3(state.time()), 1.5);
     assert_eq!(
         state
-            .with_track_entry(0, |entry| entry.animation.name.clone())
+            .with_track_entry(0, |entry| entry.animation().name.clone())
             .expect("track 0 should have advanced to the queued animation"),
         "events1"
     );
     assert_eq!(
         state
-            .with_track_entry(0, |entry| round3(entry.track_time))
+            .with_track_entry(0, |entry| round3(entry.track_time()))
             .expect("track 0 should remain active"),
         0.5
     );
@@ -3076,17 +3076,17 @@ fn set_empty_animations_sets_empty_entries_for_active_tracks() {
     assert_eq!(state.queue_front_delay_for_tests(0), None);
     state
         .with_track_entry(0, |entry| {
-            assert_eq!(entry.animation.name, "<empty>");
-            assert_eq!(entry.mix_duration, 0.4);
-            assert_eq!(entry.track_end, 0.4);
+            assert_eq!(entry.animation().name, "<empty>");
+            assert_eq!(entry.mix_duration(), 0.4);
+            assert_eq!(entry.track_end(), 0.4);
         })
         .unwrap();
     assert!(state.with_track_entry(1, |_| ()).is_none());
     state
         .with_track_entry(2, |entry| {
-            assert_eq!(entry.animation.name, "<empty>");
-            assert_eq!(entry.mix_duration, 0.4);
-            assert_eq!(entry.track_end, 0.4);
+            assert_eq!(entry.animation().name, "<empty>");
+            assert_eq!(entry.mix_duration(), 0.4);
+            assert_eq!(entry.track_end(), 0.4);
         })
         .unwrap();
 }
@@ -3111,7 +3111,7 @@ fn set_empty_animations_rejects_invalid_duration_without_mutating_tracks() {
     assert!(state.set_empty_animations(f32::INFINITY).is_err());
     assert_eq!(
         state
-            .with_track_entry(0, |entry| entry.animation.name.clone())
+            .with_track_entry(0, |entry| entry.animation().name.clone())
             .unwrap(),
         "events0"
     );

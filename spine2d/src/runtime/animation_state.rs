@@ -540,38 +540,38 @@ fn validate_mix_duration(duration: f32) -> Result<(), Error> {
 }
 
 pub struct TrackEntry {
-    pub track_index: usize,
-    pub animation_index: usize,
-    pub animation: Animation,
-    pub looped: bool,
-    pub additive: bool,
-    pub reverse: bool,
-    pub shortest_rotation: bool,
+    track_index: usize,
+    animation_index: usize,
+    animation: Animation,
+    looped: bool,
+    additive: bool,
+    reverse: bool,
+    shortest_rotation: bool,
     keep_hold: bool,
 
-    pub animation_start: f32,
-    pub animation_end: f32,
-    pub mix_duration: f32,
-    pub mix_time: f32,
+    animation_start: f32,
+    animation_end: f32,
+    mix_duration: f32,
+    mix_time: f32,
     mixing_from: Option<EntryId>,
-    pub delay: f32,
-    pub track_time: f32,
-    pub track_end: f32,
-    pub time_scale: f32,
+    delay: f32,
+    track_time: f32,
+    track_end: f32,
+    time_scale: f32,
 
-    pub animation_last_time: f32,
-    pub track_last_time: f32,
-    pub next_animation_last_time: f32,
-    pub next_track_last_time: f32,
+    animation_last_time: f32,
+    track_last_time: f32,
+    next_animation_last_time: f32,
+    next_track_last_time: f32,
 
-    pub alpha: f32,
-    pub total_alpha: f32,
-    pub mix_interpolation: MixInterpolation,
+    alpha: f32,
+    total_alpha: f32,
+    mix_interpolation: MixInterpolation,
     mixing_to: Option<EntryId>,
-    pub alpha_attachment_threshold: f32,
-    pub mix_attachment_threshold: f32,
-    pub mix_draw_order_threshold: f32,
-    pub event_threshold: f32,
+    alpha_attachment_threshold: f32,
+    mix_attachment_threshold: f32,
+    mix_draw_order_threshold: f32,
+    event_threshold: f32,
 
     listener: Option<Box<dyn TrackEntryListener>>,
 
@@ -652,7 +652,99 @@ impl TrackEntry {
         }
     }
 
-    fn animation_time(&self) -> f32 {
+    pub fn track_index(&self) -> usize {
+        self.track_index
+    }
+
+    pub fn animation_index(&self) -> usize {
+        self.animation_index
+    }
+
+    pub fn animation(&self) -> &Animation {
+        &self.animation
+    }
+
+    pub fn looped(&self) -> bool {
+        self.looped
+    }
+
+    pub fn additive(&self) -> bool {
+        self.additive
+    }
+
+    pub fn reverse(&self) -> bool {
+        self.reverse
+    }
+
+    pub fn shortest_rotation(&self) -> bool {
+        self.shortest_rotation
+    }
+
+    pub fn animation_start(&self) -> f32 {
+        self.animation_start
+    }
+
+    pub fn animation_end(&self) -> f32 {
+        self.animation_end
+    }
+
+    pub fn animation_last(&self) -> f32 {
+        self.animation_last_time
+    }
+
+    pub fn delay(&self) -> f32 {
+        self.delay
+    }
+
+    pub fn track_time(&self) -> f32 {
+        self.track_time
+    }
+
+    pub fn track_end(&self) -> f32 {
+        self.track_end
+    }
+
+    pub fn time_scale(&self) -> f32 {
+        self.time_scale
+    }
+
+    pub fn mix_duration(&self) -> f32 {
+        self.mix_duration
+    }
+
+    pub fn mix_time(&self) -> f32 {
+        self.mix_time
+    }
+
+    pub fn mix_interpolation(&self) -> MixInterpolation {
+        self.mix_interpolation
+    }
+
+    pub fn alpha(&self) -> f32 {
+        self.alpha
+    }
+
+    pub fn total_alpha(&self) -> f32 {
+        self.total_alpha
+    }
+
+    pub fn alpha_attachment_threshold(&self) -> f32 {
+        self.alpha_attachment_threshold
+    }
+
+    pub fn mix_attachment_threshold(&self) -> f32 {
+        self.mix_attachment_threshold
+    }
+
+    pub fn mix_draw_order_threshold(&self) -> f32 {
+        self.mix_draw_order_threshold
+    }
+
+    pub fn event_threshold(&self) -> f32 {
+        self.event_threshold
+    }
+
+    pub fn animation_time(&self) -> f32 {
         if self.looped {
             let duration = self.animation_end - self.animation_start;
             if duration.abs() <= TIME_EPSILON {
@@ -682,7 +774,7 @@ impl TrackEntry {
         }
     }
 
-    fn track_complete(&self) -> f32 {
+    pub fn track_complete(&self) -> f32 {
         let duration = self.animation_end - self.animation_start;
         if duration != 0.0 {
             if self.looped {

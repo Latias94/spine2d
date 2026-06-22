@@ -897,7 +897,7 @@ mod tests {
     }
 
     fn current_track_mix_duration(app: &App, entity: Entity) -> f32 {
-        current_track_entry(app, entity, 0, |entry| entry.mix_duration)
+        current_track_entry(app, entity, 0, |entry| entry.mix_duration())
     }
 
     fn current_track_entry<F: FnOnce(&spine2d::TrackEntry) -> R, R>(
@@ -1614,14 +1614,14 @@ mod tests {
         app.update();
 
         current_track_entry(&app, entity, 0, |entry| {
-            assert_eq!(entry.animation.name, "first");
-            assert_eq!(entry.alpha, 0.5);
-            assert!(entry.additive);
-            assert!(entry.reverse);
-            assert!(entry.shortest_rotation);
-            assert_eq!(entry.mix_duration, 0.25);
-            assert_eq!(entry.mix_interpolation, spine2d::MixInterpolation::Smooth);
-            assert_eq!(entry.event_threshold, 0.75);
+            assert_eq!(entry.animation().name, "first");
+            assert_eq!(entry.alpha(), 0.5);
+            assert!(entry.additive());
+            assert!(entry.reverse());
+            assert!(entry.shortest_rotation());
+            assert_eq!(entry.mix_duration(), 0.25);
+            assert_eq!(entry.mix_interpolation(), spine2d::MixInterpolation::Smooth);
+            assert_eq!(entry.event_threshold(), 0.75);
         });
     }
 
@@ -1652,13 +1652,13 @@ mod tests {
         app.update();
 
         queued_track_entry(&app, entity, 0, 0, |entry| {
-            assert_eq!(entry.animation.name, "second");
-            assert_eq!(entry.delay, 0.3);
-            assert_eq!(entry.track_end, 0.8);
-            assert_eq!(entry.mix_duration, 0.4);
-            assert_eq!(entry.animation_start, 0.1);
-            assert_eq!(entry.animation_end, 0.9);
-            assert_eq!(entry.animation_last_time, 0.2);
+            assert_eq!(entry.animation().name, "second");
+            assert_eq!(entry.delay(), 0.3);
+            assert_eq!(entry.track_end(), 0.8);
+            assert_eq!(entry.mix_duration(), 0.4);
+            assert_eq!(entry.animation_start(), 0.1);
+            assert_eq!(entry.animation_end(), 0.9);
+            assert_eq!(entry.animation_last(), 0.2);
         });
     }
 
@@ -1674,7 +1674,7 @@ mod tests {
         app.update();
 
         let previous_duration =
-            current_track_entry(&app, entity, 0, |entry| entry.animation.duration);
+            current_track_entry(&app, entity, 0, |entry| entry.animation().duration);
         let mix_duration = previous_duration * 0.25;
         let expected_delay = previous_duration - mix_duration;
 
@@ -1690,8 +1690,8 @@ mod tests {
         app.update();
 
         queued_track_entry(&app, entity, 0, 0, |entry| {
-            assert!((entry.delay - expected_delay).abs() <= 0.0001);
-            assert!((entry.mix_duration - mix_duration).abs() <= 0.0001);
+            assert!((entry.delay() - expected_delay).abs() <= 0.0001);
+            assert!((entry.mix_duration() - mix_duration).abs() <= 0.0001);
         });
     }
 
@@ -1720,12 +1720,12 @@ mod tests {
         app.update();
 
         current_track_entry(&app, entity, 0, |entry| {
-            assert_eq!(entry.animation.name, "<empty>");
-            assert_eq!(entry.mix_duration, 0.5);
-            assert_eq!(entry.track_end, 0.7);
-            assert_eq!(entry.alpha_attachment_threshold, 0.2);
-            assert_eq!(entry.mix_attachment_threshold, 0.3);
-            assert_eq!(entry.mix_draw_order_threshold, 0.4);
+            assert_eq!(entry.animation().name, "<empty>");
+            assert_eq!(entry.mix_duration(), 0.5);
+            assert_eq!(entry.track_end(), 0.7);
+            assert_eq!(entry.alpha_attachment_threshold(), 0.2);
+            assert_eq!(entry.mix_attachment_threshold(), 0.3);
+            assert_eq!(entry.mix_draw_order_threshold(), 0.4);
         });
     }
 
@@ -1752,9 +1752,9 @@ mod tests {
         app.update();
 
         current_track_entry(&app, entity, 0, |entry| {
-            assert_eq!(entry.animation.name, "first");
-            assert_eq!(entry.alpha, 1.0);
-            assert!(!entry.additive);
+            assert_eq!(entry.animation().name, "first");
+            assert_eq!(entry.alpha(), 1.0);
+            assert!(!entry.additive());
         });
     }
 
