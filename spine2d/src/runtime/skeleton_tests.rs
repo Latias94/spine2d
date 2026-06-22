@@ -1,4 +1,4 @@
-use crate::{BoneData, Inherit, Skeleton, SkeletonData};
+use crate::{BlendMode, BoneData, Inherit, Skeleton, SkeletonData, SlotData};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -172,6 +172,65 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
     assert_approx(bone.world_scale_y(), 2.0);
     assert_approx(bone.world_rotation_x(), 4.0f32.atan2(3.0).to_degrees());
     assert_approx(bone.world_rotation_y(), 90.0);
+}
+
+#[test]
+fn slot_accessors_expose_attachment_tint_and_deform_state() {
+    let data = Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: vec![SlotData {
+            name: "slot".to_string(),
+            bone: 0,
+            attachment: None,
+            ..Default::default()
+        }],
+        skins: HashMap::new(),
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    });
+
+    let mut skeleton = Skeleton::new(data);
+    let slot = &mut skeleton.slots_mut()[0];
+
+    assert_eq!(slot.bone_index(), 0);
+    slot.set_bone_index(0);
+    assert_eq!(slot.bone_index(), 0);
+
+    slot.set_color([0.1, 0.2, 0.3, 0.4]);
+    slot.set_has_dark(true);
+    slot.set_dark_color([0.5, 0.6, 0.7]);
+    slot.set_blend(BlendMode::Additive);
+    assert_eq!(slot.color(), [0.1, 0.2, 0.3, 0.4]);
+    assert!(slot.has_dark());
+    assert_eq!(slot.dark_color(), [0.5, 0.6, 0.7]);
+    assert_eq!(slot.blend(), BlendMode::Additive);
+
+    slot.set_sequence_index(4);
+    slot.deform_mut().extend_from_slice(&[1.0, 2.0, 3.0]);
+    slot.set_attachment_name(Some("mesh".to_string()));
+    assert_eq!(slot.attachment_name(), Some("mesh"));
+    assert_eq!(slot.sequence_index(), -1);
+    assert!(slot.deform().is_empty());
+
+    slot.set_sequence_index(6);
+    slot.deform_mut().extend_from_slice(&[9.0]);
+    slot.set_attachment_name(Some("mesh".to_string()));
+    assert_eq!(slot.sequence_index(), 6);
+    assert_eq!(slot.deform(), &[9.0]);
 }
 
 #[test]
