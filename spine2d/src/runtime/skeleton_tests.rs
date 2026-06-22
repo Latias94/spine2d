@@ -1,9 +1,9 @@
 use crate::{
-    AttachmentData, BlendMode, BoneData, IkConstraint, IkConstraintData, Inherit,
-    MeshAttachmentData, MeshVertices, PathConstraint, PathConstraintData, PhysicsConstraint,
-    PhysicsConstraintData, PositionMode, RegionAttachmentData, RotateMode, ScaleYMode, Skeleton,
-    SkeletonData, SkinData, SliderConstraintData, SlotData, SpacingMode, TransformConstraint,
-    TransformConstraintData,
+    AttachmentData, BlendMode, BoneData, ClippingAttachmentData, IkConstraint, IkConstraintData,
+    Inherit, MeshAttachmentData, MeshVertices, PathConstraint, PathConstraintData,
+    PhysicsConstraint, PhysicsConstraintData, PositionMode, RegionAttachmentData, RotateMode,
+    ScaleYMode, Skeleton, SkeletonData, SkinData, SliderConstraintData, SlotData, SpacingMode,
+    TransformConstraint, TransformConstraintData,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -350,6 +350,102 @@ fn setup_pose_split_skeleton_data() -> Arc<SkeletonData> {
             local: false,
             animation: None,
         }],
+    })
+}
+
+fn clipping_bounds_skeleton_data() -> Arc<SkeletonData> {
+    let mut default_skin = SkinData::new("default", 3);
+    default_skin.attachments[0].insert(
+        "clip".to_string(),
+        AttachmentData::Clipping(ClippingAttachmentData {
+            vertex_id: 1,
+            name: "clip".to_string(),
+            vertices: MeshVertices::Unweighted(vec![
+                [-1.0, -1.0],
+                [1.0, -1.0],
+                [1.0, 1.0],
+                [-1.0, 1.0],
+            ]),
+            end_slot: Some(1),
+            convex: false,
+            inverse: false,
+        }),
+    );
+    default_skin.attachments[1].insert(
+        "region0".to_string(),
+        AttachmentData::Region(RegionAttachmentData {
+            name: "region0".to_string(),
+            path: "region0".to_string(),
+            sequence: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            width: 4.0,
+            height: 4.0,
+        }),
+    );
+    default_skin.attachments[2].insert(
+        "region1".to_string(),
+        AttachmentData::Region(RegionAttachmentData {
+            name: "region1".to_string(),
+            path: "region1".to_string(),
+            sequence: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            x: 4.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            width: 2.0,
+            height: 2.0,
+        }),
+    );
+
+    let mut skins = HashMap::new();
+    skins.insert("default".to_string(), default_skin);
+
+    Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: vec![
+            SlotData {
+                name: "clip".to_string(),
+                bone: 0,
+                attachment: Some("clip".to_string()),
+                ..Default::default()
+            },
+            SlotData {
+                name: "region0".to_string(),
+                bone: 0,
+                attachment: Some("region0".to_string()),
+                ..Default::default()
+            },
+            SlotData {
+                name: "region1".to_string(),
+                bone: 0,
+                attachment: Some("region1".to_string()),
+                ..Default::default()
+            },
+        ],
+        skins,
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
     })
 }
 
@@ -772,6 +868,19 @@ fn skeleton_bounds_cover_region_and_mesh_attachments() {
     let mut skeleton = Skeleton::new(data);
     skeleton.update_world_transform();
     assert_eq!(skeleton.bounds(), Some((-1.0, -1.0, 6.0, 7.0)));
+}
+
+#[test]
+fn skeleton_bounds_with_clipping_respects_clip_polygons_and_end_slots() {
+    let mut skeleton = Skeleton::new(clipping_bounds_skeleton_data());
+    skeleton.setup_pose();
+    skeleton.update_world_transform();
+
+    assert_eq!(skeleton.bounds(), Some((-2.0, -2.0, 7.0, 4.0)));
+    assert_eq!(
+        skeleton.bounds_with_clipping(),
+        Some((-1.0, -1.0, 6.0, 2.0))
+    );
 }
 
 #[test]

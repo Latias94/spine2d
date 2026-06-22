@@ -16,7 +16,7 @@ pub use slider::SliderConstraint;
 pub use slot::Slot;
 pub use transform::TransformConstraint;
 
-use crate::SkeletonData;
+use crate::{SkeletonData, geometry::SkeletonClipper};
 use cache::UpdateCacheItem;
 use path::{PathConstraintScratch, estimate_path_attachment_scratch_capacities};
 use std::sync::Arc;
@@ -90,6 +90,25 @@ fn region_world_vertices(region: &crate::RegionAttachmentData, bone: &Bone) -> [
             bone.c * x + bone.d * y + bone.world_y,
         )
     })
+}
+
+fn include_flat_vertices_in_bounds(
+    vertices: &[f32],
+    min_x: &mut f32,
+    min_y: &mut f32,
+    max_x: &mut f32,
+    max_y: &mut f32,
+    has_vertices: &mut bool,
+) {
+    for point in vertices.chunks_exact(2) {
+        let x = point[0];
+        let y = point[1];
+        *has_vertices = true;
+        *min_x = (*min_x).min(x);
+        *min_y = (*min_y).min(y);
+        *max_x = (*max_x).max(x);
+        *max_y = (*max_y).max(y);
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1128,33 +1147,174 @@ impl Skeleton {
 
             match self.slot_attachment_data(slot_index) {
                 Some(crate::AttachmentData::Region(region)) => {
-                    for (x, y) in region_world_vertices(region, bone) {
-                        has_vertices = true;
-                        min_x = min_x.min(x);
-                        min_y = min_y.min(y);
-                        max_x = max_x.max(x);
-                        max_y = max_y.max(y);
+                    let mut vertices = [0.0; 8];
+                    for (i, (x, y)) in region_world_vertices(region, bone).into_iter().enumerate() {
+                        vertices[i * 2] = x;
+                        vertices[i * 2 + 1] = y;
                     }
+                    include_flat_vertices_in_bounds(
+                        &vertices,
+                        &mut min_x,
+                        &mut min_y,
+                        &mut max_x,
+                        &mut max_y,
+                        &mut has_vertices,
+                    );
                 }
                 Some(crate::AttachmentData::Mesh(_)) => {
                     let Some(vertices) = self.slot_vertex_attachment_world_vertices(slot_index)
                     else {
                         continue;
                     };
-                    for point in vertices.chunks_exact(2) {
-                        let x = point[0];
-                        let y = point[1];
-                        has_vertices = true;
-                        min_x = min_x.min(x);
-                        min_y = min_y.min(y);
-                        max_x = max_x.max(x);
-                        max_y = max_y.max(y);
-                    }
+                    include_flat_vertices_in_bounds(
+                        &vertices,
+                        &mut min_x,
+                        &mut min_y,
+                        &mut max_x,
+                        &mut max_y,
+                        &mut has_vertices,
+                    );
                 }
                 _ => {}
             }
         }
 
+        has_vertices.then_some((min_x, min_y, max_x - min_x, max_y - min_y))
+    }
+
+    pub fn bounds_with_clipping(&self) -> Option<(f32, f32, f32, f32)> {
+        let mut min_x = f32::INFINITY;
+        let mut min_y = f32::INFINITY;
+        let mut max_x = f32::NEG_INFINITY;
+        let mut max_y = f32::NEG_INFINITY;
+        let mut has_vertices = false;
+        let mut clipper = SkeletonClipper::default();
+        let mut clip_end_slot = None;
+
+        for &slot_index in &self.draw_order {
+            let Some(slot) = self.slots.get(slot_index) else {
+                continue;
+            };
+            let Some(bone) = self.bones.get(slot.bone) else {
+                continue;
+            };
+            if !bone.active {
+                continue;
+            }
+
+            let Some(attachment) = self.slot_attachment_data(slot_index) else {
+                if clipper.is_clipping() && clip_end_slot == Some(slot_index) {
+                    clipper.clip_end();
+                    clip_end_slot = None;
+                }
+                continue;
+            };
+
+            match attachment {
+                crate::AttachmentData::Region(region) => {
+                    let mut vertices = [0.0; 8];
+                    for (i, (x, y)) in region_world_vertices(region, bone).into_iter().enumerate() {
+                        vertices[i * 2] = x;
+                        vertices[i * 2 + 1] = y;
+                    }
+
+                    if clipper.is_clipping() {
+                        let uvs = [0.0; 8];
+                        let indices = [0_u16, 1, 2, 2, 3, 0];
+                        let (clipped, _, _) = clipper.clip_triangles(&vertices, &indices, &uvs, 2);
+                        include_flat_vertices_in_bounds(
+                            &clipped,
+                            &mut min_x,
+                            &mut min_y,
+                            &mut max_x,
+                            &mut max_y,
+                            &mut has_vertices,
+                        );
+                    } else {
+                        include_flat_vertices_in_bounds(
+                            &vertices,
+                            &mut min_x,
+                            &mut min_y,
+                            &mut max_x,
+                            &mut max_y,
+                            &mut has_vertices,
+                        );
+                    }
+                }
+                crate::AttachmentData::Mesh(mesh) => {
+                    let Some(vertices) = self.slot_vertex_attachment_world_vertices(slot_index)
+                    else {
+                        continue;
+                    };
+
+                    if clipper.is_clipping() {
+                        let mut indices = Vec::with_capacity(mesh.triangles.len());
+                        for &index in &mesh.triangles {
+                            let Ok(index) = u16::try_from(index) else {
+                                indices.clear();
+                                break;
+                            };
+                            indices.push(index);
+                        }
+
+                        if indices.is_empty() {
+                            include_flat_vertices_in_bounds(
+                                &vertices,
+                                &mut min_x,
+                                &mut min_y,
+                                &mut max_x,
+                                &mut max_y,
+                                &mut has_vertices,
+                            );
+                        } else {
+                            let uvs = vec![0.0; vertices.len()];
+                            let (clipped, _, _) =
+                                clipper.clip_triangles(&vertices, &indices, &uvs, 2);
+                            include_flat_vertices_in_bounds(
+                                &clipped,
+                                &mut min_x,
+                                &mut min_y,
+                                &mut max_x,
+                                &mut max_y,
+                                &mut has_vertices,
+                            );
+                        }
+                    } else {
+                        include_flat_vertices_in_bounds(
+                            &vertices,
+                            &mut min_x,
+                            &mut min_y,
+                            &mut max_x,
+                            &mut max_y,
+                            &mut has_vertices,
+                        );
+                    }
+                }
+                crate::AttachmentData::Clipping(clip) => {
+                    if clipper.is_clipping() && clip_end_slot == Some(slot_index) {
+                        clipper.clip_end();
+                        clip_end_slot = None;
+                    }
+
+                    let Some(vertices) = self.slot_vertex_attachment_world_vertices(slot_index)
+                    else {
+                        continue;
+                    };
+                    if clipper.clip_start(&vertices, clip.convex, clip.inverse) {
+                        clip_end_slot = clip.end_slot;
+                    }
+                    continue;
+                }
+                _ => {}
+            }
+
+            if clipper.is_clipping() && clip_end_slot == Some(slot_index) {
+                clipper.clip_end();
+                clip_end_slot = None;
+            }
+        }
+
+        clipper.clip_end();
         has_vertices.then_some((min_x, min_y, max_x - min_x, max_y - min_y))
     }
 
