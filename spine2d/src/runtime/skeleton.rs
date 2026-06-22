@@ -1,4 +1,7 @@
+mod path;
+
 use crate::SkeletonData;
+use path::{PathConstraintScratch, estimate_path_attachment_scratch_capacities};
 use std::sync::Arc;
 
 fn atan2_degrees(y: f32, x: f32) -> f32 {
@@ -23,54 +26,6 @@ fn sin_f32(v: f32) -> f32 {
 
 fn cos_f32(v: f32) -> f32 {
     (v as f64).cos() as f32
-}
-
-fn estimate_path_attachment_scratch_capacities(
-    data: &SkeletonData,
-    target_slot_index: usize,
-) -> (usize, usize) {
-    let mut max_world_floats = 8usize;
-    let mut max_curves = 0usize;
-
-    for skin in data.skins.values() {
-        let Some(slot_map) = skin.attachments.get(target_slot_index) else {
-            continue;
-        };
-        for attachment in slot_map.values() {
-            let crate::AttachmentData::Path(path) = attachment else {
-                continue;
-            };
-
-            let vertices_count = match &path.vertices {
-                crate::MeshVertices::Unweighted(v) => v.len(),
-                crate::MeshVertices::Weighted(v) => v.len(),
-            };
-            let vertices_length = vertices_count * 2;
-            if vertices_length < 6 {
-                continue;
-            }
-
-            if path.constant_speed {
-                let world_floats = if path.closed {
-                    vertices_length + 2
-                } else {
-                    vertices_length.saturating_sub(4)
-                };
-                max_world_floats = max_world_floats.max(world_floats);
-
-                let curves = if path.closed {
-                    vertices_length / 6
-                } else {
-                    (vertices_length / 6).saturating_sub(1)
-                };
-                max_curves = max_curves.max(curves);
-            } else {
-                max_world_floats = max_world_floats.max(8);
-            }
-        }
-    }
-
-    (max_world_floats, max_curves)
 }
 
 #[derive(Clone, Debug)]
@@ -327,15 +282,6 @@ pub struct Skeleton {
     update_epoch: u32,
     update_cache: Vec<UpdateCacheItem>,
     path_constraint_scratch: Vec<PathConstraintScratch>,
-}
-
-#[derive(Clone, Debug, Default)]
-struct PathConstraintScratch {
-    spaces: Vec<f32>,
-    lengths: Vec<f32>,
-    positions: Vec<f32>,
-    world: Vec<f32>,
-    curves: Vec<f32>,
 }
 
 #[derive(Copy, Clone, Debug)]
