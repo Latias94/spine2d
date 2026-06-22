@@ -252,6 +252,10 @@ flowchart TB
 
 **Recent update:** Commit `c20ab80` added `Bone::child_indices`, parent-space point transforms, local/world rotation transforms, and `rotate_world`, covering the remaining C++ `Bone`/`BonePose` helper surface while preserving Rust's index-based skeleton storage model.
 
+**Recent update:** Commit `b2cadd4` added `Skeleton` single-bone world/local transform update, validation, and modification marker helpers, covering C++ `BonePose::updateWorldTransform`, `updateLocalTransform`, `validateLocalTransform`, `modifyLocal`, and `modifyWorld` without exposing the raw update counter.
+
+**Recent update:** Commit `e3e96c0` aligned the public local-transform update wrappers with C++ `BonePose::updateLocalTransform` by keeping the world epoch current after rebuilding applied local state.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.

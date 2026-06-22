@@ -13,7 +13,7 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `563 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `566 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `42 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu`, `cargo check -p spine2d-wgpu --examples --features json`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
@@ -61,12 +61,14 @@ status: "active"
   - Added official-style update-cache inspection in commit `f0903f1`; `Skeleton::update_cache_items()` exposes a read-only typed view over the solver cache, matching C++ `getUpdateCache()` without exposing mutable internals.
   - Added official-style ordered constraint inspection in commit `295c836`; `Skeleton::constraints()` returns typed `ConstraintRef` entries sorted by global constraint order, covering the read-only Rust equivalent of C++ `getConstraints()`.
   - Added Bone/BonePose transform helper surface in commit `c20ab80`; `Bone::child_indices`, parent-space point transforms, local/world rotation transforms, and `rotate_world` now cover the remaining read-only/math helper shape from C++ `Bone`/`BonePose`.
+  - Added BonePose update/local helper surface in commit `b2cadd4`; `Skeleton` now exposes single-bone world/local transform update, validation, and local/world modification markers without exposing C++'s raw update counter.
+  - Fixed the public BonePose local-update wrapper in commit `e3e96c0`; `Skeleton::update_bone_local_transform` and validation now keep the bone world epoch current like C++ `BonePose::updateLocalTransform`.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: audit the remaining `BonePose` update/local-validation surface and the remaining `Skeleton.h` public/protected surface after `getSkin`, `getUpdateCache`, and read-only `getConstraints` are covered.
+  - Continue U6: audit the remaining `Bone.h`/`Skeleton.h` public/protected surface, especially whether C++ `Bone::isYDown/setYDown` needs a Rust equivalent.
 
 # Citations
 
