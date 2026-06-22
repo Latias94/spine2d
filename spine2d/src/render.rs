@@ -146,7 +146,11 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                         )
                     });
 
-                    let blend = slot.blend;
+                    let blend = skeleton
+                        .data
+                        .slots
+                        .get(slot.data_index())
+                        .map_or(BlendMode::Normal, |data| data.blend);
                     let (texture_path, uvs, premultiplied_alpha) = if let Some(atlas) = atlas {
                         if let Some(atlas_region) = atlas_region_opt {
                             let page = atlas.page(atlas_region.page);
@@ -320,7 +324,11 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     }
                     let deform = slot.applied_deform();
 
-                    let blend = slot.blend;
+                    let blend = skeleton
+                        .data
+                        .slots
+                        .get(slot.data_index())
+                        .map_or(BlendMode::Normal, |data| data.blend);
                     let attachment_path = effective_attachment_path(
                         mesh.path.as_str(),
                         mesh.sequence.as_ref(),

@@ -263,7 +263,6 @@ impl Skeleton {
                 color: slot.color,
                 has_dark: slot.has_dark,
                 dark_color: slot.dark_color,
-                blend: slot.blend,
                 applied_pose: SlotPose {
                     attachment: slot.attachment.clone(),
                     attachment_skin: None,
@@ -1345,7 +1344,6 @@ impl Skeleton {
             slot.color = data.color;
             slot.has_dark = data.has_dark;
             slot.dark_color = data.dark_color;
-            slot.blend = data.blend;
             slot.applied_pose = SlotPose::from_slot(slot);
         }
 

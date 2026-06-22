@@ -171,7 +171,6 @@ pub struct Slot {
     pub(crate) color: [f32; 4],
     pub(crate) has_dark: bool,
     pub(crate) dark_color: [f32; 3],
-    pub(crate) blend: crate::BlendMode,
     pub(crate) applied_pose: SlotPose,
     pub(crate) pose_constrained: bool,
 }
@@ -259,14 +258,6 @@ impl Slot {
 
     pub fn set_dark_color(&mut self, dark_color: [f32; 3]) {
         self.dark_color = dark_color;
-    }
-
-    pub fn blend(&self) -> crate::BlendMode {
-        self.blend
-    }
-
-    pub fn set_blend(&mut self, blend: crate::BlendMode) {
-        self.blend = blend;
     }
 
     pub(crate) fn applied_pose(&self) -> SlotPoseRef<'_> {
