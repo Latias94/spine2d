@@ -272,6 +272,8 @@ flowchart TB
 
 **Recent update:** Commit `9afff8b` removed runtime `Slot` blend storage and moved draw extraction back to `SlotData.blend`, matching C++ where blend mode is a `SlotData` property rather than mutable `SlotPose` state.
 
+**Recent update:** Commit `4f8b351` centralized attachment source-skin resolution and timeline-attachment comparison so public `Skeleton::set_attachment`, `set_skin` attachAll paths, and animation attachment timelines all follow C++ `SlotPose::setAttachment` deform reset semantics.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
