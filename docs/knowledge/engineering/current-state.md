@@ -13,8 +13,8 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `556 passed, 10 skipped` on 2026-06-23.
-  - `cargo nextest run -p spine2d-bevy --no-fail-fast` passed with `42 passed, 0 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `557 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `42 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-wgpu`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
   - Confirmed `4.3.2` is not the latest 4.3 tag; current explicit baseline is `spine-ts-4.3.8`.
@@ -52,18 +52,20 @@ status: "active"
   - Added official-style named lookup and attachment helpers in commit `9bae119`; `Skeleton` now exposes root/find bone/slot helpers, slot-name attachment lookup, and no-op-on-miss `set_attachment` semantics with source-skin-aware reset behavior.
   - Added no-clipper attachment bounds helper in commit `83df693`; `Skeleton::bounds` now computes official-style AABB over active region and mesh attachments using draw order.
   - Added official-style constraint lookup helpers in commit `fed0975`; `Skeleton` now exposes explicit by-name find/index/mut helpers for IK, transform, path, physics, and slider constraints.
+  - Added official-style setup pose split APIs in commit `955cc27`; `Skeleton` now exposes `setup_pose`, `setup_pose_bones`, and `setup_pose_slots`, and empty setup attachments reset `sequenceIndex` like `spine-cpp`.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: rescan remaining `Skeleton` and constraint convenience API gaps against `spine-cpp`, then decide whether clipping-aware bounds merits a separate geometry slice.
+  - Continue U6: decide whether to delete the legacy `set_to_setup_pose` alias as a breaking API cleanup, or tackle clipping-aware `getBounds` as a separate geometry slice.
 
 # Citations
 
 - `spine-upstream.toml`
 - `docs/parity.md`
 - `spine2d/src/runtime/skeleton.rs`
+- `spine2d/src/runtime/skeleton_tests.rs`
 - `spine2d/src/runtime/animation.rs`
 - `spine2d/src/runtime/animation_state.rs`
 - `spine2d/src/json.rs`
