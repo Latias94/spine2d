@@ -55,12 +55,14 @@ status: "active"
   - Added official-style setup pose split APIs in commit `955cc27`; `Skeleton` now exposes `setup_pose`, `setup_pose_bones`, and `setup_pose_slots`, and empty setup attachments reset `sequenceIndex` like `spine-cpp`.
   - Removed the legacy `Skeleton::set_to_setup_pose` alias in breaking commit `c385349`; internal tests, examples, and backend callers now use `setup_pose` directly.
   - Added clipping-aware bounds in commit `43c5503`; `Skeleton::bounds_with_clipping` now matches the official optional `SkeletonClipping` bounds overload while `bounds()` remains the no-clipper default.
+  - Aligned Skeleton world/skin controls in breaking commit `aec70e4`; wind/gravity/time/update now use direct C++ assignment semantics, component-level wind/gravity accessors exist, `set_skin(Some(missing))` no-ops, and `Error::UnknownSkin` was removed.
+  - Removed the useless `Skeleton::set_skin` `Result` wrapper in breaking commit `ae1ab99`; callers now use the no-return setter directly.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: rescan `spine-cpp/include/spine/Skeleton.h` and current Rust exports for remaining actionable Skeleton public API or solver-boundary gaps.
+  - Continue U6: review remaining `Skeleton.h` public-surface gaps, especially generic constraint/update-cache exposure and whether Rust should expose current `SkinData` in addition to the skin name.
 
 # Citations
 

@@ -242,6 +242,8 @@ flowchart TB
 
 **Recent update:** Commit `43c5503` added `Skeleton::bounds_with_clipping`, matching the `spine-cpp` `getBounds(..., SkeletonClipping*)` overload while keeping `bounds()` aligned with the default no-clipper overload.
 
+**Recent update:** Commit `aec70e4` aligned Skeleton world and skin controls with C++ setter semantics: direct wind/gravity/time/update assignment, component wind/gravity accessors, no-op missing skins, and no dead `UnknownSkin` runtime error. Commit `ae1ab99` removed the now-useless `set_skin` `Result` wrapper.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
