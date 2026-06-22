@@ -2,16 +2,94 @@ use super::{Skeleton, atan2_degrees};
 
 #[derive(Clone, Debug)]
 pub struct TransformConstraint {
-    pub(super) data_index: usize,
-    pub bones: Vec<usize>,
-    pub source: usize,
-    pub mix_rotate: f32,
-    pub mix_x: f32,
-    pub mix_y: f32,
-    pub mix_scale_x: f32,
-    pub mix_scale_y: f32,
-    pub mix_shear_y: f32,
-    pub active: bool,
+    pub(crate) data_index: usize,
+    pub(crate) bones: Vec<usize>,
+    pub(crate) source: usize,
+    pub(crate) mix_rotate: f32,
+    pub(crate) mix_x: f32,
+    pub(crate) mix_y: f32,
+    pub(crate) mix_scale_x: f32,
+    pub(crate) mix_scale_y: f32,
+    pub(crate) mix_shear_y: f32,
+    pub(crate) active: bool,
+}
+
+impl TransformConstraint {
+    pub fn data_index(&self) -> usize {
+        self.data_index
+    }
+
+    pub fn bones(&self) -> &[usize] {
+        &self.bones
+    }
+
+    pub fn bones_mut(&mut self) -> &mut Vec<usize> {
+        &mut self.bones
+    }
+
+    pub fn source(&self) -> usize {
+        self.source
+    }
+
+    pub fn set_source(&mut self, source: usize) {
+        self.source = source;
+    }
+
+    pub fn mix_rotate(&self) -> f32 {
+        self.mix_rotate
+    }
+
+    pub fn set_mix_rotate(&mut self, mix_rotate: f32) {
+        self.mix_rotate = mix_rotate;
+    }
+
+    pub fn mix_x(&self) -> f32 {
+        self.mix_x
+    }
+
+    pub fn set_mix_x(&mut self, mix_x: f32) {
+        self.mix_x = mix_x;
+    }
+
+    pub fn mix_y(&self) -> f32 {
+        self.mix_y
+    }
+
+    pub fn set_mix_y(&mut self, mix_y: f32) {
+        self.mix_y = mix_y;
+    }
+
+    pub fn mix_scale_x(&self) -> f32 {
+        self.mix_scale_x
+    }
+
+    pub fn set_mix_scale_x(&mut self, mix_scale_x: f32) {
+        self.mix_scale_x = mix_scale_x;
+    }
+
+    pub fn mix_scale_y(&self) -> f32 {
+        self.mix_scale_y
+    }
+
+    pub fn set_mix_scale_y(&mut self, mix_scale_y: f32) {
+        self.mix_scale_y = mix_scale_y;
+    }
+
+    pub fn mix_shear_y(&self) -> f32 {
+        self.mix_shear_y
+    }
+
+    pub fn set_mix_shear_y(&mut self, mix_shear_y: f32) {
+        self.mix_shear_y = mix_shear_y;
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+
+    pub fn set_active(&mut self, active: bool) {
+        self.active = active;
+    }
 }
 
 pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {

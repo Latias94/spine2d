@@ -1,4 +1,7 @@
-use crate::{BlendMode, BoneData, Inherit, Skeleton, SkeletonData, SlotData};
+use crate::{
+    BlendMode, BoneData, IkConstraint, Inherit, PathConstraint, PhysicsConstraint, ScaleYMode,
+    Skeleton, SkeletonData, SliderConstraintData, SlotData, TransformConstraint,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -231,6 +234,204 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
     slot.set_attachment_name(Some("mesh".to_string()));
     assert_eq!(slot.sequence_index(), 6);
     assert_eq!(slot.deform(), &[9.0]);
+}
+
+#[test]
+fn constraint_accessors_expose_pose_state() {
+    let mut ik = IkConstraint {
+        data_index: 1,
+        bones: vec![0],
+        target: 2,
+        scale_y_mode: ScaleYMode::None,
+        mix: 0.25,
+        softness: 1.0,
+        compress: false,
+        stretch: true,
+        bend_direction: 1,
+        active: true,
+    };
+    assert_eq!(ik.data_index(), 1);
+    ik.bones_mut().push(1);
+    ik.set_target(3);
+    ik.set_scale_y_mode(ScaleYMode::Volume);
+    ik.set_mix(0.5);
+    ik.set_softness(2.0);
+    ik.set_compress(true);
+    ik.set_stretch(false);
+    ik.set_bend_direction(-1);
+    ik.set_active(false);
+    assert_eq!(ik.bones(), &[0, 1]);
+    assert_eq!(ik.target(), 3);
+    assert_eq!(ik.scale_y_mode(), ScaleYMode::Volume);
+    assert_eq!(ik.mix(), 0.5);
+    assert_eq!(ik.softness(), 2.0);
+    assert!(ik.compress());
+    assert!(!ik.stretch());
+    assert_eq!(ik.bend_direction(), -1);
+    assert!(!ik.is_active());
+
+    let mut transform = TransformConstraint {
+        data_index: 2,
+        bones: vec![1],
+        source: 0,
+        mix_rotate: 0.1,
+        mix_x: 0.2,
+        mix_y: 0.3,
+        mix_scale_x: 0.4,
+        mix_scale_y: 0.5,
+        mix_shear_y: 0.6,
+        active: true,
+    };
+    transform.bones_mut().push(2);
+    transform.set_source(3);
+    transform.set_mix_rotate(1.1);
+    transform.set_mix_x(1.2);
+    transform.set_mix_y(1.3);
+    transform.set_mix_scale_x(1.4);
+    transform.set_mix_scale_y(1.5);
+    transform.set_mix_shear_y(1.6);
+    transform.set_active(false);
+    assert_eq!(transform.data_index(), 2);
+    assert_eq!(transform.bones(), &[1, 2]);
+    assert_eq!(transform.source(), 3);
+    assert_eq!(transform.mix_rotate(), 1.1);
+    assert_eq!(transform.mix_x(), 1.2);
+    assert_eq!(transform.mix_y(), 1.3);
+    assert_eq!(transform.mix_scale_x(), 1.4);
+    assert_eq!(transform.mix_scale_y(), 1.5);
+    assert_eq!(transform.mix_shear_y(), 1.6);
+    assert!(!transform.is_active());
+
+    let mut path = PathConstraint {
+        data_index: 3,
+        bones: vec![0],
+        target: 1,
+        position: 2.0,
+        spacing: 3.0,
+        mix_rotate: 4.0,
+        mix_x: 5.0,
+        mix_y: 6.0,
+        active: true,
+    };
+    path.bones_mut().push(1);
+    path.set_target_slot(2);
+    path.set_position(7.0);
+    path.set_spacing(8.0);
+    path.set_mix_rotate(9.0);
+    path.set_mix_x(10.0);
+    path.set_mix_y(11.0);
+    path.set_active(false);
+    assert_eq!(path.data_index(), 3);
+    assert_eq!(path.bones(), &[0, 1]);
+    assert_eq!(path.target_slot(), 2);
+    assert_eq!(path.position(), 7.0);
+    assert_eq!(path.spacing(), 8.0);
+    assert_eq!(path.mix_rotate(), 9.0);
+    assert_eq!(path.mix_x(), 10.0);
+    assert_eq!(path.mix_y(), 11.0);
+    assert!(!path.is_active());
+
+    let mut physics = PhysicsConstraint {
+        data_index: 4,
+        bone: 0,
+        inertia: 0.1,
+        strength: 0.2,
+        damping: 0.3,
+        mass_inverse: 0.4,
+        wind: 0.5,
+        gravity: 0.6,
+        mix: 0.7,
+        scale_y_mode: ScaleYMode::None,
+        reset: false,
+        ux: 0.0,
+        uy: 0.0,
+        cx: 0.0,
+        cy: 0.0,
+        tx: 0.0,
+        ty: 0.0,
+        x_offset: 0.0,
+        x_lag: 0.0,
+        x_velocity: 0.0,
+        y_offset: 0.0,
+        y_lag: 0.0,
+        y_velocity: 0.0,
+        rotate_offset: 0.0,
+        rotate_lag: 0.0,
+        rotate_velocity: 0.0,
+        scale_offset: 0.0,
+        scale_lag: 0.0,
+        scale_velocity: 0.0,
+        active: true,
+        remaining: 0.0,
+        last_time: 0.0,
+    };
+    physics.set_bone_index(2);
+    physics.set_inertia(1.1);
+    physics.set_strength(1.2);
+    physics.set_damping(1.3);
+    physics.set_mass_inverse(1.4);
+    physics.set_wind(1.5);
+    physics.set_gravity(1.6);
+    physics.set_mix(1.7);
+    physics.set_scale_y_mode(ScaleYMode::Uniform);
+    physics.set_active(false);
+    assert_eq!(physics.data_index(), 4);
+    assert_eq!(physics.bone_index(), 2);
+    assert_eq!(physics.inertia(), 1.1);
+    assert_eq!(physics.strength(), 1.2);
+    assert_eq!(physics.damping(), 1.3);
+    assert_eq!(physics.mass_inverse(), 1.4);
+    assert_eq!(physics.wind(), 1.5);
+    assert_eq!(physics.gravity(), 1.6);
+    assert_eq!(physics.mix(), 1.7);
+    assert_eq!(physics.scale_y_mode(), ScaleYMode::Uniform);
+    assert!(!physics.is_active());
+
+    let data = Arc::new(SkeletonData {
+        spine_version: None,
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: Vec::new(),
+        skins: HashMap::new(),
+        events: HashMap::new(),
+        animations: Vec::new(),
+        animation_index: HashMap::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: vec![SliderConstraintData {
+            name: "slider".to_string(),
+            order: 0,
+            skin_required: false,
+            setup_time: 0.0,
+            setup_mix: 1.0,
+            additive: false,
+            looped: false,
+            bone: None,
+            property: None,
+            property_from: 0.0,
+            to: 0.0,
+            scale: 1.0,
+            local: false,
+            animation: None,
+        }],
+    });
+    let mut skeleton = Skeleton::new(data);
+    let slider = &mut skeleton.slider_constraints_mut()[0];
+    slider.set_time(2.5);
+    slider.set_mix(0.75);
+    slider.set_active(false);
+    assert_eq!(slider.data_index(), 0);
+    assert_eq!(slider.time(), 2.5);
+    assert_eq!(slider.mix(), 0.75);
+    assert!(!slider.is_active());
 }
 
 #[test]

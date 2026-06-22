@@ -2,16 +2,94 @@ use super::{Skeleton, acos_f32, atan2_degrees, atan2_radians, cos_f32, sin_f32, 
 
 #[derive(Clone, Debug)]
 pub struct IkConstraint {
-    pub(super) data_index: usize,
-    pub bones: Vec<usize>,
-    pub target: usize,
-    pub scale_y_mode: crate::ScaleYMode,
-    pub mix: f32,
-    pub softness: f32,
-    pub compress: bool,
-    pub stretch: bool,
-    pub bend_direction: i32,
-    pub active: bool,
+    pub(crate) data_index: usize,
+    pub(crate) bones: Vec<usize>,
+    pub(crate) target: usize,
+    pub(crate) scale_y_mode: crate::ScaleYMode,
+    pub(crate) mix: f32,
+    pub(crate) softness: f32,
+    pub(crate) compress: bool,
+    pub(crate) stretch: bool,
+    pub(crate) bend_direction: i32,
+    pub(crate) active: bool,
+}
+
+impl IkConstraint {
+    pub fn data_index(&self) -> usize {
+        self.data_index
+    }
+
+    pub fn bones(&self) -> &[usize] {
+        &self.bones
+    }
+
+    pub fn bones_mut(&mut self) -> &mut Vec<usize> {
+        &mut self.bones
+    }
+
+    pub fn target(&self) -> usize {
+        self.target
+    }
+
+    pub fn set_target(&mut self, target: usize) {
+        self.target = target;
+    }
+
+    pub fn scale_y_mode(&self) -> crate::ScaleYMode {
+        self.scale_y_mode
+    }
+
+    pub fn set_scale_y_mode(&mut self, scale_y_mode: crate::ScaleYMode) {
+        self.scale_y_mode = scale_y_mode;
+    }
+
+    pub fn mix(&self) -> f32 {
+        self.mix
+    }
+
+    pub fn set_mix(&mut self, mix: f32) {
+        self.mix = mix;
+    }
+
+    pub fn softness(&self) -> f32 {
+        self.softness
+    }
+
+    pub fn set_softness(&mut self, softness: f32) {
+        self.softness = softness;
+    }
+
+    pub fn compress(&self) -> bool {
+        self.compress
+    }
+
+    pub fn set_compress(&mut self, compress: bool) {
+        self.compress = compress;
+    }
+
+    pub fn stretch(&self) -> bool {
+        self.stretch
+    }
+
+    pub fn set_stretch(&mut self, stretch: bool) {
+        self.stretch = stretch;
+    }
+
+    pub fn bend_direction(&self) -> i32 {
+        self.bend_direction
+    }
+
+    pub fn set_bend_direction(&mut self, bend_direction: i32) {
+        self.bend_direction = bend_direction;
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+
+    pub fn set_active(&mut self, active: bool) {
+        self.active = active;
+    }
 }
 
 pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {

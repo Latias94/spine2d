@@ -3,10 +3,40 @@ use super::{Skeleton, atan2_degrees};
 #[derive(Clone, Debug)]
 pub struct SliderConstraint {
     pub(crate) data_index: usize,
-    pub time: f32,
-    pub mix: f32,
-    pub active: bool,
+    pub(crate) time: f32,
+    pub(crate) mix: f32,
+    pub(crate) active: bool,
     pub(super) animation_bones: Vec<usize>,
+}
+
+impl SliderConstraint {
+    pub fn data_index(&self) -> usize {
+        self.data_index
+    }
+
+    pub fn time(&self) -> f32 {
+        self.time
+    }
+
+    pub fn set_time(&mut self, time: f32) {
+        self.time = time;
+    }
+
+    pub fn mix(&self) -> f32 {
+        self.mix
+    }
+
+    pub fn set_mix(&mut self, mix: f32) {
+        self.mix = mix;
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+
+    pub fn set_active(&mut self, active: bool) {
+        self.active = active;
+    }
 }
 
 pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {

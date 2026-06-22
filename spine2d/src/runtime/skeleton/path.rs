@@ -3,15 +3,85 @@ use crate::SkeletonData;
 
 #[derive(Clone, Debug)]
 pub struct PathConstraint {
-    pub(super) data_index: usize,
-    pub bones: Vec<usize>,
-    pub target: usize, // slot index
-    pub position: f32,
-    pub spacing: f32,
-    pub mix_rotate: f32,
-    pub mix_x: f32,
-    pub mix_y: f32,
-    pub active: bool,
+    pub(crate) data_index: usize,
+    pub(crate) bones: Vec<usize>,
+    pub(crate) target: usize, // slot index
+    pub(crate) position: f32,
+    pub(crate) spacing: f32,
+    pub(crate) mix_rotate: f32,
+    pub(crate) mix_x: f32,
+    pub(crate) mix_y: f32,
+    pub(crate) active: bool,
+}
+
+impl PathConstraint {
+    pub fn data_index(&self) -> usize {
+        self.data_index
+    }
+
+    pub fn bones(&self) -> &[usize] {
+        &self.bones
+    }
+
+    pub fn bones_mut(&mut self) -> &mut Vec<usize> {
+        &mut self.bones
+    }
+
+    pub fn target_slot(&self) -> usize {
+        self.target
+    }
+
+    pub fn set_target_slot(&mut self, target: usize) {
+        self.target = target;
+    }
+
+    pub fn position(&self) -> f32 {
+        self.position
+    }
+
+    pub fn set_position(&mut self, position: f32) {
+        self.position = position;
+    }
+
+    pub fn spacing(&self) -> f32 {
+        self.spacing
+    }
+
+    pub fn set_spacing(&mut self, spacing: f32) {
+        self.spacing = spacing;
+    }
+
+    pub fn mix_rotate(&self) -> f32 {
+        self.mix_rotate
+    }
+
+    pub fn set_mix_rotate(&mut self, mix_rotate: f32) {
+        self.mix_rotate = mix_rotate;
+    }
+
+    pub fn mix_x(&self) -> f32 {
+        self.mix_x
+    }
+
+    pub fn set_mix_x(&mut self, mix_x: f32) {
+        self.mix_x = mix_x;
+    }
+
+    pub fn mix_y(&self) -> f32 {
+        self.mix_y
+    }
+
+    pub fn set_mix_y(&mut self, mix_y: f32) {
+        self.mix_y = mix_y;
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+
+    pub fn set_active(&mut self, active: bool) {
+        self.active = active;
+    }
 }
 
 #[derive(Clone, Debug, Default)]

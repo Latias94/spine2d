@@ -15,46 +15,126 @@ pub enum Physics {
 
 #[derive(Clone, Debug)]
 pub struct PhysicsConstraint {
-    pub(super) data_index: usize,
-    pub bone: usize,
+    pub(crate) data_index: usize,
+    pub(crate) bone: usize,
 
-    pub inertia: f32,
-    pub strength: f32,
-    pub damping: f32,
-    pub mass_inverse: f32,
-    pub wind: f32,
-    pub gravity: f32,
-    pub mix: f32,
-    pub scale_y_mode: crate::ScaleYMode,
+    pub(crate) inertia: f32,
+    pub(crate) strength: f32,
+    pub(crate) damping: f32,
+    pub(crate) mass_inverse: f32,
+    pub(crate) wind: f32,
+    pub(crate) gravity: f32,
+    pub(crate) mix: f32,
+    pub(crate) scale_y_mode: crate::ScaleYMode,
 
-    pub reset: bool,
-    pub ux: f32,
-    pub uy: f32,
-    pub cx: f32,
-    pub cy: f32,
-    pub tx: f32,
-    pub ty: f32,
-    pub x_offset: f32,
-    pub x_lag: f32,
-    pub x_velocity: f32,
-    pub y_offset: f32,
-    pub y_lag: f32,
-    pub y_velocity: f32,
-    pub rotate_offset: f32,
-    pub rotate_lag: f32,
-    pub rotate_velocity: f32,
-    pub scale_offset: f32,
-    pub scale_lag: f32,
-    pub scale_velocity: f32,
+    pub(crate) reset: bool,
+    pub(crate) ux: f32,
+    pub(crate) uy: f32,
+    pub(crate) cx: f32,
+    pub(crate) cy: f32,
+    pub(crate) tx: f32,
+    pub(crate) ty: f32,
+    pub(crate) x_offset: f32,
+    pub(crate) x_lag: f32,
+    pub(crate) x_velocity: f32,
+    pub(crate) y_offset: f32,
+    pub(crate) y_lag: f32,
+    pub(crate) y_velocity: f32,
+    pub(crate) rotate_offset: f32,
+    pub(crate) rotate_lag: f32,
+    pub(crate) rotate_velocity: f32,
+    pub(crate) scale_offset: f32,
+    pub(crate) scale_lag: f32,
+    pub(crate) scale_velocity: f32,
 
-    pub active: bool,
-    pub remaining: f32,
-    pub last_time: f32,
+    pub(crate) active: bool,
+    pub(crate) remaining: f32,
+    pub(crate) last_time: f32,
 }
 
 impl PhysicsConstraint {
     pub fn data_index(&self) -> usize {
         self.data_index
+    }
+
+    pub fn bone_index(&self) -> usize {
+        self.bone
+    }
+
+    pub fn set_bone_index(&mut self, bone: usize) {
+        self.bone = bone;
+    }
+
+    pub fn inertia(&self) -> f32 {
+        self.inertia
+    }
+
+    pub fn set_inertia(&mut self, inertia: f32) {
+        self.inertia = inertia;
+    }
+
+    pub fn strength(&self) -> f32 {
+        self.strength
+    }
+
+    pub fn set_strength(&mut self, strength: f32) {
+        self.strength = strength;
+    }
+
+    pub fn damping(&self) -> f32 {
+        self.damping
+    }
+
+    pub fn set_damping(&mut self, damping: f32) {
+        self.damping = damping;
+    }
+
+    pub fn mass_inverse(&self) -> f32 {
+        self.mass_inverse
+    }
+
+    pub fn set_mass_inverse(&mut self, mass_inverse: f32) {
+        self.mass_inverse = mass_inverse;
+    }
+
+    pub fn wind(&self) -> f32 {
+        self.wind
+    }
+
+    pub fn set_wind(&mut self, wind: f32) {
+        self.wind = wind;
+    }
+
+    pub fn gravity(&self) -> f32 {
+        self.gravity
+    }
+
+    pub fn set_gravity(&mut self, gravity: f32) {
+        self.gravity = gravity;
+    }
+
+    pub fn mix(&self) -> f32 {
+        self.mix
+    }
+
+    pub fn set_mix(&mut self, mix: f32) {
+        self.mix = mix;
+    }
+
+    pub fn scale_y_mode(&self) -> crate::ScaleYMode {
+        self.scale_y_mode
+    }
+
+    pub fn set_scale_y_mode(&mut self, scale_y_mode: crate::ScaleYMode) {
+        self.scale_y_mode = scale_y_mode;
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+
+    pub fn set_active(&mut self, active: bool) {
+        self.active = active;
     }
 
     pub(crate) fn reset_with_time(&mut self, time: f32) {
