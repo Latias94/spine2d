@@ -23,6 +23,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U5 settings cleanup commit `e1e827f` moved track entry settings application into the core runtime, replaced the Bevy settings implementation with an alias, and aligned queued delay/mix-duration adjustment with `spine-cpp`.
 - U5 field cleanup commit `fc1c241` made `TrackEntry` state private and exposed read-only getters for external tests and Bevy.
 - U5 delay cleanup commit `f36cfa7` preserved the `spine-cpp` delay branch shape for handle setters by special-casing negative delay without forcing non-comparable values through the queued-delay formula.
+- U6 path scratch commit `3edaa0b` moved path constraint scratch storage and capacity estimation into private `skeleton::path`.
 - Post-U2 verification passed:
   - `cargo fmt --all --check`
   - `git diff --check`
@@ -47,6 +48,10 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast` (`546 passed, 10 skipped`)
   - `cargo nextest run -p spine2d-bevy --no-fail-fast` (`42 passed, 0 skipped`)
   - `cargo check -p spine2d-bevy`
+- Post-U6 path-scratch verification passed:
+  - `cargo check -p spine2d --features json,binary,upstream-smoke`
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke skeleton path_constraint transform_constraint ik physics slider --no-fail-fast` (`112 passed, 444 skipped`)
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast` (`546 passed, 10 skipped`)
 - The worktree was clean before creating the hardening plan and memory updates.
 - Existing golden metadata is intentionally not rewritten unless assets or oracle outputs are regenerated.
 
@@ -57,11 +62,11 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U3 is complete: timeline dispatch is centralized behind internal runtime/state helpers, while `AnimationState` keeps only policy decisions for alpha, hold, additive, thresholds, and draw-order output.
 - U4 is complete: binary parser timeline-order ownership is centralized behind `TimelineOrderBuilder`, and JSON already had explicit local lookup/order builders.
 - U5 is complete: the shared `TrackEntrySettings` value object is now owned by the core runtime and used by Bevy, direct `TrackEntry` field exposure has been removed, and delay setter branches now follow the official C++ shape. The final numeric setter audit found no additional guard changes needed because `spine-cpp` setters are intentionally sparse.
-- U6 is next: extract `Skeleton` pose and constraint solver boundaries incrementally.
+- U6 is in progress: path constraint scratch storage and capacity estimation have moved into `skeleton::path`; next slice should move pure path world-position helpers.
 
 # Next Action
 
-Audit `spine2d/src/runtime/skeleton.rs` for cohesive solver helper groups that can move behind private modules without changing public `Skeleton` behavior. Start with pure helper groups before moving any cross-constraint code.
+Move the pure path world-position helpers (`path_attachment_for_slot`, `compute_path_world_positions`, and attachment vertex helpers) into `skeleton::path`, then run focused path/solver tests before the full core parity gate.
 
 # Citations
 

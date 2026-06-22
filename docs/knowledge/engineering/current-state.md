@@ -28,12 +28,13 @@ status: "active"
   - Centralized track entry settings in commit `e1e827f`; Bevy now aliases the core runtime settings value object, and queued delay/mix-duration handling follows the `spine-cpp` two-argument `setMixDuration` rule.
   - Hid `TrackEntry` fields in commit `fc1c241`; external code now reads entry state through getters instead of broad public fields.
   - Preserved `spine-cpp` delay branch behavior in commit `f36cfa7`; negative delay is special-cased without coercing non-comparable delay values.
+  - Started U6 Skeleton extraction in commit `3edaa0b`; path constraint scratch storage and capacity estimation now live in private `skeleton::path`.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Execute U6 from the hardening plan: extract `Skeleton` pose-solver boundaries incrementally while keeping solver parity gates green.
+  - Continue U6: move pure path world-position helpers behind `skeleton::path` after confirming focused path solver tests remain green.
 
 # Citations
 

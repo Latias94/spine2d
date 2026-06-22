@@ -238,6 +238,8 @@ flowchart TB
 
 **Goal:** Split the largest live `Skeleton` responsibilities after dead code has been removed and solver coverage is confirmed.
 
+**Status:** In progress. Commit `3edaa0b` moved path constraint scratch storage and capacity estimation into private `skeleton::path`; the next low-risk slice is to move pure path world-position helpers.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
