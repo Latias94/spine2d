@@ -57,12 +57,13 @@ status: "active"
   - Added clipping-aware bounds in commit `43c5503`; `Skeleton::bounds_with_clipping` now matches the official optional `SkeletonClipping` bounds overload while `bounds()` remains the no-clipper default.
   - Aligned Skeleton world/skin controls in breaking commit `aec70e4`; wind/gravity/time/update now use direct C++ assignment semantics, component-level wind/gravity accessors exist, `set_skin(Some(missing))` no-ops, and `Error::UnknownSkin` was removed.
   - Removed the useless `Skeleton::set_skin` `Result` wrapper in breaking commit `ae1ab99`; callers now use the no-return setter directly.
+  - Aligned the current skin accessor in breaking commit `ea3d166`; `Skeleton::skin()` now returns `Option<&SkinData>` like C++ `getSkin()`, while `skin_name()` exposes the stored skin name.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: review remaining `Skeleton.h` public-surface gaps, especially generic constraint/update-cache exposure and whether Rust should expose current `SkinData` in addition to the skin name.
+  - Continue U6: review remaining `Skeleton.h` public-surface gaps, especially generic constraint/update-cache exposure.
 
 # Citations
 

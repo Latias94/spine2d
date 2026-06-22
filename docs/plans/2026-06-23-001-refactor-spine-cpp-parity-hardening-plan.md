@@ -244,6 +244,8 @@ flowchart TB
 
 **Recent update:** Commit `aec70e4` aligned Skeleton world and skin controls with C++ setter semantics: direct wind/gravity/time/update assignment, component wind/gravity accessors, no-op missing skins, and no dead `UnknownSkin` runtime error. Commit `ae1ab99` removed the now-useless `set_skin` `Result` wrapper.
 
+**Recent update:** Commit `ea3d166` aligned `Skeleton::skin()` with C++ `getSkin()` by returning current `SkinData`; `skin_name()` now serves name-only callers.
+
 **Requirements:** R2, R3, R7.
 
 **Dependencies:** U2.
