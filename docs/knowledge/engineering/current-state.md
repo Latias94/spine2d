@@ -13,6 +13,11 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Last verified:
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke runtime::animation_state_tests::animation_state_data_named_mix_overrides_default_mix runtime::animation_state_tests::animation_state_data_clear_resets_default_and_animation_mixes runtime::animation_state_tests::animation_state_data_rejects_unknown_animations --no-fail-fast --status-level fail` passed with `3 passed, 604 skipped` on 2026-06-23 after removing Rust-only mix pair query/removal APIs.
+  - `cargo nextest run -p spine2d-bevy mix_set_and_clear_commands_update_state_data --no-fail-fast --status-level fail` passed with `1 passed, 42 skipped` on 2026-06-23 after removing the Bevy `remove_mix` command.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `597 passed, 10 skipped` on 2026-06-23 after the mix API cleanup.
+  - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `43 passed, 0 skipped` on 2026-06-23 after the mix API cleanup.
+  - `cargo check -p spine2d-wgpu -p spine2d-web`, `cargo check -p spine2d-bevy --examples`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23 after the mix API cleanup. `block v0.1.6` still emits the existing future-incompatibility warning.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke runtime::animation_state_tests::track_entry_handle_reads_current_and_queued_entries --no-fail-fast --status-level fail` passed with `1 passed, 606 skipped` on 2026-06-23 after adding `TrackEntryHandle::with_entry`.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `597 passed, 10 skipped` on 2026-06-23 after adding `TrackEntryHandle::with_entry`.
   - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after the handle read accessor slice.
@@ -133,12 +138,13 @@ status: "active"
   - Added `AnimationStateData::set_mix_animation` / `get_mix_animation` in commit `1f4dd8c`, covering the C++ animation-reference `setMix` / `getMix` overloads while sharing the existing name-indexed mix table.
   - Bound `TrackEntryHandle` to its owning `AnimationState` in commit `c30b446`; handle methods now reject cross-state misuse and `TrackEntryHandle::animation_state(&state)` mirrors the safe Rust shape of C++ `TrackEntry::getAnimationState()`.
   - Added `TrackEntryHandle::with_entry` in commit `3710686`; handles returned by set/add/current can now read current or queued entry getters directly, closer to the C++ returned `TrackEntry&` usage model.
+  - Removed Rust-only `AnimationStateData::pair_mix` / `remove_mix` and Bevy `SpineAnimationCommand::remove_mix` / `RemoveMix` in breaking commit `c5eb82c`; mix storage is now controlled through the official C++-style `setMix` / `getMix` / `clear` surface only.
 - In progress:
-  - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`; next audit remains centered on `AnimationState` / `AnimationStateData` public surface and timeline mixing details.
+  - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`; next audit remains centered on `AnimationState` / `TrackEntry` surface and timeline mixing details.
 - Blocked:
   - None.
 - Next action:
-  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode, remaining `AnimationStateData` / `TrackEntry` surface, and any dead compatibility code that can be deleted without adding shims.
+  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode, remaining `TrackEntry` surface, and any dead compatibility code that can be deleted without adding shims.
 
 # Citations
 
