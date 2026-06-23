@@ -258,6 +258,29 @@ fn deform_timeline_weighted_is_applied_as_offsets() {
 }
 
 #[test]
+fn deform_timeline_applies_negative_alpha_like_cpp() {
+    let data = SkeletonData::from_json_str(SKELETON_UNWEIGHTED).unwrap();
+    let mut skeleton = Skeleton::new(data.clone());
+    let (_, animation) = data.animation("d").unwrap();
+    skeleton.setup_pose();
+    skeleton.update_world_transform();
+
+    apply_animation(
+        animation,
+        &mut skeleton,
+        0.0,
+        false,
+        -0.5,
+        MixBlend::Replace,
+    );
+    assert_eq!(skeleton.slots[0].deform.len(), 8);
+    assert_approx2(
+        [skeleton.slots[0].deform[0], skeleton.slots[0].deform[1]],
+        [-1.5, -1.0],
+    );
+}
+
+#[test]
 fn deform_timeline_applies_to_linked_mesh_inheriting_parent_deform_from_default_skin() {
     let data = SkeletonData::from_json_str(SKELETON_LINKEDMESH_PARENT_DEFAULT_SKIN_DEFORM).unwrap();
     let mut skeleton = Skeleton::new(data.clone());

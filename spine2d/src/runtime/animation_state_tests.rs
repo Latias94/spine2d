@@ -203,6 +203,25 @@ const EMPTY_DELAY_JSON: &str = r#"
 }
 "#;
 
+const NEGATIVE_ALPHA_JSON: &str = r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [ { "name": "root" } ],
+  "animations": {
+    "turn": {
+      "bones": {
+        "root": {
+          "rotate": [
+            { "time": 0.0, "value": 10.0 },
+            { "time": 1.0, "value": 10.0 }
+          ]
+        }
+      }
+    }
+  }
+}
+"#;
+
 const PHYSICS_RESET_JSON: &str = r#"
 {
   "skeleton": { "spine": "4.3.00" },
@@ -226,6 +245,22 @@ const PHYSICS_RESET_JSON: &str = r#"
   }
 }
 "#;
+
+#[test]
+fn animation_state_applies_negative_track_alpha_like_cpp() {
+    let data = crate::SkeletonData::from_json_str(NEGATIVE_ALPHA_JSON).unwrap();
+    let state_data = AnimationStateData::new(data.clone());
+    let mut state = AnimationState::new(state_data);
+    let mut skeleton = Skeleton::new(data);
+
+    let entry = state.set_animation(0, "turn", false).unwrap();
+    entry.set_alpha(&mut state, -0.5);
+
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+
+    assert_eq!(skeleton.bones[0].rotation, -5.0);
+}
 
 fn run(
     state: &mut AnimationState,

@@ -88,3 +88,19 @@ fn path_constraint_timelines_update_runtime_values() {
     assert_approx(skeleton.path_constraints[0].position, 5.0);
     assert_approx(skeleton.path_constraints[0].spacing, 2.5);
 }
+
+#[test]
+fn path_constraint_timelines_apply_negative_alpha_like_cpp() {
+    let data = SkeletonData::from_json_str(SKELETON_WITH_PATH_CONSTRAINT_AND_TIMELINES).unwrap();
+    let (_, anim) = data.animation("anim").unwrap();
+    let mut skeleton = Skeleton::new(data.clone());
+
+    skeleton.setup_pose();
+    apply_animation(anim, &mut skeleton, 0.5, false, -0.5, MixBlend::Replace);
+
+    assert_approx(skeleton.path_constraints[0].mix_rotate, -0.25);
+    assert_approx(skeleton.path_constraints[0].mix_x, -0.25);
+    assert_approx(skeleton.path_constraints[0].mix_y, -0.25);
+    assert_approx(skeleton.path_constraints[0].position, -2.5);
+    assert_approx(skeleton.path_constraints[0].spacing, -1.25);
+}

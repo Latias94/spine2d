@@ -2,8 +2,8 @@ use crate::runtime::{AnimationState, AnimationStateData, MixInterpolation};
 use crate::{
     Animation, AttachmentData, AttachmentFrame, AttachmentTimeline, BlendMode, BoneData,
     BoneTimeline, Curve, DrawOrderFolderFrame, DrawOrderFolderTimeline, DrawOrderFrame,
-    DrawOrderTimeline, Inherit, RegionAttachmentData, Skeleton, SkeletonData, SkinData, SlotData,
-    TranslateTimeline, Vec2Frame,
+    DrawOrderTimeline, Inherit, MixBlend, RegionAttachmentData, Skeleton, SkeletonData, SkinData,
+    SlotData, TranslateTimeline, Vec2Frame, apply_animation,
 };
 use indexmap::IndexMap;
 use std::collections::HashMap;
@@ -465,6 +465,19 @@ fn additive_path_and_physics_timelines_follow_upstream_add_rules() {
 
     assert_approx(skeleton.physics_constraints[0].wind, 7.0);
     assert_approx(skeleton.physics_constraints[1].inertia, 0.8);
+}
+
+#[test]
+fn physics_constraint_timeline_applies_negative_alpha_like_cpp() {
+    let data = SkeletonData::from_json_str(&additive_path_physics_json()).unwrap();
+    let (_, anim) = data.animation("base").unwrap();
+    let mut skeleton = Skeleton::new(data.clone());
+
+    skeleton.setup_pose();
+    apply_animation(anim, &mut skeleton, 0.5, false, -0.5, MixBlend::Replace);
+
+    assert_approx(skeleton.physics_constraints[0].wind(), -2.5);
+    assert_approx(skeleton.physics_constraints[1].inertia(), 0.1);
 }
 
 #[test]

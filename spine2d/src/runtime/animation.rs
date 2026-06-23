@@ -1372,7 +1372,7 @@ pub(crate) fn apply_slider_time_timeline_with(
     from: MixFrom,
     add: bool,
 ) {
-    if alpha <= 0.0 || timeline.frames.is_empty() {
+    if timeline.frames.is_empty() {
         return;
     }
     let Some(constraint) = skeleton
@@ -1421,7 +1421,7 @@ pub(crate) fn apply_slider_mix_timeline_with(
     from: MixFrom,
     add: bool,
 ) {
-    if alpha <= 0.0 || timeline.frames.is_empty() {
+    if timeline.frames.is_empty() {
         return;
     }
     let Some(constraint) = skeleton
@@ -1552,10 +1552,6 @@ pub(crate) fn apply_physics_constraint_timeline_with(
     from: MixFrom,
     entry_add: bool,
 ) {
-    if alpha <= 0.0 {
-        return;
-    }
-
     type GetSetup = fn(&crate::PhysicsConstraintData) -> f32;
     type GetCurrent = fn(&crate::PhysicsConstraint) -> f32;
     type SetCurrent = fn(&mut crate::PhysicsConstraint, f32);
@@ -1779,7 +1775,7 @@ fn apply_path_position_timeline(
     from: MixFrom,
     add: bool,
 ) {
-    if alpha <= 0.0 || timeline.frames.is_empty() {
+    if timeline.frames.is_empty() {
         return;
     }
     let Some(constraint) = skeleton.path_constraints.get_mut(timeline.constraint_index) else {
@@ -1815,7 +1811,7 @@ fn apply_path_spacing_timeline(
     alpha: f32,
     from: MixFrom,
 ) {
-    if alpha <= 0.0 || timeline.frames.is_empty() {
+    if timeline.frames.is_empty() {
         return;
     }
     let Some(constraint) = skeleton.path_constraints.get_mut(timeline.constraint_index) else {
@@ -1852,7 +1848,7 @@ fn apply_path_mix_timeline(
     from: MixFrom,
     add: bool,
 ) {
-    if alpha <= 0.0 || timeline.frames.is_empty() {
+    if timeline.frames.is_empty() {
         return;
     }
     let Some(constraint) = skeleton.path_constraints.get_mut(timeline.constraint_index) else {
@@ -1979,9 +1975,6 @@ pub(crate) fn apply_transform_constraint_timeline_with(
     from: MixFrom,
     add: bool,
 ) {
-    if alpha <= 0.0 {
-        return;
-    }
     let Some(constraint) = skeleton
         .transform_constraints
         .get_mut(timeline.constraint_index)
@@ -2163,9 +2156,6 @@ pub(crate) fn apply_ik_constraint_timeline(
     blend: MixBlend,
     direction: MixDirection,
 ) {
-    if alpha <= 0.0 {
-        return;
-    }
     let Some(constraint) = skeleton.ik_constraints.get_mut(timeline.constraint_index) else {
         return;
     };
@@ -2595,21 +2585,19 @@ pub(crate) fn apply_slot_rgb2(
 }
 
 fn lerp_color(from: [f32; 4], to: [f32; 4], alpha: f32) -> [f32; 4] {
-    let a = alpha.clamp(0.0, 1.0);
     [
-        from[0] + (to[0] - from[0]) * a,
-        from[1] + (to[1] - from[1]) * a,
-        from[2] + (to[2] - from[2]) * a,
-        from[3] + (to[3] - from[3]) * a,
+        from[0] + (to[0] - from[0]) * alpha,
+        from[1] + (to[1] - from[1]) * alpha,
+        from[2] + (to[2] - from[2]) * alpha,
+        from[3] + (to[3] - from[3]) * alpha,
     ]
 }
 
 fn lerp3(from: [f32; 3], to: [f32; 3], alpha: f32) -> [f32; 3] {
-    let a = alpha.clamp(0.0, 1.0);
     [
-        from[0] + (to[0] - from[0]) * a,
-        from[1] + (to[1] - from[1]) * a,
-        from[2] + (to[2] - from[2]) * a,
+        from[0] + (to[0] - from[0]) * alpha,
+        from[1] + (to[1] - from[1]) * alpha,
+        from[2] + (to[2] - from[2]) * alpha,
     ]
 }
 
@@ -2892,9 +2880,6 @@ pub(crate) fn apply_deform(
     blend: MixBlend,
     applied_pose: bool,
 ) {
-    if alpha <= 0.0 {
-        return;
-    }
     if timeline.frames.is_empty() || timeline.vertex_count == 0 {
         return;
     }
@@ -3290,7 +3275,6 @@ fn apply_deform_vertices(
     alpha: f32,
     blend: MixBlend,
 ) {
-    let alpha = alpha.clamp(0.0, 1.0);
     if alpha >= 1.0 {
         match blend {
             MixBlend::Add => {

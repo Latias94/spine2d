@@ -1921,10 +1921,6 @@ impl AnimationState {
         attachments: bool,
         direction: MixDirection,
     ) {
-        if alpha <= 0.0 {
-            return;
-        }
-
         let (entry_additive, shortest_rotation) = self
             .entry(entry_id)
             .map(|e| {

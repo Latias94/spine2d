@@ -70,6 +70,9 @@ mod path_constraint_timeline_tests;
 #[cfg(all(test, feature = "json"))]
 mod path_constraint_solve_tests;
 
+#[cfg(all(test, feature = "json"))]
+mod slider_timeline_tests;
+
 #[cfg(all(test, feature = "json", feature = "upstream-smoke"))]
 mod vine_smoke_tests;
 
