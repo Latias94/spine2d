@@ -17,6 +17,9 @@ status: "active"
   - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy --examples`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23.
   - C++ pose/render oracle runners accepted `--entry-mix-blend add` against local `repo-ref/spine-runtimes` with `SPINE2D_ORACLE_ALLOW_BASELINE_MISMATCH=1`; generated temp JSON validated with `python3 -m json.tool`.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke runtime::animation_state_mixing_semantics_tests` passed with `9 passed, 586 skipped` on 2026-06-23 after restoring the official C++ `holdPrevious` surface in the working tree.
+  - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after adding `holdPrevious` to Bevy track-entry settings/state plumbing.
+  - C++ pose oracle runner accepted `--entry-hold-previous 1` against local `repo-ref/spine-runtimes` with `SPINE2D_ORACLE_ALLOW_BASELINE_MISMATCH=1`; generated temp JSON validated with `python3 -m json.tool`.
 - Done:
   - Confirmed `4.3.2` is not the latest 4.3 tag; current explicit baseline is `spine-ts-4.3.8`.
   - Confirmed official 4.3.4 IK uses `ScaleYMode/scaleY`, not development HEAD `uniform`.
@@ -85,12 +88,13 @@ status: "active"
   - Restored official C++ TrackEntry mix-blend API in breaking commit `1a432d3`; `TrackEntry::mix_blend`, `TrackEntryHandle::set_mix_blend`, `TrackEntrySettings::with_mix_blend`, Bevy `SpineTrackState::mix_blend`, render scenario `EntryMixBlend`, and `pose_dump_scenario --entry-mix-blend` replace the older Rust-only additive public surface.
   - Aligned C++ oracle tooling in commit `9bb858f`; pose/render oracle runners and golden recorders now use `--entry-mix-blend <setup|first|replace|add>` / `spine_track_entry_set_mix_blend`, and the runners have an explicit mismatch override for intentionally using local `repo-ref/spine-runtimes` as the source checkout.
   - Resolved the transient additive API rollback in the working tree after user confirmation; the affected Rust/Bevy files were returned to the committed `mixBlend` state and `git status --short` is clean.
+  - Restored official C++ TrackEntry hold-previous API in the working tree; `TrackEntry::hold_previous`, `TrackEntryHandle::set_hold_previous`, `TrackEntrySettings::with_hold_previous`, Bevy `SpineTrackState::hold_previous`, and `pose_dump_scenario --entry-hold-previous` now mirror C++ `TrackEntry::getHoldPrevious/setHoldPrevious`.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - None.
 - Next action:
-  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode representation before attempting any `interruptAlpha`-shape refactor.
+  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode and `holdPrevious` representation before attempting any `interruptAlpha`-shape refactor.
 
 # Citations
 
