@@ -13,6 +13,9 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Last verified:
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `593 passed, 10 skipped` on 2026-06-23 after the `AnimationState::tracks` slice.
+  - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after the `AnimationState::tracks` slice.
+  - `cargo check -p spine2d-bevy`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23 after the `AnimationState::tracks` slice.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `593 passed, 10 skipped` on 2026-06-23 after the manual TrackEntry disposal slice.
   - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after the manual TrackEntry disposal slice.
   - `cargo check -p spine2d-bevy`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23 after the manual TrackEntry disposal slice.
@@ -109,6 +112,7 @@ status: "active"
   - Added official-style current/data accessors in commit `8a46380`; `AnimationState::current(track_index)` returns the current safe entry handle like C++ `getCurrent`, and `AnimationState::data()` pairs with `data_mut()` like C++ `getData`.
   - Added official-style event queue controls in commit `f6b88fe`; `disable_queue` and `enable_queue` expose C++ `disableQueue` / `enableQueue` semantics, including enable not draining until the next normal drain point.
   - Added optional manual TrackEntry disposal in commit `d0ada6c`; `set_manual_track_entry_disposal`, `manual_track_entry_disposal`, and `dispose_track_entry` mirror C++ manual disposal controls while keeping automatic disposal as the default.
+  - Added track slots view in commit `ca658f2`; `tracks()` exposes sparse current-track handles and preserves empty slots like C++ `getTracks()`.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
