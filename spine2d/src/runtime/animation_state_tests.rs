@@ -3132,6 +3132,13 @@ fn track_entry_official_query_helpers_and_loop_setter_follow_cpp_state() {
         assert!(!entry.looped());
     });
 
+    entry.set_track_time(&mut state, 0.25);
+    entry.set_mix_time(&mut state, 0.125);
+    state.with_track_entry(0, |entry| {
+        assert_eq!(entry.track_time(), 0.25);
+        assert_eq!(entry.mix_time(), 0.125);
+    });
+
     state.update(0.5);
     state.apply(&mut skeleton);
     state.with_track_entry(0, |entry| {
@@ -3162,6 +3169,7 @@ fn track_entry_queue_neighbors_follow_cpp_previous_next_chain() {
 
     let first = state.set_animation(0, "events0", false).unwrap();
     let second = state.add_animation(0, "events1", false, 0.5).unwrap();
+    second.set_mix_duration(&mut state, 0.5);
     let third = state.add_animation(0, "events2", false, 0.0).unwrap();
 
     assert_eq!(first.previous(&state), None);
@@ -3178,6 +3186,14 @@ fn track_entry_queue_neighbors_follow_cpp_previous_next_chain() {
     state.update(0.6);
     state.apply(&mut skeleton);
     assert!(first.is_next_ready(&state));
+
+    state.update(0.0);
+    assert_eq!(first.next(&state), Some(second));
+    assert_eq!(second.previous(&state), None);
+    assert_eq!(second.next(&state), Some(third));
+    assert_eq!(third.previous(&state), Some(second));
+    assert_eq!(second.mixing_from(&state), Some(first));
+    assert_eq!(first.mixing_to(&state), Some(second));
 }
 
 #[test]

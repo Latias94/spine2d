@@ -496,6 +496,8 @@ pub struct TrackEntry {
     animation_end: f32,
     mix_duration: f32,
     mix_time: f32,
+    previous: Option<EntryId>,
+    next: Option<EntryId>,
     mixing_from: Option<EntryId>,
     delay: f32,
     track_time: f32,
@@ -537,6 +539,8 @@ impl std::fmt::Debug for TrackEntry {
             .field("animation_end", &self.animation_end)
             .field("mix_duration", &self.mix_duration)
             .field("mix_time", &self.mix_time)
+            .field("previous", &self.previous)
+            .field("next", &self.next)
             .field("mixing_from", &self.mixing_from)
             .field("delay", &self.delay)
             .field("track_time", &self.track_time)
@@ -571,6 +575,8 @@ impl TrackEntry {
             animation_end: animation.duration,
             mix_duration: 0.0,
             mix_time: 0.0,
+            previous: None,
+            next: None,
             mixing_from: None,
             delay: 0.0,
             track_time: 0.0,
@@ -757,15 +763,31 @@ pub struct TrackEntryHandle {
 }
 
 impl TrackEntryHandle {
+    pub fn mixing_from(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
+        state
+            .entry(self.id)
+            .and_then(|entry| entry.mixing_from)
+            .map(|id| TrackEntryHandle { id })
+    }
+
+    pub fn mixing_to(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
+        state
+            .entry(self.id)
+            .and_then(|entry| entry.mixing_to)
+            .map(|id| TrackEntryHandle { id })
+    }
+
     pub fn previous(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
-            .previous_entry_for(self.id)
+            .entry(self.id)
+            .and_then(|entry| entry.previous)
             .map(|id| TrackEntryHandle { id })
     }
 
     pub fn next(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
-            .next_entry_for(self.id)
+            .entry(self.id)
+            .and_then(|entry| entry.next)
             .map(|id| TrackEntryHandle { id })
     }
 
@@ -816,6 +838,12 @@ impl TrackEntryHandle {
         });
     }
 
+    pub fn set_track_time(&self, state: &mut AnimationState, track_time: f32) {
+        self.with_entry_mut(state, |entry| {
+            entry.track_time = track_time;
+        });
+    }
+
     pub fn set_loop(&self, state: &mut AnimationState, looped: bool) {
         self.with_entry_mut(state, |entry| {
             entry.looped = looped;
@@ -825,6 +853,12 @@ impl TrackEntryHandle {
     pub fn set_mix_duration(&self, state: &mut AnimationState, mix_duration: f32) {
         self.with_entry_mut(state, |entry| {
             entry.mix_duration = mix_duration;
+        });
+    }
+
+    pub fn set_mix_time(&self, state: &mut AnimationState, mix_time: f32) {
+        self.with_entry_mut(state, |entry| {
+            entry.mix_time = mix_time;
         });
     }
 
@@ -1232,36 +1266,7 @@ impl AnimationState {
     }
 
     fn previous_entry_for(&self, entry_id: EntryId) -> Option<EntryId> {
-        for track in &self.tracks {
-            if track.current == Some(entry_id) {
-                return None;
-            }
-
-            let mut previous = track.current;
-            for queued in &track.queue {
-                if *queued == entry_id {
-                    return previous;
-                }
-                previous = Some(*queued);
-            }
-        }
-        None
-    }
-
-    fn next_entry_for(&self, entry_id: EntryId) -> Option<EntryId> {
-        for track in &self.tracks {
-            if track.current == Some(entry_id) {
-                return track.queue.front().copied();
-            }
-
-            let mut queue = track.queue.iter().copied();
-            while let Some(queued) = queue.next() {
-                if queued == entry_id {
-                    return queue.next();
-                }
-            }
-        }
-        None
+        self.entry(entry_id).and_then(|entry| entry.previous)
     }
 
     fn compute_mix_from(
@@ -1534,6 +1539,17 @@ impl AnimationState {
             let queued_entries = track.queue.drain(..).collect::<Vec<_>>();
             (old_current, queued_entries)
         };
+        if let Some(old_current) = old_current
+            && let Some(entry) = self.entry_mut(old_current)
+        {
+            entry.next = None;
+        }
+        for queued in &queued_entries {
+            if let Some(entry) = self.entry_mut(*queued) {
+                entry.previous = None;
+                entry.next = None;
+            }
+        }
 
         let entry_id = self.alloc_entry(TrackEntry::new(
             track_index,
@@ -1657,6 +1673,12 @@ impl AnimationState {
         if let Some(entry_ref) = self.entry_mut(entry_id) {
             entry_ref.delay = resolved_delay;
             entry_ref.mix_duration = resolved_mix_duration;
+            entry_ref.previous = last;
+        }
+        if let Some(last) = last
+            && let Some(last_entry) = self.entry_mut(last)
+        {
+            last_entry.next = Some(entry_id);
         }
 
         let track_empty = self.tracks[track_index].current.is_none();
@@ -1722,6 +1744,12 @@ impl AnimationState {
             entry_ref.delay = resolved_delay;
             entry_ref.mix_duration = mix_duration;
             entry_ref.track_end = mix_duration;
+            entry_ref.previous = last;
+        }
+        if let Some(last) = last
+            && let Some(last_entry) = self.entry_mut(last)
+        {
+            last_entry.next = Some(entry_id);
         }
 
         let track_empty = self.tracks[track_index].current.is_none();
@@ -1790,6 +1818,7 @@ impl AnimationState {
                         .expect("queue front exists");
                     if let Some(next) = self.entry_mut(next_id) {
                         next.delay = 0.0;
+                        next.previous = None;
                         // Preserve leftover time when switching (Spine C# Update semantics).
                         if old_time_scale != 0.0 {
                             next.track_time +=
@@ -2586,6 +2615,7 @@ impl AnimationState {
                 let from = entry.mixing_from;
                 entry.mixing_from = None;
                 entry.mixing_to = None;
+                entry.next = None;
                 from
             });
             push_event(&mut self.event_queue, entry_id, AnimationStateEvent::End);
@@ -2600,6 +2630,7 @@ impl AnimationState {
                     let from = entry.mixing_from;
                     entry.mixing_from = None;
                     entry.mixing_to = None;
+                    entry.next = None;
                     from
                 });
                 push_event(&mut self.event_queue, mixing_from, AnimationStateEvent::End);
@@ -2611,6 +2642,10 @@ impl AnimationState {
             }
         }
         for entry in queued {
+            if let Some(queued_entry) = self.entry_mut(entry) {
+                queued_entry.previous = None;
+                queued_entry.next = None;
+            }
             push_event(&mut self.event_queue, entry, AnimationStateEvent::Dispose);
         }
     }
