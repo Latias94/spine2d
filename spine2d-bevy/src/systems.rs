@@ -565,7 +565,7 @@ fn changed_asset_ids<'a, A: Asset>(
 }
 
 fn rebuild_pose(instance: &mut SpineInstance, delta: f32) {
-    instance.animation_state.update(delta.max(0.0));
+    instance.animation_state.update(delta);
     instance.animation_state.apply(&mut instance.skeleton);
     instance
         .skeleton
@@ -1380,6 +1380,39 @@ mod tests {
                             && spine_event.string == "impact"
                 )
         }));
+    }
+
+    #[test]
+    fn update_respects_negative_animation_time_scale() {
+        let mut app = app_with_lifecycle_systems();
+        let (skeleton, atlas) = event_handles(&mut app);
+
+        let entity = app
+            .world_mut()
+            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .id();
+
+        app.update();
+        app.world_mut()
+            .resource_mut::<Time>()
+            .advance_by(Duration::from_millis(100));
+        app.update();
+
+        let forward_time = current_track_entry(&app, entity, 0, |entry| entry.track_time());
+        assert!(forward_time > 0.0);
+
+        app.world_mut().entity_mut(entity).insert(SpineAnimation {
+            name: Some("first".to_owned()),
+            loop_animation: true,
+            time_scale: -1.0,
+        });
+        app.world_mut()
+            .resource_mut::<Time>()
+            .advance_by(Duration::from_millis(100));
+        app.update();
+
+        let reversed_time = current_track_entry(&app, entity, 0, |entry| entry.track_time());
+        assert!(reversed_time < forward_time);
     }
 
     #[test]

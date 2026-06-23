@@ -2889,6 +2889,23 @@ fn state_time_scale_scales_update_and_queue_progression() {
 }
 
 #[test]
+fn update_accepts_negative_delta_like_cpp() {
+    let (mut state, _skeleton, _recording) = setup();
+
+    state.set_animation(0, "events0", false).unwrap();
+    state.update(1.0);
+    state.update(-0.25);
+
+    assert_eq!(round3(state.time()), 0.75);
+    assert_eq!(
+        state
+            .with_track_entry(0, |entry| round3(entry.track_time()))
+            .expect("track 0 should remain active"),
+        0.75
+    );
+}
+
+#[test]
 fn set_animation_during_animation_state_listener() {
     #[derive(Default)]
     struct Reentrant;

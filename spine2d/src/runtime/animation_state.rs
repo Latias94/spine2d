@@ -1701,9 +1701,6 @@ impl AnimationState {
     }
 
     pub fn update(&mut self, delta: f32) {
-        if !(delta.is_finite()) || delta < 0.0 {
-            return;
-        }
         let delta = delta * self.time_scale;
         self.time.set(self.time.get() + delta);
 
