@@ -712,20 +712,7 @@ impl TrackEntry {
             if duration.abs() <= TIME_EPSILON {
                 return self.animation_start;
             }
-            // Keep it in [0, duration).
-            let mut t = self.track_time % duration;
-            if t < 0.0 {
-                t += duration;
-            }
-            // When looping with a non-zero AnimationStart, treat exact loop boundaries as AnimationEnd.
-            // This avoids wrapping to AnimationStart and matches Spine's event/complete behavior tests.
-            if self.animation_start.abs() > TIME_EPSILON
-                && self.track_time > 0.0
-                && t.abs() <= TIME_EPSILON
-            {
-                t = duration;
-            }
-            t + self.animation_start
+            self.track_time % duration + self.animation_start
         } else {
             let animation_time = self.track_time + self.animation_start;
             if self.animation_end + TIME_EPSILON >= self.animation.duration {
