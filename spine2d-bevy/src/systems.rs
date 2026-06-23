@@ -375,19 +375,9 @@ pub fn apply_spine_animation_commands(
                 mix_duration,
                 settings,
             } => {
-                let handle = match instance
+                let handle = instance
                     .animation_state
-                    .set_empty_animation(*track_index, *mix_duration)
-                {
-                    Ok(handle) => handle,
-                    Err(err) => {
-                        warn!(
-                            "Failed to set empty Spine animation for {:?}: {err}",
-                            message.entity
-                        );
-                        continue;
-                    }
-                };
+                    .set_empty_animation(*track_index, *mix_duration);
                 settings.apply(&mut instance.animation_state, handle);
                 if *track_index == 0 {
                     instance.animation_name = None;
@@ -417,13 +407,7 @@ pub fn apply_spine_animation_commands(
                 settings.apply(&mut instance.animation_state, handle);
             }
             SpineAnimationCommandKind::SetEmptyAnimations { mix_duration } => {
-                if let Err(err) = instance.animation_state.set_empty_animations(*mix_duration) {
-                    warn!(
-                        "Failed to set empty Spine animations for {:?}: {err}",
-                        message.entity
-                    );
-                    continue;
-                }
+                instance.animation_state.set_empty_animations(*mix_duration);
                 instance.animation_name = None;
                 instance.loop_animation = false;
             }
@@ -440,11 +424,7 @@ pub fn apply_spine_animation_commands(
                 instance.loop_animation = false;
             }
             SpineAnimationCommandKind::SetDefaultMix { default_mix } => {
-                apply_default_mix(
-                    instance.animation_state.data_mut(),
-                    *default_mix,
-                    message.entity,
-                );
+                apply_default_mix(instance.animation_state.data_mut(), *default_mix);
             }
             SpineAnimationCommandKind::SetMix { from, to, duration } => {
                 apply_animation_mix(
@@ -647,16 +627,14 @@ fn apply_animation_state_config(
     config: &SpineAnimationStateConfig,
     entity: Entity,
 ) {
-    apply_default_mix(state_data, config.default_mix, entity);
+    apply_default_mix(state_data, config.default_mix);
     for mix in &config.mixes {
         apply_animation_mix(state_data, &mix.from, &mix.to, mix.duration, entity);
     }
 }
 
-fn apply_default_mix(state_data: &mut AnimationStateData, default_mix: f32, entity: Entity) {
-    if let Err(err) = state_data.set_default_mix(default_mix) {
-        warn!("Failed to set Spine default mix for {entity:?}: {err}");
-    }
+fn apply_default_mix(state_data: &mut AnimationStateData, default_mix: f32) {
+    state_data.set_default_mix(default_mix);
 }
 
 fn apply_animation_mix(

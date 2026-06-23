@@ -345,7 +345,7 @@ fn track_entry_additive_mixes_out_as_additive() {
     let overlay = state.set_animation(1, "overlay", false).unwrap();
     overlay.set_additive(&mut state, true);
 
-    state.set_empty_animation(1, 1.0).unwrap();
+    state.set_empty_animation(1, 1.0);
     state.update(0.5);
 
     skeleton.setup_pose();

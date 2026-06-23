@@ -103,20 +103,23 @@ fn setup() -> (AnimationState, Skeleton, Recording) {
 }
 
 #[test]
-fn animation_state_data_default_mix_is_validated_and_used_as_fallback() {
+fn animation_state_data_default_mix_is_directly_stored_and_used_as_fallback() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);
 
     assert_eq!(state_data.default_mix(), 0.0);
     assert_eq!(state_data.get_mix("events0", "events1").unwrap(), 0.0);
 
-    state_data.set_default_mix(0.25).unwrap();
+    state_data.set_default_mix(0.25);
 
     assert_eq!(state_data.default_mix(), 0.25);
     assert_eq!(state_data.get_mix("events0", "events1").unwrap(), 0.25);
-    assert!(state_data.set_default_mix(-0.1).is_err());
-    assert!(state_data.set_default_mix(f32::NAN).is_err());
-    assert!(state_data.set_default_mix(f32::INFINITY).is_err());
+    state_data.set_default_mix(-0.1);
+    assert_eq!(state_data.default_mix(), -0.1);
+    state_data.set_default_mix(f32::NAN);
+    assert!(state_data.default_mix().is_nan());
+    state_data.set_default_mix(f32::INFINITY);
+    assert!(state_data.default_mix().is_infinite());
 }
 
 #[test]
@@ -124,7 +127,7 @@ fn animation_state_data_pair_mix_overrides_and_can_be_removed() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);
 
-    state_data.set_default_mix(0.25).unwrap();
+    state_data.set_default_mix(0.25);
     state_data.set_mix("events0", "events1", 0.5).unwrap();
 
     assert_eq!(
@@ -146,7 +149,7 @@ fn animation_state_data_clear_resets_default_and_pair_mixes() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);
 
-    state_data.set_default_mix(0.25).unwrap();
+    state_data.set_default_mix(0.25);
     state_data.set_mix("events0", "events1", 0.5).unwrap();
 
     state_data.clear();
@@ -157,7 +160,7 @@ fn animation_state_data_clear_resets_default_and_pair_mixes() {
 }
 
 #[test]
-fn animation_state_data_rejects_unknown_animations_and_invalid_pair_duration() {
+fn animation_state_data_rejects_unknown_animations() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);
 
@@ -166,12 +169,18 @@ fn animation_state_data_rejects_unknown_animations_and_invalid_pair_duration() {
     assert!(state_data.get_mix("missing", "events1").is_err());
     assert!(state_data.pair_mix("events0", "missing").is_err());
     assert!(state_data.remove_mix("missing", "events1").is_err());
-    assert!(state_data.set_mix("events0", "events1", -0.1).is_err());
-    assert!(state_data.set_mix("events0", "events1", f32::NAN).is_err());
+    state_data.set_mix("events0", "events1", -0.1).unwrap();
+    assert_eq!(state_data.get_mix("events0", "events1").unwrap(), -0.1);
+    state_data.set_mix("events0", "events1", f32::NAN).unwrap();
+    assert!(state_data.get_mix("events0", "events1").unwrap().is_nan());
+    state_data
+        .set_mix("events0", "events1", f32::INFINITY)
+        .unwrap();
     assert!(
         state_data
-            .set_mix("events0", "events1", f32::INFINITY)
-            .is_err()
+            .get_mix("events0", "events1")
+            .unwrap()
+            .is_infinite()
     );
 }
 
@@ -1085,7 +1094,7 @@ fn animation0_events_do_not_fire_during_mix() {
         recording: recording.clone(),
     });
 
-    state.data_mut().set_default_mix(0.7).unwrap();
+    state.data_mut().set_default_mix(0.7);
 
     state.set_animation(0, "events0", false).unwrap();
     let entry = state.add_animation(0, "events1", false, 0.4).unwrap();
@@ -2567,7 +2576,7 @@ fn set_animation_twice_with_multiple_mixing() {
         recording: recording.clone(),
     });
 
-    state.data_mut().set_default_mix(0.6).unwrap();
+    state.data_mut().set_default_mix(0.6);
 
     state.set_animation(0, "events0", false).unwrap(); // First should be ignored.
     state.set_animation(0, "events1", false).unwrap();
@@ -2992,7 +3001,7 @@ fn set_empty_animation() {
         2.0,
         |time, state| {
             if time == 0.7 {
-                state.set_empty_animation(0, 0.0).unwrap();
+                state.set_empty_animation(0, 0.0);
             }
         },
     );
@@ -3071,7 +3080,7 @@ fn set_empty_animations_sets_empty_entries_for_active_tracks() {
     state.add_animation(0, "events1", true, 0.0).unwrap();
     state.set_animation(2, "events2", true).unwrap();
 
-    state.set_empty_animations(0.4).unwrap();
+    state.set_empty_animations(0.4);
 
     assert_eq!(state.queue_front_delay_for_tests(0), None);
     state
@@ -3095,25 +3104,31 @@ fn set_empty_animations_sets_empty_entries_for_active_tracks() {
 fn set_empty_animations_is_noop_without_active_tracks() {
     let (mut state, _skeleton, _recording) = setup();
 
-    state.set_empty_animations(0.4).unwrap();
+    state.set_empty_animations(0.4);
 
     assert_eq!(state.tracks_len(), 0);
 }
 
 #[test]
-fn set_empty_animations_rejects_invalid_duration_without_mutating_tracks() {
+fn set_empty_animations_stores_mix_duration_directly() {
     let (mut state, _skeleton, _recording) = setup();
 
     state.set_animation(0, "events0", true).unwrap();
 
-    assert!(state.set_empty_animations(-0.1).is_err());
-    assert!(state.set_empty_animations(f32::NAN).is_err());
-    assert!(state.set_empty_animations(f32::INFINITY).is_err());
+    state.set_empty_animations(-0.1);
     assert_eq!(
         state
-            .with_track_entry(0, |entry| entry.animation().name.clone())
+            .with_track_entry(0, |entry| entry.mix_duration())
             .unwrap(),
-        "events0"
+        -0.1
+    );
+
+    state.set_empty_animations(f32::INFINITY);
+    assert_eq!(
+        state
+            .with_track_entry(0, |entry| entry.mix_duration())
+            .unwrap(),
+        f32::INFINITY
     );
 }
 

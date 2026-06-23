@@ -75,7 +75,7 @@ fn run_all_animations_queue_smoke(relative: &str) {
     skeleton.update_world_transform_with_physics(crate::Physics::Update);
 
     let mut state_data = AnimationStateData::new(data.clone());
-    state_data.set_default_mix(0.2).unwrap(); // matches upstream spine-c-unit-tests
+    state_data.set_default_mix(0.2); // matches upstream spine-c-unit-tests
     let mut state = AnimationState::new(state_data);
 
     let animations = data
@@ -174,7 +174,7 @@ fn run_each_animation_sample_smoke(path: &std::path::Path, example_label: &str) 
         skeleton.update_world_transform_with_physics(crate::Physics::Update);
 
         let mut state_data = AnimationStateData::new(data.clone());
-        state_data.set_default_mix(0.2).unwrap();
+        state_data.set_default_mix(0.2);
         let mut state = AnimationState::new(state_data);
         state
             .set_animation(0, &anim, true)
@@ -214,7 +214,7 @@ fn run_queued_animations_smoke(data: Arc<SkeletonData>, example_label: &str) {
     skeleton.update_world_transform_with_physics(crate::Physics::Update);
 
     let mut state_data = AnimationStateData::new(data.clone());
-    state_data.set_default_mix(0.2).unwrap();
+    state_data.set_default_mix(0.2);
     let mut state = AnimationState::new(state_data);
 
     state
@@ -258,7 +258,7 @@ fn run_multitrack_overlay_smoke(data: Arc<SkeletonData>, example_label: &str) {
     skeleton.update_world_transform_with_physics(crate::Physics::Update);
 
     let mut state_data = AnimationStateData::new(data.clone());
-    state_data.set_default_mix(0.2).unwrap();
+    state_data.set_default_mix(0.2);
     let mut state = AnimationState::new(state_data);
 
     state

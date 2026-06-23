@@ -476,14 +476,11 @@ impl AnimationStateData {
         self.default_mix
     }
 
-    pub fn set_default_mix(&mut self, duration: f32) -> Result<(), Error> {
-        validate_mix_duration(duration)?;
+    pub fn set_default_mix(&mut self, duration: f32) {
         self.default_mix = duration;
-        Ok(())
     }
 
     pub fn set_mix(&mut self, from: &str, to: &str, duration: f32) -> Result<(), Error> {
-        validate_mix_duration(duration)?;
         let from_index = self.animation_index_by_name(from)?;
         let to_index = self.animation_index_by_name(to)?;
         self.mixes.insert((from_index, to_index), duration);
@@ -528,15 +525,6 @@ impl AnimationStateData {
             .copied()
             .unwrap_or(self.default_mix)
     }
-}
-
-fn validate_mix_duration(duration: f32) -> Result<(), Error> {
-    if !duration.is_finite() || duration < 0.0 {
-        return Err(Error::InvalidValue {
-            message: "mix duration must be finite and >= 0".to_string(),
-        });
-    }
-    Ok(())
 }
 
 pub struct TrackEntry {
@@ -1457,37 +1445,26 @@ impl AnimationState {
                 .ok_or_else(|| Error::UnknownAnimation {
                     name: animation_name.to_string(),
                 })?;
-        self.set_animation_internal(track_index, animation_index, animation.clone(), looped)
+        Ok(self.set_animation_internal(track_index, animation_index, animation.clone(), looped))
     }
 
     pub fn set_empty_animation(
         &mut self,
         track_index: usize,
         mix_duration: f32,
-    ) -> Result<TrackEntryHandle, Error> {
-        if !mix_duration.is_finite() || mix_duration < 0.0 {
-            return Err(Error::InvalidValue {
-                message: "mix duration must be finite and >= 0".to_string(),
-            });
-        }
+    ) -> TrackEntryHandle {
         let entry = self.set_animation_internal(
             track_index,
             EMPTY_ANIMATION_INDEX,
             empty_animation(),
             false,
-        )?;
+        );
         entry.set_mix_duration(self, mix_duration);
         entry.set_track_end(self, mix_duration);
-        Ok(entry)
+        entry
     }
 
-    pub fn set_empty_animations(&mut self, mix_duration: f32) -> Result<(), Error> {
-        if !mix_duration.is_finite() || mix_duration < 0.0 {
-            return Err(Error::InvalidValue {
-                message: "mix duration must be finite and >= 0".to_string(),
-            });
-        }
-
+    pub fn set_empty_animations(&mut self, mix_duration: f32) {
         let current_track_indices = self
             .tracks
             .iter()
@@ -1495,21 +1472,16 @@ impl AnimationState {
             .filter_map(|(track_index, track)| track.current.map(|_| track_index))
             .collect::<Vec<_>>();
         if current_track_indices.is_empty() {
-            return Ok(());
+            return;
         }
 
         let old_drain_disabled = self.drain_disabled;
         self.drain_disabled = true;
-        let mut result = Ok(());
         for track_index in current_track_indices {
-            if let Err(err) = self.set_empty_animation(track_index, mix_duration) {
-                result = Err(err);
-                break;
-            }
+            self.set_empty_animation(track_index, mix_duration);
         }
         self.drain_disabled = old_drain_disabled;
         self.drain_event_queue();
-        result
     }
 
     fn set_animation_internal(
@@ -1518,7 +1490,7 @@ impl AnimationState {
         animation_index: usize,
         animation: Animation,
         looped: bool,
-    ) -> Result<TrackEntryHandle, Error> {
+    ) -> TrackEntryHandle {
         self.ensure_track(track_index);
 
         let (old_current, queued_entries) = {
@@ -1595,7 +1567,7 @@ impl AnimationState {
         self.animations_changed = true;
         self.drain_event_queue();
 
-        Ok(TrackEntryHandle { id: entry_id })
+        TrackEntryHandle { id: entry_id }
     }
 
     pub fn add_animation(
@@ -1669,11 +1641,6 @@ impl AnimationState {
         mix_duration: f32,
         delay: f32,
     ) -> Result<TrackEntryHandle, Error> {
-        if !mix_duration.is_finite() || mix_duration < 0.0 {
-            return Err(Error::InvalidValue {
-                message: "mix duration must be finite and >= 0".to_string(),
-            });
-        }
         if !delay.is_finite() {
             return Err(Error::InvalidValue {
                 message: "delay must be finite".to_string(),

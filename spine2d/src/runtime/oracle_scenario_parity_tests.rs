@@ -1017,9 +1017,7 @@ fn oracle_diamond_idle_rotating_plus_idle_still_add_to_empty_mix0_2_t0_1_matches
         .set_animation(1, "idle-still", true)
         .expect("set animation idle-still");
     entry.set_additive(&mut state, true);
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -1092,9 +1090,7 @@ fn oracle_skel_diamond_idle_rotating_plus_idle_still_add_to_empty_mix0_2_t0_1_ma
         .set_animation(1, "idle-still", true)
         .expect("set animation idle-still");
     entry.set_additive(&mut state, true);
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -1567,9 +1563,7 @@ fn oracle_hero_idle_plus_run_add_to_empty_mix0_2_head_deform_t0_55_matches_cpp()
     run.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, Some("head"));
@@ -1603,9 +1597,7 @@ fn oracle_hero_idle_plus_run_add_to_empty_mix0_2_head_deform_jitter_dt_t0_55_mat
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -1728,9 +1720,7 @@ fn oracle_skel_hero_idle_plus_run_add_to_empty_mix0_2_head_deform_t0_55_matches_
     run.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, Some("head"));
@@ -1765,9 +1755,7 @@ fn oracle_skel_hero_idle_plus_run_add_to_empty_mix0_2_head_deform_jitter_dt_t0_5
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -2005,9 +1993,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_head_base_deform_t0_55_matches_cp
     left.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, Some("head-base"));
@@ -2041,9 +2027,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_head_base_deform_jitter_dt_t0_55_
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -2159,9 +2143,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_l_wing_deform_t0_55_matches_cpp()
     left.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, Some("L_wing"));
@@ -2195,9 +2177,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_l_wing_deform_jitter_dt_t0_55_mat
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -2313,9 +2293,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_r_wing_deform_t0_55_matches_cpp()
     left.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, Some("R_wing"));
@@ -2349,9 +2327,7 @@ fn oracle_owl_up_plus_left_add_to_empty_mix0_2_r_wing_deform_jitter_dt_t0_55_mat
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -2418,9 +2394,7 @@ fn oracle_owl_up_plus_blink_to_empty_mix0_2_l_wing_t0_55_matches_cpp() {
     state.set_animation(1, "blink", false).expect("set blink");
     step(&mut state, &mut skeleton, 0.5);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.05);
 
     let rust = dump_pose(&skeleton, 0.55, Some("L_wing"));
@@ -2446,9 +2420,7 @@ fn oracle_owl_up_plus_blink_to_empty_mix0_2_l_wing_jitter_dt_t0_55_matches_cpp()
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..6 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -2695,9 +2667,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_head_base_deform_t0_55_match
     left.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, Some("head-base"));
@@ -2732,9 +2702,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_head_base_deform_jitter_dt_t
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -2806,9 +2774,7 @@ fn oracle_skel_owl_up_plus_blink_to_empty_mix0_2_l_wing_t0_55_matches_cpp() {
     state.set_animation(1, "blink", false).expect("set blink");
     step(&mut state, &mut skeleton, 0.5);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.05);
 
     let rust = dump_pose(&skeleton, 0.55, Some("L_wing"));
@@ -2835,9 +2801,7 @@ fn oracle_skel_owl_up_plus_blink_to_empty_mix0_2_l_wing_jitter_dt_t0_55_matches_
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..6 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -2957,9 +2921,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_l_wing_deform_t0_55_matches_
     left.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, Some("L_wing"));
@@ -2994,9 +2956,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_l_wing_deform_jitter_dt_t0_5
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -3119,9 +3079,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_r_wing_deform_t0_55_matches_
     left.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, Some("R_wing"));
@@ -3156,9 +3114,7 @@ fn oracle_skel_owl_up_plus_left_add_to_empty_mix0_2_r_wing_deform_jitter_dt_t0_5
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -3561,9 +3517,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_1_t0_
     shoot.set_mix_draw_order_threshold(&mut state, 1.0);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, None);
@@ -3600,9 +3554,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_1_jit
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -3633,9 +3585,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_0_t0_
     shoot.set_mix_draw_order_threshold(&mut state, 0.0);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, None);
@@ -3672,9 +3622,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_0_jit
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -3703,9 +3651,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_t0_35_matches_cpp() {
     shoot.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.15);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.35, Some("clipping"));
@@ -3728,9 +3674,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_immediate_mix0_2_t0_1_matches_cpp()
     shoot.set_additive(&mut state, true);
 
     // Critical edge case: immediately mix out before the Add entry is ever applied.
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -3755,9 +3699,7 @@ fn oracle_tank_shoot_plus_drive_add_to_empty_immediate_mix0_2_t0_1_matches_cpp()
     drive.set_additive(&mut state, true);
 
     // Critical edge case: immediately mix out before the Add entry is ever applied.
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -3782,9 +3724,7 @@ fn oracle_skel_tank_drive_plus_shoot_add_to_empty_immediate_mix0_2_t0_1_matches_
     let shoot = state.set_animation(1, "shoot", false).expect("set shoot");
     shoot.set_additive(&mut state, true);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -3809,9 +3749,7 @@ fn oracle_skel_tank_shoot_plus_drive_add_to_empty_immediate_mix0_2_t0_1_matches_
     let drive = state.set_animation(1, "drive", true).expect("set drive");
     drive.set_additive(&mut state, true);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -3837,9 +3775,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_smoke_glow_deform_t0_35_matches_cpp
     shoot.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.15);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.35, Some("smoke-glow"));
@@ -3873,9 +3809,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_smoke_glow_deform_jitter_dt_t0_35_m
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -3905,9 +3839,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_1_t0_55_ma
     shoot.set_mix_draw_order_threshold(&mut state, 1.0);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, None);
@@ -3943,9 +3875,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_1_jitter_d
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -3975,9 +3905,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_0_t0_55_ma
     shoot.set_mix_draw_order_threshold(&mut state, 0.0);
     step(&mut state, &mut skeleton, 0.35);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.55, None);
@@ -4013,9 +3941,7 @@ fn oracle_tank_drive_plus_shoot_add_to_empty_mix_draw_order_threshold_0_jitter_d
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -4045,9 +3971,7 @@ fn oracle_tank_drive_plus_shoot_add_alpha0_5_to_empty_t0_35_matches_cpp() {
     shoot.set_alpha(&mut state, 0.5);
     step(&mut state, &mut skeleton, 0.15);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.35, Some("clipping"));
@@ -4083,9 +4007,7 @@ fn oracle_tank_drive_plus_shoot_add_alpha0_5_to_empty_jitter_dt_t0_35_matches_cp
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..4 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -4685,9 +4607,7 @@ fn oracle_spineboy_run_plus_aim_add_to_empty_immediate_mix0_2_t0_1_matches_cpp()
     aim.set_additive(&mut state, true);
 
     // Critical edge case: immediately mix out before the Add entry is ever applied.
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -4714,9 +4634,7 @@ fn oracle_spineboy_run_plus_portal_add_to_empty_mix0_2_t0_6_matches_cpp() {
     portal.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.2);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.2);
 
     let rust = dump_pose(&skeleton, 0.6, None);
@@ -4753,9 +4671,7 @@ fn oracle_spineboy_run_plus_portal_add_to_empty_mix0_2_jitter_dt_t0_6_matches_cp
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -4808,9 +4724,7 @@ fn oracle_spineboy_run_plus_portal_add_reverse_to_empty_immediate_mix0_2_t0_1_ma
     portal.set_reverse(&mut state, true);
 
     // Critical edge case: immediately mix out before the (reverse) Add entry is ever applied.
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -5637,9 +5551,7 @@ fn oracle_alien_run_plus_death_add_to_empty_immediate_mix0_2_t0_1_matches_cpp() 
     death.set_additive(&mut state, true);
 
     // Critical edge case: immediately mix out before the Add entry is ever applied.
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -5684,9 +5596,7 @@ fn oracle_skel_spineboy_run_plus_aim_add_to_empty_immediate_mix0_2_t0_1_matches_
     let aim = state.set_animation(1, "aim", true).expect("set aim");
     aim.set_additive(&mut state, true);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -5714,9 +5624,7 @@ fn oracle_skel_spineboy_run_plus_portal_add_to_empty_mix0_2_t0_6_matches_cpp() {
     portal.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.2);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.2);
 
     let rust = dump_pose(&skeleton, 0.6, None);
@@ -5754,9 +5662,7 @@ fn oracle_skel_spineboy_run_plus_portal_add_to_empty_mix0_2_jitter_dt_t0_6_match
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -5810,9 +5716,7 @@ fn oracle_skel_spineboy_run_plus_portal_add_reverse_to_empty_immediate_mix0_2_t0
     portal.set_additive(&mut state, true);
     portal.set_reverse(&mut state, true);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -6045,9 +5949,7 @@ fn oracle_skel_alien_run_plus_death_add_to_empty_immediate_mix0_2_t0_1_matches_c
     let death = state.set_animation(1, "death", false).expect("set death");
     death.set_additive(&mut state, true);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     let dt = 0.1;
     step(&mut state, &mut skeleton, dt);
@@ -6074,9 +5976,7 @@ fn oracle_spineboy_run_plus_shoot_add_to_empty_mix0_2_t0_6_matches_cpp() {
     shoot.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.2);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.2);
 
     let rust = dump_pose(&skeleton, 0.6, None);
@@ -6113,9 +6013,7 @@ fn oracle_spineboy_run_plus_shoot_add_to_empty_mix0_2_jitter_dt_t0_6_matches_cpp
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -6146,9 +6044,7 @@ fn oracle_skel_spineboy_run_plus_shoot_add_to_empty_mix0_2_t0_6_matches_cpp() {
     shoot.set_additive(&mut state, true);
     step(&mut state, &mut skeleton, 0.2);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.2);
 
     let rust = dump_pose(&skeleton, 0.6, None);
@@ -6186,9 +6082,7 @@ fn oracle_skel_spineboy_run_plus_shoot_add_to_empty_mix0_2_jitter_dt_t0_6_matche
         step(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..10 {
         step(&mut state, &mut skeleton, 0.008_333_334);
     }
@@ -6478,9 +6372,7 @@ fn oracle_spineboy_shoot_to_empty_mix_attachment_threshold_0_mix_draw_order_thre
     shoot.set_mix_draw_order_threshold(&mut state, 0.0);
     step(&mut state, &mut skeleton, 0.1);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.2, None);
@@ -6505,9 +6397,7 @@ fn oracle_spineboy_ess_run_to_empty_immediate_mix0_2_mix_attachment_threshold_1_
     run.set_mix_draw_order_threshold(&mut state, 1.0);
 
     // Critical edge case: immediately mix out before the entry is ever applied.
-    state
-        .set_empty_animation(0, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(0, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.1, None);
@@ -6531,9 +6421,7 @@ fn oracle_skel_spineboy_ess_run_to_empty_immediate_mix0_2_mix_attachment_thresho
     run.set_mix_attachment_threshold(&mut state, 1.0);
     run.set_mix_draw_order_threshold(&mut state, 1.0);
 
-    state
-        .set_empty_animation(0, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(0, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.1, None);
@@ -7302,9 +7190,7 @@ fn oracle_dragon_flying_to_empty_t0_35_matches_cpp() {
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.25);
 
-    state
-        .set_empty_animation(0, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(0, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.35, None);
@@ -7323,9 +7209,7 @@ fn oracle_skel_dragon_flying_to_empty_t0_35_matches_cpp() {
     state.set_animation(0, "flying", true).expect("set flying");
     step(&mut state, &mut skeleton, 0.25);
 
-    state
-        .set_empty_animation(0, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(0, 0.2);
     step(&mut state, &mut skeleton, 0.1);
 
     let rust = dump_pose(&skeleton, 0.35, None);
@@ -7952,9 +7836,7 @@ fn oracle_sack_walk_plus_hello_add_to_empty_mix0_2_physics_t0_6_matches_cpp() {
     hello.set_additive(&mut state, true);
     step_physics(&mut state, &mut skeleton, 0.2);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step_physics(&mut state, &mut skeleton, 0.2);
 
     let rust = dump_pose(&skeleton, 0.6, None);
@@ -8263,9 +8145,7 @@ fn oracle_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_t0_6_matches_cpp
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..12 {
         step_physics(&mut state, &mut skeleton, dt);
     }
@@ -8309,9 +8189,7 @@ fn oracle_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_jitter_dt_t0_6_m
         step_physics(&mut state, &mut skeleton, 0.033_333_336);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     // Phase3 ~0.2s.
     for _ in 0..6 {
@@ -8656,9 +8534,7 @@ fn oracle_skel_sack_walk_plus_hello_add_to_empty_mix0_2_physics_t0_6_matches_cpp
     hello.set_additive(&mut state, true);
     step_physics(&mut state, &mut skeleton, 0.2);
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     step_physics(&mut state, &mut skeleton, 0.2);
 
     let rust = dump_pose(&skeleton, 0.6, None);
@@ -8985,9 +8861,7 @@ fn oracle_skel_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_t0_6_matche
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
     for _ in 0..12 {
         step_physics(&mut state, &mut skeleton, dt);
     }
@@ -9030,9 +8904,7 @@ fn oracle_skel_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_jitter_dt_t
         step_physics(&mut state, &mut skeleton, 0.033_333_336);
     }
 
-    state
-        .set_empty_animation(1, 0.2)
-        .expect("set empty animation");
+    state.set_empty_animation(1, 0.2);
 
     for _ in 0..6 {
         step_physics(&mut state, &mut skeleton, 0.008_333_334);

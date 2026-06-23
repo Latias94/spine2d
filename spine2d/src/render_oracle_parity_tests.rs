@@ -1117,11 +1117,7 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
                 track,
                 mix_duration,
             } => {
-                last_entry = Some(
-                    state
-                        .set_empty_animation(track, mix_duration)
-                        .unwrap_or_else(|e| panic!("set empty {track}: {e}")),
-                );
+                last_entry = Some(state.set_empty_animation(track, mix_duration));
             }
             RenderScenarioCommand::AddEmpty {
                 track,

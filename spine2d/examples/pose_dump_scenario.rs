@@ -518,11 +518,7 @@ fn main() {
             "--set-empty" if i + 2 < args.len() => {
                 let track: usize = args[i + 1].parse().unwrap();
                 let mix_duration: f32 = args[i + 2].parse().unwrap();
-                last_entry = Some(
-                    state
-                        .set_empty_animation(track, mix_duration)
-                        .expect("set empty animation"),
-                );
+                last_entry = Some(state.set_empty_animation(track, mix_duration));
                 i += 3;
             }
             "--add-empty" if i + 3 < args.len() => {
