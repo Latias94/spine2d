@@ -2656,15 +2656,7 @@ impl AnimationState {
                     &mut events,
                 );
             } else {
-                collect_events(
-                    timeline,
-                    animation_last,
-                    animation_time,
-                    entry.looped,
-                    animation_start,
-                    animation_end,
-                    &mut events,
-                );
+                collect_events(timeline, animation_last, animation_time, &mut events);
             }
         }
 
@@ -2679,33 +2671,30 @@ impl AnimationState {
             animation_time >= animation_end && animation_last < animation_end
         };
 
-        // Queue events before complete, then complete, then events after complete (Spine semantics).
-        if complete && duration != 0.0 && !events.is_empty() {
-            let mut track_last_wrapped = track_last % duration;
-            if track_last_wrapped < 0.0 {
-                track_last_wrapped += duration;
-            }
-            let mut split = events.len();
-            for (i, ev) in events.iter().enumerate() {
-                let local_time = ev.time - animation_start;
-                if local_time + TIME_EPSILON < track_last_wrapped {
-                    split = i;
-                    break;
-                }
-            }
-            for ev in &events[..split] {
-                push_event(out, entry_id, AnimationStateEvent::Event(ev.clone()));
-            }
-            push_event(out, entry_id, AnimationStateEvent::Complete);
-            for ev in &events[split..] {
-                push_event(out, entry_id, AnimationStateEvent::Event(ev.clone()));
-            }
+        // Match upstream AnimationState::queueEvents: collected EventTimeline events are queued
+        // before complete until the wrapped track time is reached, then complete, then the events
+        // after the wrap. EventTimeline itself does not know animationStart/animationEnd.
+        let track_last_wrapped = if duration != 0.0 {
+            track_last % duration
         } else {
-            for ev in &events {
+            f32::NAN
+        };
+        let mut split = events.len();
+        for (i, ev) in events.iter().enumerate() {
+            if ev.time < track_last_wrapped {
+                split = i;
+                break;
+            }
+            if ev.time <= animation_end {
                 push_event(out, entry_id, AnimationStateEvent::Event(ev.clone()));
             }
-            if complete {
-                push_event(out, entry_id, AnimationStateEvent::Complete);
+        }
+        if complete {
+            push_event(out, entry_id, AnimationStateEvent::Complete);
+        }
+        for ev in &events[split..] {
+            if ev.time >= animation_start {
+                push_event(out, entry_id, AnimationStateEvent::Event(ev.clone()));
             }
         }
 
@@ -2856,64 +2845,24 @@ fn collect_events(
     timeline: &crate::EventTimeline,
     last_time: f32,
     time: f32,
-    looped: bool,
-    animation_start: f32,
-    animation_end: f32,
     out: &mut Vec<Event>,
 ) {
     if timeline.events.is_empty() {
         return;
     }
 
-    // Mirror upstream EventTimeline semantics: when looping (time wraps), the second segment only
-    // runs when `time` reaches the first event frame time. This prevents duplicate events when
-    // modulo arithmetic produces a `time` slightly below the first frame time.
-    let first_time_in_range = timeline
-        .events
-        .iter()
-        .find(|ev| {
-            ev.time + TIME_EPSILON >= animation_start && ev.time <= animation_end + TIME_EPSILON
-        })
-        .map(|ev| ev.time);
-    if first_time_in_range.is_none() {
-        return;
-    }
-    let first_time_in_range = first_time_in_range.unwrap();
-
     let mut emit_range = |from: f32, to: f32| {
-        let from = from.max(animation_start - TIME_EPSILON);
-        let to = to.min(animation_end);
-        if to + TIME_EPSILON < animation_start {
-            return;
-        }
-        if from - TIME_EPSILON > animation_end {
-            return;
-        }
         for ev in &timeline.events {
-            if ev.time + TIME_EPSILON < animation_start || ev.time > animation_end + TIME_EPSILON {
-                continue;
-            }
-            // Match upstream: events fire for frames > lastTime and <= time (no epsilon on the
-            // `time` comparison, otherwise near-boundary modulo arithmetic can re-fire events).
+            // Match upstream EventTimeline::apply: events fire for frames > lastTime and <= time.
             if ev.time > from && ev.time <= to {
                 out.push(ev.clone());
             }
         }
     };
 
-    if last_time < 0.0 {
+    if last_time > time {
+        emit_range(last_time, f32::MAX);
         emit_range(-1.0, time);
-        return;
-    }
-
-    if looped
-        && (animation_end - animation_start).abs() > TIME_EPSILON
-        && time + TIME_EPSILON < last_time
-    {
-        emit_range(last_time, animation_end);
-        if time >= first_time_in_range {
-            emit_range(-1.0, time);
-        }
     } else {
         emit_range(last_time, time);
     }
@@ -2964,19 +2913,8 @@ pub(super) fn collect_events_for_tests(
     timeline: &crate::EventTimeline,
     last_time: f32,
     time: f32,
-    looped: bool,
-    animation_start: f32,
-    animation_end: f32,
 ) -> Vec<Event> {
     let mut out = Vec::new();
-    collect_events(
-        timeline,
-        last_time,
-        time,
-        looped,
-        animation_start,
-        animation_end,
-        &mut out,
-    );
+    collect_events(timeline, last_time, time, &mut out);
     out
 }

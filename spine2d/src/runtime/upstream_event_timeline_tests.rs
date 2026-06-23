@@ -74,8 +74,6 @@ fn fire(
     }
 
     let (timeline, _) = make_timeline(frames);
-    let timeline_end = frames.iter().copied().fold(0.0f32, |acc, v| acc.max(v));
-
     let mut fired_events_count = 0usize;
     let mut i = 0i32;
     let mut last_time = time_start - 0.00001;
@@ -90,14 +88,7 @@ fn fire(
             time_looped %= duration;
         }
 
-        let fired = collect_events_for_tests(
-            &timeline,
-            last_time_looped,
-            time_looped,
-            looped,
-            0.0,
-            timeline_end,
-        );
+        let fired = collect_events_for_tests(&timeline, last_time_looped, time_looped);
 
         for event in fired {
             let fired = event
@@ -109,28 +100,14 @@ fn fire(
             if looped {
                 event_index %= expected_names.len();
             } else if fired_events_count >= events_count {
-                let _ = collect_events_for_tests(
-                    &timeline,
-                    last_time_looped,
-                    time_looped,
-                    looped,
-                    0.0,
-                    timeline_end,
-                );
+                let _ = collect_events_for_tests(&timeline, last_time_looped, time_looped);
                 return Err(Fail(format!(
                     "Too many events fired. frames={frames:?} time_start={time_start} time_end={time_end} time_step={time_step} looped={looped}"
                 )));
             }
 
             if fired != expected_names[event_index] {
-                let _ = collect_events_for_tests(
-                    &timeline,
-                    last_time_looped,
-                    time_looped,
-                    looped,
-                    0.0,
-                    timeline_end,
-                );
+                let _ = collect_events_for_tests(&timeline, last_time_looped, time_looped);
                 return Err(Fail(format!(
                     "Wrong event fired: got {fired:?}, expected {:?}. frames={frames:?} time_start={time_start} time_end={time_end} time_step={time_step} looped={looped}",
                     expected_names[event_index]

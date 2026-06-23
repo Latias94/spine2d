@@ -738,6 +738,44 @@ fn events_0p1_time_step() {
 }
 
 #[test]
+fn queue_events_uses_cpp_signed_track_last_remainder() {
+    let (mut state, mut skeleton, recording) = setup();
+    state.set_listener(RecordingListener {
+        recording: recording.clone(),
+    });
+
+    let entry = state.set_animation(0, "events0", true).unwrap();
+    entry.set_animation_start(&mut state, 0.2);
+    entry.set_animation_end(&mut state, 0.8);
+    entry.set_track_time(&mut state, 0.6);
+
+    state.apply(&mut skeleton);
+
+    let expected = vec![
+        ResultRow {
+            animation_name: "events0".into(),
+            name: "start".into(),
+            track_time: 0.0,
+            total_time: 0.0,
+        },
+        ResultRow {
+            animation_name: "events0".into(),
+            name: "event 0".into(),
+            track_time: 0.6,
+            total_time: 0.0,
+        },
+        ResultRow {
+            animation_name: "events0".into(),
+            name: "complete".into(),
+            track_time: 0.6,
+            total_time: 0.0,
+        },
+    ];
+
+    assert_eq!(*recording.rows.borrow(), expected);
+}
+
+#[test]
 fn events_30_time_step() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(RecordingListener {
