@@ -363,6 +363,20 @@ fn track_entry_set_delay_ignores_negative_values() {
 }
 
 #[test]
+fn animation_state_apply_returns_whether_any_track_was_applied() {
+    let (mut state, mut skeleton, _recording) = setup();
+
+    assert!(!state.apply(&mut skeleton));
+
+    let entry = state.set_animation(0, "events0", false).unwrap();
+    entry.set_delay(&mut state, 0.25);
+    assert!(!state.apply(&mut skeleton));
+
+    entry.set_delay(&mut state, 0.0);
+    assert!(state.apply(&mut skeleton));
+}
+
+#[test]
 fn track_entry_set_mix_duration_with_delay_adjusts_queued_delay() {
     let data = crate::SkeletonData::from_json_str(EMPTY_DELAY_JSON).unwrap();
     let state_data = AnimationStateData::new(data);

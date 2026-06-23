@@ -1870,11 +1870,12 @@ impl AnimationState {
         self.drain_event_queue();
     }
 
-    pub fn apply(&mut self, skeleton: &mut Skeleton) {
+    pub fn apply(&mut self, skeleton: &mut Skeleton) -> bool {
         if self.animations_changed {
             self.animations_changed();
         }
 
+        let mut applied = false;
         let mut pending = VecDeque::new();
 
         let current_ids = self
@@ -1890,6 +1891,7 @@ impl AnimationState {
             if delay > 0.0 {
                 continue;
             }
+            applied = true;
 
             let blend = if track_index == 0 {
                 MixBlend::First
@@ -1975,6 +1977,7 @@ impl AnimationState {
 
         self.event_queue.append(&mut pending);
         self.drain_event_queue();
+        applied
     }
 
     #[allow(clippy::too_many_arguments)]
