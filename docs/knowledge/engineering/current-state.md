@@ -13,6 +13,10 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Last verified:
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke runtime::animation_state_tests::animation_state_data_animation_mix_accessors_match_name_mix_storage --no-fail-fast --status-level fail` passed with `1 passed, 604 skipped` on 2026-06-23 after the `AnimationStateData` animation-reference mix accessor slice.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `595 passed, 10 skipped` on 2026-06-23 after the `AnimationStateData` animation-reference mix accessor slice.
+  - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after the `AnimationStateData` animation-reference mix accessor slice.
+  - `cargo check -p spine2d-bevy`, `cargo check -p spine2d-wgpu -p spine2d-web`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23 after the `AnimationStateData` animation-reference mix accessor slice.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke runtime::animation_state_tests::animation_state_data_skeleton_data_accessor_exposes_bound_skeleton --no-fail-fast --status-level fail` passed with `1 passed, 603 skipped` on 2026-06-23 after the `AnimationStateData::skeleton_data` accessor slice.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `594 passed, 10 skipped` on 2026-06-23 after the `AnimationStateData::skeleton_data` accessor slice.
   - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after the `AnimationStateData::skeleton_data` accessor slice.
@@ -118,6 +122,7 @@ status: "active"
   - Added optional manual TrackEntry disposal in commit `d0ada6c`; `set_manual_track_entry_disposal`, `manual_track_entry_disposal`, and `dispose_track_entry` mirror C++ manual disposal controls while keeping automatic disposal as the default.
   - Added track slots view in commit `ca658f2`; `tracks()` exposes sparse current-track handles and preserves empty slots like C++ `getTracks()`.
   - Hid `AnimationStateData::skeleton_data` behind `skeleton_data()` in commit `c2147b3`, matching C++ `getSkeletonData()` more closely and removing the public ownership leak.
+  - Added `AnimationStateData::set_mix_animation` / `get_mix_animation` in commit `1f4dd8c`, covering the C++ animation-reference `setMix` / `getMix` overloads while sharing the existing name-indexed mix table.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`; next audit remains centered on `AnimationState` / `AnimationStateData` public surface and timeline mixing details.
 - Blocked:
