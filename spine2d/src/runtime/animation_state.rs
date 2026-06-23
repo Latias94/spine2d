@@ -1288,10 +1288,6 @@ impl AnimationState {
         }
     }
 
-    pub fn time(&self) -> f32 {
-        self.time.get()
-    }
-
     pub fn time_scale(&self) -> f32 {
         self.time_scale
     }

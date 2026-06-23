@@ -3065,7 +3065,6 @@ fn state_time_scale_scales_update_and_queue_progression() {
         state.apply(&mut skeleton);
     }
 
-    assert_eq!(round3(state.time()), 1.5);
     assert_eq!(
         with_track_entry(&state, 0, |entry| entry.animation().name.clone())
             .expect("track 0 should have advanced to the queued animation"),
@@ -3086,7 +3085,6 @@ fn update_accepts_negative_delta_like_cpp() {
     state.update(1.0);
     state.update(-0.25);
 
-    assert_eq!(round3(state.time()), 0.75);
     assert_eq!(
         with_track_entry(&state, 0, |entry| round3(entry.track_time()))
             .expect("track 0 should remain active"),
