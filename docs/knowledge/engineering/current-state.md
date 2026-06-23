@@ -13,6 +13,8 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Last verified:
+  - After removing Bevy `SpineTrackState::animation_index` in commit `2211af7`, `cargo clean -p spine2d-bevy && cargo test -p spine2d-bevy --no-run`, `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu -p spine2d-web`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23. `block v0.1.6` still emits the existing future-incompatibility warning.
+  - Bevy runtime test execution for commit `2211af7` did not complete: `cargo nextest run -p spine2d-bevy ...`, `cargo test -p spine2d-bevy runtime_state_snapshot...`, and direct `target/debug/deps/spine2d_bevy-... --help` all hung before the test harness produced output. No leftover test processes remained after interrupting those attempts.
   - `cargo test -p spine2d --features json,binary,upstream-smoke state_time_scale_scales_update_and_queue_progression -- --nocapture` and `cargo test -p spine2d --features json,binary,upstream-smoke update_accepts_negative_delta_like_cpp -- --nocapture` passed on 2026-06-23 after removing the Rust-only `AnimationState::time()` getter. `cargo nextest run -p spine2d --features json,binary,upstream-smoke update_accepts_negative_delta_like_cpp --no-fail-fast --status-level fail` also passed with `1 passed, 606 skipped`.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `597 passed, 10 skipped` on 2026-06-23 after removing `AnimationState::time()`. `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `43 passed, 0 skipped`; `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu -p spine2d-web`, `cargo fmt --all --check`, and `git diff --check` passed. `block v0.1.6` still emits the existing future-incompatibility warning.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `597 passed, 10 skipped` on 2026-06-23 after removing `TrackEntry::animation_index` and `TrackEntry::total_alpha`; `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `43 passed, 0 skipped`; `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu -p spine2d-web`, `cargo fmt --all --check`, and `git diff --check` passed. `block v0.1.6` still emits the existing future-incompatibility warning.
@@ -161,7 +163,7 @@ status: "active"
 - Blocked:
   - None.
 - Next action:
-  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode, remaining `TrackEntry` surface, and any dead convenience code that can be deleted without adding shims.
+  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode, remaining `TrackEntry` surface, and any dead convenience code that can be deleted without adding shims. Before the next Bevy behavior-changing slice, diagnose the local Bevy test-binary startup hang enough to restore runtime test execution.
 
 # Citations
 
