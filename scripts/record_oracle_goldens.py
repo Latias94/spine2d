@@ -275,6 +275,10 @@ def parse_commands_no_loops(body: str, env: Dict[str, float]) -> List[str]:
         lambda m: ["--entry-mix-blend", parse_mix_blend_variant(m.group(1))],
     )
     add(
+        r"\.\s*set_hold_previous\s*\(\s*&mut\s+state\s*,\s*(true|false)\s*\)",
+        lambda m: ["--entry-hold-previous", parse_bool(m.group(1))],
+    )
+    add(
         r"\.\s*set_alpha\s*\(\s*&mut\s+state\s*,\s*([^\)]+?)\s*\)",
         lambda m: ["--entry-alpha", value_to_string(parse_value(m.group(1), env))],
     )

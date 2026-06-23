@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 fn print_usage_and_exit() -> ! {
     eprintln!(
-        "Usage:\n  pose_dump_scenario <skeleton.(json|skel)> <commands...>\n\nCommands:\n  --set-skin <name|none>\n  --dump-slot-vertices <slotName>\n  --dump-update-cache\n  --dump-animation-data <name>\n  --mix <from> <to> <duration>\n  --set <track> <animation> <loop 0|1>\n  --add <track> <animation> <loop 0|1> <delay>\n  --set-empty <track> <mixDuration>\n  --add-empty <track> <mixDuration> <delay>\n  --entry-alpha <alpha>\n  --entry-mix-attachment-threshold <threshold>\n  --entry-mix-draw-order-threshold <threshold>\n  --entry-mix-blend <setup|first|replace|add>\n  --entry-reverse <0|1>\n  --entry-shortest-rotation <0|1>\n  --entry-reset-rotation-directions\n  --physics <none|reset|update|pose>\n  --step <dt>\n"
+        "Usage:\n  pose_dump_scenario <skeleton.(json|skel)> <commands...>\n\nCommands:\n  --set-skin <name|none>\n  --dump-slot-vertices <slotName>\n  --dump-update-cache\n  --dump-animation-data <name>\n  --mix <from> <to> <duration>\n  --set <track> <animation> <loop 0|1>\n  --add <track> <animation> <loop 0|1> <delay>\n  --set-empty <track> <mixDuration>\n  --add-empty <track> <mixDuration> <delay>\n  --entry-alpha <alpha>\n  --entry-mix-attachment-threshold <threshold>\n  --entry-mix-draw-order-threshold <threshold>\n  --entry-mix-blend <setup|first|replace|add>\n  --entry-hold-previous <0|1>\n  --entry-reverse <0|1>\n  --entry-shortest-rotation <0|1>\n  --entry-reset-rotation-directions\n  --physics <none|reset|update|pose>\n  --step <dt>\n"
     );
     std::process::exit(2);
 }
@@ -573,6 +573,16 @@ fn main() {
                     .as_ref()
                     .unwrap_or_else(|| panic!("--entry-mix-blend requires a preceding --set/--add"))
                     .set_mix_blend(&mut state, mix_blend);
+                i += 2;
+            }
+            "--entry-hold-previous" if i + 1 < args.len() => {
+                let hold_previous: bool = args[i + 1].parse::<i32>().unwrap_or(0) != 0;
+                last_entry
+                    .as_ref()
+                    .unwrap_or_else(|| {
+                        panic!("--entry-hold-previous requires a preceding --set/--add")
+                    })
+                    .set_hold_previous(&mut state, hold_previous);
                 i += 2;
             }
             "--entry-reverse" if i + 1 < args.len() => {

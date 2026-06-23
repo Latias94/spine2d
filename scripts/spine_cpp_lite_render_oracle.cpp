@@ -45,6 +45,7 @@ static void usage() {
          "  --entry-mix-attachment-threshold <threshold>\n"
          "  --entry-mix-draw-order-threshold <threshold>\n"
          "  --entry-mix-blend <setup|first|replace|add>\n"
+         "  --entry-hold-previous <0|1>\n"
          "  --entry-reverse <0|1>\n"
          "  --entry-shortest-rotation <0|1>\n"
          "  --entry-reset-rotation-directions\n"
@@ -444,6 +445,17 @@ int main(int argc, char **argv) {
           return 2;
         }
         spine_track_entry_set_mix_blend(last_entry, blend);
+        i += 1;
+        continue;
+      }
+
+      if (std::strcmp(arg, "--entry-hold-previous") == 0 && i + 1 < argc) {
+        if (!last_entry) {
+          std::cerr << "--entry-hold-previous requires a preceding --set/--add command\n";
+          return 2;
+        }
+        const bool hold_previous = std::atoi(argv[i + 1]) ? true : false;
+        spine_track_entry_set_hold_previous(last_entry, hold_previous);
         i += 1;
         continue;
       }

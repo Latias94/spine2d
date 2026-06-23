@@ -601,6 +601,7 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
                 mix_duration: track.mix_duration,
                 mix_time: track.mix_time,
                 alpha: track.alpha,
+                hold_previous: track.hold_previous,
                 mix_blend: track.mix_blend,
                 reverse: track.reverse,
             })
@@ -1600,6 +1601,7 @@ mod tests {
                     SpineTrackEntrySettings::new()
                         .with_alpha(0.5)
                         .with_mix_blend(spine2d::MixBlend::Add)
+                        .with_hold_previous(true)
                         .with_reverse(true)
                         .with_shortest_rotation(true)
                         .with_mix_duration(0.25)
@@ -1612,6 +1614,7 @@ mod tests {
             assert_eq!(entry.animation().name, "first");
             assert_eq!(entry.alpha(), 0.5);
             assert_eq!(entry.mix_blend(), spine2d::MixBlend::Add);
+            assert!(entry.hold_previous());
             assert!(entry.reverse());
             assert!(entry.shortest_rotation());
             assert_eq!(entry.mix_duration(), 0.25);

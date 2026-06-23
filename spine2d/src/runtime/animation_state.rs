@@ -486,6 +486,7 @@ pub struct TrackEntry {
     animation_index: usize,
     animation: Animation,
     looped: bool,
+    hold_previous: bool,
     mix_blend: MixBlend,
     reverse: bool,
     shortest_rotation: bool,
@@ -528,6 +529,7 @@ impl std::fmt::Debug for TrackEntry {
             .field("animation_index", &self.animation_index)
             .field("animation", &self.animation)
             .field("looped", &self.looped)
+            .field("hold_previous", &self.hold_previous)
             .field("mix_blend", &self.mix_blend)
             .field("reverse", &self.reverse)
             .field("shortest_rotation", &self.shortest_rotation)
@@ -560,6 +562,7 @@ impl TrackEntry {
             animation_index,
             animation: animation.clone(),
             looped,
+            hold_previous: false,
             mix_blend: MixBlend::Replace,
             reverse: false,
             shortest_rotation: false,
@@ -605,6 +608,10 @@ impl TrackEntry {
 
     pub fn looped(&self) -> bool {
         self.looped
+    }
+
+    pub fn hold_previous(&self) -> bool {
+        self.hold_previous
     }
 
     pub fn mix_blend(&self) -> MixBlend {
@@ -811,6 +818,12 @@ impl TrackEntryHandle {
         });
     }
 
+    pub fn set_hold_previous(&self, state: &mut AnimationState, hold_previous: bool) {
+        self.with_entry_mut(state, |entry| {
+            entry.hold_previous = hold_previous;
+        });
+    }
+
     pub fn set_alpha(&self, state: &mut AnimationState, alpha: f32) {
         self.with_entry_mut(state, |entry| {
             entry.alpha = alpha;
@@ -886,6 +899,7 @@ pub struct TrackEntrySettings {
     pub time_scale: Option<f32>,
     pub mix_duration: Option<f32>,
     pub mix_blend: Option<MixBlend>,
+    pub hold_previous: Option<bool>,
     pub alpha: Option<f32>,
     pub reverse: Option<bool>,
     pub shortest_rotation: Option<bool>,
@@ -926,6 +940,11 @@ impl TrackEntrySettings {
 
     pub fn with_mix_blend(mut self, mix_blend: MixBlend) -> Self {
         self.mix_blend = Some(mix_blend);
+        self
+    }
+
+    pub fn with_hold_previous(mut self, hold_previous: bool) -> Self {
+        self.hold_previous = Some(hold_previous);
         self
     }
 
@@ -1008,6 +1027,9 @@ impl TrackEntrySettings {
         if let Some(mix_blend) = self.mix_blend {
             handle.set_mix_blend(state, mix_blend);
         }
+        if let Some(hold_previous) = self.hold_previous {
+            handle.set_hold_previous(state, hold_previous);
+        }
         if let Some(alpha) = self.alpha {
             handle.set_alpha(state, alpha);
         }
@@ -1056,6 +1078,7 @@ pub struct TrackEntrySnapshot {
     pub mix_duration: f32,
     pub mix_time: f32,
     pub alpha: f32,
+    pub hold_previous: bool,
     pub mix_blend: MixBlend,
     pub reverse: bool,
 }
@@ -1252,6 +1275,9 @@ impl AnimationState {
             ),
             None => return,
         };
+        let to_hold_previous = to_id
+            .and_then(|id| self.entry(id).map(|entry| entry.hold_previous))
+            .unwrap_or(false);
 
         let kinds = animation_timeline_order(&animation).to_vec();
         let mut timeline_mode = vec![
@@ -1266,6 +1292,15 @@ impl AnimationState {
         for (i, kind) in kinds.iter().copied().enumerate() {
             let ids = timeline_property_ids(&self.data.skeleton_data, &animation, kind);
             let mix_from = self.compute_mix_from(track_id, kind, &ids);
+            if to_hold_previous {
+                timeline_mode[i].from = if mix_from == TimelineMode::Setup {
+                    TimelineMode::Setup
+                } else {
+                    TimelineMode::Current
+                };
+                timeline_mode[i].hold = true;
+                continue;
+            }
             timeline_mode[i].from = mix_from;
 
             let Some(to_id) = to_id else {
@@ -1325,7 +1360,7 @@ impl AnimationState {
             timeline_hold_mix[i] = hold_mix;
         }
 
-        if keep_hold {
+        if keep_hold && !to_hold_previous {
             for (mode, previous) in timeline_mode.iter_mut().zip(previous_timeline_mode.iter()) {
                 mode.hold = previous.hold;
             }
@@ -2258,6 +2293,7 @@ impl AnimationState {
                 mix_duration: entry.mix_duration,
                 mix_time: entry.mix_time,
                 alpha: entry.alpha,
+                hold_previous: entry.hold_previous,
                 mix_blend: entry.mix_blend,
                 reverse: entry.reverse,
             }
@@ -2273,6 +2309,7 @@ impl AnimationState {
                 mix_duration: 0.0,
                 mix_time: 0.0,
                 alpha: 0.0,
+                hold_previous: false,
                 mix_blend: MixBlend::Replace,
                 reverse: false,
             }

@@ -233,6 +233,7 @@ pub struct SpineTrackState {
     pub mix_duration: f32,
     pub mix_time: f32,
     pub alpha: f32,
+    pub hold_previous: bool,
     pub mix_blend: MixBlend,
     pub reverse: bool,
 }

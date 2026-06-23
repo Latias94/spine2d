@@ -164,6 +164,123 @@ fn additive_path_physics_json() -> String {
     .to_string()
 }
 
+fn translate_animation(name: &str, x: f32) -> Animation {
+    crate::runtime::finalize_animation(Animation {
+        name: name.to_string(),
+        duration: 0.0,
+        event_timeline: None,
+        bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
+            bone_index: 0,
+            frames: vec![Vec2Frame {
+                time: 0.0,
+                x,
+                y: 0.0,
+                curve: [Curve::Linear; 2],
+            }],
+        })],
+        deform_timelines: Vec::new(),
+        sequence_timelines: Vec::new(),
+        slot_attachment_timelines: Vec::new(),
+        slot_color_timelines: Vec::new(),
+        slot_rgb_timelines: Vec::new(),
+        slot_alpha_timelines: Vec::new(),
+        slot_rgba2_timelines: Vec::new(),
+        slot_rgb2_timelines: Vec::new(),
+        ik_constraint_timelines: Vec::new(),
+        transform_constraint_timelines: Vec::new(),
+        path_constraint_timelines: Vec::new(),
+        physics_constraint_timelines: Vec::new(),
+        physics_reset_timelines: Vec::new(),
+        slider_time_timelines: Vec::new(),
+        slider_mix_timelines: Vec::new(),
+        draw_order_timeline: None,
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    })
+}
+
+fn empty_test_animation(name: &str) -> Animation {
+    crate::runtime::finalize_animation(Animation {
+        name: name.to_string(),
+        duration: 0.0,
+        event_timeline: None,
+        bone_timelines: Vec::new(),
+        deform_timelines: Vec::new(),
+        sequence_timelines: Vec::new(),
+        slot_attachment_timelines: Vec::new(),
+        slot_color_timelines: Vec::new(),
+        slot_rgb_timelines: Vec::new(),
+        slot_alpha_timelines: Vec::new(),
+        slot_rgba2_timelines: Vec::new(),
+        slot_rgb2_timelines: Vec::new(),
+        ik_constraint_timelines: Vec::new(),
+        transform_constraint_timelines: Vec::new(),
+        path_constraint_timelines: Vec::new(),
+        physics_constraint_timelines: Vec::new(),
+        physics_reset_timelines: Vec::new(),
+        slider_time_timelines: Vec::new(),
+        slider_mix_timelines: Vec::new(),
+        draw_order_timeline: None,
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    })
+}
+
+fn hold_previous_mix_out_x(hold_previous: bool) -> f32 {
+    let mut data = base_skeleton_data();
+    data.animations = vec![
+        translate_animation("base", 0.0),
+        translate_animation("from", 10.0),
+        empty_test_animation("to"),
+    ];
+    data.animation_index.insert("base".to_string(), 0);
+    data.animation_index.insert("from".to_string(), 1);
+    data.animation_index.insert("to".to_string(), 2);
+    let data = Arc::new(data);
+
+    let mut state_data = AnimationStateData::new(data.clone());
+    state_data.set_mix("from", "to", 1.0).unwrap();
+    let mut state = AnimationState::new(state_data);
+    let mut skeleton = Skeleton::new(data);
+
+    state.set_animation(0, "base", false).unwrap();
+    state.set_animation(1, "from", false).unwrap();
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+
+    let to = state.set_animation(1, "to", false).unwrap();
+    to.set_hold_previous(&mut state, hold_previous);
+    state.update(0.5);
+
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+    skeleton.bones[0].x
+}
+
+fn setup_two_track_translate_state(
+    overlay_alpha: f32,
+    overlay_blend: MixBlend,
+) -> (AnimationState, Skeleton) {
+    let anim_base = translate_animation("base", 10.0);
+    let anim_overlay = translate_animation("overlay", 3.0);
+
+    let mut data = base_skeleton_data();
+    data.animations = vec![anim_base, anim_overlay];
+    data.animation_index.insert("base".to_string(), 0);
+    data.animation_index.insert("overlay".to_string(), 1);
+    let data = Arc::new(data);
+
+    let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
+    let skeleton = Skeleton::new(data);
+
+    state.set_animation(0, "base", false).unwrap();
+    let overlay = state.set_animation(1, "overlay", false).unwrap();
+    overlay.set_alpha(&mut state, overlay_alpha);
+    overlay.set_mix_blend(&mut state, overlay_blend);
+
+    (state, skeleton)
+}
+
 fn setup_additive_path_physics_state() -> (AnimationState, Skeleton) {
     let data = SkeletonData::from_json_str(&additive_path_physics_json()).unwrap();
     let state_data = AnimationStateData::new(data.clone());
@@ -178,85 +295,34 @@ fn setup_additive_path_physics_state() -> (AnimationState, Skeleton) {
 }
 
 #[test]
+fn hold_previous_holds_outgoing_timeline_even_when_next_lacks_property() {
+    assert_approx(hold_previous_mix_out_x(false), 5.0);
+    assert_approx(hold_previous_mix_out_x(true), 10.0);
+}
+
+#[test]
+fn track_entry_mix_blend_variants_match_cpp_current_entry_pose() {
+    // Matches spine-cpp TranslateTimeline::_apply for base x=10, overlay x=3, alpha=0.5.
+    let cases = [
+        (MixBlend::Setup, 1.5),
+        (MixBlend::First, 6.5),
+        (MixBlend::Replace, 6.5),
+        (MixBlend::Add, 11.5),
+    ];
+
+    for (blend, expected_x) in cases {
+        let (mut state, mut skeleton) = setup_two_track_translate_state(0.5, blend);
+
+        skeleton.setup_pose();
+        state.apply(&mut skeleton);
+
+        assert_approx(skeleton.bones[0].x, expected_x);
+    }
+}
+
+#[test]
 fn track_entry_additive_adds_current_pose_without_entry_mix_blend() {
-    let anim_base = crate::runtime::finalize_animation(Animation {
-        name: "base".to_string(),
-        duration: 0.0,
-        event_timeline: None,
-        bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
-            bone_index: 0,
-            frames: vec![Vec2Frame {
-                time: 0.0,
-                x: 10.0,
-                y: 0.0,
-                curve: [Curve::Linear; 2],
-            }],
-        })],
-        deform_timelines: Vec::new(),
-        sequence_timelines: Vec::new(),
-        slot_attachment_timelines: Vec::new(),
-        slot_color_timelines: Vec::new(),
-        slot_rgb_timelines: Vec::new(),
-        slot_alpha_timelines: Vec::new(),
-        slot_rgba2_timelines: Vec::new(),
-        slot_rgb2_timelines: Vec::new(),
-        ik_constraint_timelines: Vec::new(),
-        transform_constraint_timelines: Vec::new(),
-        path_constraint_timelines: Vec::new(),
-        physics_constraint_timelines: Vec::new(),
-        physics_reset_timelines: Vec::new(),
-        slider_time_timelines: Vec::new(),
-        slider_mix_timelines: Vec::new(),
-        draw_order_timeline: None,
-        draw_order_folder_timelines: Vec::new(),
-        timeline_order: Vec::new(),
-    });
-    let anim_overlay = crate::runtime::finalize_animation(Animation {
-        name: "overlay".to_string(),
-        duration: 0.0,
-        event_timeline: None,
-        bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
-            bone_index: 0,
-            frames: vec![Vec2Frame {
-                time: 0.0,
-                x: 3.0,
-                y: 0.0,
-                curve: [Curve::Linear; 2],
-            }],
-        })],
-        deform_timelines: Vec::new(),
-        sequence_timelines: Vec::new(),
-        slot_attachment_timelines: Vec::new(),
-        slot_color_timelines: Vec::new(),
-        slot_rgb_timelines: Vec::new(),
-        slot_alpha_timelines: Vec::new(),
-        slot_rgba2_timelines: Vec::new(),
-        slot_rgb2_timelines: Vec::new(),
-        ik_constraint_timelines: Vec::new(),
-        transform_constraint_timelines: Vec::new(),
-        path_constraint_timelines: Vec::new(),
-        physics_constraint_timelines: Vec::new(),
-        physics_reset_timelines: Vec::new(),
-        slider_time_timelines: Vec::new(),
-        slider_mix_timelines: Vec::new(),
-        draw_order_timeline: None,
-        draw_order_folder_timelines: Vec::new(),
-        timeline_order: Vec::new(),
-    });
-
-    let mut data = base_skeleton_data();
-    data.animations = vec![anim_base, anim_overlay];
-    data.animation_index.insert("base".to_string(), 0);
-    data.animation_index.insert("overlay".to_string(), 1);
-    let data = Arc::new(data);
-
-    let state_data = AnimationStateData::new(data.clone());
-    let mut state = AnimationState::new(state_data);
-    let mut skeleton = Skeleton::new(data);
-
-    state.set_animation(0, "base", false).unwrap();
-    let overlay = state.set_animation(1, "overlay", false).unwrap();
-    overlay.set_mix_blend(&mut state, crate::MixBlend::Add);
+    let (mut state, mut skeleton) = setup_two_track_translate_state(1.0, MixBlend::Add);
 
     skeleton.setup_pose();
     state.apply(&mut skeleton);
