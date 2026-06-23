@@ -845,10 +845,19 @@ impl TrackEntryHandle {
         state: &mut AnimationState,
         animation: &Animation,
     ) -> Result<(), Error> {
-        let animation_index = state.data.animation_index_by_name(&animation.name)?;
+        let (animation_index, canonical_animation) = {
+            let skeleton_data = state.data.skeleton_data();
+            let (animation_index, canonical_animation) =
+                skeleton_data.animation(&animation.name).ok_or_else(|| {
+                    Error::UnknownAnimation {
+                        name: animation.name.clone(),
+                    }
+                })?;
+            (animation_index, canonical_animation.clone())
+        };
         self.with_entry_mut(state, |entry| {
             entry.animation_index = animation_index;
-            entry.animation = animation.clone();
+            entry.animation = canonical_animation;
         });
         Ok(())
     }

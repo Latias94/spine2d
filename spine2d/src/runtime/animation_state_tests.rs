@@ -474,6 +474,13 @@ fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
     entry.set_animation_end(&mut state, 0.5);
     entry.set_track_time(&mut state, 0.25);
     entry.set_delay(&mut state, 0.375);
+    let canonical_duration = state
+        .data()
+        .skeleton_data()
+        .animation("events1")
+        .unwrap()
+        .1
+        .duration;
     let replacement = state
         .data()
         .skeleton_data()
@@ -481,11 +488,14 @@ fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
         .unwrap()
         .1
         .clone();
+    let mut replacement = replacement;
+    replacement.duration += 10.0;
 
     entry.set_animation(&mut state, &replacement).unwrap();
 
     with_track_entry(&state, 0, |entry| {
         assert_eq!(entry.animation().name, "events1");
+        assert_eq!(entry.animation().duration, canonical_duration);
         assert_eq!(round3(entry.animation_start()), 0.125);
         assert_eq!(round3(entry.animation_end()), 0.5);
         assert_eq!(round3(entry.track_time()), 0.25);
