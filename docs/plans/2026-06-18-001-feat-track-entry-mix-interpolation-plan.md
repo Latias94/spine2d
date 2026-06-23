@@ -3,9 +3,12 @@ title: "feat: Align TrackEntry mix interpolation"
 type: "feat"
 date: "2026-06-18"
 execution: "code"
+status: "superseded"
 ---
 
 # feat: Align TrackEntry mix interpolation
+
+> Superseded on 2026-06-23. Local `repo-ref/spine-runtimes/spine-cpp/include/spine/AnimationState.h` and `repo-ref/spine-runtimes/spine-cpp/src/spine/AnimationState.cpp` have no `MixInterpolation`, `setMixInterpolation`, or `TrackEntry::mix()` interpolation API at the active baseline. Commit `2f7dcb4` removed the Rust-only extension and returned mix percentage to the official linear `mixTime / mixDuration` path.
 
 ## Summary
 

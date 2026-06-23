@@ -13,7 +13,7 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `587 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `584 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `43 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy --examples`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23.
 - Done:
@@ -79,12 +79,14 @@ status: "active"
   - Aligned `AnimationState::update` in commit `f381dc5`; the runtime no longer rejects negative or non-finite delta values, and Bevy no longer clamps negative `time_scale` frame deltas before calling the core runtime.
   - Aligned IK solver mix propagation in commit `65c078f`; one-bone and two-bone IK no longer skip negative or non-finite mix values before applying C++ math.
   - Aligned timeline alpha propagation in commit `64679c2`; `AnimationState` current-entry apply, IK/transform/path/physics/slider timelines, slot color/two-color helpers, and deform timelines no longer skip or clamp nonpositive alpha where `spine-cpp` applies alpha directly.
+  - Removed the Rust-only `MixInterpolation` extension in breaking commit `2f7dcb4`; local `spine-cpp` `AnimationState.h/cpp` has no `MixInterpolation`, `setMixInterpolation`, or `TrackEntry::mix()` interpolation API, so mix percentage is back to the official linear `mixTime / mixDuration` path.
+  - Aligned `AnimationState` mix and threshold boundary comparisons in commit `fce1ccc`; queued-entry activation, track end, mixing completion, mixing-from attachment/draw-order gates, attachment alpha gates, and event thresholds now use the same direct comparisons visible in `spine-cpp` instead of Rust-only epsilon padding. A direct `interruptAlpha` field rewrite was tested and rejected because existing oracle hold-mix/interrupt scenarios failed; keep the current Rust alpha compensation unless the full C++ `TimelineMode` enum is ported.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Audit remaining alpha/mix normalization surfaces such as `MixInterpolation` against local `repo-ref/spine-runtimes/spine-cpp`, then return to U6 skin fixture cleanup.
+  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode representation before attempting any `interruptAlpha`-shape refactor; otherwise return to U6 skin fixture cleanup.
 
 # Citations
 

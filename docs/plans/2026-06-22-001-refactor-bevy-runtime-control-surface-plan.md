@@ -374,7 +374,7 @@ flowchart LR
 ## Sources & Research
 
 - GitHub issue: `https://github.com/Latias94/spine2d/issues/4`, opened on 2026-06-22, reports that Bevy has no public path to `set_mix`.
-- Local core runtime: `spine2d/src/runtime/animation_state.rs` already contains `AnimationStateData`, `TrackEntryHandle`, `MixInterpolation`, `set_animation`, `add_animation`, empty-animation helpers, and current-track read access.
+- Local core runtime: `spine2d/src/runtime/animation_state.rs` already contains `AnimationStateData`, `TrackEntryHandle`, `set_animation`, `add_animation`, empty-animation helpers, and current-track read access. The earlier Rust-only `MixInterpolation` extension was removed in commit `2f7dcb4` after the local C++ reference showed no matching API.
 - Local core runtime: `spine2d/src/runtime/skeleton.rs` already contains `Physics`, `set_wind`, `set_gravity`, `set_time`, `set_to_setup_pose`, and `update_world_transform_with_physics`.
 - Local backend: `spine2d-bevy/src/components.rs`, `spine2d-bevy/src/systems.rs`, and `spine2d-bevy/src/spine_world.rs` show the current public Bevy API, private runtime storage, command handling, update order, and tests.
 - Project decisions: `docs/decisions.md` records the pure Rust runtime goal, renderer-agnostic core boundary, and generational `TrackEntryHandle` ownership model.
