@@ -2676,8 +2676,7 @@ impl AnimationState {
                 cycles > 0 && cycles > (track_last / duration) as i32
             }
         } else {
-            animation_time + TIME_EPSILON >= animation_end
-                && animation_last + TIME_EPSILON < animation_end
+            animation_time >= animation_end && animation_last < animation_end
         };
 
         // Queue events before complete, then complete, then events after complete (Spine semantics).
