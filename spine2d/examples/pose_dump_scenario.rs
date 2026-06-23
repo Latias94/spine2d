@@ -1,14 +1,14 @@
 use serde_json::json;
 use spine2d::{
-    AnimationState, AnimationStateData, Curve, Physics, Skeleton, SkeletonData, TrackEntryHandle,
-    UpdateCacheItem,
+    AnimationState, AnimationStateData, Curve, MixBlend, Physics, Skeleton, SkeletonData,
+    TrackEntryHandle, UpdateCacheItem,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
 
 fn print_usage_and_exit() -> ! {
     eprintln!(
-        "Usage:\n  pose_dump_scenario <skeleton.(json|skel)> <commands...>\n\nCommands:\n  --set-skin <name|none>\n  --dump-slot-vertices <slotName>\n  --dump-update-cache\n  --dump-animation-data <name>\n  --mix <from> <to> <duration>\n  --set <track> <animation> <loop 0|1>\n  --add <track> <animation> <loop 0|1> <delay>\n  --set-empty <track> <mixDuration>\n  --add-empty <track> <mixDuration> <delay>\n  --entry-alpha <alpha>\n  --entry-mix-attachment-threshold <threshold>\n  --entry-mix-draw-order-threshold <threshold>\n  --entry-additive <0|1>\n  --entry-reverse <0|1>\n  --entry-shortest-rotation <0|1>\n  --entry-reset-rotation-directions\n  --physics <none|reset|update|pose>\n  --step <dt>\n"
+        "Usage:\n  pose_dump_scenario <skeleton.(json|skel)> <commands...>\n\nCommands:\n  --set-skin <name|none>\n  --dump-slot-vertices <slotName>\n  --dump-update-cache\n  --dump-animation-data <name>\n  --mix <from> <to> <duration>\n  --set <track> <animation> <loop 0|1>\n  --add <track> <animation> <loop 0|1> <delay>\n  --set-empty <track> <mixDuration>\n  --add-empty <track> <mixDuration> <delay>\n  --entry-alpha <alpha>\n  --entry-mix-attachment-threshold <threshold>\n  --entry-mix-draw-order-threshold <threshold>\n  --entry-mix-blend <setup|first|replace|add>\n  --entry-reverse <0|1>\n  --entry-shortest-rotation <0|1>\n  --entry-reset-rotation-directions\n  --physics <none|reset|update|pose>\n  --step <dt>\n"
     );
     std::process::exit(2);
 }
@@ -37,6 +37,16 @@ fn parse_physics(s: &str) -> Option<Physics> {
         "reset" => Some(Physics::Reset),
         "update" => Some(Physics::Update),
         "pose" => Some(Physics::Pose),
+        _ => None,
+    }
+}
+
+fn parse_mix_blend(s: &str) -> Option<MixBlend> {
+    match s {
+        "setup" => Some(MixBlend::Setup),
+        "first" => Some(MixBlend::First),
+        "replace" => Some(MixBlend::Replace),
+        "add" => Some(MixBlend::Add),
         _ => None,
     }
 }
@@ -556,12 +566,13 @@ fn main() {
                     .set_mix_draw_order_threshold(&mut state, threshold);
                 i += 2;
             }
-            "--entry-additive" if i + 1 < args.len() => {
-                let additive: bool = args[i + 1].parse::<i32>().unwrap_or(0) != 0;
+            "--entry-mix-blend" if i + 1 < args.len() => {
+                let mix_blend = parse_mix_blend(&args[i + 1])
+                    .unwrap_or_else(|| panic!("--entry-mix-blend must be setup|first|replace|add"));
                 last_entry
                     .as_ref()
-                    .unwrap_or_else(|| panic!("--entry-additive requires a preceding --set/--add"))
-                    .set_additive(&mut state, additive);
+                    .unwrap_or_else(|| panic!("--entry-mix-blend requires a preceding --set/--add"))
+                    .set_mix_blend(&mut state, mix_blend);
                 i += 2;
             }
             "--entry-reverse" if i + 1 < args.len() => {

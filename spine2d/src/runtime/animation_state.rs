@@ -486,7 +486,7 @@ pub struct TrackEntry {
     animation_index: usize,
     animation: Animation,
     looped: bool,
-    additive: bool,
+    mix_blend: MixBlend,
     reverse: bool,
     shortest_rotation: bool,
     keep_hold: bool,
@@ -528,7 +528,7 @@ impl std::fmt::Debug for TrackEntry {
             .field("animation_index", &self.animation_index)
             .field("animation", &self.animation)
             .field("looped", &self.looped)
-            .field("additive", &self.additive)
+            .field("mix_blend", &self.mix_blend)
             .field("reverse", &self.reverse)
             .field("shortest_rotation", &self.shortest_rotation)
             .field("animation_start", &self.animation_start)
@@ -560,7 +560,7 @@ impl TrackEntry {
             animation_index,
             animation: animation.clone(),
             looped,
-            additive: false,
+            mix_blend: MixBlend::Replace,
             reverse: false,
             shortest_rotation: false,
             keep_hold: false,
@@ -607,8 +607,8 @@ impl TrackEntry {
         self.looped
     }
 
-    pub fn additive(&self) -> bool {
-        self.additive
+    pub fn mix_blend(&self) -> MixBlend {
+        self.mix_blend
     }
 
     pub fn reverse(&self) -> bool {
@@ -805,9 +805,9 @@ impl TrackEntryHandle {
         });
     }
 
-    pub fn set_additive(&self, state: &mut AnimationState, additive: bool) {
+    pub fn set_mix_blend(&self, state: &mut AnimationState, mix_blend: MixBlend) {
         self.with_entry_mut(state, |entry| {
-            entry.additive = additive;
+            entry.mix_blend = mix_blend;
         });
     }
 
@@ -885,7 +885,7 @@ pub struct TrackEntrySettings {
     pub delay: Option<f32>,
     pub time_scale: Option<f32>,
     pub mix_duration: Option<f32>,
-    pub additive: Option<bool>,
+    pub mix_blend: Option<MixBlend>,
     pub alpha: Option<f32>,
     pub reverse: Option<bool>,
     pub shortest_rotation: Option<bool>,
@@ -924,8 +924,8 @@ impl TrackEntrySettings {
         self
     }
 
-    pub fn with_additive(mut self, additive: bool) -> Self {
-        self.additive = Some(additive);
+    pub fn with_mix_blend(mut self, mix_blend: MixBlend) -> Self {
+        self.mix_blend = Some(mix_blend);
         self
     }
 
@@ -1005,8 +1005,8 @@ impl TrackEntrySettings {
         if let Some(time_scale) = self.time_scale {
             handle.set_time_scale(state, time_scale);
         }
-        if let Some(additive) = self.additive {
-            handle.set_additive(state, additive);
+        if let Some(mix_blend) = self.mix_blend {
+            handle.set_mix_blend(state, mix_blend);
         }
         if let Some(alpha) = self.alpha {
             handle.set_alpha(state, alpha);
@@ -1056,7 +1056,7 @@ pub struct TrackEntrySnapshot {
     pub mix_duration: f32,
     pub mix_time: f32,
     pub alpha: f32,
-    pub additive: bool,
+    pub mix_blend: MixBlend,
     pub reverse: bool,
 }
 
@@ -1277,14 +1277,16 @@ impl AnimationState {
             }
 
             let timeline_additive = timeline_kind_additive(&animation, kind);
-            let entry_additive = self.entry(entry_id).is_some_and(|e| e.additive);
+            let entry_additive = self
+                .entry(entry_id)
+                .is_some_and(|e| e.mix_blend == MixBlend::Add);
             if entry_additive && timeline_additive {
                 continue;
             }
 
             let to_holds_property = match self.entry(to_id) {
                 Some(to) => {
-                    !(to.additive && timeline_additive)
+                    !(to.mix_blend == MixBlend::Add && timeline_additive)
                         && animation_has_any_property(&self.data.skeleton_data, &to.animation, &ids)
                 }
                 None => {
@@ -1303,7 +1305,7 @@ impl AnimationState {
                     break;
                 };
 
-                if next_entry.additive && timeline_additive
+                if next_entry.mix_blend == MixBlend::Add && timeline_additive
                     || !animation_has_any_property(
                         &self.data.skeleton_data,
                         &next_entry.animation,
@@ -1763,7 +1765,15 @@ impl AnimationState {
             let blend = if track_index == 0 {
                 MixBlend::First
             } else {
-                MixBlend::Replace
+                self.entry(current_id)
+                    .map(|entry| {
+                        if entry.mix_blend == MixBlend::Add {
+                            MixBlend::Replace
+                        } else {
+                            entry.mix_blend
+                        }
+                    })
+                    .unwrap_or(MixBlend::Replace)
             };
 
             let mut alpha = self.entry(current_id).map(|e| e.alpha).unwrap_or(1.0);
@@ -1854,7 +1864,7 @@ impl AnimationState {
         let (entry_additive, shortest_rotation) = self
             .entry(entry_id)
             .map(|e| {
-                let additive = e.additive;
+                let additive = e.mix_blend == MixBlend::Add;
                 (additive, additive || e.shortest_rotation)
             })
             .unwrap_or((false, false));
@@ -2005,8 +2015,8 @@ impl AnimationState {
                 from_ref.animation_time(),
                 from_ref.looped,
                 from_ref.reverse,
-                from_ref.additive,
-                from_ref.additive || from_ref.shortest_rotation,
+                from_ref.mix_blend == MixBlend::Add,
+                from_ref.mix_blend == MixBlend::Add || from_ref.shortest_rotation,
                 from_ref.alpha,
                 (
                     from_ref.alpha_attachment_threshold,
@@ -2084,9 +2094,9 @@ impl AnimationState {
                 } else {
                     alpha_mix
                 };
-                let additive_blend = entry_additive_blend(timeline_blend, from_additive);
                 total_alpha += alpha;
 
+                let additive_blend = entry_additive_blend(timeline_blend, from_additive);
                 let from_mode = timeline_mode_from(mode.from);
                 let mut physics_last_time = self
                     .entry(from)
@@ -2248,7 +2258,7 @@ impl AnimationState {
                 mix_duration: entry.mix_duration,
                 mix_time: entry.mix_time,
                 alpha: entry.alpha,
-                additive: entry.additive,
+                mix_blend: entry.mix_blend,
                 reverse: entry.reverse,
             }
         } else {
@@ -2263,7 +2273,7 @@ impl AnimationState {
                 mix_duration: 0.0,
                 mix_time: 0.0,
                 alpha: 0.0,
-                additive: false,
+                mix_blend: MixBlend::Replace,
                 reverse: false,
             }
         }

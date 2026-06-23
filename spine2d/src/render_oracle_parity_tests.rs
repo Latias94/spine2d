@@ -1,5 +1,5 @@
 use crate::runtime::{AnimationState, AnimationStateData, TrackEntryHandle};
-use crate::{Atlas, Physics, Skeleton, SkeletonData};
+use crate::{Atlas, MixBlend, Physics, Skeleton, SkeletonData};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -95,7 +95,7 @@ enum RenderScenarioCommand {
     EntryAlphaAttachmentThreshold(f32),
     EntryMixAttachmentThreshold(f32),
     EntryMixDrawOrderThreshold(f32),
-    EntryAdditive(bool),
+    EntryMixBlend(MixBlend),
     EntryReverse(bool),
     EntryShortestRotation(bool),
     EntryResetRotationDirections,
@@ -383,7 +383,7 @@ fn render_scenario_cases_json() -> Vec<RenderScenarioCase> {
                     animation: "shoot",
                     looped: false,
                 },
-                RenderScenarioCommand::EntryAdditive(true),
+                RenderScenarioCommand::EntryMixBlend(MixBlend::Add),
                 RenderScenarioCommand::EntryAlpha(0.5),
                 RenderScenarioCommand::Step(0.3),
             ],
@@ -665,7 +665,7 @@ fn render_scenario_cases_skel() -> Vec<RenderScenarioCase> {
                     animation: "shoot",
                     looped: false,
                 },
-                RenderScenarioCommand::EntryAdditive(true),
+                RenderScenarioCommand::EntryMixBlend(MixBlend::Add),
                 RenderScenarioCommand::EntryAlpha(0.5),
                 RenderScenarioCommand::Step(0.3),
             ],
@@ -1055,7 +1055,7 @@ fn apply_entry_command(
         RenderScenarioCommand::EntryMixDrawOrderThreshold(t) => {
             last_entry.set_mix_draw_order_threshold(state, t);
         }
-        RenderScenarioCommand::EntryAdditive(v) => last_entry.set_additive(state, v),
+        RenderScenarioCommand::EntryMixBlend(v) => last_entry.set_mix_blend(state, v),
         RenderScenarioCommand::EntryReverse(v) => last_entry.set_reverse(state, v),
         RenderScenarioCommand::EntryShortestRotation(v) => {
             last_entry.set_shortest_rotation(state, v)
@@ -1138,7 +1138,7 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
             | RenderScenarioCommand::EntryAlphaAttachmentThreshold(_)
             | RenderScenarioCommand::EntryMixAttachmentThreshold(_)
             | RenderScenarioCommand::EntryMixDrawOrderThreshold(_)
-            | RenderScenarioCommand::EntryAdditive(_)
+            | RenderScenarioCommand::EntryMixBlend(_)
             | RenderScenarioCommand::EntryReverse(_)
             | RenderScenarioCommand::EntryShortestRotation(_)
             | RenderScenarioCommand::EntryResetRotationDirections => {

@@ -601,7 +601,7 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
                 mix_duration: track.mix_duration,
                 mix_time: track.mix_time,
                 alpha: track.alpha,
-                additive: track.additive,
+                mix_blend: track.mix_blend,
                 reverse: track.reverse,
             })
             .collect(),
@@ -1599,7 +1599,7 @@ mod tests {
                 SpineAnimationCommand::set(entity, 0, "first", true).with_entry_settings(
                     SpineTrackEntrySettings::new()
                         .with_alpha(0.5)
-                        .with_additive(true)
+                        .with_mix_blend(spine2d::MixBlend::Add)
                         .with_reverse(true)
                         .with_shortest_rotation(true)
                         .with_mix_duration(0.25)
@@ -1611,7 +1611,7 @@ mod tests {
         current_track_entry(&app, entity, 0, |entry| {
             assert_eq!(entry.animation().name, "first");
             assert_eq!(entry.alpha(), 0.5);
-            assert!(entry.additive());
+            assert_eq!(entry.mix_blend(), spine2d::MixBlend::Add);
             assert!(entry.reverse());
             assert!(entry.shortest_rotation());
             assert_eq!(entry.mix_duration(), 0.25);
@@ -1740,7 +1740,7 @@ mod tests {
                 SpineAnimationCommand::set(entity, 0, "missing", true).with_entry_settings(
                     SpineTrackEntrySettings::new()
                         .with_alpha(0.25)
-                        .with_additive(true),
+                        .with_mix_blend(spine2d::MixBlend::Add),
                 ),
             );
         app.update();
@@ -1748,7 +1748,7 @@ mod tests {
         current_track_entry(&app, entity, 0, |entry| {
             assert_eq!(entry.animation().name, "first");
             assert_eq!(entry.alpha(), 1.0);
-            assert!(!entry.additive());
+            assert_eq!(entry.mix_blend(), spine2d::MixBlend::Replace);
         });
     }
 

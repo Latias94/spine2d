@@ -172,7 +172,7 @@ fn setup_additive_path_physics_state() -> (AnimationState, Skeleton) {
 
     state.set_animation(0, "base", false).unwrap();
     let overlay = state.set_animation(1, "overlay", false).unwrap();
-    overlay.set_additive(&mut state, true);
+    overlay.set_mix_blend(&mut state, crate::MixBlend::Add);
 
     (state, skeleton)
 }
@@ -256,7 +256,7 @@ fn track_entry_additive_adds_current_pose_without_entry_mix_blend() {
 
     state.set_animation(0, "base", false).unwrap();
     let overlay = state.set_animation(1, "overlay", false).unwrap();
-    overlay.set_additive(&mut state, true);
+    overlay.set_mix_blend(&mut state, crate::MixBlend::Add);
 
     skeleton.setup_pose();
     state.apply(&mut skeleton);
@@ -343,7 +343,7 @@ fn track_entry_additive_mixes_out_as_additive() {
 
     state.set_animation(0, "base", false).unwrap();
     let overlay = state.set_animation(1, "overlay", false).unwrap();
-    overlay.set_additive(&mut state, true);
+    overlay.set_mix_blend(&mut state, crate::MixBlend::Add);
 
     state.set_empty_animation(1, 1.0);
     state.update(0.5);
@@ -438,7 +438,7 @@ fn additive_next_entry_does_not_hold_outgoing_numeric_timeline() {
     assert_approx(skeleton.bones[0].x, 10.0);
 
     let overlay = state.set_animation(0, "overlay", false).unwrap();
-    overlay.set_additive(&mut state, true);
+    overlay.set_mix_blend(&mut state, crate::MixBlend::Add);
     state.update(0.5);
 
     skeleton.setup_pose();
@@ -939,7 +939,7 @@ fn track0_additive_does_not_override_alpha_attachment_threshold_for_attachments(
     let a = state.set_animation(0, "a", false).unwrap();
     a.set_alpha(&mut state, 0.5);
     a.set_alpha_attachment_threshold(&mut state, 0.6);
-    a.set_additive(&mut state, true);
+    a.set_mix_blend(&mut state, crate::MixBlend::Add);
 
     skeleton.setup_pose();
     state.apply(&mut skeleton);

@@ -274,7 +274,7 @@ fn run_multitrack_overlay_smoke(data: Arc<SkeletonData>, example_label: &str) {
         let e = state
             .set_animation(2, name, true)
             .unwrap_or_else(|e| panic!("set track2 {name} ({example_label}): {e}"));
-        e.set_additive(&mut state, true);
+        e.set_mix_blend(&mut state, crate::MixBlend::Add);
         e.set_alpha(&mut state, 0.5);
     }
 

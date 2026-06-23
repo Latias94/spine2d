@@ -44,7 +44,7 @@ struct MixingControls {
     queued_mix: f32,
     empty_mix: f32,
     alpha: f32,
-    additive: bool,
+    mix_blend_add: bool,
     reverse: bool,
 }
 
@@ -57,7 +57,7 @@ impl Default for MixingControls {
             queued_mix: 0.25,
             empty_mix: 0.3,
             alpha: 1.0,
-            additive: false,
+            mix_blend_add: false,
             reverse: false,
         }
     }
@@ -195,7 +195,7 @@ fn inspector_panel(
             ui.add(egui::Slider::new(&mut controls.queued_mix, 0.0..=1.0).text("queued mix"));
             ui.add(egui::Slider::new(&mut controls.empty_mix, 0.0..=1.0).text("empty mix"));
             ui.add(egui::Slider::new(&mut controls.alpha, 0.0..=1.0).text("alpha"));
-            ui.checkbox(&mut controls.additive, "additive");
+            ui.checkbox(&mut controls.mix_blend_add, "mixBlend Add");
             ui.checkbox(&mut controls.reverse, "reverse");
 
             ui.horizontal(|ui| {
@@ -254,10 +254,16 @@ fn write_set(
 }
 
 fn entry_settings(controls: &MixingControls, mix_duration: f32) -> SpineTrackEntrySettings {
+    let mix_blend = if controls.mix_blend_add {
+        spine2d::MixBlend::Add
+    } else {
+        spine2d::MixBlend::Replace
+    };
+
     SpineTrackEntrySettings::new()
         .with_mix_duration(mix_duration)
         .with_alpha(controls.alpha)
-        .with_additive(controls.additive)
+        .with_mix_blend(mix_blend)
         .with_reverse(controls.reverse)
 }
 

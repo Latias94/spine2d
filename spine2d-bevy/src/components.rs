@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use spine2d::MixBlend;
 
 use crate::{SpineAtlasAsset, SpineSkeletonAsset};
 
@@ -232,7 +233,7 @@ pub struct SpineTrackState {
     pub mix_duration: f32,
     pub mix_time: f32,
     pub alpha: f32,
-    pub additive: bool,
+    pub mix_blend: MixBlend,
     pub reverse: bool,
 }
 

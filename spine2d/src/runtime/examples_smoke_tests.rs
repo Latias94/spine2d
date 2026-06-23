@@ -91,7 +91,7 @@ fn smoke_example(relative: &str) {
         let a1 = data.animations[1].name.as_str();
         state.set_animation(0, a0, true).expect("set track0");
         let entry = state.set_animation(1, a1, true).expect("set track1");
-        entry.set_additive(&mut state, true);
+        entry.set_mix_blend(&mut state, crate::MixBlend::Add);
 
         let dt = 0.2;
         state.update(dt);

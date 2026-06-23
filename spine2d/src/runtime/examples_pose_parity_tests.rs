@@ -1038,11 +1038,11 @@ fn example_spineboy_aim_to_shoot_additive_mixing_clears_crosshair_and_keeps_rgba
 
     h.state.set_animation(0, "run", true).expect("set run");
     let aim = h.state.set_animation(1, "aim", true).expect("set aim");
-    aim.set_additive(&mut h.state, true);
+    aim.set_mix_blend(&mut h.state, crate::MixBlend::Add);
     h.step(0.3);
 
     let shoot = h.state.set_animation(1, "shoot", false).expect("set shoot");
-    shoot.set_additive(&mut h.state, true);
+    shoot.set_mix_blend(&mut h.state, crate::MixBlend::Add);
     h.step(0.1);
 
     assert_slot_attachment(&h, "crosshair", None);
