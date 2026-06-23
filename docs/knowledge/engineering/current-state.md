@@ -16,6 +16,7 @@ status: "active"
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke` passed with `584 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy --examples`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23.
+  - C++ pose/render oracle runners accepted `--entry-mix-blend add` against local `repo-ref/spine-runtimes` with `SPINE2D_ORACLE_ALLOW_BASELINE_MISMATCH=1`; generated temp JSON validated with `python3 -m json.tool`.
 - Done:
   - Confirmed `4.3.2` is not the latest 4.3 tag; current explicit baseline is `spine-ts-4.3.8`.
   - Confirmed official 4.3.4 IK uses `ScaleYMode/scaleY`, not development HEAD `uniform`.
@@ -82,12 +83,13 @@ status: "active"
   - Removed the Rust-only `MixInterpolation` extension in breaking commit `2f7dcb4`; local `spine-cpp` `AnimationState.h/cpp` has no `MixInterpolation`, `setMixInterpolation`, or `TrackEntry::mix()` interpolation API, so mix percentage is back to the official linear `mixTime / mixDuration` path.
   - Aligned `AnimationState` mix and threshold boundary comparisons in commit `fce1ccc`; queued-entry activation, track end, mixing completion, mixing-from attachment/draw-order gates, attachment alpha gates, and event thresholds now use the same direct comparisons visible in `spine-cpp` instead of Rust-only epsilon padding. A direct `interruptAlpha` field rewrite was tested and rejected because existing oracle hold-mix/interrupt scenarios failed; keep the current Rust alpha compensation unless the full C++ `TimelineMode` enum is ported.
   - Restored official C++ TrackEntry mix-blend API in breaking commit `1a432d3`; `TrackEntry::mix_blend`, `TrackEntryHandle::set_mix_blend`, `TrackEntrySettings::with_mix_blend`, Bevy `SpineTrackState::mix_blend`, render scenario `EntryMixBlend`, and `pose_dump_scenario --entry-mix-blend` replace the older Rust-only additive public surface.
+  - Aligned C++ oracle tooling in commit `9bb858f`; pose/render oracle runners and golden recorders now use `--entry-mix-blend <setup|first|replace|add>` / `spine_track_entry_set_mix_blend`, and the runners have an explicit mismatch override for intentionally using local `repo-ref/spine-runtimes` as the source checkout.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
-  - Not blocked.
+  - Current worktree contains unknown-source Rust/Bevy changes that revert the committed `mixBlend` public surface back to the old additive API (`spine2d/src/runtime/animation_state.rs`, oracle tests, Bevy controls, and `pose_dump_scenario`). Do not overwrite or revert those files without user confirmation; they are not part of commit `9bb858f`.
 - Next action:
-  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode representation before attempting any `interruptAlpha`-shape refactor; public TrackEntry blend control is now aligned to C++ `mixBlend`, but the internal Add compensation path intentionally remains the oracle-proven Rust representation until a full C++ timeline-mode port is attempted.
+  - Ask/confirm how to handle the unknown additive reversion before continuing Rust runtime edits. After the worktree is stable, continue `AnimationState` parity audit around C++ `computeHold`/timeline mode representation before attempting any `interruptAlpha`-shape refactor.
 
 # Citations
 

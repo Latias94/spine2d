@@ -143,6 +143,14 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
   - `cargo check -p spine2d-bevy --examples`
   - `cargo fmt --all`
   - `git diff --check`
+- Post-U5 oracle toolchain verification passed:
+  - `python3 -m py_compile scripts/record_oracle_goldens.py scripts/record_oracle_render_goldens.py`
+  - `zsh -n scripts/run_spine_cpp_lite_oracle.zsh scripts/run_spine_cpp_lite_render_oracle.zsh scripts/run_spine_cpp_lite_dump_constraints.zsh`
+  - `python3 -c 'import sys; sys.path.insert(0,"scripts"); import record_oracle_goldens as r; print(r.parse_commands("entry.set_mix_blend(&mut state, crate::MixBlend::Add);"))'` -> `['--entry-mix-blend', 'add']`
+  - `SPINE2D_ORACLE_ALLOW_BASELINE_MISMATCH=1 scripts/run_spine_cpp_lite_oracle.zsh ... --entry-mix-blend add --step 0.1`
+  - `SPINE2D_ORACLE_ALLOW_BASELINE_MISMATCH=1 scripts/run_spine_cpp_lite_render_oracle.zsh ... --entry-mix-blend add --entry-alpha 0.5 --step 0.3`
+  - both temp outputs passed `python3 -m json.tool`
+  - commit `9bb858f`
 - Post-U6 path-scratch verification passed:
   - `cargo check -p spine2d --features json,binary,upstream-smoke`
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke skeleton path_constraint transform_constraint ik physics slider --no-fail-fast` (`112 passed, 444 skipped`)
@@ -538,7 +546,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 
 # Next Action
 
-Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode representation before attempting any `interruptAlpha`-shape refactor; public TrackEntry `mixBlend` is now aligned, while the internal Add compensation remains the existing oracle-proven Rust representation until a full C++ timeline-mode port is attempted. Keep the same verification shape: focused tests first, then the full core parity gate.
+Resolve the unexpected additive regression in the working tree before further Rust runtime edits. Once the worktree is stable, continue `AnimationState` parity audit around C++ `computeHold`/timeline mode representation before attempting any `interruptAlpha`-shape refactor. Keep the same verification shape: focused tests first, then the full core parity gate.
 
 # Citations
 
