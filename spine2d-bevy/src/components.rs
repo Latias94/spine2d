@@ -357,7 +357,6 @@ impl SpineAnimationCommand {
             | SpineAnimationCommandKind::SetEmptyAnimations { .. }
             | SpineAnimationCommandKind::SetDefaultMix { .. }
             | SpineAnimationCommandKind::SetMix { .. }
-            | SpineAnimationCommandKind::RemoveMix { .. }
             | SpineAnimationCommandKind::ClearMixes => {}
         }
         self
@@ -466,16 +465,6 @@ impl SpineAnimationCommand {
         }
     }
 
-    pub fn remove_mix(entity: Entity, from: impl Into<String>, to: impl Into<String>) -> Self {
-        Self {
-            entity,
-            command: SpineAnimationCommandKind::RemoveMix {
-                from: from.into(),
-                to: to.into(),
-            },
-        }
-    }
-
     pub fn clear_mixes(entity: Entity) -> Self {
         Self {
             entity,
@@ -524,10 +513,6 @@ pub enum SpineAnimationCommandKind {
         from: String,
         to: String,
         duration: f32,
-    },
-    RemoveMix {
-        from: String,
-        to: String,
     },
     ClearMixes,
 }

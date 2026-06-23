@@ -426,14 +426,6 @@ pub fn apply_spine_animation_commands(
                     message.entity,
                 );
             }
-            SpineAnimationCommandKind::RemoveMix { from, to } => {
-                if let Err(err) = instance.animation_state.data_mut().remove_mix(from, to) {
-                    warn!(
-                        "Failed to remove Spine animation mix for {:?} ({from} -> {to}): {err}",
-                        message.entity
-                    );
-                }
-            }
             SpineAnimationCommandKind::ClearMixes => {
                 instance.animation_state.data_mut().clear();
             }
@@ -1758,7 +1750,7 @@ mod tests {
     }
 
     #[test]
-    fn mix_remove_and_clear_commands_update_state_data() {
+    fn mix_set_and_clear_commands_update_state_data() {
         let mut app = app_with_lifecycle_systems();
         let (skeleton, atlas) = event_handles(&mut app);
 
@@ -1781,13 +1773,9 @@ mod tests {
 
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
-            .write(SpineAnimationCommand::remove_mix(entity, "first", "second"));
-        app.update();
-        app.world_mut()
-            .resource_mut::<Messages<SpineAnimationCommand>>()
             .write(SpineAnimationCommand::set(entity, 0, "second", true));
         app.update();
-        assert_eq!(current_track_mix_duration(&app, entity), 0.3);
+        assert_eq!(current_track_mix_duration(&app, entity), 0.1);
 
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()

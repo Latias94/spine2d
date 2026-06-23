@@ -123,25 +123,19 @@ fn animation_state_data_default_mix_is_directly_stored_and_used_as_fallback() {
 }
 
 #[test]
-fn animation_state_data_pair_mix_overrides_and_can_be_removed() {
+fn animation_state_data_named_mix_overrides_default_mix() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);
 
     state_data.set_default_mix(0.25);
     state_data.set_mix("events0", "events1", 0.5).unwrap();
 
-    assert_eq!(
-        state_data.pair_mix("events0", "events1").unwrap(),
-        Some(0.5)
-    );
     assert_eq!(state_data.get_mix("events0", "events1").unwrap(), 0.5);
     assert_eq!(state_data.get_mix("events1", "events0").unwrap(), 0.25);
-    assert_eq!(
-        state_data.remove_mix("events0", "events1").unwrap(),
-        Some(0.5)
-    );
-    assert_eq!(state_data.pair_mix("events0", "events1").unwrap(), None);
-    assert_eq!(state_data.get_mix("events0", "events1").unwrap(), 0.25);
+
+    state_data.set_mix("events0", "events1", 0.75).unwrap();
+
+    assert_eq!(state_data.get_mix("events0", "events1").unwrap(), 0.75);
 }
 
 #[test]
@@ -161,7 +155,7 @@ fn animation_state_data_animation_mix_accessors_match_name_mix_storage() {
 }
 
 #[test]
-fn animation_state_data_clear_resets_default_and_pair_mixes() {
+fn animation_state_data_clear_resets_default_and_animation_mixes() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);
 
@@ -171,7 +165,6 @@ fn animation_state_data_clear_resets_default_and_pair_mixes() {
     state_data.clear();
 
     assert_eq!(state_data.default_mix(), 0.0);
-    assert_eq!(state_data.pair_mix("events0", "events1").unwrap(), None);
     assert_eq!(state_data.get_mix("events0", "events1").unwrap(), 0.0);
 }
 
@@ -263,8 +256,6 @@ fn animation_state_data_rejects_unknown_animations() {
     assert!(state_data.set_mix("missing", "events1", 0.5).is_err());
     assert!(state_data.set_mix("events0", "missing", 0.5).is_err());
     assert!(state_data.get_mix("missing", "events1").is_err());
-    assert!(state_data.pair_mix("events0", "missing").is_err());
-    assert!(state_data.remove_mix("missing", "events1").is_err());
     state_data.set_mix("events0", "events1", -0.1).unwrap();
     assert_eq!(state_data.get_mix("events0", "events1").unwrap(), -0.1);
     state_data.set_mix("events0", "events1", f32::NAN).unwrap();

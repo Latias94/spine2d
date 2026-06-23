@@ -473,18 +473,6 @@ impl AnimationStateData {
         Ok(self.mix_duration(from_index, to_index))
     }
 
-    pub fn pair_mix(&self, from: &str, to: &str) -> Result<Option<f32>, Error> {
-        let from_index = self.animation_index_by_name(from)?;
-        let to_index = self.animation_index_by_name(to)?;
-        Ok(self.mixes.get(&(from_index, to_index)).copied())
-    }
-
-    pub fn remove_mix(&mut self, from: &str, to: &str) -> Result<Option<f32>, Error> {
-        let from_index = self.animation_index_by_name(from)?;
-        let to_index = self.animation_index_by_name(to)?;
-        Ok(self.mixes.remove(&(from_index, to_index)))
-    }
-
     pub fn clear(&mut self) {
         self.default_mix = 0.0;
         self.mixes.clear();
