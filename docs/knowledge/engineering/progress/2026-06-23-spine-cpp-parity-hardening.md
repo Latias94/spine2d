@@ -16,6 +16,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 
 # Verified State
 
+- Full parity gate passed on 2026-06-23 after deleting Rust-only `AnimationState::time()` in breaking commit `d37dcf8`: `597 passed, 10 skipped`. The local tests now assert queue progression and negative-delta behavior through `TrackEntry::track_time`, not a public state clock. Focused `cargo test` filters for `state_time_scale_scales_update_and_queue_progression` and `update_accepts_negative_delta_like_cpp` passed, `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `43 passed, 0 skipped`, and Bevy examples, WGPU/Web checks, formatting, and diff checks all passed.
 - Full parity gate passed on 2026-06-23 after deleting Rust-only TrackEntry index/internal getters in breaking commit `00469de`: `597 passed, 10 skipped`. Bevy runtime-state export now derives its `animation_index` from `SkeletonData::animation(name)`, while core `TrackEntry` exposes only the C++-style `animation()` getter and keeps `total_alpha` private. Bevy nextest passed with `43 passed, 0 skipped`; Bevy examples, WGPU/Web checks, `cargo fmt --all --check`, and `git diff --check` also passed.
 - Full parity gate passed on 2026-06-23 after the TrackEntryHandle read accessor slice: `597 passed, 10 skipped`.
 - Full parity gate passed on 2026-06-23 after deleting Rust-only mix pair query/removal APIs in breaking commit `c5eb82c`: `597 passed, 10 skipped`.
@@ -55,6 +56,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U5 snapshot cleanup commit `9c206bf` removed Rust-only `AnimationState::tracks_len` and `AnimationState::track_snapshots`; Bevy runtime-state sync now uses `tracks()` and state-bound entry reads instead of a batch snapshot helper.
 - U5 track-entry helper cleanup commit `ac9fcb8` removed Rust-only `AnimationState::with_track_entry` and `with_queued_track_entry`; tests and Bevy helpers now read entries through `current()`, `TrackEntryHandle::next()`, and `TrackEntryHandle::with_entry()`.
 - U5 AnimationStateData getter cleanup commit `472bb75` removed Rust-only `get_mix(&str, &str)`; public mix reads now use the official C++-style `get_mix_animation` overload.
+- U5 AnimationState clock cleanup commit `d37dcf8` removed the Rust-only `AnimationState::time()` getter. Local tests now verify queue progression and negative-delta behavior through track state rather than a public state clock.
 - U5 TrackEntry public getter cleanup commit `00469de` removed Rust-only `animation_index()` and `total_alpha()` getters. Internal mix accounting still uses `total_alpha`, and Bevy derives public runtime-state animation indices through `SkeletonData::animation(name)`.
 - U6 path scratch commit `3edaa0b` moved path constraint scratch storage and capacity estimation into private `skeleton::path`.
 - U6 path world-position commit `0dab0fb` moved path attachment lookup, `compute_path_world_positions`, and private path curve helpers into private `skeleton::path`.
