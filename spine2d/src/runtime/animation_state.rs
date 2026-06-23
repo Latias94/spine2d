@@ -2669,7 +2669,7 @@ impl AnimationState {
         }
 
         let complete = if entry.looped {
-            if duration.abs() <= TIME_EPSILON {
+            if duration == 0.0 {
                 true
             } else {
                 let cycles = (track_time / duration) as i32;
@@ -2680,7 +2680,7 @@ impl AnimationState {
         };
 
         // Queue events before complete, then complete, then events after complete (Spine semantics).
-        if complete && duration.abs() > TIME_EPSILON && !events.is_empty() {
+        if complete && duration != 0.0 && !events.is_empty() {
             let mut track_last_wrapped = track_last % duration;
             if track_last_wrapped < 0.0 {
                 track_last_wrapped += duration;

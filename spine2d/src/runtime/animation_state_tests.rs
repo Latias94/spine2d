@@ -2382,6 +2382,27 @@ fn non_looping_complete_uses_cpp_exact_boundary() {
 }
 
 #[test]
+fn looping_complete_uses_cpp_exact_zero_duration_check() {
+    let (mut state, mut skeleton, recording) = setup();
+    state.set_listener(RecordingListener {
+        recording: recording.clone(),
+    });
+
+    let entry = state.set_animation(0, "events0", true).unwrap();
+    entry.set_animation_start(&mut state, 0.2);
+    entry.set_animation_end(&mut state, 0.2 + 0.000_000_5);
+    state.apply(&mut skeleton);
+
+    assert!(
+        recording
+            .rows
+            .borrow()
+            .iter()
+            .all(|row| row.name != "complete")
+    );
+}
+
+#[test]
 fn looping_with_animation_start() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(RecordingListener {
