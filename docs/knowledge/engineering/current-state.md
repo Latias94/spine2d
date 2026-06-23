@@ -13,7 +13,7 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看 `spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `573 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `574 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `42 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu`, `cargo check -p spine2d-wgpu --examples --features json`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
@@ -74,12 +74,14 @@ status: "active"
   - Aligned public attachment mutation in commit `4f8b351`; `Skeleton::set_attachment`, `set_skin` attachAll paths, and animation attachment timelines now share the C++ `SlotPose::setAttachment` deform-clear rule based on vertex timeline attachment identity.
   - Added official-style `SkinData` attachment helpers in commit `b3ca6c1`; `set_attachment` grows slot storage like C++ `Skin::setAttachment`, and remove/find/list helpers are now available for runtime composition.
   - Removed the Rust-only `Skeleton::set_attachment` success return in breaking commit `7cd8d8c`; the method now matches C++ void/no-op semantics.
+  - Aligned `AnimationStateData` and empty-animation mix duration setters in breaking commit `0c78468`; default mix, pair mix, `set_empty_animation`, and `set_empty_animations` now follow C++ direct assignment semantics instead of rejecting negative or non-finite durations.
+  - Removed the useless `AnimationState::add_empty_animation` `Result` wrapper in breaking commit `0a4204a`; the method now returns a `TrackEntryHandle` directly and no longer rejects non-finite delay values.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Continue U6: consider gradually migrating internal skin fixture construction to `SkinData::set_attachment`, then audit the next C++ runtime surface with broad Rust-only API drift.
+  - Continue auditing remaining `AnimationState`/`TrackEntry` numeric setter guards against C++ direct-assignment semantics, then return to U6 skin fixture cleanup.
 
 # Citations
 

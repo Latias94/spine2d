@@ -211,9 +211,9 @@ flowchart TB
 
 ### U5. Narrow TrackEntry and backend control surfaces
 
-**Goal:** Move public mutation toward value-object settings and validated methods instead of broad field access.
+**Goal:** Move public mutation toward official setter/direct-assignment semantics and value-object settings instead of broad field access.
 
-**Status:** Complete. Commit `f36cfa7` aligned the delay setter branch shape with `spine-cpp`; commit `fc1c241` made `TrackEntry` state private and exposed read-only getters; commit `e1e827f` moved entry settings into core `TrackEntrySettings`, changed Bevy to alias that value object, deleted unused Rust-only completion flags, and added coverage for negative delay plus `spine-cpp`-style `setMixDuration(mixDuration, delay)`.
+**Status:** Complete. Commit `f36cfa7` aligned the delay setter branch shape with `spine-cpp`; commit `fc1c241` made `TrackEntry` state private and exposed read-only getters; commit `e1e827f` moved entry settings into core `TrackEntrySettings`, changed Bevy to alias that value object, deleted unused Rust-only completion flags, and added coverage for negative delay plus `spine-cpp`-style `setMixDuration(mixDuration, delay)`. Commit `0c78468` removed Rust-only mix-duration validation from `AnimationStateData` and empty-animation setters so default mix, pair mix, and empty-animation mix durations use direct C++ assignment semantics. Commit `0a4204a` made `add_empty_animation` infallible and removed its Rust-only finite-delay guard, matching C++ `addEmptyAnimation` returning an entry directly.
 
 **Requirements:** R1, R2, R8.
 
@@ -228,7 +228,8 @@ flowchart TB
 **Test scenarios:**
 
 - Happy path: every retained per-entry setting changes the same runtime behavior as before.
-- Error path: invalid mix, delay, alpha, or threshold values are rejected consistently.
+- Direct-assignment path: default mix, pair mix, empty-animation mix duration, and `add_empty_animation` delay store or propagate the exact `f32` shape used by the official path, including non-finite values where C++ does not validate.
+- Error path: missing animation names still surface Rust `UnknownAnimation` errors where C++ name overloads would assert; do not reintroduce blanket duration validation.
 - Integration path: Bevy command settings still apply to set, add, empty, and queued entries.
 - API cleanup path: stale removed fields no longer compile in crate tests, and no internal code depends on public field mutation.
 
