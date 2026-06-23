@@ -391,15 +391,20 @@ fn animation_state_current_returns_current_track_handle() {
     let (mut state, _skeleton, _recording) = setup();
 
     assert_eq!(state.current(0), None);
+    assert!(state.tracks().is_empty());
 
     let first = state.set_animation(0, "events0", false).unwrap();
     state.add_animation(0, "events1", false, 0.0).unwrap();
+    let third = state.set_animation(2, "events2", false).unwrap();
 
     assert_eq!(state.current(0), Some(first));
     assert_eq!(state.current(1), None);
+    assert_eq!(state.current(2), Some(third));
+    assert_eq!(state.tracks(), vec![Some(first), None, Some(third)]);
 
     state.clear_track(0);
     assert_eq!(state.current(0), None);
+    assert_eq!(state.tracks(), vec![None, None, Some(third)]);
 }
 
 #[test]

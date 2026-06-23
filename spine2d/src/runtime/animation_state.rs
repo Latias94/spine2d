@@ -1291,6 +1291,13 @@ impl AnimationState {
         self.tracks.len()
     }
 
+    pub fn tracks(&self) -> Vec<Option<TrackEntryHandle>> {
+        self.tracks
+            .iter()
+            .map(|track| track.current.map(|id| TrackEntryHandle { id }))
+            .collect()
+    }
+
     fn previous_entry_for(&self, entry_id: EntryId) -> Option<EntryId> {
         self.entry(entry_id).and_then(|entry| entry.previous)
     }
