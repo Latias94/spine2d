@@ -230,6 +230,32 @@ fn track_entry_handles_are_bound_to_their_animation_state() {
 }
 
 #[test]
+fn track_entry_handle_reads_current_and_queued_entries() {
+    let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
+    let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
+    let other_state = AnimationState::new(AnimationStateData::new(data));
+
+    let current = state.set_animation(0, "events0", false).unwrap();
+    let queued = state.add_animation(0, "events1", true, 0.4).unwrap();
+
+    assert_eq!(
+        current.with_entry(&state, |entry| entry.animation().name.clone()),
+        Some("events0".to_string())
+    );
+    assert_eq!(
+        queued.with_entry(&state, |entry| {
+            (
+                entry.animation().name.clone(),
+                entry.looped(),
+                entry.delay(),
+            )
+        }),
+        Some(("events1".to_string(), true, 0.4))
+    );
+    assert_eq!(queued.with_entry(&other_state, |_| ()), None);
+}
+
+#[test]
 fn animation_state_data_rejects_unknown_animations() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);

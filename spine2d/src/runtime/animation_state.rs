@@ -795,6 +795,14 @@ impl TrackEntryHandle {
         Some(state)
     }
 
+    pub fn with_entry<R>(
+        &self,
+        state: &AnimationState,
+        f: impl FnOnce(&TrackEntry) -> R,
+    ) -> Option<R> {
+        state.entry_for_handle(*self).map(f)
+    }
+
     pub fn mixing_from(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
             .entry_for_handle(*self)
