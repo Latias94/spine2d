@@ -1169,7 +1169,6 @@ impl TrackEntrySettings {
 #[derive(Clone, Debug)]
 pub struct TrackEntrySnapshot {
     pub track_index: usize,
-    pub animation_index: i32,
     pub animation_name: String,
     pub track_time: f32,
     pub animation_time: f32,
@@ -2417,14 +2416,8 @@ impl AnimationState {
 
     fn snapshot(&self, id: EntryId) -> TrackEntrySnapshot {
         if let Some(entry) = self.entry(id) {
-            let animation_index = if entry.animation_index == EMPTY_ANIMATION_INDEX {
-                -1
-            } else {
-                i32::try_from(entry.animation_index).unwrap_or(i32::MAX)
-            };
             TrackEntrySnapshot {
                 track_index: entry.track_index,
-                animation_index,
                 animation_name: entry.animation.name.clone(),
                 track_time: entry.track_time,
                 animation_time: entry.animation_time(),
@@ -2440,7 +2433,6 @@ impl AnimationState {
         } else {
             TrackEntrySnapshot {
                 track_index: 0,
-                animation_index: -2,
                 animation_name: "<disposed>".to_string(),
                 track_time: 0.0,
                 animation_time: 0.0,
