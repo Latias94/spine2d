@@ -4,9 +4,7 @@ use bevy::asset::AssetEvent;
 use bevy::ecs::lifecycle::RemovedComponents;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use spine2d::{
-    AnimationState, AnimationStateData, Skeleton, TrackEntry, build_draw_list_with_atlas,
-};
+use spine2d::{AnimationState, AnimationStateData, Skeleton, build_draw_list_with_atlas};
 use std::collections::HashSet;
 
 use render::despawn_mesh_children;
@@ -575,19 +573,6 @@ fn apply_skeleton_control_to_skeleton(skeleton: &mut Skeleton, control: SpineSke
     }
 }
 
-fn runtime_animation_index(state: &AnimationState, entry: &TrackEntry) -> i32 {
-    if entry.is_empty_animation() {
-        return -1;
-    }
-
-    state
-        .data()
-        .skeleton_data()
-        .animation(&entry.animation().name)
-        .map(|(index, _)| i32::try_from(index).unwrap_or(i32::MAX))
-        .unwrap_or(i32::MAX)
-}
-
 fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) -> SpineRuntimeState {
     let (wind_x, wind_y) = instance.skeleton.wind();
     let (gravity_x, gravity_y) = instance.skeleton.gravity();
@@ -600,7 +585,6 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
             .filter_map(|track| {
                 track?.with_entry(animation_state, |entry| SpineTrackState {
                     track_index: entry.track_index(),
-                    animation_index: runtime_animation_index(animation_state, entry),
                     animation_name: entry.animation().name.clone(),
                     track_time: entry.track_time(),
                     animation_time: entry.animation_time(),

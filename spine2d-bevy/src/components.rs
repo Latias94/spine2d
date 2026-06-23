@@ -224,7 +224,6 @@ pub struct SpineRuntimeState {
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpineTrackState {
     pub track_index: usize,
-    pub animation_index: i32,
     pub animation_name: String,
     pub track_time: f32,
     pub animation_time: f32,
