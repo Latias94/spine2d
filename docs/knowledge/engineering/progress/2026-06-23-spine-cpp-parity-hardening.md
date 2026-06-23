@@ -151,6 +151,10 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
   - `SPINE2D_ORACLE_ALLOW_BASELINE_MISMATCH=1 scripts/run_spine_cpp_lite_render_oracle.zsh ... --entry-mix-blend add --entry-alpha 0.5 --step 0.3`
   - both temp outputs passed `python3 -m json.tool`
   - commit `9bb858f`
+- Additive API rollback cleanup:
+  - User confirmed the remaining dirty files were safe to handle.
+  - The affected Rust/Bevy working-tree edits were restored to the committed `mixBlend` public API state from `1a432d3`.
+  - `git status --short` is clean before continuing runtime edits.
 - Post-U6 path-scratch verification passed:
   - `cargo check -p spine2d --features json,binary,upstream-smoke`
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke skeleton path_constraint transform_constraint ik physics slider --no-fail-fast` (`112 passed, 444 skipped`)
@@ -546,7 +550,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 
 # Next Action
 
-Resolve the unexpected additive regression in the working tree before further Rust runtime edits. Once the worktree is stable, continue `AnimationState` parity audit around C++ `computeHold`/timeline mode representation before attempting any `interruptAlpha`-shape refactor. Keep the same verification shape: focused tests first, then the full core parity gate.
+Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode representation before attempting any `interruptAlpha`-shape refactor. Keep the same verification shape: focused tests first, then the full core parity gate.
 
 # Citations
 

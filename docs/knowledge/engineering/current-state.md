@@ -84,12 +84,13 @@ status: "active"
   - Aligned `AnimationState` mix and threshold boundary comparisons in commit `fce1ccc`; queued-entry activation, track end, mixing completion, mixing-from attachment/draw-order gates, attachment alpha gates, and event thresholds now use the same direct comparisons visible in `spine-cpp` instead of Rust-only epsilon padding. A direct `interruptAlpha` field rewrite was tested and rejected because existing oracle hold-mix/interrupt scenarios failed; keep the current Rust alpha compensation unless the full C++ `TimelineMode` enum is ported.
   - Restored official C++ TrackEntry mix-blend API in breaking commit `1a432d3`; `TrackEntry::mix_blend`, `TrackEntryHandle::set_mix_blend`, `TrackEntrySettings::with_mix_blend`, Bevy `SpineTrackState::mix_blend`, render scenario `EntryMixBlend`, and `pose_dump_scenario --entry-mix-blend` replace the older Rust-only additive public surface.
   - Aligned C++ oracle tooling in commit `9bb858f`; pose/render oracle runners and golden recorders now use `--entry-mix-blend <setup|first|replace|add>` / `spine_track_entry_set_mix_blend`, and the runners have an explicit mismatch override for intentionally using local `repo-ref/spine-runtimes` as the source checkout.
+  - Resolved the transient additive API rollback in the working tree after user confirmation; the affected Rust/Bevy files were returned to the committed `mixBlend` state and `git status --short` is clean.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
-  - Current worktree contains unknown-source Rust/Bevy changes that revert the committed `mixBlend` public surface back to the old additive API (`spine2d/src/runtime/animation_state.rs`, oracle tests, Bevy controls, and `pose_dump_scenario`). Do not overwrite or revert those files without user confirmation; they are not part of commit `9bb858f`.
+  - None.
 - Next action:
-  - Ask/confirm how to handle the unknown additive reversion before continuing Rust runtime edits. After the worktree is stable, continue `AnimationState` parity audit around C++ `computeHold`/timeline mode representation before attempting any `interruptAlpha`-shape refactor.
+  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode representation before attempting any `interruptAlpha`-shape refactor.
 
 # Citations
 
