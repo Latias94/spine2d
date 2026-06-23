@@ -869,12 +869,11 @@ mod tests {
         f: F,
     ) -> R {
         let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
-        app.world()
-            .non_send::<SpineWorld>()
-            .get(key.0)
-            .unwrap()
-            .animation_state
-            .with_track_entry(track_index, f)
+        let spine_world = app.world().non_send::<SpineWorld>();
+        let state = &spine_world.get(key.0).unwrap().animation_state;
+        state
+            .current(track_index)
+            .and_then(|handle| handle.with_entry(state, f))
             .unwrap()
     }
 
@@ -886,13 +885,13 @@ mod tests {
         f: F,
     ) -> R {
         let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
-        app.world()
-            .non_send::<SpineWorld>()
-            .get(key.0)
-            .unwrap()
-            .animation_state
-            .with_queued_track_entry(track_index, queue_index, f)
-            .unwrap()
+        let spine_world = app.world().non_send::<SpineWorld>();
+        let state = &spine_world.get(key.0).unwrap().animation_state;
+        let mut handle = state.current(track_index).unwrap().next(state).unwrap();
+        for _ in 0..queue_index {
+            handle = handle.next(state).unwrap();
+        }
+        handle.with_entry(state, f).unwrap()
     }
 
     fn spine_instance<F: FnOnce(&SpineInstance) -> R, R>(app: &App, entity: Entity, f: F) -> R {

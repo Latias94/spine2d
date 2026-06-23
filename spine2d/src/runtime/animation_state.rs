@@ -1527,32 +1527,10 @@ impl AnimationState {
         }
     }
 
-    pub fn with_track_entry<F: FnOnce(&TrackEntry) -> R, R>(
-        &self,
-        track_index: usize,
-        f: F,
-    ) -> Option<R> {
-        let id = *self.tracks.get(track_index)?.current.as_ref()?;
-        let entry = self.entry(id)?;
-        Some(f(entry))
-    }
-
     pub fn current(&self, track_index: usize) -> Option<TrackEntryHandle> {
         let id = self.tracks.get(track_index)?.current?;
         self.entry(id)?;
         Some(self.handle(id))
-    }
-
-    pub fn with_queued_track_entry<F: FnOnce(&TrackEntry) -> R, R>(
-        &self,
-        track_index: usize,
-        queue_index: usize,
-        f: F,
-    ) -> Option<R> {
-        let track = self.tracks.get(track_index)?;
-        let id = *track.queue.get(queue_index)?;
-        let entry = self.entry(id)?;
-        Some(f(entry))
     }
 
     pub fn set_animation(

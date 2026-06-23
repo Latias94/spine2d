@@ -190,7 +190,7 @@ fn run_queued_animations_smoke(data: Arc<SkeletonData>, example_label: &str) {
     }
 
     for _ in 0..MAX_FRAMES {
-        if state.with_track_entry(0, |_| ()).is_none() {
+        if state.current(0).is_none() {
             break;
         }
         state.update(dt);

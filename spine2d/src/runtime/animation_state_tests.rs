@@ -1,6 +1,6 @@
 use crate::Skeleton;
 use crate::runtime::{
-    AnimationState, AnimationStateData, AnimationStateEvent, AnimationStateListener,
+    AnimationState, AnimationStateData, AnimationStateEvent, AnimationStateListener, TrackEntry,
     TrackEntryListener, TrackEntrySnapshot,
 };
 use std::cell::{Cell, RefCell};
@@ -100,6 +100,27 @@ fn setup() -> (AnimationState, Skeleton, Recording) {
         rows: Rc::new(RefCell::new(Vec::new())),
     };
     (state, skeleton, recording)
+}
+
+fn with_track_entry<R>(
+    state: &AnimationState,
+    track_index: usize,
+    f: impl FnOnce(&TrackEntry) -> R,
+) -> Option<R> {
+    state.current(track_index)?.with_entry(state, f)
+}
+
+fn with_queued_track_entry<R>(
+    state: &AnimationState,
+    track_index: usize,
+    queue_index: usize,
+    f: impl FnOnce(&TrackEntry) -> R,
+) -> Option<R> {
+    let mut handle = state.current(track_index)?.next(state)?;
+    for _ in 0..queue_index {
+        handle = handle.next(state)?;
+    }
+    handle.with_entry(state, f)
 }
 
 #[test]
@@ -207,17 +228,13 @@ fn track_entry_handles_are_bound_to_their_animation_state() {
 
     first_entry.set_alpha(&mut second_state, 0.25);
     assert_eq!(
-        second_state
-            .with_track_entry(0, |entry| entry.alpha())
-            .unwrap(),
+        with_track_entry(&second_state, 0, |entry| entry.alpha()).unwrap(),
         1.0
     );
 
     second_entry.set_alpha(&mut second_state, 0.75);
     assert_eq!(
-        second_state
-            .with_track_entry(0, |entry| entry.alpha())
-            .unwrap(),
+        with_track_entry(&second_state, 0, |entry| entry.alpha()).unwrap(),
         0.75
     );
 }
@@ -423,14 +440,10 @@ fn add_empty_animation_stores_non_finite_delay_directly() {
 
     state.add_empty_animation(0, 0.5, f32::INFINITY);
 
-    let delay = state
-        .with_track_entry(0, |entry| entry.delay())
-        .expect("current empty entry");
+    let delay = with_track_entry(&state, 0, |entry| entry.delay()).expect("current empty entry");
     assert!(delay.is_infinite());
     assert_eq!(
-        state
-            .with_track_entry(0, |entry| entry.mix_duration())
-            .expect("current empty entry"),
+        with_track_entry(&state, 0, |entry| entry.mix_duration()).expect("current empty entry"),
         0.5
     );
 }
@@ -443,9 +456,7 @@ fn track_entry_set_delay_ignores_negative_values() {
     entry.set_delay(&mut state, 0.25);
     entry.set_delay(&mut state, -0.5);
 
-    let delay = state
-        .with_track_entry(0, |entry| entry.delay())
-        .expect("current entry");
+    let delay = with_track_entry(&state, 0, |entry| entry.delay()).expect("current entry");
     assert_eq!(round3(delay), 0.25);
 }
 
@@ -548,9 +559,8 @@ fn track_entry_set_mix_duration_with_delay_adjusts_queued_delay() {
         .expect("queued entry delay");
     assert_eq!(round3(delay), 0.6);
 
-    let mix_duration = state
-        .with_queued_track_entry(0, 0, |entry| entry.mix_duration())
-        .expect("queued entry");
+    let mix_duration =
+        with_queued_track_entry(&state, 0, 0, |entry| entry.mix_duration()).expect("queued entry");
     assert_eq!(round3(mix_duration), 0.4);
 }
 
@@ -3052,14 +3062,12 @@ fn state_time_scale_scales_update_and_queue_progression() {
 
     assert_eq!(round3(state.time()), 1.5);
     assert_eq!(
-        state
-            .with_track_entry(0, |entry| entry.animation().name.clone())
+        with_track_entry(&state, 0, |entry| entry.animation().name.clone())
             .expect("track 0 should have advanced to the queued animation"),
         "events1"
     );
     assert_eq!(
-        state
-            .with_track_entry(0, |entry| round3(entry.track_time()))
+        with_track_entry(&state, 0, |entry| round3(entry.track_time()))
             .expect("track 0 should remain active"),
         0.5
     );
@@ -3075,8 +3083,7 @@ fn update_accepts_negative_delta_like_cpp() {
 
     assert_eq!(round3(state.time()), 0.75);
     assert_eq!(
-        state
-            .with_track_entry(0, |entry| round3(entry.track_time()))
+        with_track_entry(&state, 0, |entry| round3(entry.track_time()))
             .expect("track 0 should remain active"),
         0.75
     );
@@ -3291,7 +3298,7 @@ fn track_entry_official_query_helpers_and_loop_setter_follow_cpp_state() {
     let (mut state, mut skeleton, _recording) = setup();
 
     let entry = state.set_animation(0, "events0", true).unwrap();
-    state.with_track_entry(0, |entry| {
+    with_track_entry(&state, 0, |entry| {
         assert!(entry.looped());
         assert!(!entry.is_complete());
         assert!(!entry.was_applied());
@@ -3299,37 +3306,37 @@ fn track_entry_official_query_helpers_and_loop_setter_follow_cpp_state() {
     });
 
     entry.set_loop(&mut state, false);
-    state.with_track_entry(0, |entry| {
+    with_track_entry(&state, 0, |entry| {
         assert!(!entry.looped());
     });
 
     entry.set_track_time(&mut state, 0.25);
     entry.set_mix_time(&mut state, 0.125);
-    state.with_track_entry(0, |entry| {
+    with_track_entry(&state, 0, |entry| {
         assert_eq!(entry.track_time(), 0.25);
         assert_eq!(entry.mix_time(), 0.125);
     });
 
     state.update(0.5);
     state.apply(&mut skeleton);
-    state.with_track_entry(0, |entry| {
+    with_track_entry(&state, 0, |entry| {
         assert!(entry.was_applied());
         assert!(!entry.is_complete());
     });
 
     state.update(0.6);
     state.apply(&mut skeleton);
-    state.with_track_entry(0, |entry| {
+    with_track_entry(&state, 0, |entry| {
         assert!(entry.is_complete());
     });
 
     let empty = state.set_empty_animation(0, 0.2);
-    state.with_track_entry(0, |entry| {
+    with_track_entry(&state, 0, |entry| {
         assert!(entry.is_empty_animation());
         assert_eq!(entry.track_end(), 0.2);
     });
     empty.set_loop(&mut state, true);
-    state.with_track_entry(0, |entry| {
+    with_track_entry(&state, 0, |entry| {
         assert!(entry.looped());
     });
 }
@@ -3378,21 +3385,19 @@ fn set_empty_animations_sets_empty_entries_for_active_tracks() {
     state.set_empty_animations(0.4);
 
     assert_eq!(state.queue_front_delay_for_tests(0), None);
-    state
-        .with_track_entry(0, |entry| {
-            assert_eq!(entry.animation().name, "<empty>");
-            assert_eq!(entry.mix_duration(), 0.4);
-            assert_eq!(entry.track_end(), 0.4);
-        })
-        .unwrap();
-    assert!(state.with_track_entry(1, |_| ()).is_none());
-    state
-        .with_track_entry(2, |entry| {
-            assert_eq!(entry.animation().name, "<empty>");
-            assert_eq!(entry.mix_duration(), 0.4);
-            assert_eq!(entry.track_end(), 0.4);
-        })
-        .unwrap();
+    with_track_entry(&state, 0, |entry| {
+        assert_eq!(entry.animation().name, "<empty>");
+        assert_eq!(entry.mix_duration(), 0.4);
+        assert_eq!(entry.track_end(), 0.4);
+    })
+    .unwrap();
+    assert!(with_track_entry(&state, 1, |_| ()).is_none());
+    with_track_entry(&state, 2, |entry| {
+        assert_eq!(entry.animation().name, "<empty>");
+        assert_eq!(entry.mix_duration(), 0.4);
+        assert_eq!(entry.track_end(), 0.4);
+    })
+    .unwrap();
 }
 
 #[test]
@@ -3412,17 +3417,13 @@ fn set_empty_animations_stores_mix_duration_directly() {
 
     state.set_empty_animations(-0.1);
     assert_eq!(
-        state
-            .with_track_entry(0, |entry| entry.mix_duration())
-            .unwrap(),
+        with_track_entry(&state, 0, |entry| entry.mix_duration()).unwrap(),
         -0.1
     );
 
     state.set_empty_animations(f32::INFINITY);
     assert_eq!(
-        state
-            .with_track_entry(0, |entry| entry.mix_duration())
-            .unwrap(),
+        with_track_entry(&state, 0, |entry| entry.mix_duration()).unwrap(),
         f32::INFINITY
     );
 }
