@@ -364,7 +364,7 @@ flowchart LR
 ## Success Metrics
 
 - Bevy users can implement issue #4's mix use case through public API with no crate-private access.
-- Bevy users can configure entry-level alpha/additive/reverse/threshold/mix settings in one command path.
+- Bevy users can configure entry-level alpha/mixBlend/reverse/threshold/mix settings in one command path.
 - Physics-capable assets can be driven from Bevy with explicit `Physics` mode and wind/gravity controls.
 - Runtime state needed by gameplay is observable as ECS data after each update.
 - The backend public API reads as one coherent generation rather than a list of historical patches.
@@ -379,5 +379,5 @@ flowchart LR
 - Local backend: `spine2d-bevy/src/components.rs`, `spine2d-bevy/src/systems.rs`, and `spine2d-bevy/src/spine_world.rs` show the current public Bevy API, private runtime storage, command handling, update order, and tests.
 - Project decisions: `docs/decisions.md` records the pure Rust runtime goal, renderer-agnostic core boundary, and generational `TrackEntryHandle` ownership model.
 - Parity baseline: `docs/parity-4.3-beta.md`, `docs/upstream-audit-4.3.2.md`, and `docs/knowledge/engineering/current-state.md` pin the active official 4.3 reference to `spine-flutter-4.3.4` at `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`.
-- Prior TrackEntry plans: `docs/plans/2026-06-18-001-feat-track-entry-mix-interpolation-plan.md`, `docs/plans/2026-06-18-010-fix-remove-hold-previous-plan.md`, and `docs/plans/2026-06-18-011-fix-track-entry-additive-api-plan.md` document why the current public surface should follow latest official TrackEntry concepts rather than stale compatibility APIs.
+- Prior TrackEntry plans: `docs/plans/2026-06-18-001-feat-track-entry-mix-interpolation-plan.md`, `docs/plans/2026-06-18-010-fix-remove-hold-previous-plan.md`, and superseded additive plans document why the public surface should follow the current local C++ TrackEntry concepts rather than stale compatibility APIs.
 - Official reference checkout: `repo-ref/spine-runtimes/spine-libgdx/spine-libgdx/src/com/esotericsoftware/spine/AnimationState.java` and `repo-ref/spine-runtimes/spine-libgdx/spine-libgdx/src/com/esotericsoftware/spine/Skeleton.java` show the upstream concepts this plan wraps in Rust/Bevy form.

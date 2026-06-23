@@ -3,9 +3,12 @@ title: "feat: Add TrackEntry additive playback"
 type: "feat"
 date: "2026-06-18"
 execution: "code"
+status: "superseded"
 ---
 
 # feat: Add TrackEntry additive playback
+
+> Superseded on 2026-06-23 by the local `repo-ref/spine-runtimes` C++ reference. Latest C++ exposes `TrackEntry::getMixBlend/setMixBlend(MixBlend)` rather than a public additive flag; commit `1a432d3` restored the public Rust API to `mix_blend` and removed `set_additive`/`with_additive`.
 
 ## Summary
 

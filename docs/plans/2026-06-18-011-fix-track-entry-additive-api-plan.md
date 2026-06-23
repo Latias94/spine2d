@@ -3,9 +3,12 @@ title: "fix: Align TrackEntry additive API"
 type: "fix"
 date: "2026-06-18"
 execution: "code"
+status: "superseded"
 ---
 
 # fix: Align TrackEntry additive API
+
+> Superseded on 2026-06-23 by latest local `repo-ref/spine-runtimes` C++ evidence. The active C++ reference exposes `TrackEntry::getMixBlend/setMixBlend(MixBlend)` and defaults `_mixBlend` to `MixBlend_Replace`; commit `1a432d3` restored the public Rust API to `mix_blend` and removed the Rust-only additive public surface.
 
 ## Summary
 
