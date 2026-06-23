@@ -4,6 +4,7 @@ use super::animation::{
 use crate::{
     Animation, Error, Event, MixBlend, MixDirection, Skeleton, SkeletonData, TimelineKind,
 };
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{
@@ -13,6 +14,8 @@ use std::sync::{
 
 const TIME_EPSILON: f32 = 1e-6;
 const EMPTY_ANIMATION_INDEX: usize = usize::MAX;
+const UNKNOWN_ANIMATION_INDEX: usize = usize::MAX - 1;
+const EMPTY_ANIMATION_ID: u64 = u64::MAX;
 const EMPTY_ANIMATION_NAME: &str = "<empty>";
 static NEXT_STATE_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -41,6 +44,10 @@ fn empty_animation() -> Animation {
         draw_order_folder_timelines: Vec::new(),
         timeline_order: Vec::new(),
     }
+}
+
+fn animation_identity(animation: &Animation) -> u64 {
+    animation as *const Animation as usize as u64
 }
 
 // Matches `spine::Property` in upstream `spine-cpp` (bit flags).
@@ -418,7 +425,7 @@ struct EntrySlot {
 pub struct AnimationStateData {
     skeleton_data: Arc<SkeletonData>,
     default_mix: f32,
-    mixes: HashMap<(usize, usize), f32>,
+    mixes: HashMap<(String, String), f32>,
 }
 
 impl AnimationStateData {
@@ -443,9 +450,18 @@ impl AnimationStateData {
     }
 
     pub fn set_mix(&mut self, from: &str, to: &str, duration: f32) -> Result<(), Error> {
-        let from_index = self.animation_index_by_name(from)?;
-        let to_index = self.animation_index_by_name(to)?;
-        self.mixes.insert((from_index, to_index), duration);
+        self.skeleton_data
+            .animation(from)
+            .ok_or_else(|| Error::UnknownAnimation {
+                name: from.to_string(),
+            })?;
+        self.skeleton_data
+            .animation(to)
+            .ok_or_else(|| Error::UnknownAnimation {
+                name: to.to_string(),
+            })?;
+        self.mixes
+            .insert((from.to_string(), to.to_string()), duration);
         Ok(())
     }
 
@@ -455,16 +471,13 @@ impl AnimationStateData {
         to: &Animation,
         duration: f32,
     ) -> Result<(), Error> {
-        let from_index = self.animation_index_by_name(&from.name)?;
-        let to_index = self.animation_index_by_name(&to.name)?;
-        self.mixes.insert((from_index, to_index), duration);
+        self.mixes
+            .insert((from.name.clone(), to.name.clone()), duration);
         Ok(())
     }
 
     pub fn get_mix_animation(&self, from: &Animation, to: &Animation) -> Result<f32, Error> {
-        let from_index = self.animation_index_by_name(&from.name)?;
-        let to_index = self.animation_index_by_name(&to.name)?;
-        Ok(self.mix_duration(from_index, to_index))
+        Ok(self.mix_duration(&from.name, &to.name))
     }
 
     pub fn clear(&mut self) {
@@ -472,18 +485,9 @@ impl AnimationStateData {
         self.mixes.clear();
     }
 
-    fn animation_index_by_name(&self, name: &str) -> Result<usize, Error> {
-        self.skeleton_data
-            .animation(name)
-            .map(|(index, _)| index)
-            .ok_or_else(|| Error::UnknownAnimation {
-                name: name.to_string(),
-            })
-    }
-
-    fn mix_duration(&self, from_index: usize, to_index: usize) -> f32 {
+    fn mix_duration(&self, from: &str, to: &str) -> f32 {
         self.mixes
-            .get(&(from_index, to_index))
+            .get(&(from.to_string(), to.to_string()))
             .copied()
             .unwrap_or(self.default_mix)
     }
@@ -492,6 +496,7 @@ impl AnimationStateData {
 pub struct TrackEntry {
     track_index: usize,
     animation_index: usize,
+    animation_identity: u64,
     animation: Animation,
     looped: bool,
     hold_previous: bool,
@@ -537,6 +542,7 @@ impl std::fmt::Debug for TrackEntry {
         f.debug_struct("TrackEntry")
             .field("track_index", &self.track_index)
             .field("animation_index", &self.animation_index)
+            .field("animation_identity", &self.animation_identity)
             .field("animation", &self.animation)
             .field("looped", &self.looped)
             .field("hold_previous", &self.hold_previous)
@@ -565,6 +571,7 @@ impl TrackEntry {
     fn new(
         track_index: usize,
         animation_index: usize,
+        animation_identity: u64,
         animation: &Animation,
         looped: bool,
     ) -> Self {
@@ -572,6 +579,7 @@ impl TrackEntry {
         Self {
             track_index,
             animation_index,
+            animation_identity,
             animation: animation.clone(),
             looped,
             hold_previous: false,
@@ -629,7 +637,7 @@ impl TrackEntry {
     }
 
     pub fn is_empty_animation(&self) -> bool {
-        self.animation_index == EMPTY_ANIMATION_INDEX
+        self.animation_identity == EMPTY_ANIMATION_ID
     }
 
     pub fn hold_previous(&self) -> bool {
@@ -840,26 +848,18 @@ impl TrackEntryHandle {
         });
     }
 
-    pub fn set_animation(
-        &self,
-        state: &mut AnimationState,
-        animation: &Animation,
-    ) -> Result<(), Error> {
-        let (animation_index, canonical_animation) = {
-            let skeleton_data = state.data.skeleton_data();
-            let (animation_index, canonical_animation) =
-                skeleton_data.animation(&animation.name).ok_or_else(|| {
-                    Error::UnknownAnimation {
-                        name: animation.name.clone(),
-                    }
-                })?;
-            (animation_index, canonical_animation.clone())
-        };
+    pub fn set_animation(&self, state: &mut AnimationState, animation: &Animation) {
+        let animation_index = state
+            .data
+            .skeleton_data()
+            .animation(&animation.name)
+            .map(|(animation_index, _)| animation_index)
+            .unwrap_or(UNKNOWN_ANIMATION_INDEX);
         self.with_entry_mut(state, |entry| {
+            entry.animation_identity = animation_identity(animation);
             entry.animation_index = animation_index;
-            entry.animation = canonical_animation;
+            entry.animation = animation.clone();
         });
-        Ok(())
     }
 
     pub fn set_delay(&self, state: &mut AnimationState, delay: f32) {
@@ -1025,6 +1025,36 @@ pub struct TrackEntrySettings {
     pub animation_start: Option<f32>,
     pub animation_end: Option<f32>,
     pub animation_last: Option<f32>,
+}
+
+#[derive(Clone, Debug)]
+pub enum TrackAnimationInput<'a> {
+    Name(Cow<'a, str>),
+    Animation(&'a Animation),
+}
+
+impl<'a> From<&'a str> for TrackAnimationInput<'a> {
+    fn from(value: &'a str) -> Self {
+        Self::Name(Cow::Borrowed(value))
+    }
+}
+
+impl<'a> From<&'a String> for TrackAnimationInput<'a> {
+    fn from(value: &'a String) -> Self {
+        Self::Name(Cow::Borrowed(value.as_str()))
+    }
+}
+
+impl<'a> From<String> for TrackAnimationInput<'a> {
+    fn from(value: String) -> Self {
+        Self::Name(Cow::Owned(value))
+    }
+}
+
+impl<'a> From<&'a Animation> for TrackAnimationInput<'a> {
+    fn from(value: &'a Animation) -> Self {
+        Self::Animation(value)
+    }
 }
 
 impl TrackEntrySettings {
@@ -1536,20 +1566,59 @@ impl AnimationState {
         Some(self.handle(id))
     }
 
-    pub fn set_animation(
+    fn resolve_track_animation<'a>(
+        &'a self,
+        input: TrackAnimationInput<'a>,
+    ) -> Result<(u64, usize, Animation), Error> {
+        match input {
+            TrackAnimationInput::Name(name) => {
+                let (animation_index, animation) = self
+                    .data
+                    .skeleton_data()
+                    .animation(name.as_ref())
+                    .ok_or_else(|| Error::UnknownAnimation {
+                        name: name.into_owned(),
+                    })?;
+                Ok((
+                    animation_identity(animation),
+                    animation_index,
+                    animation.clone(),
+                ))
+            }
+            TrackAnimationInput::Animation(animation) => {
+                let animation_index = self
+                    .data
+                    .skeleton_data()
+                    .animation(&animation.name)
+                    .map(|(animation_index, _)| animation_index)
+                    .unwrap_or(UNKNOWN_ANIMATION_INDEX);
+                Ok((
+                    animation_identity(animation),
+                    animation_index,
+                    animation.clone(),
+                ))
+            }
+        }
+    }
+
+    pub fn set_animation<'a, A>(
         &mut self,
         track_index: usize,
-        animation_name: &str,
+        animation: A,
         looped: bool,
-    ) -> Result<TrackEntryHandle, Error> {
-        let skeleton_data = self.data.skeleton_data.clone();
-        let (animation_index, animation) =
-            skeleton_data
-                .animation(animation_name)
-                .ok_or_else(|| Error::UnknownAnimation {
-                    name: animation_name.to_string(),
-                })?;
-        Ok(self.set_animation_internal(track_index, animation_index, animation.clone(), looped))
+    ) -> Result<TrackEntryHandle, Error>
+    where
+        A: Into<TrackAnimationInput<'a>>,
+    {
+        let (animation_id, animation_index, animation) =
+            self.resolve_track_animation(animation.into())?;
+        Ok(self.set_animation_internal(
+            track_index,
+            animation_index,
+            animation_id,
+            animation,
+            looped,
+        ))
     }
 
     pub fn set_empty_animation(
@@ -1560,6 +1629,7 @@ impl AnimationState {
         let entry = self.set_animation_internal(
             track_index,
             EMPTY_ANIMATION_INDEX,
+            EMPTY_ANIMATION_ID,
             empty_animation(),
             false,
         );
@@ -1592,6 +1662,7 @@ impl AnimationState {
         &mut self,
         track_index: usize,
         animation_index: usize,
+        entry_animation_id: u64,
         animation: Animation,
         looped: bool,
     ) -> TrackEntryHandle {
@@ -1618,6 +1689,7 @@ impl AnimationState {
         let entry_id = self.alloc_entry(TrackEntry::new(
             track_index,
             animation_index,
+            entry_animation_id,
             &animation,
             looped,
         ));
@@ -1631,7 +1703,7 @@ impl AnimationState {
                 .is_some_and(|entry| entry.next_track_last_time < 0.0);
             let old_is_same_animation = self
                 .entry(old)
-                .is_some_and(|entry| entry.animation_index == animation_index);
+                .is_some_and(|entry| entry.animation_identity == entry_animation_id);
 
             // Match spine-cpp:
             // - Only skip mixing from an unapplied entry when setting the same animation again.
@@ -1644,11 +1716,13 @@ impl AnimationState {
         }
 
         if let Some(previous) = previous_for_mix {
-            let previous_index = self
+            let previous_name = self
                 .entry(previous)
-                .map(|entry| entry.animation_index)
-                .unwrap_or(EMPTY_ANIMATION_INDEX);
-            let mix_duration = self.data.mix_duration(previous_index, animation_index);
+                .map(|entry| entry.animation.name.as_str())
+                .unwrap_or(EMPTY_ANIMATION_NAME);
+            let mix_duration = self
+                .data
+                .mix_duration(previous_name, animation.name.as_str());
 
             if let Some(entry_ref) = self.entry_mut(entry_id) {
                 entry_ref.mix_duration = mix_duration;
@@ -1685,21 +1759,18 @@ impl AnimationState {
         self.handle(entry_id)
     }
 
-    pub fn add_animation(
+    pub fn add_animation<'a, A>(
         &mut self,
         track_index: usize,
-        animation_name: &str,
+        animation: A,
         looped: bool,
         delay: f32,
-    ) -> Result<TrackEntryHandle, Error> {
-        let skeleton_data = self.data.skeleton_data.clone();
-        let (animation_index, animation) =
-            skeleton_data
-                .animation(animation_name)
-                .ok_or_else(|| Error::UnknownAnimation {
-                    name: animation_name.to_string(),
-                })?;
-        let animation = animation.clone();
+    ) -> Result<TrackEntryHandle, Error>
+    where
+        A: Into<TrackAnimationInput<'a>>,
+    {
+        let (animation_id, animation_index, animation) =
+            self.resolve_track_animation(animation.into())?;
         self.ensure_track(track_index);
         let last = {
             let track = &self.tracks[track_index];
@@ -1709,6 +1780,7 @@ impl AnimationState {
         let entry_id = self.alloc_entry(TrackEntry::new(
             track_index,
             animation_index,
+            animation_id,
             &animation,
             looped,
         ));
@@ -1719,8 +1791,10 @@ impl AnimationState {
                 .map(|last_ref| {
                     (
                         last_ref.track_complete(),
-                        self.data
-                            .mix_duration(last_ref.animation_index, animation_index),
+                        self.data.mix_duration(
+                            last_ref.animation.name.as_str(),
+                            animation.name.as_str(),
+                        ),
                     )
                 })
                 .unwrap_or((0.0, 0.0));
@@ -1772,6 +1846,7 @@ impl AnimationState {
         let entry_id = self.alloc_entry(TrackEntry::new(
             track_index,
             EMPTY_ANIMATION_INDEX,
+            EMPTY_ANIMATION_ID,
             &animation,
             false,
         ));
@@ -1783,7 +1858,7 @@ impl AnimationState {
                     (
                         last_ref.track_complete(),
                         self.data
-                            .mix_duration(last_ref.animation_index, EMPTY_ANIMATION_INDEX),
+                            .mix_duration(last_ref.animation.name.as_str(), EMPTY_ANIMATION_NAME),
                     )
                 })
                 .unwrap_or((0.0, 0.0));

@@ -474,13 +474,6 @@ fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
     entry.set_animation_end(&mut state, 0.5);
     entry.set_track_time(&mut state, 0.25);
     entry.set_delay(&mut state, 0.375);
-    let canonical_duration = state
-        .data()
-        .skeleton_data()
-        .animation("events1")
-        .unwrap()
-        .1
-        .duration;
     let replacement = state
         .data()
         .skeleton_data()
@@ -491,11 +484,11 @@ fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
     let mut replacement = replacement;
     replacement.duration += 10.0;
 
-    entry.set_animation(&mut state, &replacement).unwrap();
+    entry.set_animation(&mut state, &replacement);
 
     with_track_entry(&state, 0, |entry| {
         assert_eq!(entry.animation().name, "events1");
-        assert_eq!(entry.animation().duration, canonical_duration);
+        assert_eq!(entry.animation().duration, replacement.duration);
         assert_eq!(round3(entry.animation_start()), 0.125);
         assert_eq!(round3(entry.animation_end()), 0.5);
         assert_eq!(round3(entry.track_time()), 0.25);
@@ -505,7 +498,7 @@ fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
 }
 
 #[test]
-fn track_entry_set_animation_rejects_unknown_animation() {
+fn track_entry_set_animation_preserves_animation_references() {
     let (mut state, _skeleton, _recording) = setup();
 
     let entry = state.set_animation(0, "events0", false).unwrap();
@@ -517,14 +510,56 @@ fn track_entry_set_animation_rejects_unknown_animation() {
         .1
         .clone();
     unknown.name = "missing".into();
+    unknown.duration += 10.0;
 
-    assert!(matches!(
-        entry.set_animation(&mut state, &unknown),
-        Err(crate::Error::UnknownAnimation { name }) if name == "missing"
-    ));
+    entry.set_animation(&mut state, &unknown);
     let animation_name =
         with_track_entry(&state, 0, |entry| entry.animation().name.clone()).expect("current entry");
-    assert_eq!(animation_name, "events0");
+    assert_eq!(animation_name, "missing");
+    let animation_duration =
+        with_track_entry(&state, 0, |entry| entry.animation().duration).expect("current entry");
+    assert_eq!(animation_duration, unknown.duration);
+}
+
+#[test]
+fn animation_state_set_and_add_preserve_animation_references() {
+    let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
+    let mut state_data = AnimationStateData::new(data.clone());
+    state_data.set_default_mix(0.2);
+    let mut state = AnimationState::new(state_data);
+
+    let mut alpha = data.animation("events0").unwrap().1.clone();
+    alpha.duration += 5.0;
+    let mut beta = data.animation("events1").unwrap().1.clone();
+    beta.duration += 7.0;
+
+    let current = state.set_animation(0, &alpha, false).unwrap();
+    assert_eq!(
+        current
+            .with_entry(&state, |entry| entry.animation().name.clone())
+            .unwrap(),
+        "events0"
+    );
+    assert_eq!(
+        current
+            .with_entry(&state, |entry| entry.animation().duration)
+            .unwrap(),
+        alpha.duration
+    );
+
+    let queued = state.add_animation(0, &beta, true, 0.0).unwrap();
+    assert_eq!(
+        queued
+            .with_entry(&state, |entry| entry.animation().name.clone())
+            .unwrap(),
+        "events1"
+    );
+    assert_eq!(
+        queued
+            .with_entry(&state, |entry| entry.animation().duration)
+            .unwrap(),
+        beta.duration
+    );
 }
 
 #[test]
