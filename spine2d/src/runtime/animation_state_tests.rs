@@ -283,7 +283,7 @@ fn add_empty_animation_delay_is_adjusted_to_end_with_previous_entry() {
     });
 
     state.set_animation(0, "a", false).unwrap();
-    state.add_empty_animation(0, 0.5, 0.0).unwrap();
+    state.add_empty_animation(0, 0.5, 0.0);
     let delay = state
         .queue_front_delay_for_tests(0)
         .expect("queued empty entry");
@@ -291,6 +291,26 @@ fn add_empty_animation_delay_is_adjusted_to_end_with_previous_entry() {
 
     // Smoke-run the state to ensure the queue can actually be consumed without panics.
     run(&mut state, &mut skeleton, &recording, 0.1, 1.2);
+}
+
+#[test]
+fn add_empty_animation_stores_non_finite_delay_directly() {
+    let data = crate::SkeletonData::from_json_str(EMPTY_DELAY_JSON).unwrap();
+    let state_data = AnimationStateData::new(data);
+    let mut state = AnimationState::new(state_data);
+
+    state.add_empty_animation(0, 0.5, f32::INFINITY);
+
+    let delay = state
+        .with_track_entry(0, |entry| entry.delay())
+        .expect("current empty entry");
+    assert!(delay.is_infinite());
+    assert_eq!(
+        state
+            .with_track_entry(0, |entry| entry.mix_duration())
+            .expect("current empty entry"),
+        0.5
+    );
 }
 
 #[test]

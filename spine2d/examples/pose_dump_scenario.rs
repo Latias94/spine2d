@@ -525,11 +525,7 @@ fn main() {
                 let track: usize = args[i + 1].parse().unwrap();
                 let mix_duration: f32 = args[i + 2].parse().unwrap();
                 let delay: f32 = args[i + 3].parse().unwrap();
-                last_entry = Some(
-                    state
-                        .add_empty_animation(track, mix_duration, delay)
-                        .expect("add empty animation"),
-                );
+                last_entry = Some(state.add_empty_animation(track, mix_duration, delay));
                 i += 4;
             }
             "--entry-alpha" if i + 1 < args.len() => {

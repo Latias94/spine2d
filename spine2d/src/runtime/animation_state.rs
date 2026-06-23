@@ -1640,13 +1640,7 @@ impl AnimationState {
         track_index: usize,
         mix_duration: f32,
         delay: f32,
-    ) -> Result<TrackEntryHandle, Error> {
-        if !delay.is_finite() {
-            return Err(Error::InvalidValue {
-                message: "delay must be finite".to_string(),
-            });
-        }
-
+    ) -> TrackEntryHandle {
         self.ensure_track(track_index);
         let last = {
             let track = &self.tracks[track_index];
@@ -1703,7 +1697,7 @@ impl AnimationState {
         } else {
             self.tracks[track_index].queue.push_back(entry_id);
         }
-        Ok(TrackEntryHandle { id: entry_id })
+        TrackEntryHandle { id: entry_id }
     }
 
     pub fn update(&mut self, delta: f32) {

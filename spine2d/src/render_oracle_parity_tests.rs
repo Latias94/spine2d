@@ -1124,11 +1124,7 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
                 mix_duration,
                 delay,
             } => {
-                last_entry = Some(
-                    state
-                        .add_empty_animation(track, mix_duration, delay)
-                        .unwrap_or_else(|e| panic!("add empty {track}: {e}")),
-                );
+                last_entry = Some(state.add_empty_animation(track, mix_duration, delay));
             }
             RenderScenarioCommand::SetSkin(name) => {
                 skeleton.set_skin(name);

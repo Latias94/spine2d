@@ -390,20 +390,11 @@ pub fn apply_spine_animation_commands(
                 delay,
                 settings,
             } => {
-                let handle = match instance.animation_state.add_empty_animation(
+                let handle = instance.animation_state.add_empty_animation(
                     *track_index,
                     *mix_duration,
                     *delay,
-                ) {
-                    Ok(handle) => handle,
-                    Err(err) => {
-                        warn!(
-                            "Failed to queue empty Spine animation for {:?}: {err}",
-                            message.entity
-                        );
-                        continue;
-                    }
-                };
+                );
                 settings.apply(&mut instance.animation_state, handle);
             }
             SpineAnimationCommandKind::SetEmptyAnimations { mix_duration } => {
