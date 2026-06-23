@@ -1603,7 +1603,6 @@ mod tests {
                         .with_reverse(true)
                         .with_shortest_rotation(true)
                         .with_mix_duration(0.25)
-                        .with_mix_interpolation(spine2d::MixInterpolation::Smooth)
                         .with_event_threshold(0.75),
                 ),
             );
@@ -1616,7 +1615,6 @@ mod tests {
             assert!(entry.reverse());
             assert!(entry.shortest_rotation());
             assert_eq!(entry.mix_duration(), 0.25);
-            assert_eq!(entry.mix_interpolation(), spine2d::MixInterpolation::Smooth);
             assert_eq!(entry.event_threshold(), 0.75);
         });
     }

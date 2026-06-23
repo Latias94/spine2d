@@ -1,7 +1,7 @@
 use crate::Skeleton;
 use crate::runtime::{
     AnimationState, AnimationStateData, AnimationStateEvent, AnimationStateListener,
-    MixInterpolation, TrackEntryListener, TrackEntrySnapshot,
+    TrackEntryListener, TrackEntrySnapshot,
 };
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -1345,35 +1345,6 @@ fn event_threshold_some_animation0_events_fire_during_mix() {
     ];
 
     assert_eq!(*recording.rows.borrow(), expected);
-}
-
-#[test]
-fn event_threshold_uses_mix_interpolation() {
-    let (mut state, mut skeleton, recording) = setup();
-    state.set_listener(RecordingListener {
-        recording: recording.clone(),
-    });
-
-    let from = state.set_animation(0, "events0", false).unwrap();
-    from.set_event_threshold(&mut state, 0.3);
-    state.apply(&mut skeleton);
-    recording.rows.borrow_mut().clear();
-
-    let entry = state.set_animation(0, "events1", false).unwrap();
-    entry.set_mix_duration(&mut state, 1.0);
-    entry.set_mix_interpolation(&mut state, MixInterpolation::SlowFast);
-    recording.rows.borrow_mut().clear();
-
-    recording.time.set(0.5);
-    state.update(0.5);
-    state.apply(&mut skeleton);
-
-    let rows = recording.rows.borrow();
-    assert!(
-        rows.iter()
-            .any(|row| row.animation_index == 0 && row.name == "event 14"),
-        "expected mixing-from event 14 to pass SlowFast threshold, got {rows:?}"
-    );
 }
 
 #[test]

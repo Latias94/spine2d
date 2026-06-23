@@ -75,52 +75,6 @@ const PROPERTY_SLIDER_TIME: u64 = 1 << 29;
 const PROPERTY_SLIDER_MIX: u64 = 1 << 30;
 const PROPERTY_DRAW_ORDER_FOLDER: u64 = 1 << 31;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum MixInterpolation {
-    #[default]
-    Linear,
-    Smooth,
-    SlowFast,
-    FastSlow,
-    Circle,
-}
-
-impl MixInterpolation {
-    fn apply(self, alpha: f32) -> f32 {
-        match self {
-            Self::Linear => alpha,
-            Self::Smooth => alpha * alpha * (3.0 - 2.0 * alpha),
-            Self::SlowFast => alpha * alpha,
-            Self::FastSlow => 1.0 - (1.0 - alpha) * (1.0 - alpha),
-            Self::Circle => {
-                if alpha <= 0.5 {
-                    let alpha = alpha * 2.0;
-                    (1.0 - (1.0 - alpha * alpha).sqrt()) / 2.0
-                } else {
-                    let alpha = (alpha - 1.0) * 2.0;
-                    ((1.0 - alpha * alpha).sqrt() + 1.0) / 2.0
-                }
-            }
-        }
-    }
-
-    fn mix(self, mix_time: f32, mix_duration: f32) -> f32 {
-        if mix_duration == 0.0 {
-            return 1.0;
-        }
-
-        let mix = mix_time / mix_duration;
-        if mix >= 1.0 {
-            return 1.0;
-        }
-        if self == Self::Linear {
-            return mix;
-        }
-
-        self.apply(mix).clamp(0.0, 1.0)
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TimelineMode {
     Current,
@@ -554,7 +508,6 @@ pub struct TrackEntry {
 
     alpha: f32,
     total_alpha: f32,
-    mix_interpolation: MixInterpolation,
     mixing_to: Option<EntryId>,
     alpha_attachment_threshold: f32,
     mix_attachment_threshold: f32,
@@ -582,7 +535,6 @@ impl std::fmt::Debug for TrackEntry {
             .field("animation_end", &self.animation_end)
             .field("mix_duration", &self.mix_duration)
             .field("mix_time", &self.mix_time)
-            .field("mix_interpolation", &self.mix_interpolation)
             .field("mixing_from", &self.mixing_from)
             .field("delay", &self.delay)
             .field("track_time", &self.track_time)
@@ -627,7 +579,6 @@ impl TrackEntry {
             next_track_last_time: -1.0,
             alpha: 1.0,
             total_alpha: 0.0,
-            mix_interpolation: MixInterpolation::Linear,
             mixing_to: None,
             alpha_attachment_threshold: 0.0,
             mix_attachment_threshold: 0.0,
@@ -704,10 +655,6 @@ impl TrackEntry {
         self.mix_time
     }
 
-    pub fn mix_interpolation(&self) -> MixInterpolation {
-        self.mix_interpolation
-    }
-
     pub fn alpha(&self) -> f32 {
         self.alpha
     }
@@ -776,7 +723,12 @@ impl TrackEntry {
     }
 
     fn mix_percent(&self) -> f32 {
-        self.mix_interpolation.mix(self.mix_time, self.mix_duration)
+        if self.mix_duration == 0.0 {
+            return 1.0;
+        }
+
+        let mix = self.mix_time / self.mix_duration;
+        if mix > 1.0 { 1.0 } else { mix }
     }
 }
 
@@ -850,16 +802,6 @@ impl TrackEntryHandle {
         self.with_entry_mut(state, |entry| {
             entry.mix_duration = mix_duration;
             entry.delay = resolved_delay;
-        });
-    }
-
-    pub fn set_mix_interpolation(
-        &self,
-        state: &mut AnimationState,
-        mix_interpolation: MixInterpolation,
-    ) {
-        self.with_entry_mut(state, |entry| {
-            entry.mix_interpolation = mix_interpolation;
         });
     }
 
@@ -943,7 +885,6 @@ pub struct TrackEntrySettings {
     pub delay: Option<f32>,
     pub time_scale: Option<f32>,
     pub mix_duration: Option<f32>,
-    pub mix_interpolation: Option<MixInterpolation>,
     pub additive: Option<bool>,
     pub alpha: Option<f32>,
     pub reverse: Option<bool>,
@@ -980,11 +921,6 @@ impl TrackEntrySettings {
 
     pub fn with_mix_duration(mut self, mix_duration: f32) -> Self {
         self.mix_duration = Some(mix_duration);
-        self
-    }
-
-    pub fn with_mix_interpolation(mut self, mix_interpolation: MixInterpolation) -> Self {
-        self.mix_interpolation = Some(mix_interpolation);
         self
     }
 
@@ -1068,9 +1004,6 @@ impl TrackEntrySettings {
 
         if let Some(time_scale) = self.time_scale {
             handle.set_time_scale(state, time_scale);
-        }
-        if let Some(mix_interpolation) = self.mix_interpolation {
-            handle.set_mix_interpolation(state, mix_interpolation);
         }
         if let Some(additive) = self.additive {
             handle.set_additive(state, additive);
