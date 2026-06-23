@@ -13,6 +13,9 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Last verified:
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `591 passed, 10 skipped` on 2026-06-23 after the `AnimationState::current` / `data` accessor slice.
+  - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after the `AnimationState::current` / `data` accessor slice.
+  - `cargo check -p spine2d-bevy`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23 after the `AnimationState::current` / `data` accessor slice.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `589 passed, 10 skipped` on 2026-06-23 after the `AnimationState::apply` return-status slice.
   - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after the `AnimationState::apply` return-status slice.
   - `cargo check -p spine2d-bevy`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23 after the `AnimationState::apply` return-status slice.
@@ -97,6 +100,7 @@ status: "active"
   - Added official-style TrackEntry queue-neighbor helpers in commit `8c074f6`; `TrackEntryHandle::previous`, `TrackEntryHandle::next`, and `TrackEntryHandle::is_next_ready` mirror C++ `getPrevious`, `getNext`, and `isNextReady` using safe Rust handles.
   - Aligned TrackEntry link storage and time setters in commit `cfd01fe`; Rust now stores C++-style previous/next links explicitly, exposes `mixing_from`, `mixing_to`, `set_track_time`, and `set_mix_time`, and preserves queued-to-current link semantics after activation.
   - Aligned `AnimationState::apply` return status in commit `d39573a`; the method now returns `bool` like C++ `apply(Skeleton&)`, reporting true only when a non-delayed current track is applied.
+  - Added official-style current/data accessors in commit `8a46380`; `AnimationState::current(track_index)` returns the current safe entry handle like C++ `getCurrent`, and `AnimationState::data()` pairs with `data_mut()` like C++ `getData`.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
