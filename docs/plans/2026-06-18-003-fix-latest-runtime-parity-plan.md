@@ -154,7 +154,7 @@ flowchart TB
 
 ## Scope Boundaries
 
-- This plan does not implement upstream `TrackEntry::additive`, `keepHold`, or `mixInterpolation`; that is tracked separately in `docs/plans/2026-06-18-001-feat-track-entry-mix-interpolation-plan.md`.
+- This plan does not implement stale development-branch `TrackEntry::additive`, `keepHold`, or `mixInterpolation` assumptions. Current TrackEntry parity is tracked in `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md` and follows the local C++ `mixBlend` / `holdPrevious` surface instead.
 - This plan does not re-record oracle pose/render goldens.
 - This plan does not introduce the larger `TimelineSemantics` or `SkeletonDataBuilder` Module refactors, though the changed code should not block those follow-ups.
 

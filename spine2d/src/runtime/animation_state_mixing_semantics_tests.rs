@@ -321,7 +321,7 @@ fn track_entry_mix_blend_variants_match_cpp_current_entry_pose() {
 }
 
 #[test]
-fn track_entry_additive_adds_current_pose_without_entry_mix_blend() {
+fn track_entry_mix_blend_add_adds_current_pose() {
     let (mut state, mut skeleton) = setup_two_track_translate_state(1.0, MixBlend::Add);
 
     skeleton.setup_pose();

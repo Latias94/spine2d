@@ -214,13 +214,13 @@ flowchart LR
 
 **Files:** `spine2d-bevy/src/components.rs`, `spine2d-bevy/src/systems.rs`, `spine2d-bevy/src/spine_world.rs`, `spine2d-bevy/examples/basic.rs`, `spine2d-bevy/examples/multi_spine.rs`, `README.md`.
 
-**Approach:** Replace narrow command constructors with a command model that can carry optional `SpineTrackEntrySettings`. Apply settings immediately to the `TrackEntryHandle` returned by core `set`, `add`, `set_empty`, and `add_empty`. Include alpha, additive, reverse, shortest rotation, mix duration, mix interpolation, track end, delay, animation start/end/last, and threshold controls.
+**Approach:** Replace narrow command constructors with a command model that can carry optional `SpineTrackEntrySettings`. Apply settings immediately to the `TrackEntryHandle` returned by core `set`, `add`, `set_empty`, and `add_empty`. Include alpha, mixBlend, holdPrevious, reverse, shortest rotation, mix duration, track end, delay, animation start/end/last, and threshold controls.
 
 **Patterns to follow:** Core `TrackEntryHandle` setter list and the existing Bevy command tests for set/add/clear behavior.
 
 **Test scenarios:**
 
-- Happy path: a set-animation command with alpha and additive produces a current entry whose fields match the settings.
+- Happy path: a set-animation command with alpha, mixBlend, and holdPrevious produces a current entry whose fields match the settings.
 - Happy path: an add-animation command with delay and mix duration applies both to the queued entry.
 - Happy path: empty-animation commands accept track-entry settings where they make sense and preserve empty-animation track end semantics.
 - Edge case: reset rotation directions can be requested on the returned entry without needing persistent handles.
@@ -379,5 +379,5 @@ flowchart LR
 - Local backend: `spine2d-bevy/src/components.rs`, `spine2d-bevy/src/systems.rs`, and `spine2d-bevy/src/spine_world.rs` show the current public Bevy API, private runtime storage, command handling, update order, and tests.
 - Project decisions: `docs/decisions.md` records the pure Rust runtime goal, renderer-agnostic core boundary, and generational `TrackEntryHandle` ownership model.
 - Parity baseline: `docs/parity-4.3-beta.md`, `docs/upstream-audit-4.3.2.md`, and `docs/knowledge/engineering/current-state.md` pin the active official 4.3 reference to `spine-flutter-4.3.4` at `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`.
-- Prior TrackEntry cleanup: `docs/plans/2026-06-18-001-feat-track-entry-mix-interpolation-plan.md` and `docs/knowledge/engineering/current-state.md` document why the public surface should follow the current local C++ TrackEntry concepts rather than stale compatibility APIs.
+- Prior TrackEntry cleanup: `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md` and `docs/knowledge/engineering/current-state.md` document why the public surface follows current local C++ `mixBlend` / `holdPrevious` TrackEntry concepts rather than stale development-branch compatibility APIs.
 - Official reference checkout: `repo-ref/spine-runtimes/spine-libgdx/spine-libgdx/src/com/esotericsoftware/spine/AnimationState.java` and `repo-ref/spine-runtimes/spine-libgdx/spine-libgdx/src/com/esotericsoftware/spine/Skeleton.java` show the upstream concepts this plan wraps in Rust/Bevy form.

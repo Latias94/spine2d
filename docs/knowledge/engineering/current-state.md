@@ -89,6 +89,7 @@ status: "active"
   - Aligned C++ oracle tooling in commit `9bb858f`; pose/render oracle runners and golden recorders now use `--entry-mix-blend <setup|first|replace|add>` / `spine_track_entry_set_mix_blend`, and the runners have an explicit mismatch override for intentionally using local `repo-ref/spine-runtimes` as the source checkout.
   - Resolved the transient additive API rollback in the working tree after user confirmation; the affected Rust/Bevy files were returned to the committed `mixBlend` state and `git status --short` is clean.
   - Restored official C++ TrackEntry hold-previous API in commit `e25ca6e`; `TrackEntry::hold_previous`, `TrackEntryHandle::set_hold_previous`, `TrackEntrySettings::with_hold_previous`, Bevy `SpineTrackState::hold_previous`, and `pose_dump_scenario --entry-hold-previous` now mirror C++ `TrackEntry::getHoldPrevious/setHoldPrevious`.
+  - Pruned obsolete TrackEntry parity plans that encoded stale development-branch `additive` / `mixInterpolation` assumptions; remaining plan references point at the active C++ parity hardening plan and current `mixBlend` / `holdPrevious` surface.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
