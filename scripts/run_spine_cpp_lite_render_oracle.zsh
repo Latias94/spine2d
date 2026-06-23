@@ -80,9 +80,13 @@ fi
 
 UPSTREAM_HEAD="$(git -C "${RUNTIMES_DIR}" rev-parse HEAD 2>/dev/null || echo "unknown")"
 if [[ -n "${EXPECTED_UPSTREAM_HEAD}" && "${UPSTREAM_HEAD}" != "${EXPECTED_UPSTREAM_HEAD}" ]]; then
-  echo "spine-runtimes checkout mismatch: expected ${EXPECTED_UPSTREAM_HEAD}, got ${UPSTREAM_HEAD}" >&2
-  echo "Run scripts/fetch_spine_runtimes_examples.py for the active spine-upstream.toml baseline." >&2
-  exit 2
+  if [[ "${SPINE2D_ORACLE_ALLOW_BASELINE_MISMATCH:-0}" != "1" ]]; then
+    echo "spine-runtimes checkout mismatch: expected ${EXPECTED_UPSTREAM_HEAD}, got ${UPSTREAM_HEAD}" >&2
+    echo "Run scripts/fetch_spine_runtimes_examples.py for the active spine-upstream.toml baseline." >&2
+    echo "Set SPINE2D_ORACLE_ALLOW_BASELINE_MISMATCH=1 only when intentionally using a local C++ checkout as the source reference." >&2
+    exit 2
+  fi
+  echo "warning: using spine-runtimes checkout ${UPSTREAM_HEAD}; spine-upstream.toml pins ${EXPECTED_UPSTREAM_HEAD}" >&2
 fi
 BUILD_KEY="upstream=${UPSTREAM_HEAD};debug=${SPINE2D_ORACLE_DEBUG:-0};asan=${SPINE2D_ORACLE_ASAN:-0}"
 NEEDS_BUILD=0

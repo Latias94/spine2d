@@ -44,7 +44,7 @@ static void usage() {
          "  --entry-alpha-attachment-threshold <threshold>\n"
          "  --entry-mix-attachment-threshold <threshold>\n"
          "  --entry-mix-draw-order-threshold <threshold>\n"
-         "  --entry-additive <0|1>\n"
+         "  --entry-mix-blend <setup|first|replace|add>\n"
          "  --entry-reverse <0|1>\n"
          "  --entry-shortest-rotation <0|1>\n"
          "  --entry-reset-rotation-directions\n"
@@ -64,6 +64,26 @@ static std::string json_escape(const char *s) {
     else out += static_cast<char>(c);
   }
   return out;
+}
+
+static bool parse_mix_blend(const char *s, spine_mix_blend *out) {
+  if (std::strcmp(s, "setup") == 0) {
+    *out = SPINE_MIX_BLEND_SETUP;
+    return true;
+  }
+  if (std::strcmp(s, "first") == 0) {
+    *out = SPINE_MIX_BLEND_FIRST;
+    return true;
+  }
+  if (std::strcmp(s, "replace") == 0) {
+    *out = SPINE_MIX_BLEND_REPLACE;
+    return true;
+  }
+  if (std::strcmp(s, "add") == 0) {
+    *out = SPINE_MIX_BLEND_ADD;
+    return true;
+  }
+  return false;
 }
 
 static const char *blend_mode_name(spine_blend_mode mode) {
@@ -413,12 +433,17 @@ int main(int argc, char **argv) {
         continue;
       }
 
-      if (std::strcmp(arg, "--entry-additive") == 0 && i + 1 < argc) {
+      if (std::strcmp(arg, "--entry-mix-blend") == 0 && i + 1 < argc) {
         if (!last_entry) {
-          std::cerr << "--entry-additive requires a preceding --set/--add command\n";
+          std::cerr << "--entry-mix-blend requires a preceding --set/--add command\n";
           return 2;
         }
-        spine_track_entry_set_additive(last_entry, std::atoi(argv[i + 1]) != 0);
+        spine_mix_blend blend;
+        if (!parse_mix_blend(argv[i + 1], &blend)) {
+          std::cerr << "--entry-mix-blend must be setup|first|replace|add\n";
+          return 2;
+        }
+        spine_track_entry_set_mix_blend(last_entry, blend);
         i += 1;
         continue;
       }
