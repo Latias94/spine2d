@@ -466,6 +466,58 @@ fn track_entry_set_delay_ignores_negative_values() {
 }
 
 #[test]
+fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
+    let (mut state, _skeleton, _recording) = setup();
+
+    let entry = state.set_animation(0, "events0", false).unwrap();
+    entry.set_animation_start(&mut state, 0.125);
+    entry.set_animation_end(&mut state, 0.5);
+    entry.set_track_time(&mut state, 0.25);
+    entry.set_delay(&mut state, 0.375);
+    let replacement = state
+        .data()
+        .skeleton_data()
+        .animation("events1")
+        .unwrap()
+        .1
+        .clone();
+
+    entry.set_animation(&mut state, &replacement).unwrap();
+
+    with_track_entry(&state, 0, |entry| {
+        assert_eq!(entry.animation().name, "events1");
+        assert_eq!(round3(entry.animation_start()), 0.125);
+        assert_eq!(round3(entry.animation_end()), 0.5);
+        assert_eq!(round3(entry.track_time()), 0.25);
+        assert_eq!(round3(entry.delay()), 0.375);
+    })
+    .expect("current entry");
+}
+
+#[test]
+fn track_entry_set_animation_rejects_unknown_animation() {
+    let (mut state, _skeleton, _recording) = setup();
+
+    let entry = state.set_animation(0, "events0", false).unwrap();
+    let mut unknown = state
+        .data()
+        .skeleton_data()
+        .animation("events1")
+        .unwrap()
+        .1
+        .clone();
+    unknown.name = "missing".into();
+
+    assert!(matches!(
+        entry.set_animation(&mut state, &unknown),
+        Err(crate::Error::UnknownAnimation { name }) if name == "missing"
+    ));
+    let animation_name =
+        with_track_entry(&state, 0, |entry| entry.animation().name.clone()).expect("current entry");
+    assert_eq!(animation_name, "events0");
+}
+
+#[test]
 fn animation_state_apply_returns_whether_any_track_was_applied() {
     let (mut state, mut skeleton, _recording) = setup();
 

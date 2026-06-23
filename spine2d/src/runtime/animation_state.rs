@@ -840,6 +840,19 @@ impl TrackEntryHandle {
         });
     }
 
+    pub fn set_animation(
+        &self,
+        state: &mut AnimationState,
+        animation: &Animation,
+    ) -> Result<(), Error> {
+        let animation_index = state.data.animation_index_by_name(&animation.name)?;
+        self.with_entry_mut(state, |entry| {
+            entry.animation_index = animation_index;
+            entry.animation = animation.clone();
+        });
+        Ok(())
+    }
+
     pub fn set_delay(&self, state: &mut AnimationState, delay: f32) {
         if delay < 0.0 {
             return;
