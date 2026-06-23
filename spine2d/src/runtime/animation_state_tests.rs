@@ -170,6 +170,19 @@ fn animation_state_data_accessor_matches_mutable_data() {
 }
 
 #[test]
+fn animation_state_data_skeleton_data_accessor_exposes_bound_skeleton() {
+    let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
+    let data_ptr = Arc::as_ptr(&data);
+    let state_data = AnimationStateData::new(data);
+
+    assert_eq!(
+        state_data.skeleton_data() as *const crate::SkeletonData,
+        data_ptr
+    );
+    assert!(state_data.skeleton_data().animation("events0").is_some());
+}
+
+#[test]
 fn animation_state_data_rejects_unknown_animations() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);

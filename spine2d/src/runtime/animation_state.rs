@@ -412,7 +412,7 @@ struct EntrySlot {
 
 #[derive(Clone, Debug)]
 pub struct AnimationStateData {
-    pub skeleton_data: Arc<SkeletonData>,
+    skeleton_data: Arc<SkeletonData>,
     default_mix: f32,
     mixes: HashMap<(usize, usize), f32>,
 }
@@ -424,6 +424,10 @@ impl AnimationStateData {
             default_mix: 0.0,
             mixes: HashMap::new(),
         }
+    }
+
+    pub fn skeleton_data(&self) -> &SkeletonData {
+        self.skeleton_data.as_ref()
     }
 
     pub fn default_mix(&self) -> f32 {
