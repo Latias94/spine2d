@@ -1261,6 +1261,10 @@ impl AnimationState {
         &mut self.data
     }
 
+    pub fn data(&self) -> &AnimationStateData {
+        &self.data
+    }
+
     pub fn tracks_len(&self) -> usize {
         self.tracks.len()
     }
@@ -1450,6 +1454,12 @@ impl AnimationState {
         let id = *self.tracks.get(track_index)?.current.as_ref()?;
         let entry = self.entry(id)?;
         Some(f(entry))
+    }
+
+    pub fn current(&self, track_index: usize) -> Option<TrackEntryHandle> {
+        let id = self.tracks.get(track_index)?.current?;
+        self.entry(id)?;
+        Some(TrackEntryHandle { id })
     }
 
     pub fn with_queued_track_entry<F: FnOnce(&TrackEntry) -> R, R>(

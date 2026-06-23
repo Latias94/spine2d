@@ -160,6 +160,16 @@ fn animation_state_data_clear_resets_default_and_pair_mixes() {
 }
 
 #[test]
+fn animation_state_data_accessor_matches_mutable_data() {
+    let (mut state, _skeleton, _recording) = setup();
+
+    assert_eq!(state.data().default_mix(), 0.0);
+    state.data_mut().set_default_mix(0.3);
+
+    assert_eq!(state.data().default_mix(), 0.3);
+}
+
+#[test]
 fn animation_state_data_rejects_unknown_animations() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);
@@ -374,6 +384,22 @@ fn animation_state_apply_returns_whether_any_track_was_applied() {
 
     entry.set_delay(&mut state, 0.0);
     assert!(state.apply(&mut skeleton));
+}
+
+#[test]
+fn animation_state_current_returns_current_track_handle() {
+    let (mut state, _skeleton, _recording) = setup();
+
+    assert_eq!(state.current(0), None);
+
+    let first = state.set_animation(0, "events0", false).unwrap();
+    state.add_animation(0, "events1", false, 0.0).unwrap();
+
+    assert_eq!(state.current(0), Some(first));
+    assert_eq!(state.current(1), None);
+
+    state.clear_track(0);
+    assert_eq!(state.current(0), None);
 }
 
 #[test]
