@@ -145,6 +145,22 @@ fn animation_state_data_pair_mix_overrides_and_can_be_removed() {
 }
 
 #[test]
+fn animation_state_data_animation_mix_accessors_match_name_mix_storage() {
+    let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
+    let (_, from) = data.animation("events0").unwrap();
+    let (_, to) = data.animation("events1").unwrap();
+    let mut state_data = AnimationStateData::new(data.clone());
+
+    state_data.set_default_mix(0.25);
+    assert_eq!(state_data.get_mix_animation(from, to).unwrap(), 0.25);
+
+    state_data.set_mix_animation(from, to, 0.5).unwrap();
+
+    assert_eq!(state_data.get_mix("events0", "events1").unwrap(), 0.5);
+    assert_eq!(state_data.get_mix_animation(from, to).unwrap(), 0.5);
+}
+
+#[test]
 fn animation_state_data_clear_resets_default_and_pair_mixes() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);
