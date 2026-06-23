@@ -403,6 +403,33 @@ fn animation_state_current_returns_current_track_handle() {
 }
 
 #[test]
+fn animation_state_queue_can_be_disabled_until_next_drain_point() {
+    let (mut state, _skeleton, recording) = setup();
+    state.set_listener(RecordingListener {
+        recording: recording.clone(),
+    });
+
+    state.disable_queue();
+    state.set_animation(0, "events0", false).unwrap();
+    assert!(recording.rows.borrow().is_empty());
+
+    state.enable_queue();
+    assert!(recording.rows.borrow().is_empty());
+
+    state.update(0.0);
+
+    assert_eq!(
+        *recording.rows.borrow(),
+        vec![ResultRow {
+            animation_index: 0,
+            name: "start".into(),
+            track_time: 0.0,
+            total_time: 0.0,
+        }]
+    );
+}
+
+#[test]
 fn track_entry_set_mix_duration_with_delay_adjusts_queued_delay() {
     let data = crate::SkeletonData::from_json_str(EMPTY_DELAY_JSON).unwrap();
     let state_data = AnimationStateData::new(data);

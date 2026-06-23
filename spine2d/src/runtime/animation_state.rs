@@ -1245,6 +1245,14 @@ impl AnimationState {
         self.listener = Some(Box::new(listener));
     }
 
+    pub fn disable_queue(&mut self) {
+        self.drain_disabled = true;
+    }
+
+    pub fn enable_queue(&mut self) {
+        self.drain_disabled = false;
+    }
+
     pub fn time(&self) -> f32 {
         self.time.get()
     }
