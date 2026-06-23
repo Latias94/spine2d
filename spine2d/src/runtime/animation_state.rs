@@ -727,7 +727,7 @@ impl TrackEntry {
         let duration = self.animation_end - self.animation_start;
         if duration != 0.0 {
             if self.looped {
-                return duration * (1.0 + (self.track_time / duration).floor());
+                return duration * (1.0 + (self.track_time / duration).trunc());
             }
             if self.track_time < duration {
                 return duration;
