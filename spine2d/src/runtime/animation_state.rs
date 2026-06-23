@@ -1217,6 +1217,7 @@ pub struct AnimationState {
     listener: Option<Box<dyn AnimationStateListener>>,
     draining_events: bool,
     drain_disabled: bool,
+    manual_track_entry_disposal: bool,
     animations_changed: bool,
     property_ids: HashMap<u64, EntryId>,
     unkeyed_state: i32,
@@ -1235,6 +1236,7 @@ impl AnimationState {
             listener: None,
             draining_events: false,
             drain_disabled: false,
+            manual_track_entry_disposal: false,
             animations_changed: false,
             property_ids: HashMap::new(),
             unkeyed_state: 0,
@@ -1251,6 +1253,18 @@ impl AnimationState {
 
     pub fn enable_queue(&mut self) {
         self.drain_disabled = false;
+    }
+
+    pub fn set_manual_track_entry_disposal(&mut self, manual: bool) {
+        self.manual_track_entry_disposal = manual;
+    }
+
+    pub fn manual_track_entry_disposal(&self) -> bool {
+        self.manual_track_entry_disposal
+    }
+
+    pub fn dispose_track_entry(&mut self, handle: TrackEntryHandle) {
+        self.free_entry(handle.id);
     }
 
     pub fn time(&self) -> f32 {
@@ -2697,7 +2711,13 @@ impl AnimationState {
             }
 
             if matches!(event, AnimationStateEvent::Dispose) {
-                self.free_entry(entry_id);
+                if self.manual_track_entry_disposal {
+                    if let Some(listener) = entry_listener {
+                        self.restore_entry_listener(entry_id, listener);
+                    }
+                } else {
+                    self.free_entry(entry_id);
+                }
             } else if let Some(listener) = entry_listener {
                 self.restore_entry_listener(entry_id, listener);
             }
@@ -2740,6 +2760,11 @@ impl AnimationState {
         let track = self.tracks.get(track_index)?;
         let id = *track.queue.front()?;
         self.entry(id).map(|e| e.delay)
+    }
+
+    #[cfg(all(test, feature = "json"))]
+    pub(crate) fn track_entry_exists_for_tests(&self, handle: TrackEntryHandle) -> bool {
+        self.entry(handle.id).is_some()
     }
 }
 

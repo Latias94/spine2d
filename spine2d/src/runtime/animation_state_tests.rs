@@ -430,6 +430,28 @@ fn animation_state_queue_can_be_disabled_until_next_drain_point() {
 }
 
 #[test]
+fn animation_state_manual_track_entry_disposal_matches_cpp_lifetime_control() {
+    let (mut auto_state, _skeleton, _recording) = setup();
+    let auto_entry = auto_state.set_animation(0, "events0", false).unwrap();
+    assert!(auto_state.track_entry_exists_for_tests(auto_entry));
+
+    auto_state.clear_track(0);
+    assert!(!auto_state.track_entry_exists_for_tests(auto_entry));
+
+    let (mut manual_state, _skeleton, _recording) = setup();
+    assert!(!manual_state.manual_track_entry_disposal());
+    manual_state.set_manual_track_entry_disposal(true);
+    assert!(manual_state.manual_track_entry_disposal());
+
+    let manual_entry = manual_state.set_animation(0, "events0", false).unwrap();
+    manual_state.clear_track(0);
+    assert!(manual_state.track_entry_exists_for_tests(manual_entry));
+
+    manual_state.dispose_track_entry(manual_entry);
+    assert!(!manual_state.track_entry_exists_for_tests(manual_entry));
+}
+
+#[test]
 fn track_entry_set_mix_duration_with_delay_adjusts_queued_delay() {
     let data = crate::SkeletonData::from_json_str(EMPTY_DELAY_JSON).unwrap();
     let state_data = AnimationStateData::new(data);
