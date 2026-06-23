@@ -13,7 +13,7 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `575 passed, 10 skipped` on 2026-06-23.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `577 passed, 10 skipped` on 2026-06-23.
   - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `43 passed, 0 skipped` on 2026-06-23.
   - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu`, `cargo check -p spine2d-wgpu --examples --features json`, and `cargo check -p spine2d-web` passed on 2026-06-23.
 - Done:
@@ -77,18 +77,20 @@ status: "active"
   - Aligned `AnimationStateData` and empty-animation mix duration setters in breaking commit `0c78468`; default mix, pair mix, `set_empty_animation`, and `set_empty_animations` now follow C++ direct assignment semantics instead of rejecting negative or non-finite durations.
   - Removed the useless `AnimationState::add_empty_animation` `Result` wrapper in breaking commit `0a4204a`; the method now returns a `TrackEntryHandle` directly and no longer rejects non-finite delay values.
   - Aligned `AnimationState::update` in commit `f381dc5`; the runtime no longer rejects negative or non-finite delta values, and Bevy no longer clamps negative `time_scale` frame deltas before calling the core runtime.
+  - Aligned IK solver mix propagation in commit `65c078f`; one-bone and two-bone IK no longer skip negative or non-finite mix values before applying C++ math.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
   - Not blocked.
 - Next action:
-  - Audit the remaining runtime numeric guards against local `spine-cpp`, starting with IK alpha guards, then return to U6 skin fixture cleanup.
+  - Audit remaining runtime timeline/solver alpha and mix guards against local `repo-ref/spine-runtimes/spine-cpp`, then return to U6 skin fixture cleanup.
 
 # Citations
 
 - `spine-upstream.toml`
 - `repo-ref/spine-runtimes/spine-cpp/src/spine/AnimationState.cpp`
 - `repo-ref/spine-runtimes/spine-cpp/include/spine/AnimationState.h`
+- `repo-ref/spine-runtimes/spine-cpp/src/spine/IkConstraint.cpp`
 - `docs/parity.md`
 - `spine2d/src/runtime/skeleton.rs`
 - `spine2d/src/runtime/skeleton_tests.rs`
