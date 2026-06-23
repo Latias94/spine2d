@@ -1675,7 +1675,7 @@ impl AnimationState {
             if let Some(next_id) = self.tracks[track_index].queue.front().copied() {
                 let next_delay = self.entry(next_id).map(|next| next.delay).unwrap_or(0.0);
                 let next_time = track_last - next_delay;
-                if next_time + TIME_EPSILON >= 0.0 {
+                if next_time >= 0.0 {
                     let old_time_scale =
                         self.entry(current_id).map(|e| e.time_scale).unwrap_or(0.0);
                     if let Some(current) = self.entry_mut(current_id) {
@@ -1689,7 +1689,7 @@ impl AnimationState {
                     if let Some(next) = self.entry_mut(next_id) {
                         next.delay = 0.0;
                         // Preserve leftover time when switching (Spine C# Update semantics).
-                        if old_time_scale.abs() >= TIME_EPSILON {
+                        if old_time_scale != 0.0 {
                             next.track_time +=
                                 (next_time / old_time_scale + delta) * next.time_scale;
                         }
@@ -1719,10 +1719,7 @@ impl AnimationState {
                     self.tracks[track_index].current = Some(next_id);
                     continue;
                 }
-            } else if mixing_from.is_none()
-                && track_last >= 0.0
-                && track_last + TIME_EPSILON >= track_end
-            {
+            } else if mixing_from.is_none() && track_last >= 0.0 && track_last >= track_end {
                 push_event(&mut pending, current_id, AnimationStateEvent::End);
                 push_event(&mut pending, current_id, AnimationStateEvent::Dispose);
                 self.animations_changed = true;
@@ -1777,9 +1774,9 @@ impl AnimationState {
                 let track_end_reached = {
                     let track = &self.tracks[track_index];
                     let queued_empty = track.queue.is_empty();
-                    let reached = self.entry(current_id).is_some_and(|e| {
-                        e.track_time + TIME_EPSILON >= e.track_end && e.track_end.is_finite()
-                    });
+                    let reached = self
+                        .entry(current_id)
+                        .is_some_and(|e| e.track_time >= e.track_end);
                     queued_empty && reached
                 };
                 if track_end_reached {
@@ -2035,8 +2032,8 @@ impl AnimationState {
             from_entry.total_alpha = 0.0;
         }
 
-        let attachments = mix + TIME_EPSILON < from_thresholds.1;
-        let draw_order = mix + TIME_EPSILON < from_thresholds.2;
+        let attachments = mix < from_thresholds.1;
+        let draw_order = mix < from_thresholds.2;
 
         let from_apply_time = if from_reverse {
             from_animation.duration - from_time
@@ -2137,8 +2134,7 @@ impl AnimationState {
                         additive: from_additive,
                         transform_additive: from_additive,
                         direction: MixDirection::Out,
-                        attachments: attachments
-                            && alpha + TIME_EPSILON >= alpha_attachment_threshold,
+                        attachments: attachments && alpha >= alpha_attachment_threshold,
                         unkeyed_state,
                         draw_order_from_current: mode.from == TimelineMode::Current,
                         draw_order_out: draw_order_timeline_out(draw_order, mode.from),
@@ -2314,7 +2310,7 @@ impl AnimationState {
             .unwrap_or((-1.0, 0.0, 0.0));
 
         // The to entry was applied at least once and the mix is complete.
-        if to_next_track_last >= 0.0 && to_mix_time + TIME_EPSILON >= to_mix_duration {
+        if to_next_track_last >= 0.0 && to_mix_time >= to_mix_duration {
             let from_total_alpha = self.entry(from).map(|e| e.total_alpha).unwrap_or(0.0);
             if to_mix_duration <= 0.0 || from_total_alpha.abs() <= TIME_EPSILON {
                 let next_from = self.entry(from).and_then(|from_ref| from_ref.mixing_from);
@@ -2386,7 +2382,7 @@ impl AnimationState {
 
         let can_issue_events = match mix {
             None => true,
-            Some(mix) => mix + TIME_EPSILON < entry.event_threshold,
+            Some(mix) => mix < entry.event_threshold,
         };
 
         let mut events = Vec::new();
