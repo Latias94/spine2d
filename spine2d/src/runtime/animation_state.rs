@@ -2635,7 +2635,6 @@ impl AnimationState {
         let track_last = entry.track_last_time;
         let track_time = entry.track_time;
         let reverse = entry.reverse;
-        let animation_duration = entry.animation.duration;
 
         let can_issue_events = match mix {
             None => true,
@@ -2645,19 +2644,10 @@ impl AnimationState {
         let mut events = Vec::new();
         if events_enabled
             && can_issue_events
+            && !reverse
             && let Some(timeline) = &entry.animation.event_timeline
         {
-            if reverse {
-                collect_reverse_events(
-                    timeline,
-                    animation_last,
-                    animation_time,
-                    animation_duration,
-                    &mut events,
-                );
-            } else {
-                collect_events(timeline, animation_last, animation_time, &mut events);
-            }
+            collect_events(timeline, animation_last, animation_time, &mut events);
         }
 
         let complete = if entry.looped {
@@ -2865,46 +2855,6 @@ fn collect_events(
         emit_range(-1.0, time);
     } else {
         emit_range(last_time, time);
-    }
-}
-
-fn collect_reverse_events(
-    timeline: &crate::EventTimeline,
-    last_time: f32,
-    time: f32,
-    animation_duration: f32,
-    out: &mut Vec<Event>,
-) {
-    if timeline.events.is_empty() {
-        return;
-    }
-
-    let from = animation_duration - last_time;
-    let to = animation_duration - time;
-
-    if from >= to {
-        for ev in &timeline.events {
-            if ev.time < to {
-                continue;
-            }
-            if ev.time >= from {
-                break;
-            }
-            out.push(ev.clone());
-        }
-    } else {
-        for ev in &timeline.events {
-            if ev.time >= from {
-                break;
-            }
-            out.push(ev.clone());
-        }
-        for ev in &timeline.events {
-            if ev.time >= to {
-                break;
-            }
-            out.push(ev.clone());
-        }
     }
 }
 

@@ -1680,7 +1680,7 @@ fn event_threshold_some_animation0_events_fire_during_mix() {
 }
 
 #[test]
-fn reverse_playback_emits_reverse_order_events() {
+fn reverse_playback_does_not_queue_event_timeline_events_like_cpp() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(RecordingListener {
         recording: recording.clone(),
@@ -1696,7 +1696,10 @@ fn reverse_playback_emits_reverse_order_events() {
 
     let rows = recording.rows.borrow();
     let actual: Vec<_> = rows.iter().map(|row| row.name.as_str()).collect();
-    assert_eq!(actual, vec!["event 30"]);
+    assert!(
+        actual.is_empty(),
+        "reverse playback queued events: {actual:?}"
+    );
 }
 
 #[test]
