@@ -465,19 +465,13 @@ impl AnimationStateData {
         Ok(())
     }
 
-    pub fn set_mix_animation(
-        &mut self,
-        from: &Animation,
-        to: &Animation,
-        duration: f32,
-    ) -> Result<(), Error> {
+    pub fn set_mix_animation(&mut self, from: &Animation, to: &Animation, duration: f32) {
         self.mixes
             .insert((from.name.clone(), to.name.clone()), duration);
-        Ok(())
     }
 
-    pub fn get_mix_animation(&self, from: &Animation, to: &Animation) -> Result<f32, Error> {
-        Ok(self.mix_duration(&from.name, &to.name))
+    pub fn get_mix_animation(&self, from: &Animation, to: &Animation) -> f32 {
+        self.mix_duration(&from.name, &to.name)
     }
 
     pub fn clear(&mut self) {
