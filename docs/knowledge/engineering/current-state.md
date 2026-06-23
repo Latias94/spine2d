@@ -13,6 +13,9 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Last verified:
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `592 passed, 10 skipped` on 2026-06-23 after the `AnimationState::disable_queue` / `enable_queue` slice.
+  - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after the `AnimationState::disable_queue` / `enable_queue` slice.
+  - `cargo check -p spine2d-bevy`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23 after the `AnimationState::disable_queue` / `enable_queue` slice.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `591 passed, 10 skipped` on 2026-06-23 after the `AnimationState::current` / `data` accessor slice.
   - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after the `AnimationState::current` / `data` accessor slice.
   - `cargo check -p spine2d-bevy`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23 after the `AnimationState::current` / `data` accessor slice.
@@ -101,6 +104,7 @@ status: "active"
   - Aligned TrackEntry link storage and time setters in commit `cfd01fe`; Rust now stores C++-style previous/next links explicitly, exposes `mixing_from`, `mixing_to`, `set_track_time`, and `set_mix_time`, and preserves queued-to-current link semantics after activation.
   - Aligned `AnimationState::apply` return status in commit `d39573a`; the method now returns `bool` like C++ `apply(Skeleton&)`, reporting true only when a non-delayed current track is applied.
   - Added official-style current/data accessors in commit `8a46380`; `AnimationState::current(track_index)` returns the current safe entry handle like C++ `getCurrent`, and `AnimationState::data()` pairs with `data_mut()` like C++ `getData`.
+  - Added official-style event queue controls in commit `f6b88fe`; `disable_queue` and `enable_queue` expose C++ `disableQueue` / `enableQueue` semantics, including enable not draining until the next normal drain point.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:
