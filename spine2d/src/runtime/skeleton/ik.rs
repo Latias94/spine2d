@@ -155,9 +155,6 @@ fn apply_one(
     scale_y_mode: crate::ScaleYMode,
     alpha: f32,
 ) {
-    if !(alpha.is_finite()) || alpha <= 0.0 {
-        return;
-    }
     if bone_index >= skeleton.bones.len() {
         return;
     }
@@ -291,9 +288,6 @@ fn apply_two(
     const PI: f32 = std::f32::consts::PI;
     const RAD_DEG: f32 = 180.0 / PI;
 
-    if !(alpha.is_finite()) || alpha <= 0.0 {
-        return;
-    }
     if parent_index >= skeleton.bones.len() || child_index >= skeleton.bones.len() {
         return;
     }
