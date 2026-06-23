@@ -3157,6 +3157,30 @@ fn track_entry_official_query_helpers_and_loop_setter_follow_cpp_state() {
 }
 
 #[test]
+fn track_entry_queue_neighbors_follow_cpp_previous_next_chain() {
+    let (mut state, mut skeleton, _recording) = setup();
+
+    let first = state.set_animation(0, "events0", false).unwrap();
+    let second = state.add_animation(0, "events1", false, 0.5).unwrap();
+    let third = state.add_animation(0, "events2", false, 0.0).unwrap();
+
+    assert_eq!(first.previous(&state), None);
+    assert_eq!(first.next(&state), Some(second));
+    assert_eq!(second.previous(&state), Some(first));
+    assert_eq!(second.next(&state), Some(third));
+    assert_eq!(third.previous(&state), Some(second));
+    assert_eq!(third.next(&state), None);
+
+    assert!(!first.is_next_ready(&state));
+    state.apply(&mut skeleton);
+    assert!(!first.is_next_ready(&state));
+
+    state.update(0.6);
+    state.apply(&mut skeleton);
+    assert!(first.is_next_ready(&state));
+}
+
+#[test]
 fn set_empty_animations_sets_empty_entries_for_active_tracks() {
     let (mut state, _skeleton, _recording) = setup();
 

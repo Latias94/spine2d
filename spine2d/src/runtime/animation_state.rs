@@ -757,6 +757,28 @@ pub struct TrackEntryHandle {
 }
 
 impl TrackEntryHandle {
+    pub fn previous(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
+        state
+            .previous_entry_for(self.id)
+            .map(|id| TrackEntryHandle { id })
+    }
+
+    pub fn next(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
+        state
+            .next_entry_for(self.id)
+            .map(|id| TrackEntryHandle { id })
+    }
+
+    pub fn is_next_ready(&self, state: &AnimationState) -> bool {
+        let Some(entry) = state.entry(self.id) else {
+            return false;
+        };
+        let Some(next) = self.next(state).and_then(|handle| state.entry(handle.id)) else {
+            return false;
+        };
+        entry.next_track_last_time - next.delay >= 0.0
+    }
+
     fn with_entry_mut(&self, state: &mut AnimationState, f: impl FnOnce(&mut TrackEntry)) {
         if let Some(entry) = state.entry_mut(self.id) {
             f(entry);
@@ -1221,6 +1243,22 @@ impl AnimationState {
                     return previous;
                 }
                 previous = Some(*queued);
+            }
+        }
+        None
+    }
+
+    fn next_entry_for(&self, entry_id: EntryId) -> Option<EntryId> {
+        for track in &self.tracks {
+            if track.current == Some(entry_id) {
+                return track.queue.front().copied();
+            }
+
+            let mut queue = track.queue.iter().copied();
+            while let Some(queued) = queue.next() {
+                if queued == entry_id {
+                    return queue.next();
+                }
             }
         }
         None
