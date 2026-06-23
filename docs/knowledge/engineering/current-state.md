@@ -13,9 +13,9 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Last verified:
-  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke` passed with `586 passed, 10 skipped` on 2026-06-23 after the `holdPrevious` parity slice.
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `587 passed, 10 skipped` on 2026-06-23 after the TrackEntry query-helper API slice.
   - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23.
-  - `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy --examples`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23.
+  - `cargo check -p spine2d --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23 after the TrackEntry query-helper API slice.
   - C++ pose/render oracle runners accepted `--entry-mix-blend add` against local `repo-ref/spine-runtimes` with `SPINE2D_ORACLE_ALLOW_BASELINE_MISMATCH=1`; generated temp JSON validated with `python3 -m json.tool`.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke runtime::animation_state_mixing_semantics_tests` passed with `10 passed, 586 skipped` on 2026-06-23 after restoring the official C++ `holdPrevious` surface in commit `e25ca6e`.
   - `cargo nextest run -p spine2d-bevy` passed with `43 passed, 0 skipped` on 2026-06-23 after adding `holdPrevious` to Bevy track-entry settings/state plumbing.
@@ -90,6 +90,7 @@ status: "active"
   - Resolved the transient additive API rollback in the working tree after user confirmation; the affected Rust/Bevy files were returned to the committed `mixBlend` state and `git status --short` is clean.
   - Restored official C++ TrackEntry hold-previous API in commit `e25ca6e`; `TrackEntry::hold_previous`, `TrackEntryHandle::set_hold_previous`, `TrackEntrySettings::with_hold_previous`, Bevy `SpineTrackState::hold_previous`, and `pose_dump_scenario --entry-hold-previous` now mirror C++ `TrackEntry::getHoldPrevious/setHoldPrevious`.
   - Pruned obsolete TrackEntry parity plans that encoded stale development-branch `additive` / `mixInterpolation` assumptions; remaining plan references point at the active C++ parity hardening plan and current `mixBlend` / `holdPrevious` surface.
+  - Added official-style TrackEntry query helpers and loop setter in commit `866b732`; `TrackEntry::is_complete`, `TrackEntry::was_applied`, `TrackEntry::is_empty_animation`, `TrackEntryHandle::set_loop`, and `TrackEntrySettings::with_looped` mirror C++ `isComplete`, `wasApplied`, `isEmptyAnimation`, and `setLoop`.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`.
 - Blocked:

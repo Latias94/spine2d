@@ -16,7 +16,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 
 # Verified State
 
-- Full parity gate passed on 2026-06-23 after the `holdPrevious` API slice: `586 passed, 10 skipped`.
+- Full parity gate passed on 2026-06-23 after the TrackEntry query-helper API slice: `587 passed, 10 skipped`.
 - U2 cleanup commit `fbc85eb` deleted 634 lines of disabled Skeleton legacy solver code.
 - U3 dispatch cleanup commit `73edc54` moved `AnimationState` timeline application onto shared internal dispatch helpers in `animation.rs`.
 - U4 parser cleanup commit `48518a5` moved binary animation timeline-order recording onto `TimelineOrderBuilder`; JSON keeps its existing local lookup/order builders.
@@ -30,6 +30,7 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
 - U5 timeline alpha cleanup commit `64679c2` removed Rust-only nonpositive-alpha guards and clamps from `AnimationState` current-entry apply, IK/transform/path/physics/slider timelines, slot color/two-color helpers, and deform timelines, adding negative-alpha characterization coverage for each touched timeline family.
 - U5 TrackEntry mixBlend cleanup commit `1a432d3` replaced the Rust-only public additive surface with official C++ `TrackEntry::mixBlend`: core getters/setters/settings/snapshots, Bevy runtime state, render scenario commands, oracle tests, smoke tests, and `pose_dump_scenario --entry-mix-blend` now use `MixBlend`.
 - U5 TrackEntry holdPrevious cleanup commit `e25ca6e` restored official C++ `TrackEntry::getHoldPrevious/setHoldPrevious`: Rust/Bevy/oracle surfaces now expose `hold_previous`/`--entry-hold-previous`, and the focused/full gates remain green.
+- U5 TrackEntry query-helper commit `866b732` exposed official-style `is_complete`, `was_applied`, `is_empty_animation`, `set_loop`, and settings-level `with_looped`.
 - U6 path scratch commit `3edaa0b` moved path constraint scratch storage and capacity estimation into private `skeleton::path`.
 - U6 path world-position commit `0dab0fb` moved path attachment lookup, `compute_path_world_positions`, and private path curve helpers into private `skeleton::path`.
 - U6 update-cache commit `190a119` moved cache ordering helpers into private `skeleton::cache`.
@@ -167,6 +168,17 @@ Autonomous refactoring is active on local `main`. The behavior reference is `spi
   - `cargo fmt --all --check`
   - `git diff --check`
   - commit `e25ca6e`
+- Post-U5 TrackEntry query-helper API verification passed:
+  - `cargo fmt --all --check`
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke track_entry_official_query_helpers_and_loop_setter_follow_cpp_state --no-fail-fast --status-level fail` (`1 passed, 596 skipped`)
+  - `cargo nextest run -p spine2d-bevy set_animation_command_applies_track_entry_settings_to_current_entry --no-fail-fast --status-level fail` (`1 passed, 42 skipped`)
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke animation_state --no-fail-fast --status-level fail` (`59 passed, 538 skipped`)
+  - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` (`43 passed, 0 skipped`)
+  - `cargo check -p spine2d --features json,binary,upstream-smoke`
+  - `cargo check -p spine2d-bevy`
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` (`587 passed, 10 skipped`)
+  - `git diff --check`
+  - commit `866b732`
 - Additive API rollback cleanup:
   - User confirmed the remaining dirty files were safe to handle.
   - The affected Rust/Bevy working-tree edits were restored to the committed `mixBlend` public API state from `1a432d3`.
