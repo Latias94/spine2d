@@ -612,10 +612,6 @@ impl TrackEntry {
         self.track_index
     }
 
-    pub fn animation_index(&self) -> usize {
-        self.animation_index
-    }
-
     pub fn animation(&self) -> &Animation {
         &self.animation
     }
@@ -690,10 +686,6 @@ impl TrackEntry {
 
     pub fn alpha(&self) -> f32 {
         self.alpha
-    }
-
-    pub fn total_alpha(&self) -> f32 {
-        self.total_alpha
     }
 
     pub fn alpha_attachment_threshold(&self) -> f32 {
