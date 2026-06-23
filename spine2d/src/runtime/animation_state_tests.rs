@@ -3116,6 +3116,47 @@ fn set_empty_animation() {
 }
 
 #[test]
+fn track_entry_official_query_helpers_and_loop_setter_follow_cpp_state() {
+    let (mut state, mut skeleton, _recording) = setup();
+
+    let entry = state.set_animation(0, "events0", true).unwrap();
+    state.with_track_entry(0, |entry| {
+        assert!(entry.looped());
+        assert!(!entry.is_complete());
+        assert!(!entry.was_applied());
+        assert!(!entry.is_empty_animation());
+    });
+
+    entry.set_loop(&mut state, false);
+    state.with_track_entry(0, |entry| {
+        assert!(!entry.looped());
+    });
+
+    state.update(0.5);
+    state.apply(&mut skeleton);
+    state.with_track_entry(0, |entry| {
+        assert!(entry.was_applied());
+        assert!(!entry.is_complete());
+    });
+
+    state.update(0.6);
+    state.apply(&mut skeleton);
+    state.with_track_entry(0, |entry| {
+        assert!(entry.is_complete());
+    });
+
+    let empty = state.set_empty_animation(0, 0.2);
+    state.with_track_entry(0, |entry| {
+        assert!(entry.is_empty_animation());
+        assert_eq!(entry.track_end(), 0.2);
+    });
+    empty.set_loop(&mut state, true);
+    state.with_track_entry(0, |entry| {
+        assert!(entry.looped());
+    });
+}
+
+#[test]
 fn set_empty_animations_sets_empty_entries_for_active_tracks() {
     let (mut state, _skeleton, _recording) = setup();
 

@@ -610,6 +610,18 @@ impl TrackEntry {
         self.looped
     }
 
+    pub fn is_complete(&self) -> bool {
+        self.track_time >= self.animation_end - self.animation_start
+    }
+
+    pub fn was_applied(&self) -> bool {
+        self.next_track_last_time != -1.0
+    }
+
+    pub fn is_empty_animation(&self) -> bool {
+        self.animation_index == EMPTY_ANIMATION_INDEX
+    }
+
     pub fn hold_previous(&self) -> bool {
         self.hold_previous
     }
@@ -782,6 +794,12 @@ impl TrackEntryHandle {
         });
     }
 
+    pub fn set_loop(&self, state: &mut AnimationState, looped: bool) {
+        self.with_entry_mut(state, |entry| {
+            entry.looped = looped;
+        });
+    }
+
     pub fn set_mix_duration(&self, state: &mut AnimationState, mix_duration: f32) {
         self.with_entry_mut(state, |entry| {
             entry.mix_duration = mix_duration;
@@ -897,6 +915,7 @@ pub struct TrackEntrySettings {
     pub track_end: Option<f32>,
     pub delay: Option<f32>,
     pub time_scale: Option<f32>,
+    pub looped: Option<bool>,
     pub mix_duration: Option<f32>,
     pub mix_blend: Option<MixBlend>,
     pub hold_previous: Option<bool>,
@@ -930,6 +949,11 @@ impl TrackEntrySettings {
 
     pub fn with_time_scale(mut self, time_scale: f32) -> Self {
         self.time_scale = Some(time_scale);
+        self
+    }
+
+    pub fn with_looped(mut self, looped: bool) -> Self {
+        self.looped = Some(looped);
         self
     }
 
@@ -1023,6 +1047,9 @@ impl TrackEntrySettings {
 
         if let Some(time_scale) = self.time_scale {
             handle.set_time_scale(state, time_scale);
+        }
+        if let Some(looped) = self.looped {
+            handle.set_loop(state, looped);
         }
         if let Some(mix_blend) = self.mix_blend {
             handle.set_mix_blend(state, mix_blend);

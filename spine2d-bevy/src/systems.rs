@@ -1600,6 +1600,7 @@ mod tests {
                 SpineAnimationCommand::set(entity, 0, "first", true).with_entry_settings(
                     SpineTrackEntrySettings::new()
                         .with_alpha(0.5)
+                        .with_looped(false)
                         .with_mix_blend(spine2d::MixBlend::Add)
                         .with_hold_previous(true)
                         .with_reverse(true)
@@ -1613,6 +1614,7 @@ mod tests {
         current_track_entry(&app, entity, 0, |entry| {
             assert_eq!(entry.animation().name, "first");
             assert_eq!(entry.alpha(), 0.5);
+            assert!(!entry.looped());
             assert_eq!(entry.mix_blend(), spine2d::MixBlend::Add);
             assert!(entry.hold_previous());
             assert!(entry.reverse());
