@@ -449,12 +449,6 @@ impl AnimationStateData {
         Ok(())
     }
 
-    pub fn get_mix(&self, from: &str, to: &str) -> Result<f32, Error> {
-        let from_index = self.animation_index_by_name(from)?;
-        let to_index = self.animation_index_by_name(to)?;
-        Ok(self.mix_duration(from_index, to_index))
-    }
-
     pub fn set_mix_animation(
         &mut self,
         from: &Animation,
