@@ -580,22 +580,28 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
         ready: true,
         tracks: instance
             .animation_state
-            .track_snapshots()
+            .tracks()
             .into_iter()
-            .map(|track| SpineTrackState {
-                track_index: track.track_index,
-                animation_index: track.animation_index,
-                animation_name: track.animation_name,
-                track_time: track.track_time,
-                animation_time: track.animation_time,
-                loop_animation: track.looped,
-                delay: track.delay,
-                mix_duration: track.mix_duration,
-                mix_time: track.mix_time,
-                alpha: track.alpha,
-                hold_previous: track.hold_previous,
-                mix_blend: track.mix_blend,
-                reverse: track.reverse,
+            .filter_map(|track| {
+                track?.with_entry(&instance.animation_state, |entry| SpineTrackState {
+                    track_index: entry.track_index(),
+                    animation_index: if entry.is_empty_animation() {
+                        -1
+                    } else {
+                        i32::try_from(entry.animation_index()).unwrap_or(i32::MAX)
+                    },
+                    animation_name: entry.animation().name.clone(),
+                    track_time: entry.track_time(),
+                    animation_time: entry.animation_time(),
+                    loop_animation: entry.looped(),
+                    delay: entry.delay(),
+                    mix_duration: entry.mix_duration(),
+                    mix_time: entry.mix_time(),
+                    alpha: entry.alpha(),
+                    hold_previous: entry.hold_previous(),
+                    mix_blend: entry.mix_blend(),
+                    reverse: entry.reverse(),
+                })
             })
             .collect(),
         skeleton_time: instance.skeleton.time(),

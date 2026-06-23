@@ -1322,10 +1322,6 @@ impl AnimationState {
         &self.data
     }
 
-    pub fn tracks_len(&self) -> usize {
-        self.tracks.len()
-    }
-
     pub fn tracks(&self) -> Vec<Option<TrackEntryHandle>> {
         self.tracks
             .iter()
@@ -1557,14 +1553,6 @@ impl AnimationState {
         let id = *track.queue.get(queue_index)?;
         let entry = self.entry(id)?;
         Some(f(entry))
-    }
-
-    pub fn track_snapshots(&self) -> Vec<TrackEntrySnapshot> {
-        self.tracks
-            .iter()
-            .filter_map(|track| track.current)
-            .map(|id| self.snapshot(id))
-            .collect()
     }
 
     pub fn set_animation(

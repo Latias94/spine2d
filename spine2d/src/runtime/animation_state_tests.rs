@@ -3401,7 +3401,7 @@ fn set_empty_animations_is_noop_without_active_tracks() {
 
     state.set_empty_animations(0.4);
 
-    assert_eq!(state.tracks_len(), 0);
+    assert!(state.tracks().is_empty());
 }
 
 #[test]
