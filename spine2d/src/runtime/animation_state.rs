@@ -709,13 +709,13 @@ impl TrackEntry {
     pub fn animation_time(&self) -> f32 {
         if self.looped {
             let duration = self.animation_end - self.animation_start;
-            if duration.abs() <= TIME_EPSILON {
+            if duration == 0.0 {
                 return self.animation_start;
             }
             self.track_time % duration + self.animation_start
         } else {
             let animation_time = self.track_time + self.animation_start;
-            if self.animation_end + TIME_EPSILON >= self.animation.duration {
+            if self.animation_end >= self.animation.duration {
                 animation_time
             } else {
                 animation_time.min(self.animation_end)

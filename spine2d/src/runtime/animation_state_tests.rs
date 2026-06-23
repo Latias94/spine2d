@@ -2333,6 +2333,24 @@ fn looping_track_complete_uses_cpp_integer_truncation() {
 }
 
 #[test]
+fn non_looping_animation_time_uses_cpp_exact_duration_comparison() {
+    let (mut state, _skeleton, _recording) = setup();
+
+    let entry = state.set_animation(0, "events0", false).unwrap();
+    let duration = entry
+        .with_entry(&state, |entry| entry.animation().duration)
+        .unwrap();
+    let animation_end = duration - 0.000_000_5;
+    entry.set_animation_end(&mut state, animation_end);
+    entry.set_track_time(&mut state, duration + 0.1);
+
+    assert_eq!(
+        with_track_entry(&state, 0, |entry| entry.animation_time()).unwrap(),
+        animation_end
+    );
+}
+
+#[test]
 fn looping_with_animation_start() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(RecordingListener {
