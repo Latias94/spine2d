@@ -13,6 +13,9 @@ status: "active"
 - Branch: local `main`; do not revert user or other agent changes if new unrelated edits appear.
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Last verified:
+  - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `597 passed, 10 skipped` on 2026-06-23 after deleting `tracks_len` and `track_snapshots`.
+  - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` passed with `43 passed, 0 skipped` on 2026-06-23 after switching Bevy runtime-state sync to `tracks()` plus state-bound entry reads.
+  - `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu -p spine2d-web`, `cargo fmt --all --check`, and `git diff --check` passed on 2026-06-23 after the snapshot API cleanup. `block v0.1.6` still emits the existing future-incompatibility warning.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke runtime::animation_state_tests::animation_state_data_named_mix_overrides_default_mix runtime::animation_state_tests::animation_state_data_clear_resets_default_and_animation_mixes runtime::animation_state_tests::animation_state_data_rejects_unknown_animations --no-fail-fast --status-level fail` passed with `3 passed, 604 skipped` on 2026-06-23 after removing Rust-only mix pair query/removal APIs.
   - `cargo nextest run -p spine2d-bevy mix_set_and_clear_commands_update_state_data --no-fail-fast --status-level fail` passed with `1 passed, 42 skipped` on 2026-06-23 after removing the Bevy `remove_mix` command.
   - `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` passed with `597 passed, 10 skipped` on 2026-06-23 after the mix API cleanup.
@@ -139,12 +142,13 @@ status: "active"
   - Bound `TrackEntryHandle` to its owning `AnimationState` in commit `c30b446`; handle methods now reject cross-state misuse and `TrackEntryHandle::animation_state(&state)` mirrors the safe Rust shape of C++ `TrackEntry::getAnimationState()`.
   - Added `TrackEntryHandle::with_entry` in commit `3710686`; handles returned by set/add/current can now read current or queued entry getters directly, closer to the C++ returned `TrackEntry&` usage model.
   - Removed Rust-only `AnimationStateData::pair_mix` / `remove_mix` and Bevy `SpineAnimationCommand::remove_mix` / `RemoveMix` in breaking commit `c5eb82c`; mix storage is now controlled through the official C++-style `setMix` / `getMix` / `clear` surface only.
+  - Removed Rust-only `AnimationState::tracks_len` and `AnimationState::track_snapshots` in breaking commit `9c206bf`; Bevy runtime-state sync now reads `tracks()` and state-bound entry reads directly instead of a batch snapshot helper.
 - In progress:
-  - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`; next audit remains centered on `AnimationState` / `TrackEntry` surface and timeline mixing details.
+  - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`; next audit remains centered on `AnimationState` / `TrackEntry` surface and any remaining Rust-only convenience APIs.
 - Blocked:
   - None.
 - Next action:
-  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode, remaining `TrackEntry` surface, and any dead compatibility code that can be deleted without adding shims.
+  - Continue `AnimationState` parity audit around C++ `computeHold`/timeline mode, remaining `TrackEntry` surface, and any dead convenience code that can be deleted without adding shims.
 
 # Citations
 
