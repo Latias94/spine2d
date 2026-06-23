@@ -199,6 +199,37 @@ fn animation_state_data_skeleton_data_accessor_exposes_bound_skeleton() {
 }
 
 #[test]
+fn track_entry_handles_are_bound_to_their_animation_state() {
+    let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
+    let mut first_state = AnimationState::new(AnimationStateData::new(data.clone()));
+    let mut second_state = AnimationState::new(AnimationStateData::new(data));
+
+    let first_entry = first_state.set_animation(0, "events0", false).unwrap();
+    let second_entry = second_state.set_animation(0, "events1", false).unwrap();
+
+    assert!(first_entry.animation_state(&first_state).is_some());
+    assert!(first_entry.animation_state(&second_state).is_none());
+    assert!(first_state.track_entry_exists_for_tests(first_entry));
+    assert!(!second_state.track_entry_exists_for_tests(first_entry));
+
+    first_entry.set_alpha(&mut second_state, 0.25);
+    assert_eq!(
+        second_state
+            .with_track_entry(0, |entry| entry.alpha())
+            .unwrap(),
+        1.0
+    );
+
+    second_entry.set_alpha(&mut second_state, 0.75);
+    assert_eq!(
+        second_state
+            .with_track_entry(0, |entry| entry.alpha())
+            .unwrap(),
+        0.75
+    );
+}
+
+#[test]
 fn animation_state_data_rejects_unknown_animations() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state_data = AnimationStateData::new(data);

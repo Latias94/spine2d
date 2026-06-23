@@ -6,11 +6,15 @@ use crate::{
 };
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicU64, Ordering},
+};
 
 const TIME_EPSILON: f32 = 1e-6;
 const EMPTY_ANIMATION_INDEX: usize = usize::MAX;
 const EMPTY_ANIMATION_NAME: &str = "<empty>";
+static NEXT_STATE_ID: AtomicU64 = AtomicU64::new(1);
 
 fn empty_animation() -> Animation {
     Animation {
@@ -781,50 +785,59 @@ impl TrackEntry {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TrackEntryHandle {
+    state_id: u64,
     id: EntryId,
 }
 
 impl TrackEntryHandle {
+    pub fn animation_state<'a>(&self, state: &'a AnimationState) -> Option<&'a AnimationState> {
+        state.entry_for_handle(*self)?;
+        Some(state)
+    }
+
     pub fn mixing_from(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
-            .entry(self.id)
+            .entry_for_handle(*self)
             .and_then(|entry| entry.mixing_from)
-            .map(|id| TrackEntryHandle { id })
+            .map(|id| state.handle(id))
     }
 
     pub fn mixing_to(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
-            .entry(self.id)
+            .entry_for_handle(*self)
             .and_then(|entry| entry.mixing_to)
-            .map(|id| TrackEntryHandle { id })
+            .map(|id| state.handle(id))
     }
 
     pub fn previous(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
-            .entry(self.id)
+            .entry_for_handle(*self)
             .and_then(|entry| entry.previous)
-            .map(|id| TrackEntryHandle { id })
+            .map(|id| state.handle(id))
     }
 
     pub fn next(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
-            .entry(self.id)
+            .entry_for_handle(*self)
             .and_then(|entry| entry.next)
-            .map(|id| TrackEntryHandle { id })
+            .map(|id| state.handle(id))
     }
 
     pub fn is_next_ready(&self, state: &AnimationState) -> bool {
-        let Some(entry) = state.entry(self.id) else {
+        let Some(entry) = state.entry_for_handle(*self) else {
             return false;
         };
-        let Some(next) = self.next(state).and_then(|handle| state.entry(handle.id)) else {
+        let Some(next) = self
+            .next(state)
+            .and_then(|handle| state.entry_for_handle(handle))
+        else {
             return false;
         };
         entry.next_track_last_time - next.delay >= 0.0
     }
 
     fn with_entry_mut(&self, state: &mut AnimationState, f: impl FnOnce(&mut TrackEntry)) {
-        if let Some(entry) = state.entry_mut(self.id) {
+        if let Some(entry) = state.entry_for_handle_mut(*self) {
             f(entry);
         }
     }
@@ -1229,6 +1242,7 @@ struct Track {
 }
 
 pub struct AnimationState {
+    state_id: u64,
     data: AnimationStateData,
     tracks: Vec<Track>,
     entries: Vec<EntrySlot>,
@@ -1248,6 +1262,7 @@ pub struct AnimationState {
 impl AnimationState {
     pub fn new(data: AnimationStateData) -> Self {
         Self {
+            state_id: NEXT_STATE_ID.fetch_add(1, Ordering::Relaxed),
             data,
             tracks: Vec::new(),
             entries: Vec::new(),
@@ -1286,7 +1301,9 @@ impl AnimationState {
     }
 
     pub fn dispose_track_entry(&mut self, handle: TrackEntryHandle) {
-        self.free_entry(handle.id);
+        if handle.state_id == self.state_id {
+            self.free_entry(handle.id);
+        }
     }
 
     pub fn time(&self) -> f32 {
@@ -1316,8 +1333,29 @@ impl AnimationState {
     pub fn tracks(&self) -> Vec<Option<TrackEntryHandle>> {
         self.tracks
             .iter()
-            .map(|track| track.current.map(|id| TrackEntryHandle { id }))
+            .map(|track| track.current.map(|id| self.handle(id)))
             .collect()
+    }
+
+    fn handle(&self, id: EntryId) -> TrackEntryHandle {
+        TrackEntryHandle {
+            state_id: self.state_id,
+            id,
+        }
+    }
+
+    fn entry_for_handle(&self, handle: TrackEntryHandle) -> Option<&TrackEntry> {
+        if handle.state_id != self.state_id {
+            return None;
+        }
+        self.entry(handle.id)
+    }
+
+    fn entry_for_handle_mut(&mut self, handle: TrackEntryHandle) -> Option<&mut TrackEntry> {
+        if handle.state_id != self.state_id {
+            return None;
+        }
+        self.entry_mut(handle.id)
     }
 
     fn previous_entry_for(&self, entry_id: EntryId) -> Option<EntryId> {
@@ -1510,7 +1548,7 @@ impl AnimationState {
     pub fn current(&self, track_index: usize) -> Option<TrackEntryHandle> {
         let id = self.tracks.get(track_index)?.current?;
         self.entry(id)?;
-        Some(TrackEntryHandle { id })
+        Some(self.handle(id))
     }
 
     pub fn with_queued_track_entry<F: FnOnce(&TrackEntry) -> R, R>(
@@ -1679,7 +1717,7 @@ impl AnimationState {
         self.animations_changed = true;
         self.drain_event_queue();
 
-        TrackEntryHandle { id: entry_id }
+        self.handle(entry_id)
     }
 
     pub fn add_animation(
@@ -1750,7 +1788,7 @@ impl AnimationState {
         } else {
             self.tracks[track_index].queue.push_back(entry_id);
         }
-        Ok(TrackEntryHandle { id: entry_id })
+        Ok(self.handle(entry_id))
     }
 
     pub fn add_empty_animation(
@@ -1821,7 +1859,7 @@ impl AnimationState {
         } else {
             self.tracks[track_index].queue.push_back(entry_id);
         }
-        TrackEntryHandle { id: entry_id }
+        self.handle(entry_id)
     }
 
     pub fn update(&mut self, delta: f32) {
@@ -2793,7 +2831,7 @@ impl AnimationState {
 
     #[cfg(all(test, feature = "json"))]
     pub(crate) fn track_entry_exists_for_tests(&self, handle: TrackEntryHandle) -> bool {
-        self.entry(handle.id).is_some()
+        self.entry_for_handle(handle).is_some()
     }
 }
 
