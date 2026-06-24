@@ -57,6 +57,29 @@ struct RecordingListener {
     recording: Recording,
 }
 
+fn round_tracks(state: &mut AnimationState) {
+    fn round_decimals(value: f32, decimals: u32) -> f32 {
+        let factor = 10_f32.powi(decimals as i32);
+        (value * factor).round() / factor
+    }
+
+    let current_ids = state.tracks().into_iter().flatten().collect::<Vec<_>>();
+    for current in current_ids {
+        let track_time = current
+            .with_entry(state, |entry| entry.track_time())
+            .unwrap();
+        let delay = current.with_entry(state, |entry| entry.delay()).unwrap();
+        current.set_track_time(state, round_decimals(track_time, 6));
+        current.set_delay(state, round_decimals(delay, 3));
+        let mut from = current.mixing_from(state);
+        while let Some(id) = from {
+            let track_time = id.with_entry(state, |entry| entry.track_time()).unwrap();
+            from = id.mixing_from(state);
+            id.set_track_time(state, round_decimals(track_time, 6));
+        }
+    }
+}
+
 impl AnimationStateListener for RecordingListener {
     fn on_event(
         &mut self,
@@ -153,12 +176,12 @@ fn animation_state_data_named_mix_overrides_default_mix() {
     let mut state_data = AnimationStateData::new(data.clone());
 
     state_data.set_default_mix(0.25);
-    state_data.set_mix("events0", "events1", 0.5).unwrap();
+    state_data.set_mix("events0", "events1", 0.5);
 
     assert_eq!(state_data.get_mix_animation(from, to), 0.5);
     assert_eq!(state_data.get_mix_animation(to, from), 0.25);
 
-    state_data.set_mix("events0", "events1", 0.75).unwrap();
+    state_data.set_mix("events0", "events1", 0.75);
 
     assert_eq!(state_data.get_mix_animation(from, to), 0.75);
 }
@@ -186,7 +209,7 @@ fn animation_state_data_clear_resets_default_and_animation_mixes() {
     let mut state_data = AnimationStateData::new(data.clone());
 
     state_data.set_default_mix(0.25);
-    state_data.set_mix("events0", "events1", 0.5).unwrap();
+    state_data.set_mix("events0", "events1", 0.5);
 
     state_data.clear();
 
@@ -223,13 +246,13 @@ fn track_entry_handles_are_bound_to_their_animation_state() {
     let mut first_state = AnimationState::new(AnimationStateData::new(data.clone()));
     let mut second_state = AnimationState::new(AnimationStateData::new(data));
 
-    let first_entry = first_state.set_animation(0, "events0", false).unwrap();
-    let second_entry = second_state.set_animation(0, "events1", false).unwrap();
+    let first_entry = first_state.set_animation(0, "events0", false);
+    let second_entry = second_state.set_animation(0, "events1", false);
 
     assert!(first_entry.animation_state(&first_state).is_some());
     assert!(first_entry.animation_state(&second_state).is_none());
-    assert!(first_state.track_entry_exists_for_tests(first_entry));
-    assert!(!second_state.track_entry_exists_for_tests(first_entry));
+    assert!(first_entry.animation_state(&first_state).is_some());
+    assert!(first_entry.animation_state(&second_state).is_none());
 
     first_entry.set_alpha(&mut second_state, 0.25);
     assert_eq!(
@@ -250,8 +273,8 @@ fn track_entry_handle_reads_current_and_queued_entries() {
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
     let other_state = AnimationState::new(AnimationStateData::new(data));
 
-    let current = state.set_animation(0, "events0", false).unwrap();
-    let queued = state.add_animation(0, "events1", true, 0.4).unwrap();
+    let current = state.set_animation(0, "events0", false);
+    let queued = state.add_animation(0, "events1", true, 0.4);
 
     assert_eq!(
         current.with_entry(&state, |entry| entry.animation().name.clone()),
@@ -271,20 +294,28 @@ fn track_entry_handle_reads_current_and_queued_entries() {
 }
 
 #[test]
-fn animation_state_data_name_mix_rejects_unknown_animations() {
+fn animation_state_data_name_mix_panics_on_unknown_animations() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let (_, from) = data.animation("events0").unwrap();
     let (_, to) = data.animation("events1").unwrap();
     let mut state_data = AnimationStateData::new(data.clone());
 
-    assert!(state_data.set_mix("missing", "events1", 0.5).is_err());
-    assert!(state_data.set_mix("events0", "missing", 0.5).is_err());
-    state_data.set_mix("events0", "events1", -0.1).unwrap();
-    state_data.set_mix("events0", "events1", f32::NAN).unwrap();
+    assert!(
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            state_data.set_mix("missing", "events1", 0.5);
+        }))
+        .is_err()
+    );
+    assert!(
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            state_data.set_mix("events0", "missing", 0.5);
+        }))
+        .is_err()
+    );
+    state_data.set_mix("events0", "events1", -0.1);
+    state_data.set_mix("events0", "events1", f32::NAN);
     assert!(state_data.get_mix_animation(from, to).is_nan());
-    state_data
-        .set_mix("events0", "events1", f32::INFINITY)
-        .unwrap();
+    state_data.set_mix("events0", "events1", f32::INFINITY);
     assert!(state_data.get_mix_animation(from, to).is_infinite());
 }
 
@@ -373,7 +404,7 @@ fn animation_state_applies_negative_track_alpha_like_cpp() {
     let mut state = AnimationState::new(state_data);
     let mut skeleton = Skeleton::new(data);
 
-    let entry = state.set_animation(0, "turn", false).unwrap();
+    let entry = state.set_animation(0, "turn", false);
     entry.set_alpha(&mut state, -0.5);
 
     skeleton.setup_pose();
@@ -409,7 +440,7 @@ fn run_with_frame<F: FnMut(f32, &mut AnimationState)>(
         time += step;
         recording.time.set(time);
         state.update(step);
-        state.round_tracks_for_tests();
+        round_tracks(state);
         // Match the upstream C# tests: apply multiple times per frame to ensure the state doesn't depend on apply side effects.
         recording.enabled.set(true);
         state.apply(skeleton);
@@ -437,11 +468,13 @@ fn add_empty_animation_delay_is_adjusted_to_end_with_previous_entry() {
         recording: recording.clone(),
     });
 
-    state.set_animation(0, "a", false).unwrap();
+    state.set_animation(0, "a", false);
     state.add_empty_animation(0, 0.5, 0.0);
     let delay = state
-        .queue_front_delay_for_tests(0)
-        .expect("queued empty entry");
+        .current(0)
+        .and_then(|entry| entry.next(&state))
+        .and_then(|entry| entry.with_entry(&state, |entry| entry.delay()))
+        .expect("queued empty animation");
     assert_eq!(round3(delay), 0.5);
 
     // Smoke-run the state to ensure the queue can actually be consumed without panics.
@@ -468,7 +501,7 @@ fn add_empty_animation_stores_non_finite_delay_directly() {
 fn track_entry_set_delay_ignores_negative_values() {
     let (mut state, _skeleton, _recording) = setup();
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_delay(&mut state, 0.25);
     entry.set_delay(&mut state, -0.5);
 
@@ -480,7 +513,7 @@ fn track_entry_set_delay_ignores_negative_values() {
 fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
     let (mut state, _skeleton, _recording) = setup();
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_animation_start(&mut state, 0.125);
     entry.set_animation_end(&mut state, 0.5);
     entry.set_track_time(&mut state, 0.25);
@@ -504,15 +537,14 @@ fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
         assert_eq!(round3(entry.animation_end()), 0.5);
         assert_eq!(round3(entry.track_time()), 0.25);
         assert_eq!(round3(entry.delay()), 0.375);
-    })
-    .expect("current entry");
+    });
 }
 
 #[test]
 fn track_entry_set_animation_preserves_animation_references() {
     let (mut state, _skeleton, _recording) = setup();
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     let mut unknown = state
         .data()
         .skeleton_data()
@@ -544,7 +576,7 @@ fn animation_state_set_and_add_preserve_animation_references() {
     let mut beta = data.animation("events1").unwrap().1.clone();
     beta.duration += 7.0;
 
-    let current = state.set_animation(0, &alpha, false).unwrap();
+    let current = state.set_animation_ref(0, &alpha, false);
     assert_eq!(
         current
             .with_entry(&state, |entry| entry.animation().name.clone())
@@ -558,7 +590,7 @@ fn animation_state_set_and_add_preserve_animation_references() {
         alpha.duration
     );
 
-    let queued = state.add_animation(0, &beta, true, 0.0).unwrap();
+    let queued = state.add_animation_ref(0, &beta, true, 0.0);
     assert_eq!(
         queued
             .with_entry(&state, |entry| entry.animation().name.clone())
@@ -579,7 +611,7 @@ fn animation_state_apply_returns_whether_any_track_was_applied() {
 
     assert!(!state.apply(&mut skeleton));
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_delay(&mut state, 0.25);
     assert!(!state.apply(&mut skeleton));
 
@@ -594,9 +626,9 @@ fn animation_state_current_returns_current_track_handle() {
     assert_eq!(state.current(0), None);
     assert!(state.tracks().is_empty());
 
-    let first = state.set_animation(0, "events0", false).unwrap();
-    state.add_animation(0, "events1", false, 0.0).unwrap();
-    let third = state.set_animation(2, "events2", false).unwrap();
+    let first = state.set_animation(0, "events0", false);
+    state.add_animation(0, "events1", false, 0.0);
+    let third = state.set_animation(2, "events2", false);
 
     assert_eq!(state.current(0), Some(first));
     assert_eq!(state.current(1), None);
@@ -616,7 +648,7 @@ fn animation_state_queue_can_be_disabled_until_next_drain_point() {
     });
 
     state.disable_queue();
-    state.set_animation(0, "events0", false).unwrap();
+    state.set_animation(0, "events0", false);
     assert!(recording.rows.borrow().is_empty());
 
     state.enable_queue();
@@ -638,23 +670,51 @@ fn animation_state_queue_can_be_disabled_until_next_drain_point() {
 #[test]
 fn animation_state_manual_track_entry_disposal_matches_cpp_lifetime_control() {
     let (mut auto_state, _skeleton, _recording) = setup();
-    let auto_entry = auto_state.set_animation(0, "events0", false).unwrap();
-    assert!(auto_state.track_entry_exists_for_tests(auto_entry));
+    let auto_entry = auto_state.set_animation(0, "events0", false);
+    assert!(auto_entry.animation_state(&auto_state).is_some());
 
     auto_state.clear_track(0);
-    assert!(!auto_state.track_entry_exists_for_tests(auto_entry));
+    assert!(auto_entry.animation_state(&auto_state).is_none());
 
     let (mut manual_state, _skeleton, _recording) = setup();
     assert!(!manual_state.manual_track_entry_disposal());
     manual_state.set_manual_track_entry_disposal(true);
     assert!(manual_state.manual_track_entry_disposal());
 
-    let manual_entry = manual_state.set_animation(0, "events0", false).unwrap();
+    let manual_entry = manual_state.set_animation(0, "events0", false);
     manual_state.clear_track(0);
-    assert!(manual_state.track_entry_exists_for_tests(manual_entry));
+    assert!(manual_entry.animation_state(&manual_state).is_some());
 
     manual_state.dispose_track_entry(manual_entry);
-    assert!(!manual_state.track_entry_exists_for_tests(manual_entry));
+    assert!(manual_entry.animation_state(&manual_state).is_none());
+}
+
+#[test]
+fn manual_disposal_disposes_a_single_entry_without_chain_cleanup() {
+    let (mut state, _skeleton, _recording) = setup();
+
+    state.set_manual_track_entry_disposal(true);
+    let first = state.set_animation(0, "events0", false);
+    let second = state.add_animation(0, "events1", false, 0.5);
+    let third = state.add_animation(0, "events2", false, 0.0);
+
+    state.clear_track(0);
+
+    assert!(second.animation_state(&state).is_some());
+    assert!(third.animation_state(&state).is_some());
+
+    state.dispose_track_entry(second);
+    assert!(second.animation_state(&state).is_none());
+    assert_eq!(second.previous(&state), None);
+    assert_eq!(second.next(&state), None);
+    assert_eq!(third.previous(&state), None);
+
+    state.dispose_track_entry(third);
+    assert!(third.animation_state(&state).is_none());
+    assert_eq!(third.previous(&state), None);
+    assert_eq!(third.next(&state), None);
+
+    assert!(first.animation_state(&state).is_some());
 }
 
 #[test]
@@ -663,18 +723,40 @@ fn track_entry_set_mix_duration_with_delay_adjusts_queued_delay() {
     let state_data = AnimationStateData::new(data);
     let mut state = AnimationState::new(state_data);
 
-    state.set_animation(0, "a", false).unwrap();
-    let queued = state.add_animation(0, "a", false, 0.0).unwrap();
+    state.set_animation(0, "a", false);
+    let queued = state.add_animation(0, "a", false, 0.0);
     queued.set_mix_duration_with_delay(&mut state, 0.4, 0.0);
 
     let delay = state
-        .queue_front_delay_for_tests(0)
-        .expect("queued entry delay");
+        .current(0)
+        .and_then(|entry| entry.next(&state))
+        .and_then(|entry| entry.with_entry(&state, |entry| entry.delay()))
+        .expect("queued animation");
     assert_eq!(round3(delay), 0.6);
 
     let mix_duration =
         with_queued_track_entry(&state, 0, 0, |entry| entry.mix_duration()).expect("queued entry");
     assert_eq!(round3(mix_duration), 0.4);
+}
+
+#[test]
+fn queued_negative_mix_duration_is_preserved_on_activation() {
+    let (mut state, _skeleton, _recording) = setup();
+    let mut skeleton = _skeleton;
+
+    state.set_animation(0, "events0", false);
+    let queued = state.add_animation(0, "events1", false, 0.0);
+    queued.set_mix_duration_with_delay(&mut state, -0.25, 0.0);
+
+    state.apply(&mut skeleton);
+    state.update(1.3);
+    state.apply(&mut skeleton);
+    state.update(0.0);
+
+    assert_eq!(
+        with_track_entry(&state, 0, |entry| entry.mix_duration()).unwrap(),
+        -0.25
+    );
 }
 
 #[test]
@@ -684,7 +766,7 @@ fn events_0p1_time_step() {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 2.0);
@@ -744,10 +826,10 @@ fn queue_events_uses_cpp_signed_track_last_remainder() {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", true).unwrap();
+    let entry = state.set_animation(0, "events0", true);
     entry.set_animation_start(&mut state, 0.2);
     entry.set_animation_end(&mut state, 0.8);
-    entry.set_track_time(&mut state, 0.6);
+    entry.set_track_time(&mut state, 1.0);
 
     state.apply(&mut skeleton);
 
@@ -760,14 +842,14 @@ fn queue_events_uses_cpp_signed_track_last_remainder() {
         },
         ResultRow {
             animation_name: "events0".into(),
-            name: "event 0".into(),
-            track_time: 0.6,
+            name: "event 14".into(),
+            track_time: 1.0,
             total_time: 0.0,
         },
         ResultRow {
             animation_name: "events0".into(),
             name: "complete".into(),
-            track_time: 0.6,
+            track_time: 1.0,
             total_time: 0.0,
         },
     ];
@@ -782,7 +864,7 @@ fn events_30_time_step() {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_track_end(&mut state, 1.0);
 
     recording.time.set(0.0);
@@ -852,7 +934,7 @@ fn physics_reset_timeline_uses_previous_animation_time() {
     let mut skeleton = Skeleton::new(data);
 
     skeleton.setup_pose();
-    state.set_animation(0, "run", false).unwrap();
+    state.set_animation(0, "run", false);
 
     state.update(0.75);
     state.apply(&mut skeleton);
@@ -941,7 +1023,7 @@ fn physics_reset_timelines_share_one_property_slot() {
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();
-    state.set_animation(0, "run2", false).unwrap();
+    state.set_animation(0, "run2", false);
     state.update(0.1);
     state.apply(&mut skeleton);
     assert!(skeleton.physics_constraints[0].reset);
@@ -954,7 +1036,7 @@ fn events_1_time_step() {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 1.0, 1.01);
@@ -1014,11 +1096,11 @@ fn dispose_queued_entries_and_run_1_over_60() {
         recording: recording.clone(),
     });
 
-    state.set_animation(0, "events0", false).unwrap();
-    state.add_animation(0, "events1", false, 0.0).unwrap();
-    state.add_animation(0, "events0", false, 0.0).unwrap();
-    state.add_animation(0, "events1", false, 0.0).unwrap();
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    state.set_animation(0, "events0", false);
+    state.add_animation(0, "events1", false, 0.0);
+    state.add_animation(0, "events0", false, 0.0);
+    state.add_animation(0, "events1", false, 0.0);
+    let entry = state.set_animation(0, "events0", false);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 1.0 / 60.0, 1.2);
@@ -1121,9 +1203,9 @@ fn interrupt_chain_delay_0() {
         recording: recording.clone(),
     });
 
-    state.set_animation(0, "events0", false).unwrap();
-    state.add_animation(0, "events1", false, 0.0).unwrap();
-    let entry = state.add_animation(0, "events0", false, 0.0).unwrap();
+    state.set_animation(0, "events0", false);
+    state.add_animation(0, "events1", false, 0.0);
+    let entry = state.add_animation(0, "events0", false, 0.0);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 4.0);
@@ -1279,8 +1361,8 @@ fn interrupt_with_delay() {
         recording: recording.clone(),
     });
 
-    state.set_animation(0, "events0", false).unwrap();
-    let entry = state.add_animation(0, "events1", false, 0.5).unwrap();
+    state.set_animation(0, "events0", false);
+    let entry = state.add_animation(0, "events1", false, 0.5);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 2.0);
@@ -1376,10 +1458,10 @@ fn interrupt_with_delay_and_mix_time() {
         recording: recording.clone(),
     });
 
-    state.data_mut().set_mix("events0", "events1", 0.7).unwrap();
+    state.data_mut().set_mix("events0", "events1", 0.7);
 
-    state.set_animation(0, "events0", true).unwrap();
-    let entry = state.add_animation(0, "events1", false, 0.9).unwrap();
+    state.set_animation(0, "events0", true);
+    let entry = state.add_animation(0, "events1", false, 0.9);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 2.0);
@@ -1483,8 +1565,8 @@ fn animation0_events_do_not_fire_during_mix() {
 
     state.data_mut().set_default_mix(0.7);
 
-    state.set_animation(0, "events0", false).unwrap();
-    let entry = state.add_animation(0, "events1", false, 0.4).unwrap();
+    state.set_animation(0, "events0", false);
+    let entry = state.add_animation(0, "events1", false, 0.4);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 1.5);
@@ -1580,11 +1662,11 @@ fn event_threshold_some_animation0_events_fire_during_mix() {
         recording: recording.clone(),
     });
 
-    state.data_mut().set_mix("events0", "events1", 0.7).unwrap();
+    state.data_mut().set_mix("events0", "events1", 0.7);
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_event_threshold(&mut state, 0.5);
-    let entry = state.add_animation(0, "events1", false, 0.4).unwrap();
+    let entry = state.add_animation(0, "events1", false, 0.4);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 2.0);
@@ -1680,13 +1762,13 @@ fn event_threshold_some_animation0_events_fire_during_mix() {
 }
 
 #[test]
-fn reverse_playback_does_not_queue_event_timeline_events_like_cpp() {
+fn reverse_playback_queues_event_timeline_events_like_cpp() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(RecordingListener {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_reverse(&mut state, true);
     recording.rows.borrow_mut().clear();
 
@@ -1696,8 +1778,9 @@ fn reverse_playback_does_not_queue_event_timeline_events_like_cpp() {
 
     let rows = recording.rows.borrow();
     let actual: Vec<_> = rows.iter().map(|row| row.name.as_str()).collect();
-    assert!(
-        actual.is_empty(),
+    assert_eq!(
+        actual,
+        vec!["event 30"],
         "reverse playback queued events: {actual:?}"
     );
 }
@@ -1709,9 +1792,9 @@ fn event_threshold_all_animation0_events_fire_during_mix() {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", true).unwrap();
+    let entry = state.set_animation(0, "events0", true);
     entry.set_event_threshold(&mut state, 1.0);
-    let entry = state.add_animation(0, "events1", false, 0.8).unwrap();
+    let entry = state.add_animation(0, "events1", false, 0.8);
     entry.set_mix_duration(&mut state, 0.7);
     entry.set_track_end(&mut state, 1.0);
 
@@ -1826,7 +1909,7 @@ fn looping() {
         recording: recording.clone(),
     });
 
-    state.set_animation(0, "events0", true).unwrap();
+    state.set_animation(0, "events0", true);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 4.01);
     state.clear_tracks();
@@ -1965,8 +2048,8 @@ fn not_looping_track_end_past_animation_duration() {
         recording: recording.clone(),
     });
 
-    state.set_animation(0, "events0", false).unwrap();
-    let entry = state.add_animation(0, "events1", false, 2.0).unwrap();
+    state.set_animation(0, "events0", false);
+    let entry = state.add_animation(0, "events1", false, 2.0);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 4.0);
@@ -2074,7 +2157,7 @@ fn interrupt_animation_after_first_loop_complete() {
         recording: recording.clone(),
     });
 
-    state.set_animation(0, "events0", true).unwrap();
+    state.set_animation(0, "events0", true);
 
     run_with_frame(
         &mut state,
@@ -2084,7 +2167,7 @@ fn interrupt_animation_after_first_loop_complete() {
         6.0,
         |time, state| {
             if (time - 1.4).abs() < 0.000001 {
-                let entry = state.add_animation(0, "events1", false, 0.0).unwrap();
+                let entry = state.add_animation(0, "events1", false, 0.0);
                 entry.set_track_end(state, 1.0);
             }
         },
@@ -2223,7 +2306,7 @@ fn add_animation_on_empty_track() {
         recording: recording.clone(),
     });
 
-    let entry = state.add_animation(0, "events0", false, 0.0).unwrap();
+    let entry = state.add_animation(0, "events0", false, 0.0);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 1.9);
@@ -2277,13 +2360,55 @@ fn add_animation_on_empty_track() {
 }
 
 #[test]
+fn negative_track_end_clears_when_track_last_passes_it() {
+    let (mut state, mut skeleton, recording) = setup();
+    state.set_listener(RecordingListener {
+        recording: recording.clone(),
+    });
+
+    let entry = state.set_animation(0, "events0", false);
+    entry.set_track_end(&mut state, -0.1);
+
+    run(&mut state, &mut skeleton, &recording, 0.1, 0.2);
+
+    let expected = vec![
+        ResultRow {
+            animation_name: "events0".into(),
+            name: "start".into(),
+            track_time: 0.0,
+            total_time: 0.0,
+        },
+        ResultRow {
+            animation_name: "events0".into(),
+            name: "event 0".into(),
+            track_time: 0.0,
+            total_time: 0.0,
+        },
+        ResultRow {
+            animation_name: "events0".into(),
+            name: "end".into(),
+            track_time: 0.0,
+            total_time: 0.1,
+        },
+        ResultRow {
+            animation_name: "events0".into(),
+            name: "dispose".into(),
+            track_time: 0.0,
+            total_time: 0.1,
+        },
+    ];
+
+    assert_eq!(*recording.rows.borrow(), expected);
+}
+
+#[test]
 fn end_time_beyond_non_looping_animation_duration() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(RecordingListener {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_track_end(&mut state, 9.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 10.0);
@@ -2340,7 +2465,7 @@ fn end_time_beyond_non_looping_animation_duration() {
 fn looping_animation_time_uses_cpp_fmod_semantics() {
     let (mut state, _skeleton, _recording) = setup();
 
-    let entry = state.set_animation(0, "events0", true).unwrap();
+    let entry = state.set_animation(0, "events0", true);
     entry.set_animation_start(&mut state, 0.2);
     entry.set_animation_end(&mut state, 0.8);
     entry.set_track_time(&mut state, 0.6);
@@ -2362,7 +2487,7 @@ fn looping_animation_time_uses_cpp_fmod_semantics() {
 fn looping_track_complete_uses_cpp_integer_truncation() {
     let (mut state, _skeleton, _recording) = setup();
 
-    let entry = state.set_animation(0, "events0", true).unwrap();
+    let entry = state.set_animation(0, "events0", true);
     entry.set_animation_start(&mut state, 0.2);
     entry.set_animation_end(&mut state, 0.8);
     entry.set_track_time(&mut state, -0.1);
@@ -2377,10 +2502,10 @@ fn looping_track_complete_uses_cpp_integer_truncation() {
 fn non_looping_animation_time_uses_cpp_exact_duration_comparison() {
     let (mut state, _skeleton, _recording) = setup();
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     let duration = entry
         .with_entry(&state, |entry| entry.animation().duration)
-        .unwrap();
+        .expect("current entry");
     let animation_end = duration - 0.000_000_5;
     entry.set_animation_end(&mut state, animation_end);
     entry.set_track_time(&mut state, duration + 0.1);
@@ -2392,13 +2517,31 @@ fn non_looping_animation_time_uses_cpp_exact_duration_comparison() {
 }
 
 #[test]
+fn non_looping_animation_time_clamps_to_animation_end_past_duration() {
+    let (mut state, _skeleton, _recording) = setup();
+
+    let entry = state.set_animation(0, "events0", false);
+    let duration = entry
+        .with_entry(&state, |entry| entry.animation().duration)
+        .expect("current entry");
+    let animation_end = duration + 0.25;
+    entry.set_animation_end(&mut state, animation_end);
+    entry.set_track_time(&mut state, duration + 0.5);
+
+    assert_eq!(
+        with_track_entry(&state, 0, |entry| round3(entry.animation_time())).unwrap(),
+        round3(animation_end)
+    );
+}
+
+#[test]
 fn non_looping_complete_uses_cpp_exact_boundary() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(RecordingListener {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_track_time(&mut state, 1.0 - 0.000_000_5);
     state.apply(&mut skeleton);
 
@@ -2429,7 +2572,7 @@ fn looping_complete_uses_cpp_exact_zero_duration_check() {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", true).unwrap();
+    let entry = state.set_animation(0, "events0", true);
     entry.set_animation_start(&mut state, 0.2);
     entry.set_animation_end(&mut state, 0.2 + 0.000_000_5);
     state.apply(&mut skeleton);
@@ -2444,13 +2587,33 @@ fn looping_complete_uses_cpp_exact_zero_duration_check() {
 }
 
 #[test]
+fn zero_duration_events_use_cpp_zero_split_semantics() {
+    let (mut state, mut skeleton, recording) = setup();
+    state.set_listener(RecordingListener {
+        recording: recording.clone(),
+    });
+
+    let entry = state.set_animation(0, "events0", true);
+    entry.set_animation_start(&mut state, 0.2);
+    entry.set_animation_end(&mut state, 0.2);
+    entry.set_track_time(&mut state, 0.0);
+    recording.rows.borrow_mut().clear();
+
+    state.apply(&mut skeleton);
+
+    let rows = recording.rows.borrow();
+    let event_names: Vec<_> = rows.iter().map(|row| row.name.as_str()).collect();
+    assert_eq!(event_names, vec!["complete"]);
+}
+
+#[test]
 fn looping_with_animation_start() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(RecordingListener {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", true).unwrap();
+    let entry = state.set_animation(0, "events0", true);
     entry.set_animation_last(&mut state, 0.6);
     entry.set_animation_start(&mut state, 0.6);
 
@@ -2525,7 +2688,7 @@ fn looping_with_animation_start_and_end() {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", true).unwrap();
+    let entry = state.set_animation(0, "events0", true);
     entry.set_animation_start(&mut state, 0.2);
     entry.set_animation_last(&mut state, 0.2);
     entry.set_animation_end(&mut state, 0.8);
@@ -2595,7 +2758,7 @@ fn non_looping_with_animation_start_and_end() {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", false).unwrap();
+    let entry = state.set_animation(0, "events0", false);
     entry.set_animation_start(&mut state, 0.2);
     entry.set_animation_last(&mut state, 0.2);
     entry.set_animation_end(&mut state, 0.8);
@@ -2646,13 +2809,13 @@ fn mix_out_looping_with_animation_start_and_end() {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", true).unwrap();
+    let entry = state.set_animation(0, "events0", true);
     entry.set_animation_start(&mut state, 0.2);
     entry.set_animation_last(&mut state, 0.2);
     entry.set_animation_end(&mut state, 0.8);
     entry.set_event_threshold(&mut state, 1.0);
 
-    let entry = state.add_animation(0, "events1", false, 0.7).unwrap();
+    let entry = state.add_animation(0, "events1", false, 0.7);
     entry.set_mix_duration(&mut state, 0.7);
     entry.set_track_end(&mut state, 1.0);
 
@@ -2761,7 +2924,7 @@ fn set_animation_with_track_entry_mix() {
         recording: recording.clone(),
     });
 
-    state.set_animation(0, "events0", true).unwrap();
+    state.set_animation(0, "events0", true);
 
     run_with_frame(
         &mut state,
@@ -2771,7 +2934,7 @@ fn set_animation_with_track_entry_mix() {
         2.1,
         |time, state| {
             if (time - 1.0).abs() < 0.000001 {
-                let entry = state.set_animation(0, "events1", false).unwrap();
+                let entry = state.set_animation(0, "events1", false);
                 entry.set_mix_duration(state, 0.7);
                 entry.set_track_end(state, 1.0);
             }
@@ -2887,8 +3050,8 @@ fn set_animation_twice() {
         recording: recording.clone(),
     });
 
-    state.set_animation(0, "events0", false).unwrap(); // First should be ignored.
-    state.set_animation(0, "events1", false).unwrap();
+    state.set_animation(0, "events0", false); // First should be ignored.
+    state.set_animation(0, "events1", false);
 
     run_with_frame(
         &mut state,
@@ -2898,8 +3061,8 @@ fn set_animation_twice() {
         1.9,
         |time, state| {
             if (time - 0.8).abs() < 0.000001 {
-                state.set_animation(0, "events0", false).unwrap(); // First should be ignored.
-                let entry = state.set_animation(0, "events2", false).unwrap();
+                state.set_animation(0, "events0", false); // First should be ignored.
+                let entry = state.set_animation(0, "events2", false);
                 entry.set_track_end(state, 1.0);
             }
         },
@@ -3046,8 +3209,8 @@ fn set_animation_twice_with_multiple_mixing() {
 
     state.data_mut().set_default_mix(0.6);
 
-    state.set_animation(0, "events0", false).unwrap(); // First should be ignored.
-    state.set_animation(0, "events1", false).unwrap();
+    state.set_animation(0, "events0", false); // First should be ignored.
+    state.set_animation(0, "events1", false);
 
     run_with_frame(
         &mut state,
@@ -3057,12 +3220,12 @@ fn set_animation_twice_with_multiple_mixing() {
         1.5,
         |time, state| {
             if (time - 0.2).abs() < 0.000001 {
-                state.set_animation(0, "events0", false).unwrap(); // First should be ignored.
-                state.set_animation(0, "events2", false).unwrap();
+                state.set_animation(0, "events0", false); // First should be ignored.
+                state.set_animation(0, "events2", false);
             }
             if (time - 0.4).abs() < 0.000001 {
-                state.set_animation(0, "events1", false).unwrap(); // First should be ignored.
-                let entry = state.set_animation(0, "events0", false).unwrap();
+                state.set_animation(0, "events1", false); // First should be ignored.
+                let entry = state.set_animation(0, "events0", false);
                 entry.set_track_end(state, 1.0);
             }
         },
@@ -3255,7 +3418,7 @@ fn add_animation_with_delay_on_empty_track() {
         recording: recording.clone(),
     });
 
-    let entry = state.add_animation(0, "events0", false, 5.0).unwrap();
+    let entry = state.add_animation(0, "events0", false, 5.0);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 10.0);
@@ -3312,8 +3475,8 @@ fn add_animation_with_delay_on_empty_track() {
 fn state_time_scale_scales_update_and_queue_progression() {
     let (mut state, mut skeleton, _recording) = setup();
 
-    state.set_animation(0, "events0", false).unwrap();
-    state.add_animation(0, "events1", false, 0.0).unwrap();
+    state.set_animation(0, "events0", false);
+    state.add_animation(0, "events1", false, 0.0);
     state.set_time_scale(0.5);
 
     for _ in 0..3 {
@@ -3337,7 +3500,7 @@ fn state_time_scale_scales_update_and_queue_progression() {
 fn update_accepts_negative_delta_like_cpp() {
     let (mut state, _skeleton, _recording) = setup();
 
-    state.set_animation(0, "events0", false).unwrap();
+    state.set_animation(0, "events0", false);
     state.update(1.0);
     state.update(-0.25);
 
@@ -3363,30 +3526,30 @@ fn set_animation_during_animation_state_listener() {
             match event {
                 AnimationStateEvent::Start => {
                     if entry.animation_name == "events0" {
-                        state.set_animation(1, "events1", false).unwrap();
+                        state.set_animation(1, "events1", false);
                     }
                 }
                 AnimationStateEvent::Interrupt => {
-                    state.add_animation(3, "events1", false, 0.0).unwrap();
+                    state.add_animation(3, "events1", false, 0.0);
                 }
                 AnimationStateEvent::End => {
                     if entry.animation_name == "events0" {
-                        state.set_animation(0, "events1", false).unwrap();
+                        state.set_animation(0, "events1", false);
                     }
                 }
                 AnimationStateEvent::Dispose => {
                     if entry.animation_name == "events0" {
-                        state.set_animation(1, "events1", false).unwrap();
+                        state.set_animation(1, "events1", false);
                     }
                 }
                 AnimationStateEvent::Complete => {
                     if entry.animation_name == "events0" {
-                        state.set_animation(1, "events1", false).unwrap();
+                        state.set_animation(1, "events1", false);
                     }
                 }
                 AnimationStateEvent::Event(_) => {
                     if entry.track_index != 2 {
-                        state.set_animation(2, "events1", false).unwrap();
+                        state.set_animation(2, "events1", false);
                     }
                 }
             }
@@ -3396,12 +3559,41 @@ fn set_animation_during_animation_state_listener() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(Reentrant);
 
-    state.add_animation(0, "events0", false, 0.0).unwrap();
-    state.add_animation(0, "events1", false, 0.0).unwrap();
-    let entry = state.set_animation(1, "events1", false).unwrap();
+    state.add_animation(0, "events0", false, 0.0);
+    state.add_animation(0, "events1", false, 0.0);
+    let entry = state.set_animation(1, "events1", false);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 2.0);
+}
+
+#[test]
+fn set_animation_discards_queued_entries_before_interrupt_like_cpp() {
+    let (mut state, _skeleton, recording) = setup();
+    state.set_listener(RecordingListener {
+        recording: recording.clone(),
+    });
+
+    state.set_animation(0, "events0", false);
+    state.add_animation(0, "events1", false, 0.0);
+    recording.rows.borrow_mut().clear();
+
+    state.set_animation(0, "events2", false);
+
+    let actual: Vec<_> = recording
+        .rows
+        .borrow()
+        .iter()
+        .map(|row| (row.animation_name.clone(), row.name.clone()))
+        .collect();
+    assert_eq!(
+        actual,
+        vec![
+            ("events1".into(), "dispose".into()),
+            ("events0".into(), "interrupt".into()),
+            ("events2".into(), "start".into()),
+        ]
+    );
 }
 
 #[test]
@@ -3411,7 +3603,7 @@ fn clear_track() {
         recording: recording.clone(),
     });
 
-    let entry = state.add_animation(0, "events0", false, 0.0).unwrap();
+    let entry = state.add_animation(0, "events0", false, 0.0);
     entry.set_track_end(&mut state, 1.0);
 
     run_with_frame(
@@ -3464,13 +3656,53 @@ fn clear_track() {
 }
 
 #[test]
+fn clear_track_disposes_queued_entries_before_mixing_from_like_cpp() {
+    let (mut state, mut skeleton, recording) = setup();
+    state.set_listener(RecordingListener {
+        recording: recording.clone(),
+    });
+
+    let first = state.set_animation(0, "events0", false);
+    let second = state.add_animation(0, "events1", false, 0.5);
+    second.set_mix_duration(&mut state, 0.5);
+    let _third = state.add_animation(0, "events2", false, 0.0);
+
+    state.update(0.6);
+    state.apply(&mut skeleton);
+    state.update(0.0);
+    recording.rows.borrow_mut().clear();
+
+    state.clear_track(0);
+
+    let actual: Vec<_> = recording
+        .rows
+        .borrow()
+        .iter()
+        .map(|row| (row.animation_name.clone(), row.name.clone()))
+        .collect();
+    assert_eq!(
+        actual,
+        vec![
+            ("events1".into(), "end".into()),
+            ("events1".into(), "dispose".into()),
+            ("events2".into(), "dispose".into()),
+            ("events0".into(), "end".into()),
+            ("events0".into(), "dispose".into()),
+        ],
+        "clear_track should drain queued disposals before mixing-from ends"
+    );
+
+    assert!(first.animation_state(&state).is_none());
+}
+
+#[test]
 fn set_empty_animation() {
     let (mut state, mut skeleton, recording) = setup();
     state.set_listener(RecordingListener {
         recording: recording.clone(),
     });
 
-    let entry = state.add_animation(0, "events0", false, 0.0).unwrap();
+    let entry = state.add_animation(0, "events0", false, 0.0);
     entry.set_track_end(&mut state, 1.0);
 
     run_with_frame(
@@ -3556,7 +3788,7 @@ fn set_empty_animation() {
 fn track_entry_official_query_helpers_and_loop_setter_follow_cpp_state() {
     let (mut state, mut skeleton, _recording) = setup();
 
-    let entry = state.set_animation(0, "events0", true).unwrap();
+    let entry = state.set_animation(0, "events0", true);
     with_track_entry(&state, 0, |entry| {
         assert!(entry.looped());
         assert!(!entry.is_complete());
@@ -3604,10 +3836,10 @@ fn track_entry_official_query_helpers_and_loop_setter_follow_cpp_state() {
 fn track_entry_queue_neighbors_follow_cpp_previous_next_chain() {
     let (mut state, mut skeleton, _recording) = setup();
 
-    let first = state.set_animation(0, "events0", false).unwrap();
-    let second = state.add_animation(0, "events1", false, 0.5).unwrap();
+    let first = state.set_animation(0, "events0", false);
+    let second = state.add_animation(0, "events1", false, 0.5);
     second.set_mix_duration(&mut state, 0.5);
-    let third = state.add_animation(0, "events2", false, 0.0).unwrap();
+    let third = state.add_animation(0, "events2", false, 0.0);
 
     assert_eq!(first.previous(&state), None);
     assert_eq!(first.next(&state), Some(second));
@@ -3625,7 +3857,7 @@ fn track_entry_queue_neighbors_follow_cpp_previous_next_chain() {
     assert!(first.is_next_ready(&state));
 
     state.update(0.0);
-    assert_eq!(first.next(&state), Some(second));
+    assert_eq!(first.next(&state), None);
     assert_eq!(second.previous(&state), None);
     assert_eq!(second.next(&state), Some(third));
     assert_eq!(third.previous(&state), Some(second));
@@ -3637,19 +3869,18 @@ fn track_entry_queue_neighbors_follow_cpp_previous_next_chain() {
 fn set_empty_animations_sets_empty_entries_for_active_tracks() {
     let (mut state, _skeleton, _recording) = setup();
 
-    state.set_animation(0, "events0", true).unwrap();
-    state.add_animation(0, "events1", true, 0.0).unwrap();
-    state.set_animation(2, "events2", true).unwrap();
+    state.set_animation(0, "events0", true);
+    state.add_animation(0, "events1", true, 0.0);
+    state.set_animation(2, "events2", true);
 
     state.set_empty_animations(0.4);
 
-    assert_eq!(state.queue_front_delay_for_tests(0), None);
+    assert!(state.current(0).unwrap().next(&state).is_none());
     with_track_entry(&state, 0, |entry| {
         assert_eq!(entry.animation().name, "<empty>");
         assert_eq!(entry.mix_duration(), 0.4);
         assert_eq!(entry.track_end(), 0.4);
-    })
-    .unwrap();
+    });
     assert!(with_track_entry(&state, 1, |_| ()).is_none());
     with_track_entry(&state, 2, |entry| {
         assert_eq!(entry.animation().name, "<empty>");
@@ -3672,7 +3903,7 @@ fn set_empty_animations_is_noop_without_active_tracks() {
 fn set_empty_animations_stores_mix_duration_directly() {
     let (mut state, _skeleton, _recording) = setup();
 
-    state.set_animation(0, "events0", true).unwrap();
+    state.set_animation(0, "events0", true);
 
     state.set_empty_animations(-0.1);
     assert_eq!(
@@ -3685,6 +3916,40 @@ fn set_empty_animations_stores_mix_duration_directly() {
         with_track_entry(&state, 0, |entry| entry.mix_duration()).unwrap(),
         f32::INFINITY
     );
+}
+
+#[test]
+fn set_animation_same_animation_with_negative_track_time_still_mixes_from_applied_entry() {
+    let (mut state, mut skeleton, _recording) = setup();
+
+    let first = state.set_animation(0, "events0", false);
+    state.apply(&mut skeleton);
+
+    first.set_track_time(&mut state, -0.1);
+
+    let second = state.set_animation(0, "events0", false);
+
+    assert_eq!(second.mixing_from(&state), Some(first));
+    assert!(first.next(&state).is_none());
+}
+
+#[test]
+fn set_animation_same_unapplied_animation_replaces_without_mixing_like_cpp() {
+    let (mut state, _skeleton, recording) = setup();
+    state.set_listener(RecordingListener {
+        recording: recording.clone(),
+    });
+
+    let first = state.set_animation(0, "events0", false);
+    recording.rows.borrow_mut().clear();
+
+    let second = state.set_animation(0, "events0", false);
+
+    assert_eq!(second.mixing_from(&state), None);
+    assert!(first.animation_state(&state).is_none());
+    let rows = recording.rows.borrow();
+    let events = rows.iter().map(|row| row.name.as_str()).collect::<Vec<_>>();
+    assert_eq!(events, vec!["interrupt", "end", "dispose", "start"]);
 }
 
 #[test]
@@ -3716,7 +3981,7 @@ fn track_entry_listener() {
     let (mut state, mut skeleton, recording) = setup();
     let counter = Rc::new(Cell::new(0));
 
-    let entry = state.add_animation(0, "events0", false, 0.0).unwrap();
+    let entry = state.add_animation(0, "events0", false, 0.0);
     entry.set_listener(
         &mut state,
         Bits {
@@ -3724,9 +3989,9 @@ fn track_entry_listener() {
         },
     );
 
-    state.add_animation(0, "events0", false, 0.0).unwrap();
-    state.add_animation(0, "events1", false, 0.0).unwrap();
-    let entry = state.set_animation(1, "events1", false).unwrap();
+    state.add_animation(0, "events0", false, 0.0);
+    state.add_animation(0, "events1", false, 0.0);
+    let entry = state.set_animation(1, "events1", false);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 10.0);
@@ -3741,7 +4006,7 @@ fn looping_with_track_end_2p6() {
         recording: recording.clone(),
     });
 
-    let entry = state.set_animation(0, "events0", true).unwrap();
+    let entry = state.set_animation(0, "events0", true);
     entry.set_track_end(&mut state, 2.6);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 3.0);
@@ -3837,8 +4102,8 @@ fn set_next() {
         recording: recording.clone(),
     });
 
-    state.set_animation(0, "events0", false).unwrap();
-    let entry = state.add_animation(0, "events1", false, 0.0).unwrap();
+    state.set_animation(0, "events0", false);
+    let entry = state.add_animation(0, "events1", false, 0.0);
     entry.set_track_end(&mut state, 1.0);
 
     run(&mut state, &mut skeleton, &recording, 0.1, 3.0);

@@ -1,20 +1,16 @@
 use super::animation::{
-    ANIMATION_STATE_SETUP, MixFrom, RotateTimelineState, StateTimelineApply, apply_state_timeline,
+    ANIMATION_STATE_SETUP, MixFrom, MixInterpolation, RotateTimelineState, StateTimelineApply,
+    apply_state_timeline,
 };
-use crate::{
-    Animation, Error, Event, MixBlend, MixDirection, Skeleton, SkeletonData, TimelineKind,
-};
-use std::borrow::Cow;
-use std::cell::Cell;
-use std::collections::{HashMap, HashSet, VecDeque};
+use crate::model::TimelineKind;
+use crate::runtime::{MixBlend, MixDirection};
+use crate::{Animation, Event, Skeleton, SkeletonData};
+use std::collections::{HashMap, VecDeque};
 use std::sync::{
     Arc,
     atomic::{AtomicU64, Ordering},
 };
 
-const TIME_EPSILON: f32 = 1e-6;
-const EMPTY_ANIMATION_INDEX: usize = usize::MAX;
-const UNKNOWN_ANIMATION_INDEX: usize = usize::MAX - 1;
 const EMPTY_ANIMATION_ID: u64 = u64::MAX;
 const EMPTY_ANIMATION_NAME: &str = "<empty>";
 static NEXT_STATE_ID: AtomicU64 = AtomicU64::new(1);
@@ -64,8 +60,6 @@ const PROPERTY_ALPHA: u64 = 1 << 9;
 const PROPERTY_RGB2: u64 = 1 << 10;
 const PROPERTY_ATTACHMENT: u64 = 1 << 11;
 const PROPERTY_DEFORM: u64 = 1 << 12;
-#[allow(dead_code)]
-const PROPERTY_EVENT: u64 = 1 << 13;
 const PROPERTY_DRAW_ORDER: u64 = 1 << 14;
 const PROPERTY_IK_CONSTRAINT: u64 = 1 << 15;
 const PROPERTY_TRANSFORM_CONSTRAINT: u64 = 1 << 16;
@@ -79,7 +73,6 @@ const PROPERTY_PHYSICS_CONSTRAINT_MASS: u64 = 1 << 23;
 const PROPERTY_PHYSICS_CONSTRAINT_WIND: u64 = 1 << 24;
 const PROPERTY_PHYSICS_CONSTRAINT_GRAVITY: u64 = 1 << 25;
 const PROPERTY_PHYSICS_CONSTRAINT_MIX: u64 = 1 << 26;
-#[allow(dead_code)]
 const PROPERTY_PHYSICS_CONSTRAINT_RESET: u64 = 1 << 27;
 const PROPERTY_SEQUENCE: u64 = 1 << 28;
 const PROPERTY_SLIDER_TIME: u64 = 1 << 29;
@@ -197,38 +190,6 @@ fn timeline_kind_instant(animation: &Animation, kind: TimelineKind) -> bool {
         | TimelineKind::SliderTime(_)
         | TimelineKind::SliderMix(_) => false,
     }
-}
-
-fn entry_additive_blend(blend: MixBlend, entry_additive: bool) -> MixBlend {
-    if entry_additive && blend != MixBlend::Setup {
-        MixBlend::Add
-    } else {
-        blend
-    }
-}
-
-fn timeline_mode_blend(mode: TimelineMode, current_blend: MixBlend) -> MixBlend {
-    match mode {
-        TimelineMode::Current => current_blend,
-        TimelineMode::Setup => MixBlend::Setup,
-        TimelineMode::First => MixBlend::First,
-    }
-}
-
-fn timeline_mode_from(mode: TimelineMode) -> MixFrom {
-    match mode {
-        TimelineMode::Current => MixFrom::Current,
-        TimelineMode::Setup => MixFrom::Setup,
-        TimelineMode::First => MixFrom::First,
-    }
-}
-
-fn draw_order_timeline_out(draw_order: bool, from: TimelineMode) -> Option<bool> {
-    if !draw_order && from == TimelineMode::Current {
-        return None;
-    }
-
-    Some(!draw_order || from == TimelineMode::Current)
 }
 
 fn timeline_property_ids(
@@ -391,22 +352,27 @@ fn timeline_property_ids(
     }
 }
 
-fn animation_has_any_property(data: &SkeletonData, animation: &Animation, ids: &[u64]) -> bool {
+fn animation_timeline_order(animation: &Animation) -> &[TimelineKind] {
+    animation.timeline_order()
+}
+
+fn animation_has_any_timeline_property(
+    data: &SkeletonData,
+    animation: &Animation,
+    ids: &[u64],
+) -> bool {
     if ids.is_empty() {
         return false;
     }
-    let want: HashSet<u64> = ids.iter().copied().collect();
+
     for kind in animation_timeline_order(animation).iter().copied() {
         let props = timeline_property_ids(data, animation, kind);
-        if props.iter().any(|p| want.contains(p)) {
+        if props.iter().any(|p| ids.contains(p)) {
             return true;
         }
     }
-    false
-}
 
-fn animation_timeline_order(animation: &Animation) -> &[TimelineKind] {
-    animation.timeline_order.as_slice()
+    false
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -449,20 +415,17 @@ impl AnimationStateData {
         self.default_mix = duration;
     }
 
-    pub fn set_mix(&mut self, from: &str, to: &str, duration: f32) -> Result<(), Error> {
-        self.skeleton_data
-            .animation(from)
-            .ok_or_else(|| Error::UnknownAnimation {
-                name: from.to_string(),
-            })?;
-        self.skeleton_data
-            .animation(to)
-            .ok_or_else(|| Error::UnknownAnimation {
-                name: to.to_string(),
-            })?;
+    pub fn set_mix(&mut self, from: &str, to: &str, duration: f32) {
+        assert!(
+            self.skeleton_data.animation(from).is_some(),
+            "unknown animation: {from}"
+        );
+        assert!(
+            self.skeleton_data.animation(to).is_some(),
+            "unknown animation: {to}"
+        );
         self.mixes
             .insert((from.to_string(), to.to_string()), duration);
-        Ok(())
     }
 
     pub fn set_mix_animation(&mut self, from: &Animation, to: &Animation, duration: f32) {
@@ -489,20 +452,19 @@ impl AnimationStateData {
 
 pub struct TrackEntry {
     track_index: usize,
-    animation_index: usize,
     animation_identity: u64,
     animation: Animation,
     looped: bool,
-    hold_previous: bool,
-    mix_blend: MixBlend,
+    additive: bool,
     reverse: bool,
     shortest_rotation: bool,
-    keep_hold: bool,
 
     animation_start: f32,
     animation_end: f32,
     mix_duration: f32,
     mix_time: f32,
+    mix_interpolation: MixInterpolation,
+    keep_hold: bool,
     previous: Option<EntryId>,
     next: Option<EntryId>,
     mixing_from: Option<EntryId>,
@@ -535,12 +497,10 @@ impl std::fmt::Debug for TrackEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TrackEntry")
             .field("track_index", &self.track_index)
-            .field("animation_index", &self.animation_index)
             .field("animation_identity", &self.animation_identity)
             .field("animation", &self.animation)
             .field("looped", &self.looped)
-            .field("hold_previous", &self.hold_previous)
-            .field("mix_blend", &self.mix_blend)
+            .field("additive", &self.additive)
             .field("reverse", &self.reverse)
             .field("shortest_rotation", &self.shortest_rotation)
             .field("animation_start", &self.animation_start)
@@ -564,7 +524,6 @@ impl std::fmt::Debug for TrackEntry {
 impl TrackEntry {
     fn new(
         track_index: usize,
-        animation_index: usize,
         animation_identity: u64,
         animation: &Animation,
         looped: bool,
@@ -572,19 +531,18 @@ impl TrackEntry {
         let track_end = f32::INFINITY;
         Self {
             track_index,
-            animation_index,
             animation_identity,
             animation: animation.clone(),
             looped,
-            hold_previous: false,
-            mix_blend: MixBlend::Replace,
+            additive: false,
             reverse: false,
             shortest_rotation: false,
-            keep_hold: false,
             animation_start: 0.0,
             animation_end: animation.duration,
             mix_duration: 0.0,
             mix_time: 0.0,
+            mix_interpolation: MixInterpolation::default(),
+            keep_hold: false,
             previous: None,
             next: None,
             mixing_from: None,
@@ -622,6 +580,10 @@ impl TrackEntry {
         self.looped
     }
 
+    pub fn additive(&self) -> bool {
+        self.additive
+    }
+
     pub fn is_complete(&self) -> bool {
         self.track_time >= self.animation_end - self.animation_start
     }
@@ -632,14 +594,6 @@ impl TrackEntry {
 
     pub fn is_empty_animation(&self) -> bool {
         self.animation_identity == EMPTY_ANIMATION_ID
-    }
-
-    pub fn hold_previous(&self) -> bool {
-        self.hold_previous
-    }
-
-    pub fn mix_blend(&self) -> MixBlend {
-        self.mix_blend
     }
 
     pub fn reverse(&self) -> bool {
@@ -686,6 +640,10 @@ impl TrackEntry {
         self.mix_time
     }
 
+    pub fn mix_interpolation(&self) -> MixInterpolation {
+        self.mix_interpolation
+    }
+
     pub fn alpha(&self) -> f32 {
         self.alpha
     }
@@ -714,12 +672,7 @@ impl TrackEntry {
             }
             self.track_time % duration + self.animation_start
         } else {
-            let animation_time = self.track_time + self.animation_start;
-            if self.animation_end >= self.animation.duration {
-                animation_time
-            } else {
-                animation_time.min(self.animation_end)
-            }
+            (self.track_time + self.animation_start).min(self.animation_end)
         }
     }
 
@@ -736,13 +689,28 @@ impl TrackEntry {
         self.track_time
     }
 
-    fn mix_percent(&self) -> f32 {
+    pub(crate) fn mix_percent(&self) -> f32 {
         if self.mix_duration == 0.0 {
             return 1.0;
         }
 
         let mix = self.mix_time / self.mix_duration;
-        if mix > 1.0 { 1.0 } else { mix }
+        if mix >= 1.0 {
+            return 1.0;
+        }
+
+        if self.mix_interpolation == MixInterpolation::Linear {
+            return mix;
+        }
+
+        let mix = self.mix_interpolation.apply(mix);
+        if mix < 0.0 {
+            0.0
+        } else if mix > 1.0 {
+            1.0
+        } else {
+            mix
+        }
     }
 }
 
@@ -770,6 +738,7 @@ impl TrackEntryHandle {
         state
             .entry_for_handle(*self)
             .and_then(|entry| entry.mixing_from)
+            .filter(|id| state.entry(*id).is_some())
             .map(|id| state.handle(id))
     }
 
@@ -777,6 +746,7 @@ impl TrackEntryHandle {
         state
             .entry_for_handle(*self)
             .and_then(|entry| entry.mixing_to)
+            .filter(|id| state.entry(*id).is_some())
             .map(|id| state.handle(id))
     }
 
@@ -784,6 +754,7 @@ impl TrackEntryHandle {
         state
             .entry_for_handle(*self)
             .and_then(|entry| entry.previous)
+            .filter(|id| state.entry(*id).is_some())
             .map(|id| state.handle(id))
     }
 
@@ -791,6 +762,7 @@ impl TrackEntryHandle {
         state
             .entry_for_handle(*self)
             .and_then(|entry| entry.next)
+            .filter(|id| state.entry(*id).is_some())
             .map(|id| state.handle(id))
     }
 
@@ -808,9 +780,13 @@ impl TrackEntryHandle {
     }
 
     fn with_entry_mut(&self, state: &mut AnimationState, f: impl FnOnce(&mut TrackEntry)) {
-        if let Some(entry) = state.entry_for_handle_mut(*self) {
-            f(entry);
+        if self.state_id != state.state_id {
+            return;
         }
+        let Some(entry) = state.entry_mut(self.id) else {
+            return;
+        };
+        f(entry);
     }
 
     pub fn set_listener<L: TrackEntryListener + 'static>(
@@ -830,15 +806,8 @@ impl TrackEntryHandle {
     }
 
     pub fn set_animation(&self, state: &mut AnimationState, animation: &Animation) {
-        let animation_index = state
-            .data
-            .skeleton_data()
-            .animation(&animation.name)
-            .map(|(animation_index, _)| animation_index)
-            .unwrap_or(UNKNOWN_ANIMATION_INDEX);
         self.with_entry_mut(state, |entry| {
             entry.animation_identity = animation_identity(animation);
-            entry.animation_index = animation_index;
             entry.animation = animation.clone();
         });
     }
@@ -870,6 +839,12 @@ impl TrackEntryHandle {
         });
     }
 
+    pub fn set_additive(&self, state: &mut AnimationState, additive: bool) {
+        self.with_entry_mut(state, |entry| {
+            entry.additive = additive;
+        });
+    }
+
     pub fn set_mix_duration(&self, state: &mut AnimationState, mix_duration: f32) {
         self.with_entry_mut(state, |entry| {
             entry.mix_duration = mix_duration;
@@ -882,13 +857,25 @@ impl TrackEntryHandle {
         });
     }
 
+    pub fn set_mix_interpolation(
+        &self,
+        state: &mut AnimationState,
+        mix_interpolation: MixInterpolation,
+    ) {
+        self.with_entry_mut(state, |entry| {
+            entry.mix_interpolation = mix_interpolation;
+        });
+    }
+
     pub fn set_mix_duration_with_delay(
         &self,
         state: &mut AnimationState,
         mix_duration: f32,
         delay: f32,
     ) {
-        let previous = state.previous_entry_for(self.id);
+        let previous = state
+            .entry_for_handle(*self)
+            .and_then(|entry| entry.previous);
         let resolved_delay = if delay > 0.0 {
             delay
         } else if delay <= 0.0 {
@@ -903,18 +890,6 @@ impl TrackEntryHandle {
         self.with_entry_mut(state, |entry| {
             entry.mix_duration = mix_duration;
             entry.delay = resolved_delay;
-        });
-    }
-
-    pub fn set_mix_blend(&self, state: &mut AnimationState, mix_blend: MixBlend) {
-        self.with_entry_mut(state, |entry| {
-            entry.mix_blend = mix_blend;
-        });
-    }
-
-    pub fn set_hold_previous(&self, state: &mut AnimationState, hold_previous: bool) {
-        self.with_entry_mut(state, |entry| {
-            entry.hold_previous = hold_previous;
         });
     }
 
@@ -986,219 +961,6 @@ impl TrackEntryHandle {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct TrackEntrySettings {
-    pub track_end: Option<f32>,
-    pub delay: Option<f32>,
-    pub time_scale: Option<f32>,
-    pub looped: Option<bool>,
-    pub mix_duration: Option<f32>,
-    pub mix_blend: Option<MixBlend>,
-    pub hold_previous: Option<bool>,
-    pub alpha: Option<f32>,
-    pub reverse: Option<bool>,
-    pub shortest_rotation: Option<bool>,
-    pub reset_rotation_directions: bool,
-    pub alpha_attachment_threshold: Option<f32>,
-    pub mix_attachment_threshold: Option<f32>,
-    pub mix_draw_order_threshold: Option<f32>,
-    pub event_threshold: Option<f32>,
-    pub animation_start: Option<f32>,
-    pub animation_end: Option<f32>,
-    pub animation_last: Option<f32>,
-}
-
-#[derive(Clone, Debug)]
-pub enum TrackAnimationInput<'a> {
-    Name(Cow<'a, str>),
-    Animation(&'a Animation),
-}
-
-impl<'a> From<&'a str> for TrackAnimationInput<'a> {
-    fn from(value: &'a str) -> Self {
-        Self::Name(Cow::Borrowed(value))
-    }
-}
-
-impl<'a> From<&'a String> for TrackAnimationInput<'a> {
-    fn from(value: &'a String) -> Self {
-        Self::Name(Cow::Borrowed(value.as_str()))
-    }
-}
-
-impl<'a> From<String> for TrackAnimationInput<'a> {
-    fn from(value: String) -> Self {
-        Self::Name(Cow::Owned(value))
-    }
-}
-
-impl<'a> From<&'a Animation> for TrackAnimationInput<'a> {
-    fn from(value: &'a Animation) -> Self {
-        Self::Animation(value)
-    }
-}
-
-impl TrackEntrySettings {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn with_track_end(mut self, track_end: f32) -> Self {
-        self.track_end = Some(track_end);
-        self
-    }
-
-    pub fn with_delay(mut self, delay: f32) -> Self {
-        self.delay = Some(delay);
-        self
-    }
-
-    pub fn with_time_scale(mut self, time_scale: f32) -> Self {
-        self.time_scale = Some(time_scale);
-        self
-    }
-
-    pub fn with_looped(mut self, looped: bool) -> Self {
-        self.looped = Some(looped);
-        self
-    }
-
-    pub fn with_mix_duration(mut self, mix_duration: f32) -> Self {
-        self.mix_duration = Some(mix_duration);
-        self
-    }
-
-    pub fn with_mix_blend(mut self, mix_blend: MixBlend) -> Self {
-        self.mix_blend = Some(mix_blend);
-        self
-    }
-
-    pub fn with_hold_previous(mut self, hold_previous: bool) -> Self {
-        self.hold_previous = Some(hold_previous);
-        self
-    }
-
-    pub fn with_alpha(mut self, alpha: f32) -> Self {
-        self.alpha = Some(alpha);
-        self
-    }
-
-    pub fn with_reverse(mut self, reverse: bool) -> Self {
-        self.reverse = Some(reverse);
-        self
-    }
-
-    pub fn with_shortest_rotation(mut self, shortest_rotation: bool) -> Self {
-        self.shortest_rotation = Some(shortest_rotation);
-        self
-    }
-
-    pub fn with_reset_rotation_directions(mut self) -> Self {
-        self.reset_rotation_directions = true;
-        self
-    }
-
-    pub fn with_alpha_attachment_threshold(mut self, threshold: f32) -> Self {
-        self.alpha_attachment_threshold = Some(threshold);
-        self
-    }
-
-    pub fn with_mix_attachment_threshold(mut self, threshold: f32) -> Self {
-        self.mix_attachment_threshold = Some(threshold);
-        self
-    }
-
-    pub fn with_mix_draw_order_threshold(mut self, threshold: f32) -> Self {
-        self.mix_draw_order_threshold = Some(threshold);
-        self
-    }
-
-    pub fn with_event_threshold(mut self, threshold: f32) -> Self {
-        self.event_threshold = Some(threshold);
-        self
-    }
-
-    pub fn with_animation_start(mut self, animation_start: f32) -> Self {
-        self.animation_start = Some(animation_start);
-        self
-    }
-
-    pub fn with_animation_end(mut self, animation_end: f32) -> Self {
-        self.animation_end = Some(animation_end);
-        self
-    }
-
-    pub fn with_animation_last(mut self, animation_last: f32) -> Self {
-        self.animation_last = Some(animation_last);
-        self
-    }
-
-    pub fn apply(&self, state: &mut AnimationState, handle: TrackEntryHandle) {
-        if let Some(track_end) = self.track_end {
-            handle.set_track_end(state, track_end);
-        }
-
-        match (self.mix_duration, self.delay) {
-            (Some(mix_duration), Some(delay)) => {
-                handle.set_mix_duration_with_delay(state, mix_duration, delay);
-            }
-            (Some(mix_duration), None) => {
-                handle.set_mix_duration(state, mix_duration);
-            }
-            (None, Some(delay)) => {
-                handle.set_delay(state, delay);
-            }
-            (None, None) => {}
-        }
-
-        if let Some(time_scale) = self.time_scale {
-            handle.set_time_scale(state, time_scale);
-        }
-        if let Some(looped) = self.looped {
-            handle.set_loop(state, looped);
-        }
-        if let Some(mix_blend) = self.mix_blend {
-            handle.set_mix_blend(state, mix_blend);
-        }
-        if let Some(hold_previous) = self.hold_previous {
-            handle.set_hold_previous(state, hold_previous);
-        }
-        if let Some(alpha) = self.alpha {
-            handle.set_alpha(state, alpha);
-        }
-        if let Some(reverse) = self.reverse {
-            handle.set_reverse(state, reverse);
-        }
-        if let Some(shortest_rotation) = self.shortest_rotation {
-            handle.set_shortest_rotation(state, shortest_rotation);
-        }
-        if self.reset_rotation_directions {
-            handle.reset_rotation_directions(state);
-        }
-        if let Some(threshold) = self.alpha_attachment_threshold {
-            handle.set_alpha_attachment_threshold(state, threshold);
-        }
-        if let Some(threshold) = self.mix_attachment_threshold {
-            handle.set_mix_attachment_threshold(state, threshold);
-        }
-        if let Some(threshold) = self.mix_draw_order_threshold {
-            handle.set_mix_draw_order_threshold(state, threshold);
-        }
-        if let Some(threshold) = self.event_threshold {
-            handle.set_event_threshold(state, threshold);
-        }
-        if let Some(animation_start) = self.animation_start {
-            handle.set_animation_start(state, animation_start);
-        }
-        if let Some(animation_end) = self.animation_end {
-            handle.set_animation_end(state, animation_end);
-        }
-        if let Some(animation_last) = self.animation_last {
-            handle.set_animation_last(state, animation_last);
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct TrackEntrySnapshot {
     pub track_index: usize,
@@ -1210,8 +972,8 @@ pub struct TrackEntrySnapshot {
     pub mix_duration: f32,
     pub mix_time: f32,
     pub alpha: f32,
-    pub hold_previous: bool,
-    pub mix_blend: MixBlend,
+    pub additive: bool,
+    pub mix_interpolation: MixInterpolation,
     pub reverse: bool,
 }
 
@@ -1262,7 +1024,6 @@ pub struct AnimationState {
     entries: Vec<EntrySlot>,
     free_list: Vec<usize>,
     event_queue: VecDeque<QueuedEvent>,
-    time: Cell<f32>,
     time_scale: f32,
     listener: Option<Box<dyn AnimationStateListener>>,
     draining_events: bool,
@@ -1282,7 +1043,6 @@ impl AnimationState {
             entries: Vec::new(),
             free_list: Vec::new(),
             event_queue: VecDeque::new(),
-            time: Cell::new(0.0),
             time_scale: 1.0,
             listener: None,
             draining_events: false,
@@ -1357,17 +1117,6 @@ impl AnimationState {
         self.entry(handle.id)
     }
 
-    fn entry_for_handle_mut(&mut self, handle: TrackEntryHandle) -> Option<&mut TrackEntry> {
-        if handle.state_id != self.state_id {
-            return None;
-        }
-        self.entry_mut(handle.id)
-    }
-
-    fn previous_entry_for(&self, entry_id: EntryId) -> Option<EntryId> {
-        self.entry(entry_id).and_then(|entry| entry.previous)
-    }
-
     fn compute_mix_from(
         &mut self,
         track_id: EntryId,
@@ -1408,7 +1157,6 @@ impl AnimationState {
 
     fn animations_changed(&mut self) {
         self.animations_changed = false;
-        self.property_ids.clear();
 
         let current_ids = self
             .tracks
@@ -1432,21 +1180,23 @@ impl AnimationState {
                 self.compute_hold(id, track_id);
             }
         }
+
+        self.property_ids.clear();
     }
 
     fn compute_hold(&mut self, entry_id: EntryId, track_id: EntryId) {
-        let (animation, to_id, keep_hold, previous_timeline_mode) = match self.entry(entry_id) {
-            Some(entry) => (
-                entry.animation.clone(),
-                entry.mixing_to,
-                entry.keep_hold,
-                entry.timeline_mode.clone(),
-            ),
-            None => return,
-        };
-        let to_hold_previous = to_id
-            .and_then(|id| self.entry(id).map(|entry| entry.hold_previous))
-            .unwrap_or(false);
+        let (animation, to_id, entry_additive, keep_hold, previous_timeline_mode) =
+            match self.entry(entry_id) {
+                Some(entry) => (
+                    entry.animation.clone(),
+                    entry.mixing_to,
+                    entry.additive,
+                    entry.keep_hold,
+                    entry.timeline_mode.clone(),
+                ),
+                None => return,
+            };
+        let skeleton_data = self.data.skeleton_data.clone();
 
         let kinds = animation_timeline_order(&animation).to_vec();
         let mut timeline_mode = vec![
@@ -1459,79 +1209,64 @@ impl AnimationState {
         let mut timeline_hold_mix = vec![None; kinds.len()];
 
         for (i, kind) in kinds.iter().copied().enumerate() {
-            let ids = timeline_property_ids(&self.data.skeleton_data, &animation, kind);
+            let ids = timeline_property_ids(skeleton_data.as_ref(), &animation, kind);
             let mix_from = self.compute_mix_from(track_id, kind, &ids);
-            if to_hold_previous {
-                timeline_mode[i].from = if mix_from == TimelineMode::Setup {
-                    TimelineMode::Setup
-                } else {
-                    TimelineMode::Current
-                };
-                timeline_mode[i].hold = true;
-                continue;
-            }
             timeline_mode[i].from = mix_from;
 
-            let Some(to_id) = to_id else {
-                continue;
-            };
-
-            if timeline_kind_instant(&animation, kind) {
-                continue;
-            }
-
             let timeline_additive = timeline_kind_additive(&animation, kind);
-            let entry_additive = self
-                .entry(entry_id)
-                .is_some_and(|e| e.mix_blend == MixBlend::Add);
             if entry_additive && timeline_additive {
                 continue;
             }
 
-            let to_holds_property = match self.entry(to_id) {
-                Some(to) => {
-                    !(to.mix_blend == MixBlend::Add && timeline_additive)
-                        && animation_has_any_property(&self.data.skeleton_data, &to.animation, &ids)
-                }
-                None => {
-                    continue;
-                }
-            };
-
-            if !to_holds_property {
-                continue;
-            }
-
-            let mut next = self.entry(to_id).and_then(|e| e.mixing_to);
-            let mut hold_mix = None;
-            while let Some(next_id) = next {
-                let Some(next_entry) = self.entry(next_id) else {
-                    break;
+            if let Some(to_id) = to_id
+                && !timeline_kind_instant(&animation, kind)
+            {
+                let to_holds_property = match self.entry(to_id) {
+                    Some(to) => {
+                        !(to.additive && timeline_additive)
+                            && animation_has_any_timeline_property(
+                                skeleton_data.as_ref(),
+                                &to.animation,
+                                &ids,
+                            )
+                    }
+                    None => false,
                 };
 
-                if next_entry.mix_blend == MixBlend::Add && timeline_additive
-                    || !animation_has_any_property(
-                        &self.data.skeleton_data,
-                        &next_entry.animation,
-                        &ids,
-                    )
-                {
-                    if next_entry.mix_duration > 0.0 {
-                        hold_mix = Some(next_id);
-                    }
-                    break;
-                }
+                if to_holds_property {
+                    let mut next = self.entry(to_id).and_then(|e| e.mixing_to);
+                    let mut hold_mix = None;
+                    while let Some(next_id) = next {
+                        let Some(next_entry) = self.entry(next_id) else {
+                            break;
+                        };
 
-                next = next_entry.mixing_to;
+                        if next_entry.additive && timeline_additive
+                            || !animation_has_any_timeline_property(
+                                skeleton_data.as_ref(),
+                                &next_entry.animation,
+                                &ids,
+                            )
+                        {
+                            if next_entry.mix_duration > 0.0 {
+                                hold_mix = Some(next_id);
+                            }
+                            break;
+                        }
+
+                        next = next_entry.mixing_to;
+                    }
+
+                    timeline_mode[i].hold = true;
+                    timeline_hold_mix[i] = hold_mix;
+                }
             }
 
-            timeline_mode[i].hold = true;
-            timeline_hold_mix[i] = hold_mix;
-        }
-
-        if keep_hold && !to_hold_previous {
-            for (mode, previous) in timeline_mode.iter_mut().zip(previous_timeline_mode.iter()) {
-                mode.hold = previous.hold;
+            if keep_hold {
+                timeline_mode[i].hold = previous_timeline_mode
+                    .get(i)
+                    .map(|mode| mode.hold)
+                    .unwrap_or(false);
             }
         }
 
@@ -1547,59 +1282,38 @@ impl AnimationState {
         Some(self.handle(id))
     }
 
-    fn resolve_track_animation<'a>(
-        &'a self,
-        input: TrackAnimationInput<'a>,
-    ) -> Result<(u64, usize, Animation), Error> {
-        match input {
-            TrackAnimationInput::Name(name) => {
-                let (animation_index, animation) = self
-                    .data
-                    .skeleton_data()
-                    .animation(name.as_ref())
-                    .ok_or_else(|| Error::UnknownAnimation {
-                        name: name.into_owned(),
-                    })?;
-                Ok((
-                    animation_identity(animation),
-                    animation_index,
-                    animation.clone(),
-                ))
-            }
-            TrackAnimationInput::Animation(animation) => {
-                let animation_index = self
-                    .data
-                    .skeleton_data()
-                    .animation(&animation.name)
-                    .map(|(animation_index, _)| animation_index)
-                    .unwrap_or(UNKNOWN_ANIMATION_INDEX);
-                Ok((
-                    animation_identity(animation),
-                    animation_index,
-                    animation.clone(),
-                ))
-            }
-        }
+    fn resolve_animation_name(&self, animation_name: impl AsRef<str>) -> (u64, Animation) {
+        let animation_name = animation_name.as_ref();
+        let (_, animation) = self
+            .data
+            .skeleton_data()
+            .animation(animation_name)
+            .unwrap_or_else(|| panic!("unknown animation: {}", animation_name));
+        (animation_identity(animation), animation.clone())
     }
 
-    pub fn set_animation<'a, A>(
+    fn animation_ref_payload(animation: &Animation) -> (u64, Animation) {
+        (animation_identity(animation), animation.clone())
+    }
+
+    pub fn set_animation(
         &mut self,
         track_index: usize,
-        animation: A,
+        animation_name: impl AsRef<str>,
         looped: bool,
-    ) -> Result<TrackEntryHandle, Error>
-    where
-        A: Into<TrackAnimationInput<'a>>,
-    {
-        let (animation_id, animation_index, animation) =
-            self.resolve_track_animation(animation.into())?;
-        Ok(self.set_animation_internal(
-            track_index,
-            animation_index,
-            animation_id,
-            animation,
-            looped,
-        ))
+    ) -> TrackEntryHandle {
+        let (animation_id, animation) = self.resolve_animation_name(animation_name);
+        self.set_animation_internal(track_index, animation_id, animation, looped)
+    }
+
+    pub fn set_animation_ref(
+        &mut self,
+        track_index: usize,
+        animation: &Animation,
+        looped: bool,
+    ) -> TrackEntryHandle {
+        let (animation_id, animation) = Self::animation_ref_payload(animation);
+        self.set_animation_internal(track_index, animation_id, animation, looped)
     }
 
     pub fn set_empty_animation(
@@ -1607,13 +1321,8 @@ impl AnimationState {
         track_index: usize,
         mix_duration: f32,
     ) -> TrackEntryHandle {
-        let entry = self.set_animation_internal(
-            track_index,
-            EMPTY_ANIMATION_INDEX,
-            EMPTY_ANIMATION_ID,
-            empty_animation(),
-            false,
-        );
+        let entry =
+            self.set_animation_internal(track_index, EMPTY_ANIMATION_ID, empty_animation(), false);
         entry.set_mix_duration(self, mix_duration);
         entry.set_track_end(self, mix_duration);
         entry
@@ -1642,7 +1351,6 @@ impl AnimationState {
     fn set_animation_internal(
         &mut self,
         track_index: usize,
-        animation_index: usize,
         entry_animation_id: u64,
         animation: Animation,
         looped: bool,
@@ -1660,16 +1368,8 @@ impl AnimationState {
         {
             entry.next = None;
         }
-        for queued in &queued_entries {
-            if let Some(entry) = self.entry_mut(*queued) {
-                entry.previous = None;
-                entry.next = None;
-            }
-        }
-
         let entry_id = self.alloc_entry(TrackEntry::new(
             track_index,
-            animation_index,
             entry_animation_id,
             &animation,
             looped,
@@ -1681,7 +1381,7 @@ impl AnimationState {
         if let Some(old) = old_current {
             let old_is_unapplied = self
                 .entry(old)
-                .is_some_and(|entry| entry.next_track_last_time < 0.0);
+                .is_some_and(|entry| entry.next_track_last_time == -1.0);
             let old_is_same_animation = self
                 .entry(old)
                 .is_some_and(|entry| entry.animation_identity == entry_animation_id);
@@ -1719,19 +1419,24 @@ impl AnimationState {
         }
         self.tracks[track_index].current = Some(entry_id);
 
-        // Preserve event ordering without borrowing `self` during track mutation.
-        if let Some(old) = old_current {
-            if dispose_old_immediately {
+        if dispose_old_immediately {
+            if let Some(old) = old_current {
                 push_event(&mut self.event_queue, old, AnimationStateEvent::Interrupt);
                 push_event(&mut self.event_queue, old, AnimationStateEvent::End);
-                push_event(&mut self.event_queue, old, AnimationStateEvent::Dispose);
                 self.animations_changed = true;
-            } else if interrupt_previous {
+            }
+            for queued in queued_entries {
+                push_event(&mut self.event_queue, queued, AnimationStateEvent::Dispose);
+            }
+        } else {
+            for queued in queued_entries {
+                push_event(&mut self.event_queue, queued, AnimationStateEvent::Dispose);
+            }
+            if let Some(old) = old_current
+                && interrupt_previous
+            {
                 push_event(&mut self.event_queue, old, AnimationStateEvent::Interrupt);
             }
-        }
-        for queued in queued_entries {
-            push_event(&mut self.event_queue, queued, AnimationStateEvent::Dispose);
         }
         push_event(&mut self.event_queue, entry_id, AnimationStateEvent::Start);
         self.animations_changed = true;
@@ -1740,18 +1445,36 @@ impl AnimationState {
         self.handle(entry_id)
     }
 
-    pub fn add_animation<'a, A>(
+    pub fn add_animation(
         &mut self,
         track_index: usize,
-        animation: A,
+        animation_name: impl AsRef<str>,
         looped: bool,
         delay: f32,
-    ) -> Result<TrackEntryHandle, Error>
-    where
-        A: Into<TrackAnimationInput<'a>>,
-    {
-        let (animation_id, animation_index, animation) =
-            self.resolve_track_animation(animation.into())?;
+    ) -> TrackEntryHandle {
+        let (animation_id, animation) = self.resolve_animation_name(animation_name);
+        self.add_animation_internal(track_index, animation_id, animation, looped, delay)
+    }
+
+    pub fn add_animation_ref(
+        &mut self,
+        track_index: usize,
+        animation: &Animation,
+        looped: bool,
+        delay: f32,
+    ) -> TrackEntryHandle {
+        let (animation_id, animation) = Self::animation_ref_payload(animation);
+        self.add_animation_internal(track_index, animation_id, animation, looped, delay)
+    }
+
+    fn add_animation_internal(
+        &mut self,
+        track_index: usize,
+        animation_id: u64,
+        animation: Animation,
+        looped: bool,
+        delay: f32,
+    ) -> TrackEntryHandle {
         self.ensure_track(track_index);
         let last = {
             let track = &self.tracks[track_index];
@@ -1760,7 +1483,6 @@ impl AnimationState {
 
         let entry_id = self.alloc_entry(TrackEntry::new(
             track_index,
-            animation_index,
             animation_id,
             &animation,
             looped,
@@ -1804,11 +1526,12 @@ impl AnimationState {
         if track_empty {
             self.tracks[track_index].current = Some(entry_id);
             push_event(&mut self.event_queue, entry_id, AnimationStateEvent::Start);
+            self.animations_changed = true;
             self.drain_event_queue();
         } else {
             self.tracks[track_index].queue.push_back(entry_id);
         }
-        Ok(self.handle(entry_id))
+        self.handle(entry_id)
     }
 
     pub fn add_empty_animation(
@@ -1826,7 +1549,6 @@ impl AnimationState {
         let animation = empty_animation();
         let entry_id = self.alloc_entry(TrackEntry::new(
             track_index,
-            EMPTY_ANIMATION_INDEX,
             EMPTY_ANIMATION_ID,
             &animation,
             false,
@@ -1876,6 +1598,7 @@ impl AnimationState {
         if track_empty {
             self.tracks[track_index].current = Some(entry_id);
             push_event(&mut self.event_queue, entry_id, AnimationStateEvent::Start);
+            self.animations_changed = true;
             self.drain_event_queue();
         } else {
             self.tracks[track_index].queue.push_back(entry_id);
@@ -1885,7 +1608,6 @@ impl AnimationState {
 
     pub fn update(&mut self, delta: f32) {
         let delta = delta * self.time_scale;
-        self.time.set(self.time.get() + delta);
 
         let mut pending = VecDeque::new();
 
@@ -1935,7 +1657,7 @@ impl AnimationState {
                     let next_id = self.tracks[track_index]
                         .queue
                         .pop_front()
-                        .expect("queue front exists");
+                        .expect("queue front existed");
                     if let Some(next) = self.entry_mut(next_id) {
                         next.delay = 0.0;
                         next.previous = None;
@@ -1946,22 +1668,23 @@ impl AnimationState {
                         }
                         next.mixing_from = Some(current_id);
                         next.mix_time = 0.0;
-                        if next.mix_duration <= 0.0 {
-                            next.mix_duration = delta;
-                        }
                     }
                     if let Some(current) = self.entry_mut(current_id) {
+                        current.next = None;
                         current.mixing_to = Some(next_id);
                         current.rotation_state.clear();
                     }
 
                     // Match C# behavior: increment mixTime along the mixing chain.
-                    let mut mix_id = next_id;
-                    while let Some(from_id) = self.entry(mix_id).and_then(|e| e.mixing_from) {
-                        if let Some(entry) = self.entry_mut(mix_id) {
+                    let mut mix_id = Some(next_id);
+                    while let Some(id) = mix_id {
+                        let Some(from_id) = self.entry(id).and_then(|e| e.mixing_from) else {
+                            break;
+                        };
+                        if let Some(entry) = self.entry_mut(id) {
                             entry.mix_time += delta;
                         }
-                        mix_id = from_id;
+                        mix_id = Some(from_id);
                     }
 
                     push_event(&mut pending, current_id, AnimationStateEvent::Interrupt);
@@ -1970,16 +1693,28 @@ impl AnimationState {
                     self.tracks[track_index].current = Some(next_id);
                     continue;
                 }
-            } else if mixing_from.is_none() && track_last >= 0.0 && track_last >= track_end {
+            } else if mixing_from.is_none() && track_last >= track_end {
                 push_event(&mut pending, current_id, AnimationStateEvent::End);
-                push_event(&mut pending, current_id, AnimationStateEvent::Dispose);
                 self.animations_changed = true;
                 self.tracks[track_index].current = None;
                 continue;
             }
 
-            if mixing_from.is_some() {
-                self.update_mixing_from(current_id, delta, &mut pending);
+            if mixing_from.is_some() && self.update_mixing_from(current_id, delta, &mut pending) {
+                let mut from = self.entry_mut(current_id).and_then(|entry| {
+                    let from = entry.mixing_from;
+                    entry.mixing_from = None;
+                    from
+                });
+                if let Some(from_id) = from
+                    && let Some(entry) = self.entry_mut(from_id)
+                {
+                    entry.mixing_to = None;
+                }
+                while let Some(from_id) = from {
+                    from = self.entry(from_id).and_then(|entry| entry.mixing_from);
+                    push_event(&mut pending, from_id, AnimationStateEvent::End);
+                }
             }
             if let Some(current) = self.entry_mut(current_id) {
                 current.track_time += current_delta;
@@ -2016,15 +1751,7 @@ impl AnimationState {
             let blend = if track_index == 0 {
                 MixBlend::First
             } else {
-                self.entry(current_id)
-                    .map(|entry| {
-                        if entry.mix_blend == MixBlend::Add {
-                            MixBlend::Replace
-                        } else {
-                            entry.mix_blend
-                        }
-                    })
-                    .unwrap_or(MixBlend::Replace)
+                MixBlend::Replace
             };
 
             let mut alpha = self.entry(current_id).map(|e| e.alpha).unwrap_or(1.0);
@@ -2045,12 +1772,11 @@ impl AnimationState {
                 }
             }
 
-            let (animation, time, looped, alpha_attachment_threshold, reverse) =
+            let (animation, time, alpha_attachment_threshold, reverse) =
                 match self.entry(current_id) {
                     Some(e) => (
                         e.animation.clone(),
                         e.animation_time(),
-                        e.looped,
                         e.alpha_attachment_threshold,
                         e.reverse,
                     ),
@@ -2073,11 +1799,9 @@ impl AnimationState {
                 &animation,
                 skeleton,
                 apply_time,
-                looped,
                 alpha,
                 blend,
                 attachments,
-                MixDirection::In,
             );
 
             self.apply_entry_events_and_complete(current_id, None, true, &mut pending);
@@ -2107,27 +1831,17 @@ impl AnimationState {
         animation: &Animation,
         skeleton: &mut Skeleton,
         time: f32,
-        looped: bool,
         alpha: f32,
         blend: MixBlend,
         attachments: bool,
-        direction: MixDirection,
     ) {
         let (entry_additive, shortest_rotation) = self
             .entry(entry_id)
-            .map(|e| {
-                let additive = e.mix_blend == MixBlend::Add;
-                (additive, additive || e.shortest_rotation)
-            })
+            .map(|e| (e.additive, e.additive || e.shortest_rotation))
             .unwrap_or((false, false));
 
-        let mut time = time;
-        if looped && animation.duration > 0.0 {
-            time = time.rem_euclid(animation.duration);
-        }
-
         let track_index = self.entry(entry_id).map(|e| e.track_index).unwrap_or(0);
-        let special_case = track_index == 0 && alpha == 1.0 && direction == MixDirection::In;
+        let special_case = track_index == 0 && alpha == 1.0;
 
         let kinds = animation_timeline_order(animation).to_vec();
         let mut timeline_mode = self
@@ -2168,7 +1882,11 @@ impl AnimationState {
             let timeline_blend = if special_case {
                 blend
             } else {
-                timeline_mode_blend(mode.from, blend)
+                match mode.from {
+                    TimelineMode::Current => blend,
+                    TimelineMode::Setup => MixBlend::Setup,
+                    TimelineMode::First => MixBlend::First,
+                }
             };
             let effective_from = if special_case {
                 TimelineMode::Setup
@@ -2176,8 +1894,16 @@ impl AnimationState {
                 mode.from
             };
             let effective_add = entry_additive && !special_case;
-            let additive_blend = entry_additive_blend(timeline_blend, effective_add);
-            let from = timeline_mode_from(effective_from);
+            let additive_blend = if effective_add && timeline_blend != MixBlend::Setup {
+                MixBlend::Add
+            } else {
+                timeline_blend
+            };
+            let from = match effective_from {
+                TimelineMode::Current => MixFrom::Current,
+                TimelineMode::Setup => MixFrom::Setup,
+                TimelineMode::First => MixFrom::First,
+            };
             let uses_mixed_rotation = !shortest_rotation
                 && !special_case
                 && alpha < 1.0
@@ -2212,12 +1938,10 @@ impl AnimationState {
                     from,
                     additive: effective_add,
                     transform_additive: entry_additive,
-                    direction,
+                    direction: MixDirection::In,
                     attachments,
                     unkeyed_state,
-                    draw_order_from_current: effective_from == TimelineMode::Current,
-                    draw_order_out: Some(false),
-                    draw_order_folder_out: false,
+                    draw_order_out: false,
                     physics_last_time,
                     physics_time: time,
                     rotate,
@@ -2255,7 +1979,6 @@ impl AnimationState {
         let (
             from_animation,
             from_time,
-            from_looped,
             from_reverse,
             from_additive,
             from_shortest_rotation,
@@ -2265,10 +1988,9 @@ impl AnimationState {
             Some(from_ref) => (
                 from_ref.animation.clone(),
                 from_ref.animation_time(),
-                from_ref.looped,
                 from_ref.reverse,
-                from_ref.mix_blend == MixBlend::Add,
-                from_ref.mix_blend == MixBlend::Add || from_ref.shortest_rotation,
+                from_ref.additive,
+                from_ref.additive || from_ref.shortest_rotation,
                 from_ref.alpha,
                 (
                     from_ref.alpha_attachment_threshold,
@@ -2279,7 +2001,7 @@ impl AnimationState {
             None => return 1.0,
         };
 
-        let from_blend = if mix_duration <= 0.0 && blend == MixBlend::First {
+        let from_blend = if mix_duration == 0.0 && blend == MixBlend::First {
             MixBlend::Setup
         } else {
             blend
@@ -2331,13 +2053,17 @@ impl AnimationState {
                     hold: false,
                 });
 
-                let timeline_blend = timeline_mode_blend(mode.from, from_blend);
+                let timeline_blend = match mode.from {
+                    TimelineMode::Current => from_blend,
+                    TimelineMode::Setup => MixBlend::Setup,
+                    TimelineMode::First => MixBlend::First,
+                };
                 let alpha = if mode.hold {
                     let hold_mix = timeline_hold_mix.get(i).copied().flatten();
                     if let Some(hold_mix) = hold_mix {
                         let factor = self
                             .entry(hold_mix)
-                            .map(|e| (1.0 - e.mix_percent()).max(0.0))
+                            .map(|e| 1.0 - e.mix_percent())
                             .unwrap_or(0.0);
                         alpha_hold * factor
                     } else {
@@ -2346,21 +2072,30 @@ impl AnimationState {
                 } else {
                     alpha_mix
                 };
+                if !mode.hold
+                    && !draw_order
+                    && kind == TimelineKind::DrawOrder
+                    && mode.from == TimelineMode::Current
+                {
+                    continue;
+                }
                 total_alpha += alpha;
 
-                let additive_blend = entry_additive_blend(timeline_blend, from_additive);
-                let from_mode = timeline_mode_from(mode.from);
-                let mut physics_last_time = self
+                let additive_blend = if from_additive && timeline_blend != MixBlend::Setup {
+                    MixBlend::Add
+                } else {
+                    timeline_blend
+                };
+                let from_mode = match mode.from {
+                    TimelineMode::Current => MixFrom::Current,
+                    TimelineMode::Setup => MixFrom::Setup,
+                    TimelineMode::First => MixFrom::First,
+                };
+                let physics_last_time = self
                     .entry(from)
                     .map(|e| e.animation_last_time)
                     .unwrap_or(-1.0);
-                let mut physics_time = from_apply_time;
-                if from_looped && from_animation.duration > 0.0 {
-                    physics_time = physics_time.rem_euclid(from_animation.duration);
-                    if physics_last_time >= 0.0 {
-                        physics_last_time = physics_last_time.rem_euclid(from_animation.duration);
-                    }
-                }
+                let physics_time = from_apply_time;
 
                 let uses_mixed_rotation = !from_shortest_rotation
                     && alpha < 1.0
@@ -2398,9 +2133,7 @@ impl AnimationState {
                         direction: MixDirection::Out,
                         attachments: attachments && alpha >= alpha_attachment_threshold,
                         unkeyed_state,
-                        draw_order_from_current: mode.from == TimelineMode::Current,
-                        draw_order_out: draw_order_timeline_out(draw_order, mode.from),
-                        draw_order_folder_out: true,
+                        draw_order_out: !draw_order || mode.from == TimelineMode::Current,
                         physics_last_time,
                         physics_time,
                         rotate,
@@ -2504,8 +2237,8 @@ impl AnimationState {
                 mix_duration: entry.mix_duration,
                 mix_time: entry.mix_time,
                 alpha: entry.alpha,
-                hold_previous: entry.hold_previous,
-                mix_blend: entry.mix_blend,
+                additive: entry.additive,
+                mix_interpolation: entry.mix_interpolation,
                 reverse: entry.reverse,
             }
         } else {
@@ -2519,8 +2252,8 @@ impl AnimationState {
                 mix_duration: 0.0,
                 mix_time: 0.0,
                 alpha: 0.0,
-                hold_previous: false,
-                mix_blend: MixBlend::Replace,
+                additive: false,
+                mix_interpolation: MixInterpolation::default(),
                 reverse: false,
             }
         }
@@ -2567,9 +2300,9 @@ impl AnimationState {
             .unwrap_or((-1.0, 0.0, 0.0));
 
         // The to entry was applied at least once and the mix is complete.
-        if to_next_track_last >= 0.0 && to_mix_time >= to_mix_duration {
+        if to_next_track_last != -1.0 && to_mix_time >= to_mix_duration {
             let from_total_alpha = self.entry(from).map(|e| e.total_alpha).unwrap_or(0.0);
-            if to_mix_duration <= 0.0 || from_total_alpha.abs() <= TIME_EPSILON {
+            if to_mix_duration == 0.0 || from_total_alpha == 0.0 {
                 let next_from = self.entry(from).and_then(|from_ref| from_ref.mixing_from);
                 if let Some(to_entry) = self.entry_mut(to) {
                     to_entry.mixing_from = next_from;
@@ -2579,7 +2312,7 @@ impl AnimationState {
                 {
                     entry.mixing_to = Some(to);
                 }
-                if from_total_alpha.abs() <= TIME_EPSILON {
+                if from_total_alpha == 0.0 {
                     let mut keep_id = Some(to);
                     while let Some(entry_id) = keep_id {
                         let Some(next_id) = self.entry(entry_id).and_then(|entry| entry.mixing_to)
@@ -2597,11 +2330,9 @@ impl AnimationState {
                     from_entry.mixing_from = None;
                 }
                 push_event(out, from, AnimationStateEvent::End);
-                push_event(out, from, AnimationStateEvent::Dispose);
                 self.animations_changed = true;
-                return finished && self.entry(to).and_then(|entry| entry.mixing_from).is_none();
             }
-            return false;
+            return finished;
         }
 
         // mixTime is not affected by entry time scale, following Spine semantics.
@@ -2644,10 +2375,19 @@ impl AnimationState {
         let mut events = Vec::new();
         if events_enabled
             && can_issue_events
-            && !reverse
             && let Some(timeline) = &entry.animation.event_timeline
         {
-            collect_events(timeline, animation_last, animation_time, &mut events);
+            if reverse {
+                collect_events_reverse(
+                    timeline,
+                    entry.animation.duration,
+                    animation_last,
+                    animation_time,
+                    &mut events,
+                );
+            } else {
+                collect_events(timeline, animation_last, animation_time, &mut events);
+            }
         }
 
         let complete = if entry.looped {
@@ -2661,29 +2401,30 @@ impl AnimationState {
             animation_time >= animation_end && animation_last < animation_end
         };
 
-        // Match upstream AnimationState::queueEvents: collected EventTimeline events are queued
-        // before complete until the wrapped track time is reached, then complete, then the events
-        // after the wrap. EventTimeline itself does not know animationStart/animationEnd.
         let track_last_wrapped = if duration != 0.0 {
             track_last % duration
         } else {
-            f32::NAN
+            0.0
         };
-        let mut split = events.len();
+        let mut split = track_last_wrapped;
+        if reverse {
+            split = duration - split;
+        }
+        let mut split_index = events.len();
         for (i, ev) in events.iter().enumerate() {
-            if ev.time < track_last_wrapped {
-                split = i;
+            if (ev.time < split) != reverse {
+                split_index = i;
                 break;
             }
-            if ev.time <= animation_end {
+            if ev.time >= animation_start && ev.time <= animation_end {
                 push_event(out, entry_id, AnimationStateEvent::Event(ev.clone()));
             }
         }
         if complete {
             push_event(out, entry_id, AnimationStateEvent::Complete);
         }
-        for ev in &events[split..] {
-            if ev.time >= animation_start {
+        for ev in &events[split_index..] {
+            if ev.time >= animation_start && ev.time <= animation_end {
                 push_event(out, entry_id, AnimationStateEvent::Event(ev.clone()));
             }
         }
@@ -2701,7 +2442,11 @@ impl AnimationState {
         let (current, queued) = {
             let track = &mut self.tracks[track_index];
             let current = track.current.take();
-            let queued = track.queue.drain(..).collect::<Vec<_>>();
+            let queued = if current.is_some() {
+                track.queue.drain(..).collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            };
             (current, queued)
         };
         if let Some(entry_id) = current {
@@ -2713,12 +2458,10 @@ impl AnimationState {
                 from
             });
             push_event(&mut self.event_queue, entry_id, AnimationStateEvent::End);
-            push_event(
-                &mut self.event_queue,
-                entry_id,
-                AnimationStateEvent::Dispose,
-            );
             self.animations_changed = true;
+            for entry in queued {
+                push_event(&mut self.event_queue, entry, AnimationStateEvent::Dispose);
+            }
             while let Some(mixing_from) = from {
                 from = self.entry_mut(mixing_from).and_then(|entry| {
                     let from = entry.mixing_from;
@@ -2728,19 +2471,7 @@ impl AnimationState {
                     from
                 });
                 push_event(&mut self.event_queue, mixing_from, AnimationStateEvent::End);
-                push_event(
-                    &mut self.event_queue,
-                    mixing_from,
-                    AnimationStateEvent::Dispose,
-                );
             }
-        }
-        for entry in queued {
-            if let Some(queued_entry) = self.entry_mut(entry) {
-                queued_entry.previous = None;
-                queued_entry.next = None;
-            }
-            push_event(&mut self.event_queue, entry, AnimationStateEvent::Dispose);
         }
     }
 
@@ -2753,77 +2484,82 @@ impl AnimationState {
         while let Some(queued) = self.event_queue.pop_front() {
             let entry_id = queued.entry;
             let event = queued.event;
-
             let snapshot = self.snapshot(entry_id);
 
-            let mut entry_listener = self.take_entry_listener(entry_id);
-            if let Some(listener) = entry_listener.as_mut() {
-                listener.on_event(self, &snapshot, &event);
-            }
+            match event {
+                AnimationStateEvent::End => {
+                    let entry_listener =
+                        self.notify_event_listeners(entry_id, &snapshot, &AnimationStateEvent::End);
+                    self.restore_entry_listener_after_event(entry_id, entry_listener);
 
-            let mut state_listener = self.listener.take();
-            if let Some(listener) = state_listener.as_mut() {
-                listener.on_event(self, &snapshot, &event);
-            }
-            if self.listener.is_none() {
-                self.listener = state_listener;
-            }
-
-            if matches!(event, AnimationStateEvent::Dispose) {
-                if self.manual_track_entry_disposal {
-                    if let Some(listener) = entry_listener {
-                        self.restore_entry_listener(entry_id, listener);
-                    }
-                } else {
-                    self.free_entry(entry_id);
+                    let snapshot = self.snapshot(entry_id);
+                    let entry_listener = self.notify_event_listeners(
+                        entry_id,
+                        &snapshot,
+                        &AnimationStateEvent::Dispose,
+                    );
+                    self.finish_dispose_event(entry_id, entry_listener);
                 }
-            } else if let Some(listener) = entry_listener {
-                self.restore_entry_listener(entry_id, listener);
+                AnimationStateEvent::Dispose => {
+                    let entry_listener = self.notify_event_listeners(
+                        entry_id,
+                        &snapshot,
+                        &AnimationStateEvent::Dispose,
+                    );
+                    self.finish_dispose_event(entry_id, entry_listener);
+                }
+                event => {
+                    let entry_listener = self.notify_event_listeners(entry_id, &snapshot, &event);
+                    self.restore_entry_listener_after_event(entry_id, entry_listener);
+                }
             }
         }
 
         self.draining_events = false;
     }
 
-    #[cfg(all(test, feature = "json"))]
-    pub(crate) fn round_tracks_for_tests(&mut self) {
-        fn round_decimals(value: f32, decimals: u32) -> f32 {
-            let factor = 10_f32.powi(decimals as i32);
-            (value * factor).round() / factor
+    fn notify_event_listeners(
+        &mut self,
+        entry_id: EntryId,
+        snapshot: &TrackEntrySnapshot,
+        event: &AnimationStateEvent,
+    ) -> Option<Box<dyn TrackEntryListener>> {
+        let mut entry_listener = self.take_entry_listener(entry_id);
+        if let Some(listener) = entry_listener.as_mut() {
+            listener.on_event(self, snapshot, event);
         }
 
-        let current_ids = self
-            .tracks
-            .iter()
-            .filter_map(|track| track.current)
-            .collect::<Vec<_>>();
-        for current_id in current_ids {
-            if let Some(current) = self.entry_mut(current_id) {
-                current.track_time = round_decimals(current.track_time, 6);
-                current.delay = round_decimals(current.delay, 3);
-            }
-            let mut from = self.entry(current_id).and_then(|entry| entry.mixing_from);
-            while let Some(id) = from {
-                if let Some(entry) = self.entry_mut(id) {
-                    entry.track_time = round_decimals(entry.track_time, 6);
-                    from = entry.mixing_from;
-                } else {
-                    break;
-                }
-            }
+        let mut state_listener = self.listener.take();
+        if let Some(listener) = state_listener.as_mut() {
+            listener.on_event(self, snapshot, event);
+        }
+        if self.listener.is_none() {
+            self.listener = state_listener;
+        }
+
+        entry_listener
+    }
+
+    fn restore_entry_listener_after_event(
+        &mut self,
+        entry_id: EntryId,
+        entry_listener: Option<Box<dyn TrackEntryListener>>,
+    ) {
+        if let Some(listener) = entry_listener {
+            self.restore_entry_listener(entry_id, listener);
         }
     }
 
-    #[cfg(all(test, feature = "json"))]
-    pub(crate) fn queue_front_delay_for_tests(&self, track_index: usize) -> Option<f32> {
-        let track = self.tracks.get(track_index)?;
-        let id = *track.queue.front()?;
-        self.entry(id).map(|e| e.delay)
-    }
-
-    #[cfg(all(test, feature = "json"))]
-    pub(crate) fn track_entry_exists_for_tests(&self, handle: TrackEntryHandle) -> bool {
-        self.entry_for_handle(handle).is_some()
+    fn finish_dispose_event(
+        &mut self,
+        entry_id: EntryId,
+        entry_listener: Option<Box<dyn TrackEntryListener>>,
+    ) {
+        if self.manual_track_entry_disposal {
+            self.restore_entry_listener_after_event(entry_id, entry_listener);
+        } else {
+            self.free_entry(entry_id);
+        }
     }
 }
 
@@ -2831,7 +2567,7 @@ fn push_event(out: &mut VecDeque<QueuedEvent>, entry: EntryId, event: AnimationS
     out.push_back(QueuedEvent { entry, event });
 }
 
-fn collect_events(
+pub(super) fn collect_events(
     timeline: &crate::EventTimeline,
     last_time: f32,
     time: f32,
@@ -2857,14 +2593,44 @@ fn collect_events(
         emit_range(last_time, time);
     }
 }
-
-#[cfg(test)]
-pub(super) fn collect_events_for_tests(
+pub(super) fn collect_events_reverse(
     timeline: &crate::EventTimeline,
-    last_time: f32,
-    time: f32,
-) -> Vec<Event> {
-    let mut out = Vec::new();
-    collect_events(timeline, last_time, time, &mut out);
-    out
+    duration: f32,
+    animation_last: f32,
+    animation_time: f32,
+    out: &mut Vec<Event>,
+) {
+    if timeline.events.is_empty() {
+        return;
+    }
+
+    let from = duration - animation_last;
+    let to = duration - animation_time;
+
+    if from >= to {
+        for ev in &timeline.events {
+            if ev.time < to {
+                continue;
+            }
+            if ev.time >= from {
+                break;
+            }
+            out.push(ev.clone());
+        }
+    } else {
+        for ev in &timeline.events {
+            if ev.time >= from {
+                break;
+            }
+            out.push(ev.clone());
+        }
+
+        let mut index = 0usize;
+        while index < timeline.events.len() && timeline.events[index].time < to {
+            index += 1;
+        }
+        for ev in &timeline.events[index..] {
+            out.push(ev.clone());
+        }
+    }
 }
