@@ -1,7 +1,7 @@
 use crate::{
-    Animation, BoneData, EventData, IkConstraintData, PathConstraintData, PhysicsConstraintData,
-    PositionMode, RotateMode, ScaleYMode, SkeletonData, SkinData, SliderConstraintData, SlotData,
-    SpacingMode, TransformConstraintData,
+    Animation, BoneData, BoneTimeline, EventData, IkConstraintData, PathConstraintData,
+    PhysicsConstraintData, PositionMode, RotateMode, RotateTimeline, ScaleXTimeline, ScaleYMode,
+    SkeletonData, SkinData, SliderConstraintData, SlotData, SpacingMode, TransformConstraintData,
 };
 
 #[test]
@@ -170,4 +170,56 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     assert!(data.find_path_constraint("").is_none());
     assert!(data.find_physics_constraint("").is_none());
     assert!(data.find_slider_constraint("").is_none());
+}
+
+#[test]
+fn animation_bones_reports_unique_affected_bone_indices_like_cpp() {
+    let mut animation = empty_animation("bones");
+    animation
+        .bone_timelines
+        .push(BoneTimeline::Rotate(RotateTimeline {
+            bone_index: 2,
+            frames: Vec::new(),
+        }));
+    animation
+        .bone_timelines
+        .push(BoneTimeline::ScaleX(ScaleXTimeline {
+            bone_index: 0,
+            frames: Vec::new(),
+        }));
+    animation
+        .bone_timelines
+        .push(BoneTimeline::Rotate(RotateTimeline {
+            bone_index: 2,
+            frames: Vec::new(),
+        }));
+
+    assert_eq!(animation.bones(), vec![2, 0]);
+}
+
+fn empty_animation(name: &str) -> Animation {
+    Animation {
+        name: name.to_string(),
+        duration: 0.0,
+        event_timeline: None,
+        bone_timelines: Vec::new(),
+        deform_timelines: Vec::new(),
+        sequence_timelines: Vec::new(),
+        slot_attachment_timelines: Vec::new(),
+        slot_color_timelines: Vec::new(),
+        slot_rgb_timelines: Vec::new(),
+        slot_alpha_timelines: Vec::new(),
+        slot_rgba2_timelines: Vec::new(),
+        slot_rgb2_timelines: Vec::new(),
+        ik_constraint_timelines: Vec::new(),
+        transform_constraint_timelines: Vec::new(),
+        path_constraint_timelines: Vec::new(),
+        physics_constraint_timelines: Vec::new(),
+        physics_reset_timelines: Vec::new(),
+        slider_time_timelines: Vec::new(),
+        slider_mix_timelines: Vec::new(),
+        draw_order_timeline: None,
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    }
 }

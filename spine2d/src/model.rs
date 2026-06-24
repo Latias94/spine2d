@@ -1083,6 +1083,21 @@ pub struct Animation {
 }
 
 impl Animation {
+    /// Returns the `Skeleton::bones()` indices affected by this animation.
+    ///
+    /// This matches C++ `Animation::getBones()` for callers such as Slider constraints. The
+    /// returned indices preserve the first-seen bone timeline order.
+    pub fn bones(&self) -> Vec<usize> {
+        let mut bones = Vec::new();
+        for timeline in &self.bone_timelines {
+            let bone_index = timeline.bone_index();
+            if !bones.contains(&bone_index) {
+                bones.push(bone_index);
+            }
+        }
+        bones
+    }
+
     pub fn timelines(&self) -> impl Iterator<Item = TimelineRef<'_>> + '_ {
         self.timeline_order
             .iter()
@@ -1172,6 +1187,25 @@ impl Animation {
                 .draw_order_folder_timelines
                 .get(index)
                 .map(|timeline| TimelineRef::DrawOrderFolder { index, timeline }),
+        }
+    }
+}
+
+impl BoneTimeline {
+    /// Returns the `Skeleton::bones()` index changed by this timeline.
+    pub fn bone_index(&self) -> usize {
+        match self {
+            BoneTimeline::Rotate(timeline) => timeline.bone_index,
+            BoneTimeline::Translate(timeline) => timeline.bone_index,
+            BoneTimeline::TranslateX(timeline) => timeline.bone_index,
+            BoneTimeline::TranslateY(timeline) => timeline.bone_index,
+            BoneTimeline::Scale(timeline) => timeline.bone_index,
+            BoneTimeline::ScaleX(timeline) => timeline.bone_index,
+            BoneTimeline::ScaleY(timeline) => timeline.bone_index,
+            BoneTimeline::Shear(timeline) => timeline.bone_index,
+            BoneTimeline::ShearX(timeline) => timeline.bone_index,
+            BoneTimeline::ShearY(timeline) => timeline.bone_index,
+            BoneTimeline::Inherit(timeline) => timeline.bone_index,
         }
     }
 }

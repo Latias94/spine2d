@@ -380,29 +380,6 @@ impl Skeleton {
             })
             .collect::<Vec<_>>();
 
-        fn collect_animation_bones(animation: &crate::Animation) -> Vec<usize> {
-            let mut out = Vec::<usize>::new();
-            for tl in &animation.bone_timelines {
-                let bone_index = match tl {
-                    crate::BoneTimeline::Rotate(t) => t.bone_index,
-                    crate::BoneTimeline::Translate(t) => t.bone_index,
-                    crate::BoneTimeline::TranslateX(t) => t.bone_index,
-                    crate::BoneTimeline::TranslateY(t) => t.bone_index,
-                    crate::BoneTimeline::Scale(t) => t.bone_index,
-                    crate::BoneTimeline::ScaleX(t) => t.bone_index,
-                    crate::BoneTimeline::ScaleY(t) => t.bone_index,
-                    crate::BoneTimeline::Shear(t) => t.bone_index,
-                    crate::BoneTimeline::ShearX(t) => t.bone_index,
-                    crate::BoneTimeline::ShearY(t) => t.bone_index,
-                    crate::BoneTimeline::Inherit(t) => t.bone_index,
-                };
-                out.push(bone_index);
-            }
-            out.sort_unstable();
-            out.dedup();
-            out
-        }
-
         let slider_constraints = data
             .slider_constraints
             .iter()
@@ -411,7 +388,7 @@ impl Skeleton {
                 let animation_bones = c
                     .animation
                     .and_then(|idx| data.animations.get(idx))
-                    .map(collect_animation_bones)
+                    .map(|animation| animation.bones())
                     .unwrap_or_default();
                 SliderConstraint {
                     data_index,
