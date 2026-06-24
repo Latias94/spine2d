@@ -1060,6 +1060,7 @@ pub enum TimelineRef<'a> {
 pub struct Animation {
     pub name: String,
     pub duration: f32,
+    pub color: [f32; 4],
     pub event_timeline: Option<EventTimeline>,
     pub bone_timelines: Vec<BoneTimeline>,
     pub deform_timelines: Vec<DeformTimeline>,
@@ -1083,6 +1084,8 @@ pub struct Animation {
 }
 
 impl Animation {
+    pub const DEFAULT_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+
     /// Returns the `Skeleton::bones()` indices affected by this animation.
     ///
     /// This matches C++ `Animation::getBones()` for callers such as Slider constraints. The

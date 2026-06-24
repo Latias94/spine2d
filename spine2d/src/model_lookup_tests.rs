@@ -32,6 +32,7 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     data.animations.push(Animation {
         name: "animation".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),
@@ -201,6 +202,7 @@ fn empty_animation(name: &str) -> Animation {
     Animation {
         name: name.to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),

@@ -393,6 +393,7 @@ struct SliderConstraintDef {
 
 #[derive(Debug, Deserialize)]
 struct AnimationDef {
+    color: Option<String>,
     events: Option<Vec<EventKey>>,
     #[serde(default)]
     bones: IndexMap<String, BoneAnimDef>,
@@ -2161,6 +2162,7 @@ impl SkeletonData {
         let mut animation_index = HashMap::new();
         for (name, def_value) in root.animations {
             let def: AnimationDef = from_json_value(&def_value, &format!("animation '{name}'"))?;
+            let animation_color = def.color;
             let events_def = def.events;
             let bones_def = def.bones;
             let attachments_def = def.attachments;
@@ -3277,11 +3279,17 @@ impl SkeletonData {
                 &slider_constraints,
             );
             let timeline_order = build_json_timeline_order(&def_value, &timeline_lookup);
+            let color = animation_color
+                .as_deref()
+                .map(|s| parse_hex_color_rgba(s, &format!("animation '{name}' color")))
+                .transpose()?
+                .unwrap_or(Animation::DEFAULT_COLOR);
 
             let index = animations.len();
             let animation = Animation {
                 name: name.clone(),
                 duration,
+                color,
                 event_timeline: timeline,
                 bone_timelines,
                 deform_timelines,

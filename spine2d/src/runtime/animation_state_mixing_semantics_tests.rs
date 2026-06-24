@@ -177,6 +177,7 @@ fn translate_animation(name: &str, x: f32) -> Animation {
     crate::runtime::finalize_animation(Animation {
         name: name.to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -212,6 +213,7 @@ fn empty_test_animation(name: &str) -> Animation {
     crate::runtime::finalize_animation(Animation {
         name: name.to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),
@@ -474,6 +476,7 @@ fn track_entry_additive_mixes_out_as_additive() {
     let anim_base = crate::runtime::finalize_animation(Animation {
         name: "base".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -506,6 +509,7 @@ fn track_entry_additive_mixes_out_as_additive() {
     let anim_overlay = crate::runtime::finalize_animation(Animation {
         name: "overlay".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -564,6 +568,7 @@ fn additive_next_entry_does_not_hold_outgoing_numeric_timeline() {
     let anim_base = crate::runtime::finalize_animation(Animation {
         name: "base".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -596,6 +601,7 @@ fn additive_next_entry_does_not_hold_outgoing_numeric_timeline() {
     let anim_overlay = crate::runtime::finalize_animation(Animation {
         name: "overlay".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -690,6 +696,7 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
     let anim_a = crate::runtime::finalize_animation(Animation {
         name: "a".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),
@@ -727,6 +734,7 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
     let anim_b = crate::runtime::finalize_animation(Animation {
         name: "b".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),
@@ -880,6 +888,7 @@ fn draw_order_current_mix_out_does_not_keep_mixing_from_alive() {
     let draw_order_anim = crate::runtime::finalize_animation(Animation {
         name: "draw".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),
@@ -960,6 +969,7 @@ fn draw_order_folder_applies_after_draw_order_timeline() {
     let anim_a = crate::runtime::finalize_animation(Animation {
         name: "a".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),
@@ -1105,6 +1115,7 @@ fn track0_additive_does_not_override_alpha_attachment_threshold_for_attachments(
     let anim_a = crate::runtime::finalize_animation(Animation {
         name: "a".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),
@@ -1135,6 +1146,7 @@ fn track0_additive_does_not_override_alpha_attachment_threshold_for_attachments(
     let anim_b = crate::runtime::finalize_animation(Animation {
         name: "b".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),

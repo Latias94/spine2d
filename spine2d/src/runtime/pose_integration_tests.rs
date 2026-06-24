@@ -19,6 +19,7 @@ fn animation_state_apply_drives_skeleton_pose() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "move".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -117,6 +118,7 @@ fn animation_state_mixes_pose_between_entries() {
     let anim_a = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -149,6 +151,7 @@ fn animation_state_mixes_pose_between_entries() {
     let anim_b = crate::runtime::finalize_animation(crate::Animation {
         name: "b".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -247,6 +250,7 @@ fn track_entry_shortest_rotation_disables_rotation_accumulator() {
         let animation = crate::runtime::finalize_animation(crate::Animation {
             name: "spin".to_string(),
             duration: 1.0,
+            color: crate::Animation::DEFAULT_COLOR,
             event_timeline: None,
             bone_timelines: vec![BoneTimeline::Rotate(RotateTimeline {
                 bone_index: 0,
@@ -351,6 +355,7 @@ fn track_entry_reverse_samples_from_animation_end() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "move".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,

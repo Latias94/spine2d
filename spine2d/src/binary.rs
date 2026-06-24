@@ -3068,13 +3068,16 @@ fn read_animation(
 
     // Event timeline
     let event_timeline = read_event_timeline(input, event_defs, &mut duration, trace_anim, name)?;
-    if nonessential {
-        let _ = input.read_color_rgba()?;
-    }
+    let color = if nonessential {
+        input.read_color_rgba()?
+    } else {
+        Animation::DEFAULT_COLOR
+    };
 
     let animation = Animation {
         name: name.to_string(),
         duration,
+        color,
         event_timeline,
         bone_timelines,
         deform_timelines,

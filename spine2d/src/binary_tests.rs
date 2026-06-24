@@ -185,7 +185,7 @@ fn binary_weighted_vertices_reads_latest_packed_bone_length() {
 }
 
 #[test]
-fn binary_nonessential_bone_and_slot_fields_are_preserved() {
+fn binary_nonessential_bone_slot_and_animation_fields_are_preserved() {
     fn varint(value: i32) -> Vec<u8> {
         let mut value = value as u32;
         let mut out = Vec::new();
@@ -262,7 +262,21 @@ fn binary_nonessential_bone_and_slot_fields_are_preserved() {
     bytes.extend(varint(0)); // default skins
     bytes.extend(varint(0)); // named skins
     bytes.extend(varint(0)); // events
-    bytes.extend(varint(0)); // animations
+    bytes.extend(varint(1)); // animations
+    push_string(&mut bytes, Some("anim"));
+    bytes.extend(varint(0)); // timeline count hint
+    bytes.extend(varint(0)); // slot timelines
+    bytes.extend(varint(0)); // bone timelines
+    bytes.extend(varint(0)); // ik timelines
+    bytes.extend(varint(0)); // transform timelines
+    bytes.extend(varint(0)); // path timelines
+    bytes.extend(varint(0)); // physics timelines
+    bytes.extend(varint(0)); // slider timelines
+    bytes.extend(varint(0)); // attachment timelines
+    bytes.extend(varint(0)); // draw order timeline
+    bytes.extend(varint(0)); // draw order folder timelines
+    bytes.extend(varint(0)); // event timeline
+    bytes.extend_from_slice(&[0xaa, 0xbb, 0xcc, 0xdd]); // animation color
 
     let data = SkeletonData::from_skel_bytes(&bytes).expect("parse skel");
     assert_eq!(data.name, "");
@@ -292,6 +306,17 @@ fn binary_nonessential_bone_and_slot_fields_are_preserved() {
     assert_eq!(bone.icon_rotation, 45.0);
     assert!(!bone.visible);
     assert!(!data.slots[0].visible);
+
+    let animation = data.find_animation("anim").unwrap();
+    assert_eq!(
+        animation.color,
+        [
+            0xaa as f32 / 255.0,
+            0xbb as f32 / 255.0,
+            0xcc as f32 / 255.0,
+            0xdd as f32 / 255.0
+        ]
+    );
 }
 
 #[test]

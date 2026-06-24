@@ -424,6 +424,7 @@ fn slider_draw_order_skeleton_data() -> Arc<SkeletonData> {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "slider-draw".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),
@@ -518,6 +519,7 @@ fn slider_slot_pose_skeleton_data() -> Arc<SkeletonData> {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "slider-slot-pose".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),

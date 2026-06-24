@@ -58,6 +58,7 @@ fn finalize_animation_keeps_explicit_timeline_order() {
     let animation = Animation {
         name: "mix".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),
@@ -89,6 +90,7 @@ fn animation_timelines_exposes_unified_cpp_order() {
     let animation = Animation {
         name: "mix".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: Some(EventTimeline {
             events: vec![Event {
                 time: 0.0,

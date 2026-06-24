@@ -154,3 +154,40 @@ fn json_array_skin_color_matches_cpp_skin_color_field() {
         assert_approx(actual, expected);
     }
 }
+
+#[test]
+fn json_animation_color_matches_cpp_animation_color_field() {
+    let data = SkeletonData::from_json_str(
+        r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [ { "name": "root" } ],
+  "animations": {
+    "default": {},
+    "accent": { "color": "11223344" }
+  }
+}
+"#,
+    )
+    .unwrap();
+
+    let accent = data.find_animation("accent").unwrap();
+    let expected = [
+        0x11 as f32 / 255.0,
+        0x22 as f32 / 255.0,
+        0x33 as f32 / 255.0,
+        0x44 as f32 / 255.0,
+    ];
+    for (actual, expected) in accent.color.into_iter().zip(expected) {
+        assert_approx(actual, expected);
+    }
+
+    let default = data.find_animation("default").unwrap();
+    for (actual, expected) in default
+        .color
+        .into_iter()
+        .zip(crate::Animation::DEFAULT_COLOR)
+    {
+        assert_approx(actual, expected);
+    }
+}

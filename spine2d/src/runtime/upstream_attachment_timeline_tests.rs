@@ -38,6 +38,7 @@ fn build_data() -> Arc<SkeletonData> {
     let animation = crate::runtime::finalize_animation(Animation {
         name: "animation".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),

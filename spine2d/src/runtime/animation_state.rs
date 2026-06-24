@@ -19,6 +19,7 @@ fn empty_animation() -> Animation {
     Animation {
         name: EMPTY_ANIMATION_NAME.to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),

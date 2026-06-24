@@ -989,6 +989,7 @@ fn physics_reset_timelines_share_one_property_slot() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "run2".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),

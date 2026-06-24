@@ -66,6 +66,7 @@ fn translate_timeline_interpolates() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -124,6 +125,7 @@ fn rotate_timeline_interpolates_linearly() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Rotate(RotateTimeline {
             bone_index: 0,
@@ -180,6 +182,7 @@ fn rotate_timeline_mixes_shortest_path() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Rotate(RotateTimeline {
             bone_index: 0,
@@ -321,6 +324,7 @@ fn inherit_timeline_applies_to_the_keyed_bone() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "inherit".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Inherit(InheritTimeline {
             bone_index: 1,
@@ -442,6 +446,7 @@ fn inherit_timeline_mix_out_restores_setup_for_first_and_setup_modes() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "inherit".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Inherit(InheritTimeline {
             bone_index: 0,
@@ -498,6 +503,7 @@ fn looping_wraps_time_by_duration() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -556,6 +562,7 @@ fn setup_blend_uses_setup_as_base() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -598,6 +605,7 @@ fn scale_timeline_applies() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Scale(ScaleTimeline {
             bone_index: 0,
@@ -656,6 +664,7 @@ fn stepped_curve_holds_previous_value() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -713,6 +722,7 @@ fn shear_timeline_applies_to_bone() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Shear(ShearTimeline {
             bone_index: 0,
@@ -773,6 +783,7 @@ fn bezier_curve_interpolates_in_value_space() {
     let animation = crate::runtime::finalize_animation(crate::Animation {
         name: "a".to_string(),
         duration: 1.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Translate(TranslateTimeline {
             bone_index: 0,
@@ -835,6 +846,7 @@ fn finalize_animation_fills_missing_timeline_order_from_shared_helper() {
     let animation = crate::Animation {
         name: "order".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Rotate(RotateTimeline {
             bone_index: 0,
@@ -890,6 +902,7 @@ fn finalize_animation_preserves_parse_time_timeline_order() {
     let animation = crate::Animation {
         name: "order".to_string(),
         duration: 0.0,
+        color: crate::Animation::DEFAULT_COLOR,
         event_timeline: None,
         bone_timelines: vec![BoneTimeline::Rotate(RotateTimeline {
             bone_index: 0,
