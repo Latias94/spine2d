@@ -216,6 +216,7 @@ status: "active"
   - Narrowed `MixDirection` to crate visibility; public animation-state users should drive latest-tag additive/mix-out behavior through `TrackEntry` settings and `AnimationState`, not the internal timeline dispatch helper.
 - In progress:
   - Autonomous spine-cpp parity hardening on local `main`, tracked by `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`; the latest AnimationState / TrackEntry surface recheck found no new runtime changes, so the next audit should move to another high-value C++ surface instead of repeating that pass.
+  - Recent Skin / Attachment recheck against latest-tag `spine-cpp` found no new runtime or public-surface gap. `SkinData` already matches the observed C++ attachment helper behavior we care about here: growable slot storage, replace-in-place semantics, insertion-order iteration, and skin-to-skin merge/attachAll semantics are already locked by focused tests and the parity checklist. This area is treated as currently aligned unless a new oracle delta appears.
 - Blocked:
   - None.
 - Next action:

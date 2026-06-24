@@ -286,6 +286,8 @@ flowchart TB
 
 **Recent update:** Commit `b3ca6c1` added official-style `SkinData` attachment helpers (`set_attachment`, `remove_attachment`, names/attachments/entries queries) and routed `add_skin` through the growable set path used by C++ `Skin::setAttachment`.
 
+**Recent update:** A follow-up latest-tag `spine-cpp` recheck found no additional Skin / Attachment action item. The remaining C++ `Skin` surface differences are either already represented by Rust's owned-value semantics or covered by the existing helper/test surface, so this area should not be revisited unless a new oracle delta appears.
+
 **Recent update:** Commit `7cd8d8c` removed the Rust-only success return from `Skeleton::set_attachment`, matching C++ `Skeleton::setAttachment` as a void method with no-op-on-miss behavior.
 
 **Recent update:** The binary `.skel` `spineboy_run_to_walk_mix0_2_t0_4` IK boundary now matches direct `spine-cpp` oracle output. The golden was correct; Rust was choosing the stretched two-bone IK branch when the cosine landed one `f32` ULP above `1.0`. The IK solver now keeps only that one-ULP overrun on the C++ tiny-bend path, and BonePose transform math uses C++-style degree/radian conversion plus fused multiply-add shaped world updates. Full core parity passed with `619 passed, 10 skipped`.
