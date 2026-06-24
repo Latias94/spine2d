@@ -40,6 +40,9 @@ mod json_scale_tests;
 #[cfg(all(test, feature = "binary"))]
 mod binary_tests;
 
+#[cfg(all(test, any(feature = "json", feature = "binary")))]
+mod version_tests;
+
 #[cfg(all(test, feature = "json"))]
 mod json_event_tests;
 

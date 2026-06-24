@@ -370,14 +370,7 @@ struct ReadVertices {
 }
 
 fn validate_spine_version(value: &str) -> Result<(), Error> {
-    let mut parts = value.split('.');
-    let major = parts.next().ok_or_else(|| Error::BinarySpineVersion {
-        value: value.to_string(),
-    })?;
-    let major: u32 = major.parse().map_err(|_| Error::BinarySpineVersion {
-        value: value.to_string(),
-    })?;
-    if major != 4 {
+    if !crate::version::spine_version_matches_runtime(value) {
         return Err(Error::BinarySpineVersion {
             value: value.to_string(),
         });
@@ -941,11 +934,7 @@ impl crate::SkeletonData {
         let _ = input.read_i32_be()?;
 
         let spine_version = input.read_string()?;
-        if let Some(v) = spine_version.as_deref()
-            && !v.is_empty()
-        {
-            validate_spine_version(v)?;
-        }
+        validate_spine_version(spine_version.as_deref().unwrap_or(""))?;
 
         // x, y, width, height, referenceScale
         let _ = input.read_f32_be()?;

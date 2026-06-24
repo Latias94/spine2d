@@ -790,12 +790,13 @@ impl SkeletonData {
         })?;
 
         let (spine_version, reference_scale_raw) = match root.skeleton {
-            Some(s) => (s.spine, s.reference_scale.unwrap_or(100.0)),
+            Some(s) => {
+                let spine_version = s.spine;
+                validate_spine_version(spine_version.as_deref().unwrap_or(""))?;
+                (spine_version, s.reference_scale.unwrap_or(100.0))
+            }
             None => (None, 100.0),
         };
-        if let Some(v) = spine_version.as_deref() {
-            validate_spine_version(v)?;
-        }
 
         let scale = if scale.is_finite() { scale } else { 1.0 };
         let reference_scale = reference_scale_raw * scale;
@@ -4325,15 +4326,7 @@ fn find_linked_mesh_attachment_name<'a>(
 }
 
 fn validate_spine_version(value: &str) -> Result<(), Error> {
-    // Accept Spine 4.x exports. We keep it permissive while the runtime is evolving.
-    let mut parts = value.split('.');
-    let major = parts.next().ok_or_else(|| Error::JsonSpineVersion {
-        value: value.to_string(),
-    })?;
-    let major: u32 = major.parse().map_err(|_| Error::JsonSpineVersion {
-        value: value.to_string(),
-    })?;
-    if major != 4 {
+    if !crate::version::spine_version_matches_runtime(value) {
         return Err(Error::JsonSpineVersion {
             value: value.to_string(),
         });

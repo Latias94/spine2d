@@ -141,19 +141,23 @@ fn pick_preferred_json_in_export_dir(export_dir: &std::path::Path) -> Option<Pat
         .or_else(|| jsons.first().cloned())
 }
 
+fn read_json_spine_version(json: &str) -> Option<String> {
+    serde_json::from_str::<serde_json::Value>(json)
+        .ok()?
+        .get("skeleton")?
+        .get("spine")?
+        .as_str()
+        .map(str::to_string)
+}
+
 fn run_each_animation_sample_smoke(path: &std::path::Path, example_label: &str) {
     let json = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("read {path:?}: {e}"));
-    let data: Arc<SkeletonData> =
-        SkeletonData::from_json_str(&json).unwrap_or_else(|e| panic!("parse {path:?}: {e}"));
-
     // This suite is intended to exercise the current pinned 4.3 baseline exports.
-    if data
-        .spine_version
-        .as_deref()
-        .is_some_and(|v| !v.starts_with("4.3"))
-    {
+    if read_json_spine_version(&json).is_some_and(|v| !v.starts_with("4.3")) {
         return;
     }
+    let data: Arc<SkeletonData> =
+        SkeletonData::from_json_str(&json).unwrap_or_else(|e| panic!("parse {path:?}: {e}"));
 
     let animations = data
         .animations
@@ -327,16 +331,11 @@ fn upstream_examples_tests_scope_json_queue_smoke_all_examples() {
 
         let json = std::fs::read_to_string(&json_path)
             .unwrap_or_else(|e| panic!("read {json_path:?}: {e}"));
-        let data: Arc<SkeletonData> = SkeletonData::from_json_str(&json)
-            .unwrap_or_else(|e| panic!("parse {json_path:?}: {e}"));
-
-        if data
-            .spine_version
-            .as_deref()
-            .is_some_and(|v| !v.starts_with("4.3"))
-        {
+        if read_json_spine_version(&json).is_some_and(|v| !v.starts_with("4.3")) {
             continue;
         }
+        let data: Arc<SkeletonData> = SkeletonData::from_json_str(&json)
+            .unwrap_or_else(|e| panic!("parse {json_path:?}: {e}"));
 
         run_queued_animations_smoke(data.clone(), example_name);
         run_multitrack_overlay_smoke(data, example_name);
