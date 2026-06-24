@@ -498,7 +498,7 @@ impl Skeleton {
         self.bones.first_mut()
     }
 
-    pub fn find_bone_index(&self, bone_name: &str) -> Option<usize> {
+    fn bone_index_by_name(&self, bone_name: &str) -> Option<usize> {
         if bone_name.is_empty() {
             return None;
         }
@@ -509,12 +509,12 @@ impl Skeleton {
     }
 
     pub fn find_bone(&self, bone_name: &str) -> Option<&Bone> {
-        let index = self.find_bone_index(bone_name)?;
+        let index = self.bone_index_by_name(bone_name)?;
         self.bones.get(index)
     }
 
     pub fn find_bone_mut(&mut self, bone_name: &str) -> Option<&mut Bone> {
-        let index = self.find_bone_index(bone_name)?;
+        let index = self.bone_index_by_name(bone_name)?;
         self.bones.get_mut(index)
     }
 
@@ -532,7 +532,7 @@ impl Skeleton {
         }
     }
 
-    pub fn find_slot_index(&self, slot_name: &str) -> Option<usize> {
+    fn slot_index_by_name(&self, slot_name: &str) -> Option<usize> {
         if slot_name.is_empty() {
             return None;
         }
@@ -543,12 +543,12 @@ impl Skeleton {
     }
 
     pub fn find_slot(&self, slot_name: &str) -> Option<&Slot> {
-        let index = self.find_slot_index(slot_name)?;
+        let index = self.slot_index_by_name(slot_name)?;
         self.slots.get(index)
     }
 
     pub fn find_slot_mut(&mut self, slot_name: &str) -> Option<&mut Slot> {
-        let index = self.find_slot_index(slot_name)?;
+        let index = self.slot_index_by_name(slot_name)?;
         self.slots.get_mut(index)
     }
 
@@ -651,7 +651,7 @@ impl Skeleton {
         &mut self.ik_constraints
     }
 
-    pub fn find_ik_constraint_index(&self, constraint_name: &str) -> Option<usize> {
+    fn ik_constraint_index_by_name(&self, constraint_name: &str) -> Option<usize> {
         if constraint_name.is_empty() {
             return None;
         }
@@ -662,12 +662,12 @@ impl Skeleton {
     }
 
     pub fn find_ik_constraint(&self, constraint_name: &str) -> Option<&IkConstraint> {
-        let index = self.find_ik_constraint_index(constraint_name)?;
+        let index = self.ik_constraint_index_by_name(constraint_name)?;
         self.ik_constraints.get(index)
     }
 
     pub fn find_ik_constraint_mut(&mut self, constraint_name: &str) -> Option<&mut IkConstraint> {
-        let index = self.find_ik_constraint_index(constraint_name)?;
+        let index = self.ik_constraint_index_by_name(constraint_name)?;
         self.ik_constraints.get_mut(index)
     }
 
@@ -679,7 +679,7 @@ impl Skeleton {
         &mut self.transform_constraints
     }
 
-    pub fn find_transform_constraint_index(&self, constraint_name: &str) -> Option<usize> {
+    fn transform_constraint_index_by_name(&self, constraint_name: &str) -> Option<usize> {
         if constraint_name.is_empty() {
             return None;
         }
@@ -690,7 +690,7 @@ impl Skeleton {
     }
 
     pub fn find_transform_constraint(&self, constraint_name: &str) -> Option<&TransformConstraint> {
-        let index = self.find_transform_constraint_index(constraint_name)?;
+        let index = self.transform_constraint_index_by_name(constraint_name)?;
         self.transform_constraints.get(index)
     }
 
@@ -698,7 +698,7 @@ impl Skeleton {
         &mut self,
         constraint_name: &str,
     ) -> Option<&mut TransformConstraint> {
-        let index = self.find_transform_constraint_index(constraint_name)?;
+        let index = self.transform_constraint_index_by_name(constraint_name)?;
         self.transform_constraints.get_mut(index)
     }
 
@@ -710,7 +710,7 @@ impl Skeleton {
         &mut self.path_constraints
     }
 
-    pub fn find_path_constraint_index(&self, constraint_name: &str) -> Option<usize> {
+    fn path_constraint_index_by_name(&self, constraint_name: &str) -> Option<usize> {
         if constraint_name.is_empty() {
             return None;
         }
@@ -721,7 +721,7 @@ impl Skeleton {
     }
 
     pub fn find_path_constraint(&self, constraint_name: &str) -> Option<&PathConstraint> {
-        let index = self.find_path_constraint_index(constraint_name)?;
+        let index = self.path_constraint_index_by_name(constraint_name)?;
         self.path_constraints.get(index)
     }
 
@@ -729,7 +729,7 @@ impl Skeleton {
         &mut self,
         constraint_name: &str,
     ) -> Option<&mut PathConstraint> {
-        let index = self.find_path_constraint_index(constraint_name)?;
+        let index = self.path_constraint_index_by_name(constraint_name)?;
         self.path_constraints.get_mut(index)
     }
 
@@ -741,7 +741,7 @@ impl Skeleton {
         &mut self.physics_constraints
     }
 
-    pub fn find_physics_constraint_index(&self, constraint_name: &str) -> Option<usize> {
+    fn physics_constraint_index_by_name(&self, constraint_name: &str) -> Option<usize> {
         if constraint_name.is_empty() {
             return None;
         }
@@ -752,7 +752,7 @@ impl Skeleton {
     }
 
     pub fn find_physics_constraint(&self, constraint_name: &str) -> Option<&PhysicsConstraint> {
-        let index = self.find_physics_constraint_index(constraint_name)?;
+        let index = self.physics_constraint_index_by_name(constraint_name)?;
         self.physics_constraints.get(index)
     }
 
@@ -760,7 +760,7 @@ impl Skeleton {
         &mut self,
         constraint_name: &str,
     ) -> Option<&mut PhysicsConstraint> {
-        let index = self.find_physics_constraint_index(constraint_name)?;
+        let index = self.physics_constraint_index_by_name(constraint_name)?;
         self.physics_constraints.get_mut(index)
     }
 
@@ -772,7 +772,7 @@ impl Skeleton {
         &mut self.slider_constraints
     }
 
-    pub fn find_slider_constraint_index(&self, constraint_name: &str) -> Option<usize> {
+    fn slider_constraint_index_by_name(&self, constraint_name: &str) -> Option<usize> {
         if constraint_name.is_empty() {
             return None;
         }
@@ -783,7 +783,7 @@ impl Skeleton {
     }
 
     pub fn find_slider_constraint(&self, constraint_name: &str) -> Option<&SliderConstraint> {
-        let index = self.find_slider_constraint_index(constraint_name)?;
+        let index = self.slider_constraint_index_by_name(constraint_name)?;
         self.slider_constraints.get(index)
     }
 
@@ -791,7 +791,7 @@ impl Skeleton {
         &mut self,
         constraint_name: &str,
     ) -> Option<&mut SliderConstraint> {
-        let index = self.find_slider_constraint_index(constraint_name)?;
+        let index = self.slider_constraint_index_by_name(constraint_name)?;
         self.slider_constraints.get_mut(index)
     }
 
@@ -1383,7 +1383,7 @@ impl Skeleton {
         slot_name: &str,
         attachment_name: &str,
     ) -> Option<&crate::AttachmentData> {
-        let slot_index = self.find_slot_index(slot_name)?;
+        let slot_index = self.slot_index_by_name(slot_name)?;
         self.attachment(slot_index, attachment_name)
     }
 
@@ -1391,7 +1391,7 @@ impl Skeleton {
         if slot_name.is_empty() {
             return;
         }
-        let Some(slot_index) = self.find_slot_index(slot_name) else {
+        let Some(slot_index) = self.slot_index_by_name(slot_name) else {
             return;
         };
 

@@ -1024,8 +1024,8 @@ fn skeleton_finders_match_setup_order() {
 
     assert_eq!(skeleton.root_bone().unwrap().data_index(), 0);
     assert_eq!(skeleton.root_bone_mut().unwrap().data_index(), 0);
-    assert_eq!(skeleton.find_bone_index("root"), Some(0));
-    assert_eq!(skeleton.find_bone_index("child"), Some(1));
+    assert_eq!(skeleton.find_bone("root").unwrap().data_index(), 0);
+    assert_eq!(skeleton.find_bone("child").unwrap().data_index(), 1);
     assert!(skeleton.find_bone("").is_none());
     assert!(skeleton.find_slot("").is_none());
     assert_eq!(skeleton.find_bone("child").unwrap().parent_index(), Some(0));
@@ -1036,7 +1036,7 @@ fn skeleton_finders_match_setup_order() {
     skeleton.find_bone_mut("child").unwrap().set_x(7.0);
     assert_eq!(skeleton.bones()[1].x(), 7.0);
 
-    assert_eq!(skeleton.find_slot_index("slot1"), Some(1));
+    assert_eq!(skeleton.find_slot("slot1").unwrap().data_index(), 1);
     assert_eq!(skeleton.find_slot("slot0").unwrap().bone_index(), 0);
     skeleton
         .find_slot_mut("slot1")
@@ -1049,15 +1049,10 @@ fn skeleton_finders_match_setup_order() {
 fn skeleton_constraint_finders_match_data_names() {
     let mut skeleton = Skeleton::new(constraint_lookup_skeleton_data());
 
-    assert_eq!(skeleton.find_ik_constraint_index("ik"), Some(0));
     assert_eq!(skeleton.find_ik_constraint("ik").unwrap().data_index(), 0);
     skeleton.find_ik_constraint_mut("ik").unwrap().set_mix(0.25);
     assert_eq!(skeleton.ik_constraints()[0].mix(), 0.25);
 
-    assert_eq!(
-        skeleton.find_transform_constraint_index("transform"),
-        Some(0)
-    );
     assert_eq!(
         skeleton
             .find_transform_constraint("transform")
@@ -1071,7 +1066,6 @@ fn skeleton_constraint_finders_match_data_names() {
         .set_mix_x(0.5);
     assert_eq!(skeleton.transform_constraints()[0].mix_x(), 0.5);
 
-    assert_eq!(skeleton.find_path_constraint_index("path"), Some(0));
     assert_eq!(
         skeleton.find_path_constraint("path").unwrap().data_index(),
         0
@@ -1082,7 +1076,6 @@ fn skeleton_constraint_finders_match_data_names() {
         .set_position(2.0);
     assert_eq!(skeleton.path_constraints()[0].position(), 2.0);
 
-    assert_eq!(skeleton.find_physics_constraint_index("physics"), Some(0));
     assert_eq!(
         skeleton
             .find_physics_constraint("physics")
@@ -1096,7 +1089,6 @@ fn skeleton_constraint_finders_match_data_names() {
         .set_mix(0.75);
     assert_eq!(skeleton.physics_constraints()[0].mix(), 0.75);
 
-    assert_eq!(skeleton.find_slider_constraint_index("slider"), Some(0));
     assert_eq!(
         skeleton
             .find_slider_constraint("slider")
