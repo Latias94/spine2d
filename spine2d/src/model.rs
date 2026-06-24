@@ -1216,16 +1216,15 @@ impl SkeletonData {
     }
 
     pub fn find_animation(&self, name: &str) -> Option<&Animation> {
-        let index = *self.animation_index.get(name)?;
-        self.animations.get(index)
+        self.animations.iter().find(|data| data.name == name)
     }
 
     pub fn find_skin(&self, name: &str) -> Option<&SkinData> {
-        self.skins.get(name)
+        self.skins.values().find(|data| data.name == name)
     }
 
     pub fn find_event(&self, name: &str) -> Option<&EventData> {
-        self.events.get(name)
+        self.events.values().find(|data| data.name == name)
     }
 
     pub fn find_ik_constraint(&self, name: &str) -> Option<&IkConstraintData> {

@@ -1,7 +1,7 @@
 use crate::{
-    BoneData, EventData, IkConstraintData, PathConstraintData, PhysicsConstraintData, PositionMode,
-    RotateMode, ScaleYMode, SkeletonData, SliderConstraintData, SlotData, SpacingMode,
-    TransformConstraintData,
+    Animation, BoneData, EventData, IkConstraintData, PathConstraintData, PhysicsConstraintData,
+    PositionMode, RotateMode, ScaleYMode, SkeletonData, SkinData, SliderConstraintData, SlotData,
+    SpacingMode, TransformConstraintData,
 };
 
 #[test]
@@ -15,8 +15,10 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
         name: "slot".to_string(),
         ..SlotData::default()
     });
+    data.skins
+        .insert("skin-key".to_string(), SkinData::new("skin", 0));
     data.events.insert(
-        "event".to_string(),
+        "event-key".to_string(),
         EventData {
             name: "event".to_string(),
             int_value: 1,
@@ -27,6 +29,30 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
             balance: 0.0,
         },
     );
+    data.animations.push(Animation {
+        name: "animation".to_string(),
+        duration: 0.0,
+        event_timeline: None,
+        bone_timelines: Vec::new(),
+        deform_timelines: Vec::new(),
+        sequence_timelines: Vec::new(),
+        slot_attachment_timelines: Vec::new(),
+        slot_color_timelines: Vec::new(),
+        slot_rgb_timelines: Vec::new(),
+        slot_alpha_timelines: Vec::new(),
+        slot_rgba2_timelines: Vec::new(),
+        slot_rgb2_timelines: Vec::new(),
+        ik_constraint_timelines: Vec::new(),
+        transform_constraint_timelines: Vec::new(),
+        path_constraint_timelines: Vec::new(),
+        physics_constraint_timelines: Vec::new(),
+        physics_reset_timelines: Vec::new(),
+        slider_time_timelines: Vec::new(),
+        slider_mix_timelines: Vec::new(),
+        draw_order_timeline: None,
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    });
     data.ik_constraints.push(IkConstraintData {
         name: "ik".to_string(),
         order: 0,
@@ -122,7 +148,9 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
 
     assert_eq!(data.find_bone("root").unwrap().name, "root");
     assert_eq!(data.find_slot("slot").unwrap().name, "slot");
+    assert_eq!(data.find_skin("skin").unwrap().name, "skin");
     assert_eq!(data.find_event("event").unwrap().string, "payload");
+    assert_eq!(data.find_animation("animation").unwrap().name, "animation");
     assert_eq!(data.find_ik_constraint("ik").unwrap().target, 0);
     assert_eq!(
         data.find_transform_constraint("transform").unwrap().order,
@@ -134,7 +162,9 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
 
     assert!(data.find_bone("").is_none());
     assert!(data.find_slot("").is_none());
+    assert!(data.find_skin("").is_none());
     assert!(data.find_event("").is_none());
+    assert!(data.find_animation("").is_none());
     assert!(data.find_ik_constraint("").is_none());
     assert!(data.find_transform_constraint("").is_none());
     assert!(data.find_path_constraint("").is_none());
