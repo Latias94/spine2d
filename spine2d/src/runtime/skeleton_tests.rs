@@ -34,6 +34,15 @@ fn assert_approx_angle(actual: f32, expected: f32) {
 fn empty_skeleton_data() -> Arc<SkeletonData> {
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: Vec::new(),
         slots: Vec::new(),
@@ -114,6 +123,15 @@ fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
 
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![
             BoneData {
@@ -177,6 +195,15 @@ fn linked_mesh_attachment_skeleton_data() -> Arc<SkeletonData> {
 
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -229,6 +256,15 @@ fn skin_switch_linked_mesh_skeleton_data() -> Arc<SkeletonData> {
 
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -289,6 +325,15 @@ fn physics_constraint_data(name: &str, order: i32, bone: usize) -> PhysicsConstr
 fn constraint_lookup_skeleton_data() -> Arc<SkeletonData> {
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -411,6 +456,15 @@ fn slider_draw_order_skeleton_data() -> Arc<SkeletonData> {
 
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -541,6 +595,15 @@ fn slider_slot_pose_skeleton_data() -> Arc<SkeletonData> {
 
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -595,6 +658,15 @@ fn setup_pose_split_skeleton_data() -> Arc<SkeletonData> {
 
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -756,6 +828,15 @@ fn clipping_bounds_skeleton_data() -> Arc<SkeletonData> {
 
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -1357,6 +1438,15 @@ fn skeleton_bounds_cover_region_and_mesh_attachments() {
 
     let data = Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -1412,6 +1502,15 @@ fn skeleton_bounds_with_clipping_respects_clip_polygons_and_end_slots() {
 fn bone_accessors_expose_local_applied_and_world_pose() {
     let data = Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -1492,6 +1591,15 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
 
     let data = Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -1654,6 +1762,15 @@ fn skeleton_validate_bone_local_transform_uses_world_modified_marker() {
 fn slot_accessors_expose_attachment_tint_and_deform_state() {
     let data = Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -1866,6 +1983,15 @@ fn constraint_accessors_expose_pose_state() {
 
     let data = Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -1915,6 +2041,15 @@ fn constraint_accessors_expose_pose_state() {
 fn skeleton_physics_controls_broadcast_to_all_constraints() {
     let data = Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -1998,6 +2133,15 @@ fn skeleton_physics_controls_broadcast_to_all_constraints() {
 fn update_world_transform_root_and_child() {
     let data = Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![
             BoneData {
@@ -2067,6 +2211,15 @@ fn update_world_transform_root_and_child() {
 fn update_world_transform_parent_rotation_affects_child_translation() {
     let data = Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![
             BoneData {

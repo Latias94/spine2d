@@ -20,6 +20,15 @@ fn assert_approx(actual: f32, expected: f32) {
 fn base_skeleton_data() -> SkeletonData {
     SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),

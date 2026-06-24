@@ -103,8 +103,24 @@ struct SkinDef {
 #[derive(Debug, Deserialize)]
 struct SkeletonHeader {
     spine: Option<String>,
+    #[serde(default)]
+    hash: Option<String>,
+    #[serde(default)]
+    x: f32,
+    #[serde(default)]
+    y: f32,
+    #[serde(default)]
+    width: f32,
+    #[serde(default)]
+    height: f32,
     #[serde(default, rename = "referenceScale")]
     reference_scale: Option<f32>,
+    #[serde(default)]
+    fps: Option<f32>,
+    #[serde(default, rename = "images")]
+    images_path: Option<String>,
+    #[serde(default, rename = "audio")]
+    audio_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -791,13 +807,47 @@ impl SkeletonData {
             message: e.to_string(),
         })?;
 
-        let (spine_version, reference_scale_raw) = match root.skeleton {
+        let (
+            spine_version,
+            hash,
+            x,
+            y,
+            width,
+            height,
+            reference_scale_raw,
+            fps,
+            images_path,
+            audio_path,
+        ) = match root.skeleton {
             Some(s) => {
                 let spine_version = s.spine;
                 validate_spine_version(spine_version.as_deref().unwrap_or(""))?;
-                (spine_version, s.reference_scale.unwrap_or(100.0))
+                (
+                    spine_version,
+                    s.hash.unwrap_or_default(),
+                    s.x,
+                    s.y,
+                    s.width,
+                    s.height,
+                    s.reference_scale
+                        .unwrap_or(SkeletonData::DEFAULT_REFERENCE_SCALE),
+                    s.fps.unwrap_or(SkeletonData::DEFAULT_FPS),
+                    s.images_path.unwrap_or_default(),
+                    s.audio_path.unwrap_or_default(),
+                )
             }
-            None => (None, 100.0),
+            None => (
+                None,
+                String::new(),
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                SkeletonData::DEFAULT_REFERENCE_SCALE,
+                SkeletonData::DEFAULT_FPS,
+                String::new(),
+                String::new(),
+            ),
         };
 
         let scale = if scale.is_finite() { scale } else { 1.0 };
@@ -3273,8 +3323,17 @@ impl SkeletonData {
         }
 
         Ok(Arc::new(SkeletonData {
+            name: String::new(),
             spine_version,
+            hash,
+            x,
+            y,
+            width,
+            height,
             reference_scale,
+            fps,
+            images_path,
+            audio_path,
             bones,
             slots,
             skins,

@@ -1178,8 +1178,17 @@ impl Animation {
 
 #[derive(Clone, Debug)]
 pub struct SkeletonData {
+    pub name: String,
     pub spine_version: Option<String>,
+    pub hash: String,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
     pub reference_scale: f32,
+    pub fps: f32,
+    pub images_path: String,
+    pub audio_path: String,
     pub bones: Vec<BoneData>,
     pub slots: Vec<SlotData>,
     pub skins: HashMap<String, SkinData>,
@@ -1194,6 +1203,9 @@ pub struct SkeletonData {
 }
 
 impl SkeletonData {
+    pub const DEFAULT_REFERENCE_SCALE: f32 = 100.0;
+    pub const DEFAULT_FPS: f32 = 30.0;
+
     pub fn find_animation(&self, name: &str) -> Option<&Animation> {
         let index = *self.animation_index.get(name)?;
         self.animations.get(index)
@@ -1201,6 +1213,35 @@ impl SkeletonData {
 
     pub fn find_skin(&self, name: &str) -> Option<&SkinData> {
         self.skins.get(name)
+    }
+}
+
+impl Default for SkeletonData {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            spine_version: None,
+            hash: String::new(),
+            x: 0.0,
+            y: 0.0,
+            width: 0.0,
+            height: 0.0,
+            reference_scale: Self::DEFAULT_REFERENCE_SCALE,
+            fps: Self::DEFAULT_FPS,
+            images_path: String::new(),
+            audio_path: String::new(),
+            bones: Vec::new(),
+            slots: Vec::new(),
+            skins: HashMap::new(),
+            events: HashMap::new(),
+            animations: Vec::new(),
+            animation_index: HashMap::new(),
+            ik_constraints: Vec::new(),
+            transform_constraints: Vec::new(),
+            path_constraints: Vec::new(),
+            physics_constraints: Vec::new(),
+            slider_constraints: Vec::new(),
+        }
     }
 }
 

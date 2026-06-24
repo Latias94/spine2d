@@ -62,6 +62,15 @@ fn animation_state_apply_drives_skeleton_pose() {
 
     let skeleton_data = Arc::new(crate::SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -176,6 +185,15 @@ fn animation_state_mixes_pose_between_entries() {
 
     let skeleton_data = Arc::new(crate::SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -270,6 +288,15 @@ fn track_entry_shortest_rotation_disables_rotation_accumulator() {
 
         let skeleton_data = Arc::new(crate::SkeletonData {
             spine_version: None,
+            name: String::new(),
+            hash: String::new(),
+            x: 0.0,
+            y: 0.0,
+            width: 0.0,
+            height: 0.0,
+            fps: crate::SkeletonData::DEFAULT_FPS,
+            images_path: String::new(),
+            audio_path: String::new(),
             reference_scale: 100.0,
             bones: vec![BoneData {
                 name: "root".to_string(),
@@ -367,6 +394,15 @@ fn track_entry_reverse_samples_from_animation_end() {
 
     let skeleton_data = Arc::new(crate::SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),

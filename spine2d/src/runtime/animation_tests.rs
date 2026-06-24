@@ -20,6 +20,15 @@ fn assert_approx(actual: f32, expected: f32) {
 fn skeleton_data_with_root(setup_x: f32, setup_y: f32, setup_rotation: f32) -> Arc<SkeletonData> {
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),
@@ -255,6 +264,15 @@ fn rotate_timeline_before_first_frame_distinguishes_current_and_first() {
 fn inherit_timeline_applies_to_the_keyed_bone() {
     let data = Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![
             BoneData {
@@ -384,6 +402,15 @@ fn inherit_timeline_out_restores_setup_for_first_and_setup_blends() {
 fn inherit_timeline_mix_out_restores_setup_for_first_and_setup_modes() {
     let data = Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones: vec![BoneData {
             name: "root".to_string(),

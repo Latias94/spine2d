@@ -242,6 +242,17 @@ impl<'a> BinaryInput<'a> {
         Ok(v)
     }
 
+    fn read_i64_be(&mut self) -> Result<i64, Error> {
+        if self.remaining() < 8 {
+            return Err(Error::BinaryParse {
+                message: "unexpected EOF".to_string(),
+            });
+        }
+        let v = BigEndian::read_i64(&self.bytes[self.cursor..self.cursor + 8]);
+        self.cursor += 8;
+        Ok(v)
+    }
+
     fn read_f32_be(&mut self) -> Result<f32, Error> {
         if self.remaining() < 4 {
             return Err(Error::BinaryParse {
@@ -929,26 +940,35 @@ impl crate::SkeletonData {
         let scale = if scale.is_finite() { scale } else { 1.0 };
         let mut input = BinaryInput::new(bytes);
 
-        // hash (2x int32)
-        let _ = input.read_i32_be()?;
-        let _ = input.read_i32_be()?;
+        let hash = match input.read_i64_be()? {
+            0 => String::new(),
+            value => value.to_string(),
+        };
 
         let spine_version = input.read_string()?;
         validate_spine_version(spine_version.as_deref().unwrap_or(""))?;
 
         // x, y, width, height, referenceScale
-        let _ = input.read_f32_be()?;
-        let _ = input.read_f32_be()?;
-        let _ = input.read_f32_be()?;
-        let _ = input.read_f32_be()?;
+        let x = input.read_f32_be()?;
+        let y = input.read_f32_be()?;
+        let width = input.read_f32_be()?;
+        let height = input.read_f32_be()?;
         let reference_scale = input.read_f32_be()? * scale;
 
         let nonessential = input.read_bool()?;
-        if nonessential {
-            let _ = input.read_f32_be()?; // fps
-            let _ = input.read_string()?; // imagesPath
-            let _ = input.read_string()?; // audioPath
-        }
+        let (fps, images_path, audio_path) = if nonessential {
+            (
+                input.read_f32_be()?,
+                input.read_string()?.unwrap_or_default(),
+                input.read_string()?.unwrap_or_default(),
+            )
+        } else {
+            (
+                crate::SkeletonData::DEFAULT_FPS,
+                String::new(),
+                String::new(),
+            )
+        };
 
         let strings_count = input.read_varint(true)? as usize;
         let mut strings = Vec::with_capacity(strings_count);
@@ -1839,8 +1859,17 @@ impl crate::SkeletonData {
         }
 
         Ok(Arc::new(crate::SkeletonData {
+            name: String::new(),
             spine_version,
+            hash,
+            x,
+            y,
+            width,
+            height,
             reference_scale,
+            fps,
+            images_path,
+            audio_path,
             bones,
             slots,
             skins: skins_map,

@@ -219,17 +219,17 @@ fn binary_nonessential_bone_and_slot_fields_are_preserved() {
     }
 
     let mut bytes = Vec::new();
-    bytes.extend_from_slice(&[0; 8]); // hash
+    bytes.extend_from_slice(&42_i64.to_be_bytes()); // hash
     push_string(&mut bytes, Some("4.3.00"));
-    bytes.extend(f32_be(0.0)); // x
-    bytes.extend(f32_be(0.0)); // y
-    bytes.extend(f32_be(0.0)); // width
-    bytes.extend(f32_be(0.0)); // height
-    bytes.extend(f32_be(1.0)); // referenceScale
+    bytes.extend(f32_be(1.0)); // x
+    bytes.extend(f32_be(2.0)); // y
+    bytes.extend(f32_be(3.0)); // width
+    bytes.extend(f32_be(4.0)); // height
+    bytes.extend(f32_be(50.0)); // referenceScale
     bytes.push(1); // nonessential = true
-    bytes.extend(f32_be(30.0)); // fps
-    push_string(&mut bytes, None); // imagesPath
-    push_string(&mut bytes, None); // audioPath
+    bytes.extend(f32_be(24.0)); // fps
+    push_string(&mut bytes, Some("images/")); // imagesPath
+    push_string(&mut bytes, Some("audio/")); // audioPath
     bytes.extend(varint(0)); // strings
     bytes.extend(varint(1)); // bones
     push_string(&mut bytes, Some("root"));
@@ -265,6 +265,18 @@ fn binary_nonessential_bone_and_slot_fields_are_preserved() {
     bytes.extend(varint(0)); // animations
 
     let data = SkeletonData::from_skel_bytes(&bytes).expect("parse skel");
+    assert_eq!(data.name, "");
+    assert_eq!(data.spine_version.as_deref(), Some("4.3.00"));
+    assert_eq!(data.hash, "42");
+    assert_eq!(data.x, 1.0);
+    assert_eq!(data.y, 2.0);
+    assert_eq!(data.width, 3.0);
+    assert_eq!(data.height, 4.0);
+    assert_eq!(data.reference_scale, 50.0);
+    assert_eq!(data.fps, 24.0);
+    assert_eq!(data.images_path, "images/");
+    assert_eq!(data.audio_path, "audio/");
+
     let bone = &data.bones[0];
     assert_eq!(
         bone.color,

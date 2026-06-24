@@ -112,6 +112,15 @@ fn build_data() -> Arc<SkeletonData> {
 
     Arc::new(SkeletonData {
         spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
         reference_scale: 100.0,
         bones,
         slots,

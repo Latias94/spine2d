@@ -31,6 +31,41 @@ fn json_physics_constraint_defaults_match_spine_cpp() {
 }
 
 #[test]
+fn json_skeleton_header_metadata_matches_spine_cpp() {
+    let json = r#"
+{
+  "skeleton": {
+    "spine": "4.3.00",
+    "hash": "abc123",
+    "x": 1,
+    "y": 2,
+    "width": 3,
+    "height": 4,
+    "referenceScale": 50,
+    "fps": 24,
+    "images": "images/",
+    "audio": "audio/"
+  },
+  "bones": [{ "name": "root" }]
+}
+"#;
+
+    let data = SkeletonData::from_json_str_with_scale(json, 2.0).expect("parse skeleton json");
+
+    assert_eq!(data.name, "");
+    assert_eq!(data.spine_version.as_deref(), Some("4.3.00"));
+    assert_eq!(data.hash, "abc123");
+    assert_eq!(data.x, 1.0);
+    assert_eq!(data.y, 2.0);
+    assert_eq!(data.width, 3.0);
+    assert_eq!(data.height, 4.0);
+    assert_eq!(data.reference_scale, 100.0);
+    assert_eq!(data.fps, 24.0);
+    assert_eq!(data.images_path, "images/");
+    assert_eq!(data.audio_path, "audio/");
+}
+
+#[test]
 fn json_ik_scale_y_mode_matches_spine_cpp() {
     let json = r#"
 {
