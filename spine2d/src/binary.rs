@@ -612,12 +612,15 @@ fn read_attachment(
             // boundingbox
             let weighted = (flags & 16) != 0;
             let v = read_vertices(input, weighted, scale)?;
-            if nonessential {
-                let _ = input.read_color_rgba()?;
-            }
+            let color = if nonessential {
+                input.read_color_rgba()?
+            } else {
+                BoundingBoxAttachmentData::DEFAULT_COLOR
+            };
             Ok(AttachmentData::BoundingBox(BoundingBoxAttachmentData {
                 vertex_id: crate::ids::next_vertex_attachment_id(),
                 name,
+                color,
                 vertices: v.vertices,
             }))
         }
@@ -786,12 +789,15 @@ fn read_attachment(
             for _ in 0..lengths_len {
                 lengths.push(input.read_f32_be()? * scale);
             }
-            if nonessential {
-                let _ = input.read_color_rgba()?;
-            }
+            let color = if nonessential {
+                input.read_color_rgba()?
+            } else {
+                PathAttachmentData::DEFAULT_COLOR
+            };
             Ok(AttachmentData::Path(PathAttachmentData {
                 vertex_id: crate::ids::next_vertex_attachment_id(),
                 name,
+                color,
                 vertices: v.vertices,
                 lengths,
                 closed,
@@ -803,14 +809,17 @@ fn read_attachment(
             let rotation = input.read_f32_be()?;
             let x = input.read_f32_be()? * scale;
             let y = input.read_f32_be()? * scale;
-            if nonessential {
-                let _ = input.read_color_rgba()?;
-            }
+            let color = if nonessential {
+                input.read_color_rgba()?
+            } else {
+                PointAttachmentData::DEFAULT_COLOR
+            };
             Ok(AttachmentData::Point(PointAttachmentData {
                 name,
                 x,
                 y,
                 rotation,
+                color,
             }))
         }
         6 => {
@@ -818,12 +827,15 @@ fn read_attachment(
             let end_slot_index = input.read_varint(true)? as usize;
             let weighted = (flags & 16) != 0;
             let v = read_vertices(input, weighted, scale)?;
-            if nonessential {
-                let _ = input.read_color_rgba()?;
-            }
+            let color = if nonessential {
+                input.read_color_rgba()?
+            } else {
+                ClippingAttachmentData::DEFAULT_COLOR
+            };
             Ok(AttachmentData::Clipping(ClippingAttachmentData {
                 vertex_id: crate::ids::next_vertex_attachment_id(),
                 name,
+                color,
                 vertices: v.vertices,
                 end_slot: Some(end_slot_index),
                 convex: (flags & 32) != 0,

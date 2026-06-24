@@ -1032,14 +1032,13 @@ impl SkeletonData {
                             .color
                             .as_deref()
                             .map(|s| parse_hex_color_rgba(s, "attachment color"))
-                            .transpose()?
-                            .unwrap_or([1.0, 1.0, 1.0, 1.0]);
+                            .transpose()?;
                         let attachment = match attachment_type {
                             "region" => AttachmentData::Region(RegionAttachmentData {
                                 name: internal_name.clone(),
                                 path,
                                 sequence: sequence.clone(),
-                                color: attachment_color,
+                                color: attachment_color.unwrap_or([1.0, 1.0, 1.0, 1.0]),
                                 x: attachment_def.x * scale,
                                 y: attachment_def.y * scale,
                                 rotation: attachment_def.rotation,
@@ -1053,6 +1052,8 @@ impl SkeletonData {
                                 x: attachment_def.x * scale,
                                 y: attachment_def.y * scale,
                                 rotation: attachment_def.rotation,
+                                color: attachment_color
+                                    .unwrap_or(PointAttachmentData::DEFAULT_COLOR),
                             }),
                             "mesh" => {
                                 let uvs = attachment_def.uvs.ok_or_else(|| {
@@ -1133,7 +1134,7 @@ impl SkeletonData {
                                     timeline_attachment: attachment_name.clone(),
                                     timeline_slots: Vec::new(),
                                     sequence: sequence.clone(),
-                                    color: attachment_color,
+                                    color: attachment_color.unwrap_or([1.0, 1.0, 1.0, 1.0]),
                                     vertices: packed_vertices,
                                     uvs: packed_uvs,
                                     triangles,
@@ -1183,6 +1184,8 @@ impl SkeletonData {
                                 AttachmentData::Path(PathAttachmentData {
                                     vertex_id: crate::ids::next_vertex_attachment_id(),
                                     name: internal_name.clone(),
+                                    color: attachment_color
+                                        .unwrap_or(PathAttachmentData::DEFAULT_COLOR),
                                     vertices: packed_vertices,
                                     lengths: attachment_def
                                         .lengths
@@ -1238,6 +1241,8 @@ impl SkeletonData {
                                 AttachmentData::BoundingBox(BoundingBoxAttachmentData {
                                     vertex_id: crate::ids::next_vertex_attachment_id(),
                                     name: internal_name.clone(),
+                                    color: attachment_color
+                                        .unwrap_or(BoundingBoxAttachmentData::DEFAULT_COLOR),
                                     vertices: packed_vertices,
                                 })
                             }
@@ -1301,6 +1306,8 @@ impl SkeletonData {
                                 AttachmentData::Clipping(ClippingAttachmentData {
                                     vertex_id: crate::ids::next_vertex_attachment_id(),
                                     name: internal_name.clone(),
+                                    color: attachment_color
+                                        .unwrap_or(ClippingAttachmentData::DEFAULT_COLOR),
                                     vertices: packed_vertices,
                                     end_slot,
                                     convex: attachment_def.convex,
@@ -1371,7 +1378,7 @@ impl SkeletonData {
                                     },
                                     timeline_slots: Vec::new(),
                                     sequence: sequence.clone(),
-                                    color: attachment_color,
+                                    color: attachment_color.unwrap_or([1.0, 1.0, 1.0, 1.0]),
                                     vertices: crate::MeshVertices::Unweighted(Vec::new()),
                                     uvs: Vec::new(),
                                     triangles: Vec::new(),

@@ -508,33 +508,53 @@ pub struct PointAttachmentData {
     pub x: f32,
     pub y: f32,
     pub rotation: f32,
+    pub color: [f32; 4],
+}
+
+impl PointAttachmentData {
+    pub const DEFAULT_COLOR: [f32; 4] = [0.9451, 0.9451, 0.0, 1.0];
 }
 
 #[derive(Clone, Debug)]
 pub struct PathAttachmentData {
     pub vertex_id: u32,
     pub name: String,
+    pub color: [f32; 4],
     pub vertices: MeshVertices,
     pub lengths: Vec<f32>,
     pub closed: bool,
     pub constant_speed: bool,
 }
 
+impl PathAttachmentData {
+    pub const DEFAULT_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
+}
+
 #[derive(Clone, Debug)]
 pub struct BoundingBoxAttachmentData {
     pub vertex_id: u32,
     pub name: String,
+    pub color: [f32; 4],
     pub vertices: MeshVertices,
+}
+
+impl BoundingBoxAttachmentData {
+    pub const DEFAULT_COLOR: [f32; 4] = [0.38, 0.94, 0.0, 1.0];
 }
 
 #[derive(Clone, Debug)]
 pub struct ClippingAttachmentData {
     pub vertex_id: u32,
     pub name: String,
+    pub color: [f32; 4],
     pub vertices: MeshVertices,
     pub end_slot: Option<usize>,
     pub convex: bool,
     pub inverse: bool,
+}
+
+impl ClippingAttachmentData {
+    pub const DEFAULT_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
 }
 
 #[derive(Clone, Debug)]

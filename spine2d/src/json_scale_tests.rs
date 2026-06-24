@@ -191,3 +191,82 @@ fn json_animation_color_matches_cpp_animation_color_field() {
         assert_approx(actual, expected);
     }
 }
+
+#[test]
+fn json_attachment_default_colors_match_cpp_constructors() {
+    let data = SkeletonData::from_json_str(
+        r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [ { "name": "root" } ],
+  "slots": [ { "name": "slot", "bone": "root" } ],
+  "skins": [
+    {
+      "name": "default",
+      "attachments": {
+        "slot": {
+          "point": { "type": "point", "x": 1.0, "y": 2.0, "rotation": 3.0 },
+          "path": { "type": "path", "vertexCount": 0, "vertices": [], "lengths": [], "closed": false, "constantSpeed": true },
+          "bbox": { "type": "boundingbox", "vertexCount": 0, "vertices": [] },
+          "clip": { "type": "clipping", "vertexCount": 0, "vertices": [], "end": "slot", "convex": true, "inverse": false }
+        }
+      }
+    }
+  ],
+  "animations": {}
+}
+"#,
+    )
+    .unwrap();
+
+    let skin = data.find_skin("default").unwrap();
+
+    match skin.attachments[0].get("point").unwrap() {
+        crate::AttachmentData::Point(point) => {
+            for (actual, expected) in point
+                .color
+                .into_iter()
+                .zip(crate::PointAttachmentData::DEFAULT_COLOR)
+            {
+                assert_approx(actual, expected);
+            }
+        }
+        other => panic!("expected point, got {other:?}"),
+    }
+    match skin.attachments[0].get("path").unwrap() {
+        crate::AttachmentData::Path(path) => {
+            for (actual, expected) in path
+                .color
+                .into_iter()
+                .zip(crate::PathAttachmentData::DEFAULT_COLOR)
+            {
+                assert_approx(actual, expected);
+            }
+        }
+        other => panic!("expected path, got {other:?}"),
+    }
+    match skin.attachments[0].get("bbox").unwrap() {
+        crate::AttachmentData::BoundingBox(bbox) => {
+            for (actual, expected) in bbox
+                .color
+                .into_iter()
+                .zip(crate::BoundingBoxAttachmentData::DEFAULT_COLOR)
+            {
+                assert_approx(actual, expected);
+            }
+        }
+        other => panic!("expected bounding box, got {other:?}"),
+    }
+    match skin.attachments[0].get("clip").unwrap() {
+        crate::AttachmentData::Clipping(clip) => {
+            for (actual, expected) in clip
+                .color
+                .into_iter()
+                .zip(crate::ClippingAttachmentData::DEFAULT_COLOR)
+            {
+                assert_approx(actual, expected);
+            }
+        }
+        other => panic!("expected clipping, got {other:?}"),
+    }
+}

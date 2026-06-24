@@ -781,6 +781,7 @@ fn clipping_bounds_skeleton_data() -> Arc<SkeletonData> {
         AttachmentData::Clipping(ClippingAttachmentData {
             vertex_id: 1,
             name: "clip".to_string(),
+            color: ClippingAttachmentData::DEFAULT_COLOR,
             vertices: MeshVertices::Unweighted(vec![
                 [-1.0, -1.0],
                 [1.0, -1.0],

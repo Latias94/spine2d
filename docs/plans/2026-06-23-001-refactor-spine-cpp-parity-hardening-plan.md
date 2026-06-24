@@ -343,6 +343,8 @@ flowchart TB
 
 **Recent update:** `Animation::color` now covers the C++ `Animation::getColor()` field. JSON animation objects preserve the optional color string, binary animations preserve the trailing nonessential RGBA block, and the model defaults to white when the field is absent.
 
+**Recent update:** Point, path, bounding box, and clipping attachments now keep the latest-tag C++ `getColor()` data. The Rust model records type-specific C++ constructor defaults, JSON applies explicit/default attachment colors per type, and binary preserves nonessential attachment colors instead of discarding them.
+
 **Files:** `spine2d/Cargo.toml`, `spine2d/src/atlas.rs`, `spine2d/src/runtime/oracle_scenario_parity_tests.rs`, `spine2d/src/render_oracle_parity_tests.rs`, `spine2d/examples/pose_dump_scenario.rs`, `spine2d/examples/render_dump.rs`, `spine2d/tests/golden/**`, `spine2d-bevy/src/asset_loader.rs`, `spine2d-bevy/src/spine_world.rs`, `spine2d-bevy/src/systems.rs`, `spine2d-web/src/lib.rs`, `spine2d-wgpu/examples/basic.rs`, `spine2d-wgpu/examples/spine_runtimes.rs`, `scripts/record_oracle_goldens.py`, `scripts/record_oracle_render_goldens.py`, `scripts/render_parity_smoke.zsh`, `scripts/spine_cpp_lite_render_oracle.cpp`, `docs/decisions.md`, `docs/parity.md`, `docs/upstream-audit-4.3-latest.md`.
 
 **Approach:** When refactoring touches behavior with weak coverage, add the smallest C++ oracle scenario or fixture that proves the relevant rule. Do not refresh all goldens just to update metadata.

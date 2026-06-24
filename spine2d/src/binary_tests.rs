@@ -320,6 +320,171 @@ fn binary_nonessential_bone_slot_and_animation_fields_are_preserved() {
 }
 
 #[test]
+fn binary_nonessential_attachment_colors_are_preserved() {
+    fn varint(value: i32) -> Vec<u8> {
+        let mut value = value as u32;
+        let mut out = Vec::new();
+        loop {
+            let mut b = (value & 0x7f) as u8;
+            value >>= 7;
+            if value != 0 {
+                b |= 0x80;
+            }
+            out.push(b);
+            if value == 0 {
+                break;
+            }
+        }
+        out
+    }
+
+    fn f32_be(value: f32) -> [u8; 4] {
+        value.to_be_bytes()
+    }
+
+    fn push_string(out: &mut Vec<u8>, s: Option<&str>) {
+        match s {
+            None => out.push(0),
+            Some("") => out.push(1),
+            Some(s) => {
+                out.push((s.len() + 1) as u8);
+                out.extend_from_slice(s.as_bytes());
+            }
+        }
+    }
+
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(&42_i64.to_be_bytes()); // hash
+    push_string(&mut bytes, Some("4.3.00"));
+    bytes.extend(f32_be(1.0)); // x
+    bytes.extend(f32_be(2.0)); // y
+    bytes.extend(f32_be(3.0)); // width
+    bytes.extend(f32_be(4.0)); // height
+    bytes.extend(f32_be(50.0)); // referenceScale
+    bytes.push(1); // nonessential = true
+    bytes.extend(f32_be(24.0)); // fps
+    push_string(&mut bytes, Some("images/")); // imagesPath
+    push_string(&mut bytes, Some("audio/")); // audioPath
+    bytes.extend(varint(4)); // strings
+    push_string(&mut bytes, Some("bbox"));
+    push_string(&mut bytes, Some("path"));
+    push_string(&mut bytes, Some("point"));
+    push_string(&mut bytes, Some("clip"));
+
+    bytes.extend(varint(1)); // bones
+    push_string(&mut bytes, Some("root"));
+    bytes.extend(f32_be(0.0)); // rotation
+    bytes.extend(f32_be(0.0)); // x
+    bytes.extend(f32_be(0.0)); // y
+    bytes.extend(f32_be(1.0)); // scaleX
+    bytes.extend(f32_be(1.0)); // scaleY
+    bytes.extend(f32_be(0.0)); // shearX
+    bytes.extend(f32_be(0.0)); // shearY
+    bytes.push(0); // inherit normal
+    bytes.extend(f32_be(0.0)); // length
+    bytes.push(0); // skinRequired
+    bytes.extend_from_slice(&[0x11, 0x22, 0x33, 0x44]); // bone color
+    push_string(&mut bytes, Some("root-icon"));
+    bytes.extend(f32_be(2.5)); // iconSize
+    bytes.extend(f32_be(45.0)); // iconRotation
+    bytes.push(0); // visible=false
+
+    bytes.extend(varint(1)); // slots
+    push_string(&mut bytes, Some("slot0"));
+    bytes.extend(varint(0)); // bone
+    bytes.extend_from_slice(&[0xff, 0xff, 0xff, 0xff]); // slot color
+    bytes.extend_from_slice(&[0xff, 0xff, 0xff, 0xff]); // slot dark
+    push_string(&mut bytes, None); // attachment
+    bytes.extend(varint(0)); // blend normal
+    bytes.push(0); // visible=false
+
+    bytes.extend(varint(0)); // constraints
+    bytes.extend(varint(1)); // default skin slot entries
+    bytes.extend(varint(0)); // slot index
+    bytes.extend(varint(4)); // attachment count
+
+    bytes.extend(varint(1)); // bbox key ref
+    bytes.push(1); // boundingbox
+    bytes.extend(varint(0)); // vertex count
+    bytes.extend_from_slice(&[0x10, 0x20, 0x30, 0x40]);
+
+    bytes.extend(varint(2)); // path key ref
+    bytes.push(4); // path
+    bytes.extend(varint(0)); // vertex count
+    bytes.extend_from_slice(&[0x11, 0x21, 0x31, 0x41]);
+
+    bytes.extend(varint(3)); // point key ref
+    bytes.push(5); // point
+    bytes.extend(f32_be(12.5)); // rotation
+    bytes.extend(f32_be(1.5)); // x
+    bytes.extend(f32_be(2.5)); // y
+    bytes.extend_from_slice(&[0x12, 0x22, 0x32, 0x42]);
+
+    bytes.extend(varint(4)); // clip key ref
+    bytes.push(6); // clipping
+    bytes.extend(varint(0)); // end slot index
+    bytes.extend(varint(0)); // vertex count
+    bytes.extend_from_slice(&[0x13, 0x23, 0x33, 0x43]);
+
+    bytes.extend(varint(0)); // named skins
+    bytes.extend(varint(0)); // events
+    bytes.extend(varint(0)); // animations
+
+    let data = SkeletonData::from_skel_bytes(&bytes).expect("parse skel");
+    let skin = data.find_skin("default").expect("default skin");
+    let attachments = &skin.attachments[0];
+
+    match attachments.get("bbox").unwrap() {
+        crate::AttachmentData::BoundingBox(bb) => assert_eq!(
+            bb.color,
+            [
+                0x10 as f32 / 255.0,
+                0x20 as f32 / 255.0,
+                0x30 as f32 / 255.0,
+                0x40 as f32 / 255.0
+            ]
+        ),
+        other => panic!("expected bounding box, got {other:?}"),
+    }
+    match attachments.get("path").unwrap() {
+        crate::AttachmentData::Path(path) => assert_eq!(
+            path.color,
+            [
+                0x11 as f32 / 255.0,
+                0x21 as f32 / 255.0,
+                0x31 as f32 / 255.0,
+                0x41 as f32 / 255.0
+            ]
+        ),
+        other => panic!("expected path, got {other:?}"),
+    }
+    match attachments.get("point").unwrap() {
+        crate::AttachmentData::Point(point) => assert_eq!(
+            point.color,
+            [
+                0x12 as f32 / 255.0,
+                0x22 as f32 / 255.0,
+                0x32 as f32 / 255.0,
+                0x42 as f32 / 255.0
+            ]
+        ),
+        other => panic!("expected point, got {other:?}"),
+    }
+    match attachments.get("clip").unwrap() {
+        crate::AttachmentData::Clipping(clip) => assert_eq!(
+            clip.color,
+            [
+                0x13 as f32 / 255.0,
+                0x23 as f32 / 255.0,
+                0x33 as f32 / 255.0,
+                0x43 as f32 / 255.0
+            ]
+        ),
+        other => panic!("expected clipping, got {other:?}"),
+    }
+}
+
+#[test]
 #[cfg(all(feature = "json", feature = "upstream-smoke"))]
 fn binary_animation_preserves_parse_order_in_timeline_order() {
     let skel = load_example_bytes("tank/export/tank-pro.skel");
