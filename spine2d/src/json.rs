@@ -83,6 +83,8 @@ enum SkinsDef {
 struct SkinDef {
     name: String,
     #[serde(default)]
+    color: Option<String>,
+    #[serde(default)]
     attachments: IndexMap<String, IndexMap<String, AttachmentDef>>,
     #[serde(default)]
     bones: Vec<String>,
@@ -919,6 +921,7 @@ impl SkeletonData {
 
             let mut add_skin = |skin_name: String,
                                 skin_slots: IndexMap<String, IndexMap<String, AttachmentDef>>,
+                                skin_color: [f32; 4],
                                 skin_bones: Vec<String>,
                                 skin_ik: Vec<String>,
                                 skin_transform: Vec<String>,
@@ -1347,6 +1350,7 @@ impl SkeletonData {
                     skin_name_key.clone(),
                     SkinData {
                         name: skin_name,
+                        color: skin_color,
                         attachments,
                         bones: bones_in_skin,
                         ik_constraints: Vec::new(),
@@ -1382,6 +1386,7 @@ impl SkeletonData {
                         add_skin(
                             skin_name,
                             skin_slots,
+                            SkinData::DEFAULT_COLOR,
                             Vec::new(),
                             Vec::new(),
                             Vec::new(),
@@ -1393,9 +1398,16 @@ impl SkeletonData {
                 }
                 SkinsDef::Array(list) => {
                     for skin in list {
+                        let skin_color = skin
+                            .color
+                            .as_deref()
+                            .map(|s| parse_hex_color_rgba(s, "skin color"))
+                            .transpose()?
+                            .unwrap_or(SkinData::DEFAULT_COLOR);
                         add_skin(
                             skin.name,
                             skin.attachments,
+                            skin_color,
                             skin.bones,
                             skin.ik,
                             skin.transform,

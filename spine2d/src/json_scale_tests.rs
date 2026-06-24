@@ -1,5 +1,5 @@
 use crate::runtime::MixBlend;
-use crate::{Skeleton, SkeletonData, apply_animation};
+use crate::{Skeleton, SkeletonData, SkinData, apply_animation};
 
 const JSON: &str = r#"
 {
@@ -119,4 +119,38 @@ fn json_scale_applies_to_geometry_and_conditionally_to_path_fields() {
     assert_approx(skeleton.path_constraints[0].spacing, 10.0);
     assert_approx(skeleton.path_constraints[1].position, 0.50);
     assert_approx(skeleton.path_constraints[1].spacing, 0.2);
+}
+
+#[test]
+fn json_array_skin_color_matches_cpp_skin_color_field() {
+    let data = SkeletonData::from_json_str(
+        r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [ { "name": "root" } ],
+  "skins": [
+    { "name": "default", "attachments": {} },
+    { "name": "accent", "color": "11223344", "attachments": {} }
+  ],
+  "animations": {}
+}
+"#,
+    )
+    .unwrap();
+
+    let accent = data.find_skin("accent").unwrap();
+    let expected = [
+        0x11 as f32 / 255.0,
+        0x22 as f32 / 255.0,
+        0x33 as f32 / 255.0,
+        0x44 as f32 / 255.0,
+    ];
+    for (actual, expected) in accent.color.into_iter().zip(expected) {
+        assert_approx(actual, expected);
+    }
+
+    let default = data.find_skin("default").unwrap();
+    for (actual, expected) in default.color.into_iter().zip(SkinData::DEFAULT_COLOR) {
+        assert_approx(actual, expected);
+    }
 }

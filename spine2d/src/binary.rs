@@ -1549,6 +1549,7 @@ impl crate::SkeletonData {
             }
             let skin = SkinData {
                 name: "default".to_string(),
+                color: SkinData::DEFAULT_COLOR,
                 attachments,
                 bones: Vec::new(),
                 ik_constraints: Vec::new(),
@@ -1564,9 +1565,11 @@ impl crate::SkeletonData {
         let named_skins_count = input.read_varint(true)? as usize;
         for _ in 0..named_skins_count {
             let skin_name = input.read_string()?.unwrap_or_default();
-            if nonessential {
-                let _ = input.read_color_rgba()?;
-            }
+            let skin_color = if nonessential {
+                input.read_color_rgba()?
+            } else {
+                SkinData::DEFAULT_COLOR
+            };
             let mut bones_in_skin = Vec::new();
             for _ in 0..(input.read_varint(true)? as usize) {
                 bones_in_skin.push(input.read_varint(true)? as usize);
@@ -1632,6 +1635,7 @@ impl crate::SkeletonData {
 
             let skin = SkinData {
                 name: skin_name.clone(),
+                color: skin_color,
                 attachments,
                 bones: bones_in_skin,
                 ik_constraints: ik_in_skin,

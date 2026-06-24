@@ -105,6 +105,22 @@ fn attachment_sig(a: &AttachmentData) -> AttachmentSig {
     }
 }
 
+fn region_attachment(name: &str) -> AttachmentData {
+    AttachmentData::Region(RegionAttachmentData {
+        name: name.to_string(),
+        path: format!("{name}.png"),
+        sequence: None,
+        color: [1.0, 1.0, 1.0, 1.0],
+        x: 0.0,
+        y: 0.0,
+        rotation: 0.0,
+        scale_x: 1.0,
+        scale_y: 1.0,
+        width: 1.0,
+        height: 1.0,
+    })
+}
+
 #[test]
 fn skin_required_active_and_gating_match_spine_cpp_semantics() {
     let path = example_json_path("mix-and-match/export/mix-and-match-pro.json");
@@ -440,6 +456,36 @@ fn add_skin_is_idempotent_for_lists_and_last_write_wins_for_attachments() {
     assert_eq!(region.rotation, 8.0);
     assert_eq!(region.scale_x, 1.5);
     assert_eq!(region.scale_y, 2.0);
+}
+
+#[test]
+fn copy_skin_matches_cpp_deep_copy_surface() {
+    let mut source = SkinData::new("source", 1);
+    source.bones = vec![1];
+    source.ik_constraints = vec![2];
+    source.transform_constraints = vec![3];
+    source.path_constraints = vec![4];
+    source.physics_constraints = vec![5];
+    source.slider_constraints = vec![6];
+    source.set_attachment(0, "key", region_attachment("copied"));
+
+    let mut target = SkinData::new("target", 1);
+    target.copy_skin(&source);
+
+    assert_eq!(target.bones, vec![1]);
+    assert_eq!(target.ik_constraints, vec![2]);
+    assert_eq!(target.transform_constraints, vec![3]);
+    assert_eq!(target.path_constraints, vec![4]);
+    assert_eq!(target.physics_constraints, vec![5]);
+    assert_eq!(target.slider_constraints, vec![6]);
+
+    source.set_attachment(0, "key", region_attachment("replaced-source"));
+
+    let AttachmentData::Region(region) = target.attachment(0, "key").unwrap() else {
+        panic!("expected copied region attachment");
+    };
+    assert_eq!(region.name, "copied");
+    assert_eq!(region.path, "copied.png");
 }
 
 #[test]

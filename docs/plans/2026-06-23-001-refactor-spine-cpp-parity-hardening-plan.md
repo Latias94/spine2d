@@ -331,6 +331,8 @@ flowchart TB
 
 **Recent update:** JSON and binary version gates now match the latest-tag C++ runtime's `SPINE_VERSION_STRING` prefix check: parsed export versions must start with `4.3`, and binary empty/missing versions are no longer accepted. The JSON upstream smoke suite was adjusted to skip non-4.3 example files before invoking the parser, matching the existing `.skel` smoke posture, and `version_tests` now records the rejected-version boundary for both JSON and binary version headers.
 
+**Recent update:** The latest-tag `Skin` surface recheck found that Rust had attachment helper behavior covered but was missing `Skin::getColor` and `copySkin`. `SkinData` now stores the official default color, JSON/Binary parsers preserve skin color where C++ reads it, and `copy_skin` covers the C++ copy-composition entry point in Rust's owned-value attachment model.
+
 **Files:** `spine2d/Cargo.toml`, `spine2d/src/atlas.rs`, `spine2d/src/runtime/oracle_scenario_parity_tests.rs`, `spine2d/src/render_oracle_parity_tests.rs`, `spine2d/examples/pose_dump_scenario.rs`, `spine2d/examples/render_dump.rs`, `spine2d/tests/golden/**`, `spine2d-bevy/src/asset_loader.rs`, `spine2d-bevy/src/spine_world.rs`, `spine2d-bevy/src/systems.rs`, `spine2d-web/src/lib.rs`, `spine2d-wgpu/examples/basic.rs`, `spine2d-wgpu/examples/spine_runtimes.rs`, `scripts/record_oracle_goldens.py`, `scripts/record_oracle_render_goldens.py`, `scripts/render_parity_smoke.zsh`, `scripts/spine_cpp_lite_render_oracle.cpp`, `docs/decisions.md`, `docs/parity.md`, `docs/upstream-audit-4.3-latest.md`.
 
 **Approach:** When refactoring touches behavior with weak coverage, add the smallest C++ oracle scenario or fixture that proves the relevant rule. Do not refresh all goldens just to update metadata.

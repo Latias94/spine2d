@@ -540,6 +540,7 @@ pub struct ClippingAttachmentData {
 #[derive(Clone, Debug)]
 pub struct SkinData {
     pub name: String,
+    pub color: [f32; 4],
     pub attachments: Vec<IndexMap<String, AttachmentData>>,
     pub bones: Vec<usize>,
     pub ik_constraints: Vec<usize>,
@@ -550,12 +551,15 @@ pub struct SkinData {
 }
 
 impl SkinData {
+    pub const DEFAULT_COLOR: [f32; 4] = [0.99607843, 0.61960787, 0.30980393, 1.0];
+
     /// Creates an empty skin with storage for `slot_count` slots.
     ///
     /// This is intended for runtime composition use-cases (eg. "mix and match" skins).
     pub fn new(name: impl Into<String>, slot_count: usize) -> Self {
         Self {
             name: name.into(),
+            color: Self::DEFAULT_COLOR,
             attachments: (0..slot_count).map(|_| IndexMap::new()).collect(),
             bones: Vec::new(),
             ik_constraints: Vec::new(),
@@ -598,6 +602,14 @@ impl SkinData {
                 self.set_attachment(slot_index, key.clone(), attachment.clone());
             }
         }
+    }
+
+    /// Copies all attachments, bones, and constraints from `other` into this skin.
+    ///
+    /// Mirrors `Skin::copySkin`. Attachments are owned data in this Rust model, so this uses
+    /// the same merge path as `add_skin`.
+    pub fn copy_skin(&mut self, other: &SkinData) {
+        self.add_skin(other);
     }
 
     /// Adds or replaces an attachment for the specified slot index and name.

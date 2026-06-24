@@ -818,6 +818,7 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
         "default".to_string(),
         SkinData {
             name: "default".to_string(),
+            color: SkinData::DEFAULT_COLOR,
             attachments,
             bones: Vec::new(),
             ik_constraints: Vec::new(),
@@ -1056,6 +1057,7 @@ fn draw_order_folder_applies_after_draw_order_timeline() {
         "default".to_string(),
         SkinData {
             name: "default".to_string(),
+            color: SkinData::DEFAULT_COLOR,
             attachments,
             bones: Vec::new(),
             ik_constraints: Vec::new(),
@@ -1195,6 +1197,7 @@ fn track0_additive_does_not_override_alpha_attachment_threshold_for_attachments(
         "default".to_string(),
         SkinData {
             name: "default".to_string(),
+            color: SkinData::DEFAULT_COLOR,
             attachments,
             bones: Vec::new(),
             ik_constraints: Vec::new(),

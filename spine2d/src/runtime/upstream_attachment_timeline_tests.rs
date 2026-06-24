@@ -99,6 +99,7 @@ fn build_data() -> Arc<SkeletonData> {
         "default".to_string(),
         SkinData {
             name: "default".to_string(),
+            color: SkinData::DEFAULT_COLOR,
             attachments,
             bones: Vec::new(),
             ik_constraints: Vec::new(),
