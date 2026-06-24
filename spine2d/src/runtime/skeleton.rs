@@ -120,7 +120,12 @@ impl crate::PointAttachmentData {
     }
 
     pub fn compute_world_rotation(&self, bone: &Bone) -> f32 {
-        atan2_degrees(bone.c, bone.a) + self.rotation
+        let r = self.rotation.to_radians();
+        let cos = cos_f32(r);
+        let sin = sin_f32(r);
+        let x = cos * bone.a + sin * bone.b;
+        let y = cos * bone.c + sin * bone.d;
+        atan2_degrees(y, x)
     }
 }
 

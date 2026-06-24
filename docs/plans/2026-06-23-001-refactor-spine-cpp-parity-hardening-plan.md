@@ -252,6 +252,8 @@ flowchart TB
 
 **Recent update:** Commit `43c5503` added `Skeleton::bounds_with_clipping`, matching the `spine-cpp` `getBounds(..., SkeletonClipping*)` overload while keeping `bounds()` aligned with the default no-clipper overload.
 
+**Recent update:** `PointAttachmentData::compute_world_rotation` now follows the C++ `PointAttachment::computeWorldRotation` matrix formula instead of the old pure-rotation shortcut. The attachment rotation is applied to the bone matrix before `atan2`, which keeps the non-uniform-scale case aligned with the latest-tag reference and adds a focused regression for that path.
+
 **Recent update:** Commit `aec70e4` aligned Skeleton world and skin controls with C++ setter semantics: direct wind/gravity/time/update assignment, component wind/gravity accessors, no-op missing skins, and no dead `UnknownSkin` runtime error. Commit `ae1ab99` removed the now-useless `set_skin` `Result` wrapper.
 
 **Recent update:** Commit `ea3d166` aligned `Skeleton::skin()` with C++ `getSkin()` by returning current `SkinData`; `skin_name()` now serves name-only callers.
