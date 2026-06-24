@@ -156,8 +156,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                             let page = atlas.page(atlas_region.page);
                             if let Some(page) = page {
                                 if page.width > 0 && page.height > 0 {
-                                    let uvs =
-                                        atlas_region_uvs_for_region_attachment(atlas_region, page);
+                                    let uvs = atlas_region_uvs_for_region_attachment(atlas_region);
                                     (page.name.clone(), uvs, page.pma)
                                 } else {
                                     (
@@ -627,25 +626,11 @@ fn region_local_vertices_with_atlas_region(
     [br, bl, ul, ur]
 }
 
-fn atlas_region_uvs_for_region_attachment(
-    region: &crate::AtlasRegion,
-    page: &crate::AtlasPage,
-) -> [[f32; 2]; 4] {
-    let w = page.width.max(1) as f32;
-    let h = page.height.max(1) as f32;
-    let u = region.x as f32 / w;
-    let v = region.y as f32 / h;
-    let (u2, v2) = if region.degrees == 90 {
-        (
-            (region.x + region.height) as f32 / w,
-            (region.y + region.width) as f32 / h,
-        )
-    } else {
-        (
-            (region.x + region.width) as f32 / w,
-            (region.y + region.height) as f32 / h,
-        )
-    };
+fn atlas_region_uvs_for_region_attachment(region: &crate::AtlasRegion) -> [[f32; 2]; 4] {
+    let u = region.u;
+    let v = region.v;
+    let u2 = region.u2;
+    let v2 = region.v2;
 
     // Mirror the upstream `RegionAttachment.updateRegion()` UV assignment, expressed in the same
     // vertex order as `region_local_vertices_with_atlas_region`: BR, BL, UL, UR.
@@ -661,12 +646,12 @@ fn map_mesh_uv_to_page(
     region: &crate::AtlasRegion,
     page: &crate::AtlasPage,
 ) -> [f32; 2] {
-    // Ported from upstream `MeshAttachment.updateRegion()` (spine-ts).
+    // Ported from upstream `MeshAttachment::computeUVs()` (spine-cpp).
     let tex_w = page.width.max(1) as f32;
     let tex_h = page.height.max(1) as f32;
 
-    let mut u = region.x as f32 / tex_w;
-    let mut v = region.y as f32 / tex_h;
+    let mut u = region.u;
+    let mut v = region.v;
 
     let ow = region.original_width.max(1) as f32;
     let oh = region.original_height.max(1) as f32;

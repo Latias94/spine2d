@@ -12,6 +12,13 @@ impl Atlas {
         parse_atlas(input)
     }
 
+    pub fn flip_v(&mut self) {
+        for region in &mut self.regions {
+            region.v = 1.0 - region.v;
+            region.v2 = 1.0 - region.v2;
+        }
+    }
+
     pub fn region(&self, name: &str) -> Option<&AtlasRegion> {
         self.regions.iter().find(|region| region.name == name)
     }
@@ -85,6 +92,12 @@ pub struct AtlasRegion {
     pub original_height: u32,
     pub names: Vec<String>,
     pub values: Vec<f32>,
+    pub u: f32,
+    pub v: f32,
+    pub u2: f32,
+    pub v2: f32,
+    pub region_width: u32,
+    pub region_height: u32,
 }
 
 impl FromStr for Atlas {
@@ -99,13 +112,25 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
     let mut pages = Vec::new();
     let mut regions = Vec::new();
 
-    fn finalize_region(mut region: AtlasRegion) -> AtlasRegion {
-        if region.original_width == 0 {
+    fn finalize_region(mut region: AtlasRegion, page: &AtlasPage) -> AtlasRegion {
+        if region.original_width == 0 && region.original_height == 0 {
             region.original_width = region.width;
-        }
-        if region.original_height == 0 {
             region.original_height = region.height;
         }
+        let page_width = page.width.max(1) as f32;
+        let page_height = page.height.max(1) as f32;
+
+        region.u = region.x as f32 / page_width;
+        region.v = region.y as f32 / page_height;
+        if region.degrees == 90 {
+            region.u2 = (region.x + region.height) as f32 / page_width;
+            region.v2 = (region.y + region.width) as f32 / page_height;
+        } else {
+            region.u2 = (region.x + region.width) as f32 / page_width;
+            region.v2 = (region.y + region.height) as f32 / page_height;
+        }
+        region.region_width = ((region.u2 - region.u) * page_width).abs() as u32;
+        region.region_height = ((region.v2 - region.v) * page_height).abs() as u32;
         region
     }
 
@@ -223,6 +248,12 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
                 original_height: 0,
                 names: Vec::new(),
                 values: Vec::new(),
+                u: 0.0,
+                v: 0.0,
+                u2: 0.0,
+                v2: 0.0,
+                region_width: 0,
+                region_height: 0,
             };
             cursor += 1;
 
@@ -297,7 +328,8 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
                 cursor += 1;
             }
 
-            regions.push(finalize_region(region));
+            let page = &pages[page_index];
+            regions.push(finalize_region(region, page));
         }
     }
 
@@ -523,6 +555,34 @@ alpha
         assert_eq!(alpha.index, -1);
         assert_eq!(alpha.names, vec!["pad"]);
         assert_eq!(alpha.values, vec![5.0, 6.0, 7.0, 8.0]);
+    }
+
+    #[test]
+    fn parse_atlas_region_computes_texture_region_uvs_and_flip_v() {
+        let mut atlas = Atlas::parse(
+            r#"
+page.png
+size: 64,64
+head
+  rotate: true
+  xy: 16, 32
+  size: 16, 8
+"#,
+        )
+        .unwrap();
+
+        let region = atlas.region("head").unwrap();
+        assert_eq!(region.region_width, 8);
+        assert_eq!(region.region_height, 16);
+        assert!((region.u - 16.0 / 64.0).abs() <= 1.0e-6);
+        assert!((region.v - 32.0 / 64.0).abs() <= 1.0e-6);
+        assert!((region.u2 - 24.0 / 64.0).abs() <= 1.0e-6);
+        assert!((region.v2 - 48.0 / 64.0).abs() <= 1.0e-6);
+
+        atlas.flip_v();
+        let region = atlas.region("head").unwrap();
+        assert!((region.v - (1.0 - 32.0 / 64.0)).abs() <= 1.0e-6);
+        assert!((region.v2 - (1.0 - 48.0 / 64.0)).abs() <= 1.0e-6);
     }
 
     #[test]

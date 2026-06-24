@@ -177,6 +177,52 @@ head
 }
 
 #[test]
+fn build_draw_list_uses_flipped_atlas_region_v_coordinates() {
+    let data = SkeletonData::from_json_str(
+        r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [ { "name": "root" } ],
+  "slots": [ { "name": "slot0", "bone": "root", "attachment": "head" } ],
+  "skins": {
+    "default": {
+      "slot0": {
+        "head": { "type": "region", "path": "head", "width": 2, "height": 2 }
+      }
+    }
+  },
+  "animations": {}
+}
+"#,
+    )
+    .unwrap();
+    let mut skeleton = crate::Skeleton::new(data);
+    skeleton.setup_pose();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
+
+    let mut atlas = Atlas::parse(
+        r#"
+page.png
+size: 64,64
+head
+  rotate: false
+  xy: 16, 32
+  size: 16, 16
+"#,
+    )
+    .unwrap();
+    atlas.flip_v();
+
+    let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
+    let uv0 = draw_list.vertices[0].uv;
+    let uv2 = draw_list.vertices[2].uv;
+    assert_approx(uv0[0], 32.0 / 64.0);
+    assert_approx(uv0[1], 1.0 - 48.0 / 64.0);
+    assert_approx(uv2[0], 16.0 / 64.0);
+    assert_approx(uv2[1], 1.0 - 32.0 / 64.0);
+}
+
+#[test]
 fn build_draw_list_with_rotated_atlas_region_rotates_uvs() {
     let data = SkeletonData::from_json_str(
         r#"
