@@ -46,6 +46,7 @@ pub struct AtlasPage {
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub enum AtlasFilter {
+    Unknown,
     #[default]
     Nearest,
     Linear,
@@ -54,7 +55,6 @@ pub enum AtlasFilter {
     MipMapNearestLinear,
     MipMapLinearNearest,
     MipMapLinearLinear,
-    Other(String),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -73,6 +73,7 @@ pub enum AtlasFormat {
 pub enum AtlasWrap {
     #[default]
     ClampToEdge,
+    MirroredRepeat,
     Repeat,
 }
 
@@ -436,7 +437,7 @@ fn parse_filter(value: &str) -> AtlasFilter {
         "MipMapNearestLinear" => AtlasFilter::MipMapNearestLinear,
         "MipMapLinearNearest" => AtlasFilter::MipMapLinearNearest,
         "MipMapLinearLinear" => AtlasFilter::MipMapLinearLinear,
-        other => AtlasFilter::Other(other.to_string()),
+        _ => AtlasFilter::Unknown,
     }
 }
 
@@ -642,6 +643,23 @@ head
         assert_eq!(page.mag_filter, AtlasFilter::Linear);
         assert_eq!(page.wrap_u, AtlasWrap::Repeat);
         assert_eq!(page.wrap_v, AtlasWrap::Repeat);
+    }
+
+    #[test]
+    fn parse_atlas_unknown_filter_matches_cpp_unknown() {
+        let atlas = Atlas::parse(
+            r#"
+page.png
+filter: Strange, Linear
+head
+  bounds: 0, 0, 1, 1
+"#,
+        )
+        .unwrap();
+
+        let page = &atlas.pages[0];
+        assert_eq!(page.min_filter, AtlasFilter::Unknown);
+        assert_eq!(page.mag_filter, AtlasFilter::Linear);
     }
 
     #[test]

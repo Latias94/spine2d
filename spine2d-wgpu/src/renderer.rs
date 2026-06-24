@@ -447,20 +447,21 @@ pub fn create_sampler_for_atlas_page(
 fn to_wgpu_address_mode(wrap: spine2d::AtlasWrap) -> wgpu::AddressMode {
     match wrap {
         spine2d::AtlasWrap::ClampToEdge => wgpu::AddressMode::ClampToEdge,
+        spine2d::AtlasWrap::MirroredRepeat => wgpu::AddressMode::MirrorRepeat,
         spine2d::AtlasWrap::Repeat => wgpu::AddressMode::Repeat,
     }
 }
 
 fn to_wgpu_mag_filter(filter: &spine2d::AtlasFilter) -> wgpu::FilterMode {
     match filter {
-        spine2d::AtlasFilter::Nearest
+        spine2d::AtlasFilter::Unknown
+        | spine2d::AtlasFilter::Nearest
         | spine2d::AtlasFilter::MipMapNearestNearest
         | spine2d::AtlasFilter::MipMapLinearNearest => wgpu::FilterMode::Nearest,
         spine2d::AtlasFilter::Linear
         | spine2d::AtlasFilter::MipMap
         | spine2d::AtlasFilter::MipMapNearestLinear
-        | spine2d::AtlasFilter::MipMapLinearLinear
-        | spine2d::AtlasFilter::Other(_) => wgpu::FilterMode::Linear,
+        | spine2d::AtlasFilter::MipMapLinearLinear => wgpu::FilterMode::Linear,
     }
 }
 
@@ -468,6 +469,7 @@ fn to_wgpu_min_mipmap_filter(
     filter: &spine2d::AtlasFilter,
 ) -> (wgpu::FilterMode, wgpu::FilterMode) {
     match filter {
+        spine2d::AtlasFilter::Unknown => (wgpu::FilterMode::Nearest, wgpu::FilterMode::Nearest),
         spine2d::AtlasFilter::Nearest => (wgpu::FilterMode::Nearest, wgpu::FilterMode::Nearest),
         spine2d::AtlasFilter::Linear => (wgpu::FilterMode::Linear, wgpu::FilterMode::Nearest),
         spine2d::AtlasFilter::MipMap | spine2d::AtlasFilter::MipMapLinearLinear => {
@@ -482,7 +484,6 @@ fn to_wgpu_min_mipmap_filter(
         spine2d::AtlasFilter::MipMapLinearNearest => {
             (wgpu::FilterMode::Linear, wgpu::FilterMode::Nearest)
         }
-        spine2d::AtlasFilter::Other(_) => (wgpu::FilterMode::Linear, wgpu::FilterMode::Nearest),
     }
 }
 
