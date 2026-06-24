@@ -73,6 +73,7 @@ pub struct AtlasRegion {
     pub name: String,
     pub page: usize,
     pub index: i32,
+    pub rotate: bool,
     pub degrees: i32,
     pub x: u32,
     pub y: u32,
@@ -210,6 +211,7 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
                 name: line.to_string(),
                 page: page_index,
                 index: 0,
+                rotate: false,
                 degrees: 0,
                 x: 0,
                 y: 0,
@@ -231,7 +233,9 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
 
                 match key {
                     "rotate" => {
-                        region.degrees = parse_degrees(value);
+                        let degrees = parse_degrees(value);
+                        region.rotate = degrees == 90;
+                        region.degrees = degrees;
                     }
                     "bounds" => {
                         let (x, y, w, h) =
@@ -637,7 +641,10 @@ r270
 
         assert_eq!(atlas.region("r0").unwrap().degrees, 0);
         assert_eq!(atlas.region("r90").unwrap().degrees, 90);
+        assert!(atlas.region("r90").unwrap().rotate);
         assert_eq!(atlas.region("r180").unwrap().degrees, 180);
+        assert!(!atlas.region("r180").unwrap().rotate);
         assert_eq!(atlas.region("r270").unwrap().degrees, 270);
+        assert!(!atlas.region("r270").unwrap().rotate);
     }
 }
