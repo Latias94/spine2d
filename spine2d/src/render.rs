@@ -157,7 +157,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                             if let Some(page) = page {
                                 if page.width > 0 && page.height > 0 {
                                     let uvs = atlas_region_uvs_for_region_attachment(atlas_region);
-                                    (page.name.clone(), uvs, page.pma)
+                                    (page.texture_path.clone(), uvs, page.pma)
                                 } else {
                                     (
                                         attachment_path.to_string(),
@@ -338,7 +338,11 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                             if let Some(atlas_region) = atlas.region(attachment_path.as_ref()) {
                                 if let Some(page) = atlas.page(atlas_region.page) {
                                     if page.width > 0 && page.height > 0 {
-                                        (page.name.clone(), Some((atlas_region, page)), page.pma)
+                                        (
+                                            page.texture_path.clone(),
+                                            Some((atlas_region, page)),
+                                            page.pma,
+                                        )
                                     } else {
                                         (attachment_path.to_string(), None, false)
                                     }

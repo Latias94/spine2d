@@ -31,6 +31,7 @@ impl Atlas {
 #[derive(Clone, Debug)]
 pub struct AtlasPage {
     pub name: String,
+    pub texture_path: String,
     pub index: usize,
     pub format: AtlasFormat,
     pub width: u32,
@@ -165,6 +166,7 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
             let page_index = pages.len();
             pages.push(AtlasPage {
                 name: line.to_string(),
+                texture_path: line.to_string(),
                 index: page_index,
                 format: AtlasFormat::default(),
                 width: 0,
@@ -475,6 +477,7 @@ head
 
         assert_eq!(atlas.pages.len(), 1);
         assert_eq!(atlas.pages[0].name, "page.png");
+        assert_eq!(atlas.pages[0].texture_path, "page.png");
         assert_eq!(atlas.pages[0].format, AtlasFormat::RGBA8888);
         assert_eq!(atlas.pages[0].width, 64);
         assert_eq!(atlas.pages[0].height, 64);
@@ -513,8 +516,10 @@ r1
 
         assert_eq!(atlas.pages.len(), 2);
         assert_eq!(atlas.pages[0].name, "page0.png");
+        assert_eq!(atlas.pages[0].texture_path, "page0.png");
         assert_eq!(atlas.pages[0].index, 0);
         assert_eq!(atlas.pages[1].name, "page1.png");
+        assert_eq!(atlas.pages[1].texture_path, "page1.png");
         assert_eq!(atlas.pages[1].index, 1);
 
         let r0 = atlas.region("r0").unwrap();
