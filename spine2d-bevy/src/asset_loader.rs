@@ -152,7 +152,7 @@ impl AssetLoader for AtlasLoader {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
         let atlas_text = String::from_utf8(bytes)?;
-        let atlas = Atlas::from_str(&atlas_text)?;
+        let atlas = Atlas::parse(&atlas_text)?;
 
         let directory = load_context
             .path()

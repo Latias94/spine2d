@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::runtime::MixBlend;
 use crate::{PositionMode, Skeleton, SkeletonData, UpdateCacheItem, apply_animation};
 use std::path::PathBuf;
@@ -981,20 +979,14 @@ fn debug_dump_spineboy_run_to_walk_t04_skel_vs_json() {
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
 
     let mut state_data_skel = crate::runtime::AnimationStateData::new(data_skel.clone());
-    state_data_skel
-        .set_mix("run", "walk", 0.2)
-        .expect("set mix skel");
+    state_data_skel.set_mix("run", "walk", 0.2);
     let mut state_data_json = crate::runtime::AnimationStateData::new(data_json.clone());
-    state_data_json
-        .set_mix("run", "walk", 0.2)
-        .expect("set mix json");
+    state_data_json.set_mix("run", "walk", 0.2);
 
     let mut skeleton_skel = Skeleton::new(data_skel.clone());
     let mut state_skel = crate::runtime::AnimationState::new(state_data_skel);
     skeleton_skel.setup_pose();
-    state_skel
-        .set_animation(0, "run", true)
-        .expect("set run skel");
+    state_skel.set_animation(0, "run", true);
     state_skel.update(0.3);
     state_skel.apply(&mut skeleton_skel);
     skeleton_skel.update_world_transform();
@@ -1002,9 +994,7 @@ fn debug_dump_spineboy_run_to_walk_t04_skel_vs_json() {
     let mut skeleton_json = Skeleton::new(data_json.clone());
     let mut state_json = crate::runtime::AnimationState::new(state_data_json);
     skeleton_json.setup_pose();
-    state_json
-        .set_animation(0, "run", true)
-        .expect("set run json");
+    state_json.set_animation(0, "run", true);
     state_json.update(0.3);
     state_json.apply(&mut skeleton_json);
     skeleton_json.update_world_transform();
@@ -1020,15 +1010,11 @@ fn debug_dump_spineboy_run_to_walk_t04_skel_vs_json() {
         );
     }
 
-    state_json
-        .set_animation(0, "walk", true)
-        .expect("set walk json");
+    state_json.set_animation(0, "walk", true);
     state_json.update(0.1);
     state_json.apply(&mut skeleton_json);
 
-    state_skel
-        .set_animation(0, "walk", true)
-        .expect("set walk skel");
+    state_skel.set_animation(0, "walk", true);
     state_skel.update(0.1);
     state_skel.apply(&mut skeleton_skel);
 
@@ -1374,41 +1360,29 @@ fn debug_dump_spineboy_run_to_walk_after_state_apply_before_world_skel_vs_json()
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
 
     let mut state_data_skel = crate::runtime::AnimationStateData::new(data_skel.clone());
-    state_data_skel
-        .set_mix("run", "walk", 0.2)
-        .expect("set mix skel");
+    state_data_skel.set_mix("run", "walk", 0.2);
     let mut state_data_json = crate::runtime::AnimationStateData::new(data_json.clone());
-    state_data_json
-        .set_mix("run", "walk", 0.2)
-        .expect("set mix json");
+    state_data_json.set_mix("run", "walk", 0.2);
 
     let mut skeleton_skel = Skeleton::new(data_skel.clone());
     let mut state_skel = crate::runtime::AnimationState::new(state_data_skel);
     skeleton_skel.setup_pose();
-    state_skel
-        .set_animation(0, "run", true)
-        .expect("set run skel");
+    state_skel.set_animation(0, "run", true);
     state_skel.update(0.3);
     state_skel.apply(&mut skeleton_skel);
     skeleton_skel.update_world_transform();
-    state_skel
-        .set_animation(0, "walk", true)
-        .expect("set walk skel");
+    state_skel.set_animation(0, "walk", true);
     state_skel.update(0.1);
     state_skel.apply(&mut skeleton_skel);
 
     let mut skeleton_json = Skeleton::new(data_json.clone());
     let mut state_json = crate::runtime::AnimationState::new(state_data_json);
     skeleton_json.setup_pose();
-    state_json
-        .set_animation(0, "run", true)
-        .expect("set run json");
+    state_json.set_animation(0, "run", true);
     state_json.update(0.3);
     state_json.apply(&mut skeleton_json);
     skeleton_json.update_world_transform();
-    state_json
-        .set_animation(0, "walk", true)
-        .expect("set walk json");
+    state_json.set_animation(0, "walk", true);
     state_json.update(0.1);
     state_json.apply(&mut skeleton_json);
 

@@ -210,16 +210,17 @@ def parse_physics_mode(variant: str) -> str:
     return mapping[v]
 
 
-def parse_mix_blend_variant(variant: str) -> str:
+def parse_mix_interpolation_variant(variant: str) -> str:
     v = variant.strip()
     mapping = {
-        "Setup": "setup",
-        "First": "first",
-        "Replace": "replace",
-        "Add": "add",
+        "Linear": "linear",
+        "Smooth": "smooth",
+        "SlowFast": "slow-fast",
+        "FastSlow": "fast-slow",
+        "Circle": "circle",
     }
     if v not in mapping:
-        raise ValueError(f"invalid MixBlend: {v}")
+        raise ValueError(f"invalid MixInterpolation: {v}")
     return mapping[v]
 
 
@@ -271,12 +272,15 @@ def parse_commands_no_loops(body: str, env: Dict[str, float]) -> List[str]:
 
     # TrackEntry / last-entry mutations.
     add(
-        r"\.\s*set_mix_blend\s*\(\s*&mut\s+state\s*,\s*(?:crate::)?MixBlend::([A-Za-z]+)\s*\)",
-        lambda m: ["--entry-mix-blend", parse_mix_blend_variant(m.group(1))],
+        r"\.\s*set_additive\s*\(\s*&mut\s+state\s*,\s*(true|false)\s*\)",
+        lambda m: ["--entry-additive", parse_bool(m.group(1))],
     )
     add(
-        r"\.\s*set_hold_previous\s*\(\s*&mut\s+state\s*,\s*(true|false)\s*\)",
-        lambda m: ["--entry-hold-previous", parse_bool(m.group(1))],
+        r"\.\s*set_mix_interpolation\s*\(\s*&mut\s+state\s*,\s*(?:crate::runtime::|crate::|spine2d::)?MixInterpolation::([A-Za-z]+)\s*\)",
+        lambda m: [
+            "--entry-mix-interpolation",
+            parse_mix_interpolation_variant(m.group(1)),
+        ],
     )
     add(
         r"\.\s*set_alpha\s*\(\s*&mut\s+state\s*,\s*([^\)]+?)\s*\)",

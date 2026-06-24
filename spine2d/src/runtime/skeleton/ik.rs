@@ -431,21 +431,26 @@ fn apply_two(
             cos = -1.0;
             a2 = PI * bend_dir;
         } else if cos > 1.0 {
-            cos = 1.0;
-            a2 = 0.0;
-            if stretch {
-                let s = (sqrt_f32(dd) / (l1 + l2u) - 1.0) * alpha + 1.0;
-                {
-                    let parent = &mut skeleton.bones[parent_index];
-                    parent.ascale_x *= s;
-                    match scale_y_mode {
-                        crate::ScaleYMode::Uniform => {
-                            parent.ascale_y *= s;
+            if cos <= 1.0 + f32::EPSILON {
+                cos = 1.0 - f32::EPSILON;
+                a2 = acos_f32(cos) * bend_dir;
+            } else {
+                cos = 1.0;
+                a2 = 0.0;
+                if stretch {
+                    let s = (sqrt_f32(dd) / (l1 + l2u) - 1.0) * alpha + 1.0;
+                    {
+                        let parent = &mut skeleton.bones[parent_index];
+                        parent.ascale_x *= s;
+                        match scale_y_mode {
+                            crate::ScaleYMode::Uniform => {
+                                parent.ascale_y *= s;
+                            }
+                            crate::ScaleYMode::Volume => {
+                                parent.ascale_y /= if s < 0.7 { 0.25 + 0.642857 * s } else { s };
+                            }
+                            crate::ScaleYMode::None => {}
                         }
-                        crate::ScaleYMode::Volume => {
-                            parent.ascale_y /= if s < 0.7 { 0.25 + 0.642857 * s } else { s };
-                        }
-                        crate::ScaleYMode::None => {}
                     }
                 }
             }

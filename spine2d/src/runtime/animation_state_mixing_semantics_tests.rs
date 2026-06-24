@@ -1,9 +1,9 @@
-use crate::runtime::{AnimationState, AnimationStateData};
+use crate::runtime::{AnimationState, AnimationStateData, MixBlend};
 use crate::{
     Animation, AttachmentData, AttachmentFrame, AttachmentTimeline, BlendMode, BoneData,
     BoneTimeline, Curve, DrawOrderFolderFrame, DrawOrderFolderTimeline, DrawOrderFrame,
-    DrawOrderTimeline, Inherit, MixBlend, RegionAttachmentData, Skeleton, SkeletonData, SkinData,
-    SlotData, TranslateTimeline, Vec2Frame, apply_animation,
+    DrawOrderTimeline, Inherit, RegionAttachmentData, Skeleton, SkeletonData, SkinData, SlotData,
+    TranslateTimeline, Vec2Frame, apply_animation,
 };
 use indexmap::IndexMap;
 use std::collections::HashMap;
@@ -226,7 +226,7 @@ fn empty_test_animation(name: &str) -> Animation {
     })
 }
 
-fn hold_previous_mix_out_x(hold_previous: bool) -> f32 {
+fn additive_mix_out_x(additive: bool) -> f32 {
     let mut data = base_skeleton_data();
     data.animations = vec![
         translate_animation("base", 0.0),
@@ -239,17 +239,17 @@ fn hold_previous_mix_out_x(hold_previous: bool) -> f32 {
     let data = Arc::new(data);
 
     let mut state_data = AnimationStateData::new(data.clone());
-    state_data.set_mix("from", "to", 1.0).unwrap();
+    state_data.set_mix("from", "to", 1.0);
     let mut state = AnimationState::new(state_data);
     let mut skeleton = Skeleton::new(data);
 
-    state.set_animation(0, "base", false).unwrap();
-    state.set_animation(1, "from", false).unwrap();
+    state.set_animation(0, "base", false);
+    state.set_animation(1, "from", false);
     skeleton.setup_pose();
     state.apply(&mut skeleton);
 
-    let to = state.set_animation(1, "to", false).unwrap();
-    to.set_hold_previous(&mut state, hold_previous);
+    let to = state.set_animation(1, "to", false);
+    to.set_additive(&mut state, additive);
     state.update(0.5);
 
     skeleton.setup_pose();
@@ -259,7 +259,7 @@ fn hold_previous_mix_out_x(hold_previous: bool) -> f32 {
 
 fn setup_two_track_translate_state(
     overlay_alpha: f32,
-    overlay_blend: MixBlend,
+    overlay_additive: bool,
 ) -> (AnimationState, Skeleton) {
     let anim_base = translate_animation("base", 10.0);
     let anim_overlay = translate_animation("overlay", 3.0);
@@ -273,10 +273,10 @@ fn setup_two_track_translate_state(
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
     let skeleton = Skeleton::new(data);
 
-    state.set_animation(0, "base", false).unwrap();
-    let overlay = state.set_animation(1, "overlay", false).unwrap();
+    state.set_animation(0, "base", false);
+    let overlay = state.set_animation(1, "overlay", false);
     overlay.set_alpha(&mut state, overlay_alpha);
-    overlay.set_mix_blend(&mut state, overlay_blend);
+    overlay.set_additive(&mut state, overlay_additive);
 
     (state, skeleton)
 }
@@ -287,31 +287,25 @@ fn setup_additive_path_physics_state() -> (AnimationState, Skeleton) {
     let mut state = AnimationState::new(state_data);
     let skeleton = Skeleton::new(data);
 
-    state.set_animation(0, "base", false).unwrap();
-    let overlay = state.set_animation(1, "overlay", false).unwrap();
-    overlay.set_mix_blend(&mut state, crate::MixBlend::Add);
+    state.set_animation(0, "base", false);
+    let overlay = state.set_animation(1, "overlay", false);
+    overlay.set_additive(&mut state, true);
 
     (state, skeleton)
 }
 
 #[test]
-fn hold_previous_holds_outgoing_timeline_even_when_next_lacks_property() {
-    assert_approx(hold_previous_mix_out_x(false), 5.0);
-    assert_approx(hold_previous_mix_out_x(true), 10.0);
+fn additive_next_entry_does_not_hold_outgoing_timeline() {
+    assert_approx(additive_mix_out_x(false), 5.0);
+    assert_approx(additive_mix_out_x(true), 5.0);
 }
 
 #[test]
-fn track_entry_mix_blend_variants_match_cpp_current_entry_pose() {
-    // Matches spine-cpp TranslateTimeline::_apply for base x=10, overlay x=3, alpha=0.5.
-    let cases = [
-        (MixBlend::Setup, 1.5),
-        (MixBlend::First, 6.5),
-        (MixBlend::Replace, 6.5),
-        (MixBlend::Add, 11.5),
-    ];
+fn track_entry_additive_variants_match_cpp_current_entry_pose() {
+    let cases = [(false, 6.5), (true, 11.5)];
 
-    for (blend, expected_x) in cases {
-        let (mut state, mut skeleton) = setup_two_track_translate_state(0.5, blend);
+    for (additive, expected_x) in cases {
+        let (mut state, mut skeleton) = setup_two_track_translate_state(0.5, additive);
 
         skeleton.setup_pose();
         state.apply(&mut skeleton);
@@ -321,13 +315,149 @@ fn track_entry_mix_blend_variants_match_cpp_current_entry_pose() {
 }
 
 #[test]
-fn track_entry_mix_blend_add_adds_current_pose() {
-    let (mut state, mut skeleton) = setup_two_track_translate_state(1.0, MixBlend::Add);
+fn track_entry_additive_adds_current_pose() {
+    let (mut state, mut skeleton) = setup_two_track_translate_state(1.0, true);
 
     skeleton.setup_pose();
     state.apply(&mut skeleton);
 
     assert_approx(skeleton.bones[0].x, 13.0);
+}
+
+#[test]
+fn track_entry_mix_interpolation_smooth_changes_mix_percentage() {
+    let anim_base = translate_animation("base", 10.0);
+
+    let mut data = base_skeleton_data();
+    data.animations = vec![anim_base];
+    data.animation_index.insert("base".to_string(), 0);
+    let data = Arc::new(data);
+
+    let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
+    let mut skeleton = Skeleton::new(data);
+
+    state.set_animation(0, "base", false);
+    let fade = state.set_empty_animation(0, 1.0);
+    fade.set_mix_interpolation(&mut state, crate::runtime::MixInterpolation::Smooth);
+
+    state.update(0.25);
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+
+    assert_approx(skeleton.bones[0].x, 8.4375);
+}
+
+#[test]
+fn track_entry_mix_interpolation_defaults_to_linear() {
+    let anim_base = translate_animation("base", 10.0);
+
+    let mut data = base_skeleton_data();
+    data.animations = vec![anim_base];
+    data.animation_index.insert("base".to_string(), 0);
+    let data = Arc::new(data);
+
+    let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
+    let mut skeleton = Skeleton::new(data);
+
+    state.set_animation(0, "base", false);
+    state.set_empty_animation(0, 1.0);
+
+    state.update(0.25);
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+
+    assert_approx(skeleton.bones[0].x, 7.5);
+}
+
+#[test]
+fn track_entry_mix_interpolation_keeps_negative_linear_mix() {
+    let anim_base = translate_animation("base", 10.0);
+
+    let mut data = base_skeleton_data();
+    data.animations = vec![anim_base];
+    data.animation_index.insert("base".to_string(), 0);
+    let data = Arc::new(data);
+
+    let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
+    let entry = state.set_empty_animation(0, 1.0);
+    entry.set_mix_time(&mut state, -0.25);
+
+    assert_approx(
+        entry
+            .with_entry(&state, |entry| entry.mix_percent())
+            .unwrap(),
+        -0.25,
+    );
+}
+
+#[test]
+fn completed_hold_mix_chain_detaches_current_mixing_from() {
+    let from_anim = translate_animation("from", 10.0);
+    let to_anim = translate_animation("to", 20.0);
+
+    let mut data = base_skeleton_data();
+    data.animations = vec![from_anim, to_anim];
+    data.animation_index.insert("from".to_string(), 0);
+    data.animation_index.insert("to".to_string(), 1);
+    let data = Arc::new(data);
+
+    let mut state_data = AnimationStateData::new(data.clone());
+    state_data.set_mix("from", "to", 0.5);
+    let mut state = AnimationState::new(state_data);
+    let mut skeleton = Skeleton::new(data);
+
+    state.set_animation(0, "from", false);
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+
+    let to = state.set_animation(0, "to", false);
+    state.update(0.25);
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+    assert!(to.mixing_from(&state).is_some());
+
+    state.update(0.25);
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+    assert!(to.mixing_from(&state).is_some());
+
+    state.update(0.0);
+    assert_eq!(to.mixing_from(&state), None);
+}
+
+#[test]
+fn completed_hold_mix_chain_with_negative_track_time_still_detaches() {
+    let from_anim = translate_animation("from", 10.0);
+    let to_anim = translate_animation("to", 20.0);
+
+    let mut data = base_skeleton_data();
+    data.animations = vec![from_anim, to_anim];
+    data.animation_index.insert("from".to_string(), 0);
+    data.animation_index.insert("to".to_string(), 1);
+    let data = Arc::new(data);
+
+    let mut state_data = AnimationStateData::new(data.clone());
+    state_data.set_mix("from", "to", 0.5);
+    let mut state = AnimationState::new(state_data);
+    let mut skeleton = Skeleton::new(data);
+
+    state.set_animation(0, "from", false);
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+
+    let to = state.set_animation(0, "to", false);
+    to.set_time_scale(&mut state, 0.0);
+    to.set_track_time(&mut state, -0.1);
+    to.set_mix_time(&mut state, 0.5);
+
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+
+    state.update(0.0);
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+
+    assert_eq!(to.mixing_from(&state), None);
 }
 
 #[test]
@@ -407,9 +537,9 @@ fn track_entry_additive_mixes_out_as_additive() {
     let mut state = AnimationState::new(state_data);
     let mut skeleton = Skeleton::new(data);
 
-    state.set_animation(0, "base", false).unwrap();
-    let overlay = state.set_animation(1, "overlay", false).unwrap();
-    overlay.set_mix_blend(&mut state, crate::MixBlend::Add);
+    state.set_animation(0, "base", false);
+    let overlay = state.set_animation(1, "overlay", false);
+    overlay.set_additive(&mut state, true);
 
     state.set_empty_animation(1, 1.0);
     state.update(0.5);
@@ -494,17 +624,17 @@ fn additive_next_entry_does_not_hold_outgoing_numeric_timeline() {
     let data = Arc::new(data);
 
     let mut state_data = AnimationStateData::new(data.clone());
-    state_data.set_mix("base", "overlay", 1.0).unwrap();
+    state_data.set_mix("base", "overlay", 1.0);
     let mut state = AnimationState::new(state_data);
     let mut skeleton = Skeleton::new(data);
 
-    state.set_animation(0, "base", false).unwrap();
+    state.set_animation(0, "base", false);
     skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_approx(skeleton.bones[0].x, 10.0);
 
-    let overlay = state.set_animation(0, "overlay", false).unwrap();
-    overlay.set_mix_blend(&mut state, crate::MixBlend::Add);
+    let overlay = state.set_animation(0, "overlay", false);
+    overlay.set_additive(&mut state, true);
     state.update(0.5);
 
     skeleton.setup_pose();
@@ -704,12 +834,12 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
     let data = Arc::new(data);
 
     let mut state_data = AnimationStateData::new(data.clone());
-    state_data.set_mix("a", "b", 1.0).unwrap();
+    state_data.set_mix("a", "b", 1.0);
 
     let mut state = AnimationState::new(state_data);
     let mut skeleton = Skeleton::new(data);
 
-    let a = state.set_animation(0, "a", false).unwrap();
+    let a = state.set_animation(0, "a", false);
     a.set_mix_attachment_threshold(&mut state, 0.5);
     a.set_mix_draw_order_threshold(&mut state, 0.5);
 
@@ -718,7 +848,7 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("A"));
     assert_eq!(skeleton.draw_order, vec![1, 0]);
 
-    state.set_animation(0, "b", false).unwrap();
+    state.set_animation(0, "b", false);
 
     // mix=0.4: mixingFrom(A) still applies attachment/draw order.
     state.update(0.4);
@@ -733,6 +863,86 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
     state.apply(&mut skeleton);
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("setup0"));
     assert_eq!(skeleton.draw_order, vec![0, 1]);
+}
+
+#[test]
+fn draw_order_current_mix_out_does_not_keep_mixing_from_alive() {
+    let draw_order_anim = crate::runtime::finalize_animation(Animation {
+        name: "draw".to_string(),
+        duration: 0.0,
+        event_timeline: None,
+        bone_timelines: Vec::new(),
+        deform_timelines: Vec::new(),
+        sequence_timelines: Vec::new(),
+        slot_attachment_timelines: Vec::new(),
+        slot_color_timelines: Vec::new(),
+        slot_rgb_timelines: Vec::new(),
+        slot_alpha_timelines: Vec::new(),
+        slot_rgba2_timelines: Vec::new(),
+        slot_rgb2_timelines: Vec::new(),
+        ik_constraint_timelines: Vec::new(),
+        transform_constraint_timelines: Vec::new(),
+        path_constraint_timelines: Vec::new(),
+        physics_constraint_timelines: Vec::new(),
+        physics_reset_timelines: Vec::new(),
+        slider_time_timelines: Vec::new(),
+        slider_mix_timelines: Vec::new(),
+        draw_order_timeline: Some(DrawOrderTimeline {
+            frames: vec![DrawOrderFrame {
+                time: 0.0,
+                draw_order_to_setup_index: Some(vec![1, 0]),
+            }],
+        }),
+        draw_order_folder_timelines: Vec::new(),
+        timeline_order: Vec::new(),
+    });
+
+    let mut data = base_skeleton_data();
+    data.slots = vec![
+        SlotData {
+            name: "s0".to_string(),
+            bone: 0,
+            attachment: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            has_dark: false,
+            dark_color: [0.0, 0.0, 0.0],
+            blend: BlendMode::Normal,
+            ..Default::default()
+        },
+        SlotData {
+            name: "s1".to_string(),
+            bone: 0,
+            attachment: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            has_dark: false,
+            dark_color: [0.0, 0.0, 0.0],
+            blend: BlendMode::Normal,
+            ..Default::default()
+        },
+    ];
+    data.animations = vec![draw_order_anim];
+    data.animation_index.insert("draw".to_string(), 0);
+    let data = Arc::new(data);
+
+    let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
+    let mut skeleton = Skeleton::new(data);
+
+    state.set_animation(0, "draw", true);
+    state.set_animation(1, "draw", false);
+    let empty = state.set_empty_animation(1, 0.5);
+
+    state.update(0.25);
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+    assert!(empty.mixing_from(&state).is_some());
+
+    state.update(0.25);
+    skeleton.setup_pose();
+    state.apply(&mut skeleton);
+    assert!(empty.mixing_from(&state).is_some());
+
+    state.update(0.0);
+    assert_eq!(empty.mixing_from(&state), None);
 }
 
 #[test]
@@ -862,7 +1072,7 @@ fn draw_order_folder_applies_after_draw_order_timeline() {
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
     let mut skeleton = Skeleton::new(data);
 
-    state.set_animation(0, "a", false).unwrap();
+    state.set_animation(0, "a", false);
 
     skeleton.setup_pose();
     state.apply(&mut skeleton);
@@ -1002,10 +1212,10 @@ fn track0_additive_does_not_override_alpha_attachment_threshold_for_attachments(
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
     let mut skeleton = Skeleton::new(data);
 
-    let a = state.set_animation(0, "a", false).unwrap();
+    let a = state.set_animation(0, "a", false);
     a.set_alpha(&mut state, 0.5);
     a.set_alpha_attachment_threshold(&mut state, 0.6);
-    a.set_mix_blend(&mut state, crate::MixBlend::Add);
+    a.set_additive(&mut state, true);
 
     skeleton.setup_pose();
     state.apply(&mut skeleton);

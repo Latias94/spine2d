@@ -2,12 +2,6 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("unknown animation: {name}")]
-    UnknownAnimation { name: String },
-
-    #[error("invalid track index: {index}")]
-    InvalidTrackIndex { index: usize },
-
     #[error("invalid value: {message}")]
     InvalidValue { message: String },
 

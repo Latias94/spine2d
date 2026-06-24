@@ -13,11 +13,6 @@ impl Atlas {
         parse_atlas(input)
     }
 
-    #[allow(clippy::should_implement_trait)]
-    pub fn from_str(input: &str) -> Result<Self, Error> {
-        Self::parse(input)
-    }
-
     pub fn region(&self, name: &str) -> Option<&AtlasRegion> {
         self.regions.get(name)
     }
@@ -369,7 +364,7 @@ mod tests {
 
     #[test]
     fn parse_minimal_atlas_one_page_one_region() {
-        let atlas = Atlas::from_str(
+        let atlas = Atlas::parse(
             r#"
 page.png
 size: 64,64
@@ -407,7 +402,7 @@ head
 
     #[test]
     fn parse_atlas_multiple_pages_assigns_region_pages() {
-        let atlas = Atlas::from_str(
+        let atlas = Atlas::parse(
             r#"
 page0.png
 size: 32,32
@@ -440,7 +435,7 @@ r1
 
     #[test]
     fn parse_atlas_region_bounds_sets_xy_and_size() {
-        let atlas = Atlas::from_str(
+        let atlas = Atlas::parse(
             r#"
 page.png
 size: 64,64
@@ -462,7 +457,7 @@ head
 
     #[test]
     fn parse_atlas_page_filter_and_repeat() {
-        let atlas = Atlas::from_str(
+        let atlas = Atlas::parse(
             r#"
 page.png
 size: 64,64
@@ -484,7 +479,7 @@ head
 
     #[test]
     fn parse_atlas_region_orig_and_offset() {
-        let atlas = Atlas::from_str(
+        let atlas = Atlas::parse(
             r#"
 page.png
 size: 64,64
@@ -509,7 +504,7 @@ head
 
     #[test]
     fn parse_atlas_region_offsets_compact_field() {
-        let atlas = Atlas::from_str(
+        let atlas = Atlas::parse(
             r#"
 page.png
 size: 64,64
@@ -534,7 +529,7 @@ head
 
     #[test]
     fn parse_atlas_region_rotate_degrees_accepts_true_false_and_numbers() {
-        let atlas = Atlas::from_str(
+        let atlas = Atlas::parse(
             r#"
 page.png
 size: 64,64

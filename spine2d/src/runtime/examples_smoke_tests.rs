@@ -1,5 +1,5 @@
-use crate::runtime::{AnimationState, AnimationStateData};
-use crate::{MixBlend, Skeleton, SkeletonData, apply_animation, build_draw_list};
+use crate::runtime::{AnimationState, AnimationStateData, MixBlend};
+use crate::{Skeleton, SkeletonData, apply_animation, build_draw_list};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -89,9 +89,9 @@ fn smoke_example(relative: &str) {
 
         let a0 = data.animations[0].name.as_str();
         let a1 = data.animations[1].name.as_str();
-        state.set_animation(0, a0, true).expect("set track0");
-        let entry = state.set_animation(1, a1, true).expect("set track1");
-        entry.set_mix_blend(&mut state, crate::MixBlend::Add);
+        state.set_animation(0, a0, true);
+        let entry = state.set_animation(1, a1, true);
+        entry.set_additive(&mut state, true);
 
         let dt = 0.2;
         state.update(dt);

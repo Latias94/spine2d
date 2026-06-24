@@ -78,7 +78,7 @@ fn handle_input(
             ));
         }
         if keyboard.just_pressed(KeyCode::Digit4) {
-            skeleton_commands.write(SpineSkeletonCommand::reset_to_setup_pose(entity));
+            skeleton_commands.write(SpineSkeletonCommand::setup_pose(entity));
         }
     }
 }

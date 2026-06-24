@@ -215,9 +215,9 @@ pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {
         looped,
         mix,
         if additive {
-            crate::MixBlend::Add
+            crate::runtime::MixBlend::Add
         } else {
-            crate::MixBlend::Replace
+            crate::runtime::MixBlend::Replace
         },
     );
 

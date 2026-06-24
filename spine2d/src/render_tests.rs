@@ -151,7 +151,7 @@ fn build_draw_list_with_atlas_sets_uv_and_page_texture() {
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
-    let atlas = Atlas::from_str(
+    let atlas = Atlas::parse(
         r#"
 page.png
 size: 64,64
@@ -201,7 +201,7 @@ fn build_draw_list_with_rotated_atlas_region_rotates_uvs() {
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
-    let atlas = Atlas::from_str(
+    let atlas = Atlas::parse(
         r#"
 page.png
 size: 64,64
@@ -309,7 +309,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_to_region_rect() {
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
-    let atlas = Atlas::from_str(
+    let atlas = Atlas::parse(
         r#"
 page.png
 size: 64,64
@@ -357,7 +357,7 @@ fn build_draw_list_with_atlas_maps_region_uvs_for_rotated_region_90() {
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
-    let atlas = Atlas::from_str(
+    let atlas = Atlas::parse(
         r#"
 page.png
 size: 64,64
@@ -794,7 +794,7 @@ fn build_draw_list_with_atlas_marks_pma_and_premultiplies_vertex_color() {
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
-    let atlas = Atlas::from_str(
+    let atlas = Atlas::parse(
         r#"
 page.png
 size: 64,64
@@ -883,7 +883,7 @@ fn build_draw_list_two_color_tint_sets_dark_color_alpha_by_pma_and_premultiplies
 "#;
     let data = SkeletonData::from_json_str(json).unwrap();
 
-    let atlas_pma = Atlas::from_str(
+    let atlas_pma = Atlas::parse(
         r#"
 page.png
 size: 64,64
@@ -897,7 +897,7 @@ head
     )
     .unwrap();
 
-    let atlas_non_pma = Atlas::from_str(
+    let atlas_non_pma = Atlas::parse(
         r#"
 page.png
 size: 64,64
@@ -964,7 +964,7 @@ fn build_draw_list_with_atlas_applies_region_trim_offset_and_orig() {
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
-    let atlas = Atlas::from_str(
+    let atlas = Atlas::parse(
         r#"
 page.png
 size: 64,64
@@ -1023,7 +1023,7 @@ fn build_draw_list_with_atlas_applies_rotated_region_trim_using_packed_swap() {
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
-    let atlas = Atlas::from_str(
+    let atlas = Atlas::parse(
         r#"
 page.png
 size: 64,64
@@ -1088,7 +1088,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_90() {
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
-    let atlas = Atlas::from_str(
+    let atlas = Atlas::parse(
         r#"
 page.png
 size: 100,100
@@ -1144,7 +1144,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_180() {
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
-    let atlas = Atlas::from_str(
+    let atlas = Atlas::parse(
         r#"
 page.png
 size: 100,100
@@ -1200,7 +1200,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_270() {
     skeleton.setup_pose();
     skeleton.update_world_transform();
 
-    let atlas = Atlas::from_str(
+    let atlas = Atlas::parse(
         r#"
 page.png
 size: 100,100

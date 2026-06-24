@@ -1,14 +1,14 @@
 use serde_json::json;
 use spine2d::{
-    AnimationState, AnimationStateData, Curve, MixBlend, Physics, Skeleton, SkeletonData,
-    TrackEntryHandle, UpdateCacheItem,
+    AnimationState, AnimationStateData, Curve, MixInterpolation, Physics, Skeleton, SkeletonData,
+    TimelineRef, TrackEntryHandle, UpdateCacheItem,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
 
 fn print_usage_and_exit() -> ! {
     eprintln!(
-        "Usage:\n  pose_dump_scenario <skeleton.(json|skel)> <commands...>\n\nCommands:\n  --set-skin <name|none>\n  --dump-slot-vertices <slotName>\n  --dump-update-cache\n  --dump-animation-data <name>\n  --mix <from> <to> <duration>\n  --set <track> <animation> <loop 0|1>\n  --add <track> <animation> <loop 0|1> <delay>\n  --set-empty <track> <mixDuration>\n  --add-empty <track> <mixDuration> <delay>\n  --entry-alpha <alpha>\n  --entry-mix-attachment-threshold <threshold>\n  --entry-mix-draw-order-threshold <threshold>\n  --entry-mix-blend <setup|first|replace|add>\n  --entry-hold-previous <0|1>\n  --entry-reverse <0|1>\n  --entry-shortest-rotation <0|1>\n  --entry-reset-rotation-directions\n  --physics <none|reset|update|pose>\n  --step <dt>\n"
+        "Usage:\n  pose_dump_scenario <skeleton.(json|skel)> <commands...>\n\nCommands:\n  --set-skin <name|none>\n  --dump-slot-vertices <slotName>\n  --dump-update-cache\n  --dump-animation-data <name>\n  --mix <from> <to> <duration>\n  --set <track> <animation> <loop 0|1>\n  --add <track> <animation> <loop 0|1> <delay>\n  --set-empty <track> <mixDuration>\n  --add-empty <track> <mixDuration> <delay>\n  --entry-alpha <alpha>\n  --entry-event-threshold <threshold>\n  --entry-alpha-attachment-threshold <threshold>\n  --entry-mix-attachment-threshold <threshold>\n  --entry-mix-draw-order-threshold <threshold>\n  --entry-additive <0|1>\n  --entry-mix-interpolation <linear|smooth|slow-fast|fast-slow|circle>\n  --entry-reverse <0|1>\n  --entry-shortest-rotation <0|1>\n  --entry-reset-rotation-directions\n  --physics <none|reset|update|pose>\n  --step <dt>\n"
     );
     std::process::exit(2);
 }
@@ -41,12 +41,13 @@ fn parse_physics(s: &str) -> Option<Physics> {
     }
 }
 
-fn parse_mix_blend(s: &str) -> Option<MixBlend> {
+fn parse_mix_interpolation(s: &str) -> Option<MixInterpolation> {
     match s {
-        "setup" => Some(MixBlend::Setup),
-        "first" => Some(MixBlend::First),
-        "replace" => Some(MixBlend::Replace),
-        "add" => Some(MixBlend::Add),
+        "linear" => Some(MixInterpolation::Linear),
+        "smooth" => Some(MixInterpolation::Smooth),
+        "slow-fast" => Some(MixInterpolation::SlowFast),
+        "fast-slow" => Some(MixInterpolation::FastSlow),
+        "circle" => Some(MixInterpolation::Circle),
         _ => None,
     }
 }
@@ -380,7 +381,10 @@ fn dump_animation_data(data: &SkeletonData, name: &str) {
         "index": index,
         "name": animation.name,
         "duration": animation.duration,
-        "timelineOrder": animation.timeline_order.iter().map(|kind| format!("{kind:?}")).collect::<Vec<_>>(),
+        "timelineOrder": animation
+            .timelines()
+            .map(timeline_label)
+            .collect::<Vec<_>>(),
         "ikTimelines": ik_timelines,
         "boneTimelines": bone_timelines,
     });
@@ -388,6 +392,30 @@ fn dump_animation_data(data: &SkeletonData, name: &str) {
         "{}",
         serde_json::to_string_pretty(&out).expect("animation data json")
     );
+}
+
+fn timeline_label(timeline: TimelineRef<'_>) -> String {
+    match timeline {
+        TimelineRef::Event { .. } => "Event".to_string(),
+        TimelineRef::SlotAttachment { index, .. } => format!("SlotAttachment({index})"),
+        TimelineRef::Deform { index, .. } => format!("Deform({index})"),
+        TimelineRef::Sequence { index, .. } => format!("Sequence({index})"),
+        TimelineRef::Bone { index, .. } => format!("Bone({index})"),
+        TimelineRef::SlotColor { index, .. } => format!("SlotColor({index})"),
+        TimelineRef::SlotRgb { index, .. } => format!("SlotRgb({index})"),
+        TimelineRef::SlotAlpha { index, .. } => format!("SlotAlpha({index})"),
+        TimelineRef::SlotRgba2 { index, .. } => format!("SlotRgba2({index})"),
+        TimelineRef::SlotRgb2 { index, .. } => format!("SlotRgb2({index})"),
+        TimelineRef::IkConstraint { index, .. } => format!("IkConstraint({index})"),
+        TimelineRef::TransformConstraint { index, .. } => format!("TransformConstraint({index})"),
+        TimelineRef::PathConstraint { index, .. } => format!("PathConstraint({index})"),
+        TimelineRef::PhysicsConstraint { index, .. } => format!("PhysicsConstraint({index})"),
+        TimelineRef::PhysicsReset { index, .. } => format!("PhysicsReset({index})"),
+        TimelineRef::SliderTime { index, .. } => format!("SliderTime({index})"),
+        TimelineRef::SliderMix { index, .. } => format!("SliderMix({index})"),
+        TimelineRef::DrawOrder { .. } => "DrawOrder".to_string(),
+        TimelineRef::DrawOrderFolder { index, .. } => format!("DrawOrderFolder({index})"),
+    }
 }
 
 fn debug_dump_bones(label: &str, skeleton: &Skeleton, total_time: f32) {
@@ -496,21 +524,14 @@ fn main() {
                 let from = args[i + 1].as_str();
                 let to = args[i + 2].as_str();
                 let duration: f32 = args[i + 3].parse().unwrap();
-                state
-                    .data_mut()
-                    .set_mix(from, to, duration)
-                    .expect("set mix");
+                state.data_mut().set_mix(from, to, duration);
                 i += 4;
             }
             "--set" if i + 3 < args.len() => {
                 let track: usize = args[i + 1].parse().unwrap();
                 let anim = args[i + 2].as_str();
                 let looped: bool = args[i + 3].parse::<i32>().unwrap_or(0) != 0;
-                last_entry = Some(
-                    state
-                        .set_animation(track, anim, looped)
-                        .expect("set animation"),
-                );
+                last_entry = Some(state.set_animation(track, anim, looped));
                 i += 4;
             }
             "--add" if i + 4 < args.len() => {
@@ -518,11 +539,7 @@ fn main() {
                 let anim = args[i + 2].as_str();
                 let looped: bool = args[i + 3].parse::<i32>().unwrap_or(0) != 0;
                 let delay: f32 = args[i + 4].parse().unwrap();
-                last_entry = Some(
-                    state
-                        .add_animation(track, anim, looped, delay)
-                        .expect("add animation"),
-                );
+                last_entry = Some(state.add_animation(track, anim, looped, delay));
                 i += 5;
             }
             "--set-empty" if i + 2 < args.len() => {
@@ -546,6 +563,28 @@ fn main() {
                     .set_alpha(&mut state, alpha);
                 i += 2;
             }
+            "--entry-event-threshold" if i + 1 < args.len() => {
+                let threshold: f32 = args[i + 1].parse().unwrap();
+                last_entry
+                    .as_ref()
+                    .unwrap_or_else(|| {
+                        panic!("--entry-event-threshold requires a preceding --set/--add")
+                    })
+                    .set_event_threshold(&mut state, threshold);
+                i += 2;
+            }
+            "--entry-alpha-attachment-threshold" if i + 1 < args.len() => {
+                let threshold: f32 = args[i + 1].parse().unwrap();
+                last_entry
+                    .as_ref()
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "--entry-alpha-attachment-threshold requires a preceding --set/--add"
+                        )
+                    })
+                    .set_alpha_attachment_threshold(&mut state, threshold);
+                i += 2;
+            }
             "--entry-mix-attachment-threshold" if i + 1 < args.len() => {
                 let threshold: f32 = args[i + 1].parse().unwrap();
                 last_entry
@@ -566,23 +605,26 @@ fn main() {
                     .set_mix_draw_order_threshold(&mut state, threshold);
                 i += 2;
             }
-            "--entry-mix-blend" if i + 1 < args.len() => {
-                let mix_blend = parse_mix_blend(&args[i + 1])
-                    .unwrap_or_else(|| panic!("--entry-mix-blend must be setup|first|replace|add"));
+            "--entry-additive" if i + 1 < args.len() => {
+                let additive: bool = args[i + 1].parse::<i32>().unwrap_or(0) != 0;
                 last_entry
                     .as_ref()
-                    .unwrap_or_else(|| panic!("--entry-mix-blend requires a preceding --set/--add"))
-                    .set_mix_blend(&mut state, mix_blend);
+                    .unwrap_or_else(|| panic!("--entry-additive requires a preceding --set/--add"))
+                    .set_additive(&mut state, additive);
                 i += 2;
             }
-            "--entry-hold-previous" if i + 1 < args.len() => {
-                let hold_previous: bool = args[i + 1].parse::<i32>().unwrap_or(0) != 0;
+            "--entry-mix-interpolation" if i + 1 < args.len() => {
+                let mix_interpolation = parse_mix_interpolation(&args[i + 1]).unwrap_or_else(|| {
+                    panic!(
+                        "--entry-mix-interpolation must be linear|smooth|slow-fast|fast-slow|circle"
+                    )
+                });
                 last_entry
                     .as_ref()
                     .unwrap_or_else(|| {
-                        panic!("--entry-hold-previous requires a preceding --set/--add")
+                        panic!("--entry-mix-interpolation requires a preceding --set/--add")
                     })
-                    .set_hold_previous(&mut state, hold_previous);
+                    .set_mix_interpolation(&mut state, mix_interpolation);
                 i += 2;
             }
             "--entry-reverse" if i + 1 < args.len() => {

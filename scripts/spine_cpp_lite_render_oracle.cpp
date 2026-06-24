@@ -25,13 +25,9 @@ static std::string read_file(const char *path) {
 static void usage() {
   std::cerr
       << "Usage:\n"
-         "  spine_cpp_lite_render_oracle <atlas.atlas> <skeleton.(json|skel)> --anim <name> [--time <seconds>] [--loop 0|1]\n"
-         "                             [--skin <name|none>] [--y-down 0|1] [--physics none|reset|update|pose]\n"
-         "\n"
-         "Scenario mode:\n"
          "  spine_cpp_lite_render_oracle <atlas.atlas> <skeleton.(json|skel)> [--y-down 0|1] <commands...>\n"
          "\n"
-         "Commands (scenario mode):\n"
+         "Commands:\n"
          "  --set-skin <name|none>\n"
          "  --physics <none|reset|update|pose>\n"
          "  --mix <from> <to> <duration>\n"
@@ -44,8 +40,8 @@ static void usage() {
          "  --entry-alpha-attachment-threshold <threshold>\n"
          "  --entry-mix-attachment-threshold <threshold>\n"
          "  --entry-mix-draw-order-threshold <threshold>\n"
-         "  --entry-mix-blend <setup|first|replace|add>\n"
-         "  --entry-hold-previous <0|1>\n"
+         "  --entry-additive <0|1>\n"
+         "  --entry-mix-interpolation <linear|smooth|slow-fast|fast-slow|circle>\n"
          "  --entry-reverse <0|1>\n"
          "  --entry-shortest-rotation <0|1>\n"
          "  --entry-reset-rotation-directions\n"
@@ -67,21 +63,25 @@ static std::string json_escape(const char *s) {
   return out;
 }
 
-static bool parse_mix_blend(const char *s, spine_mix_blend *out) {
-  if (std::strcmp(s, "setup") == 0) {
-    *out = SPINE_MIX_BLEND_SETUP;
+static bool parse_mix_interpolation(const char *s, spine_interpolation *out) {
+  if (std::strcmp(s, "linear") == 0) {
+    *out = spine_interpolation_linear();
     return true;
   }
-  if (std::strcmp(s, "first") == 0) {
-    *out = SPINE_MIX_BLEND_FIRST;
+  if (std::strcmp(s, "smooth") == 0) {
+    *out = spine_interpolation_smooth();
     return true;
   }
-  if (std::strcmp(s, "replace") == 0) {
-    *out = SPINE_MIX_BLEND_REPLACE;
+  if (std::strcmp(s, "slow-fast") == 0) {
+    *out = spine_interpolation_slow_fast();
     return true;
   }
-  if (std::strcmp(s, "add") == 0) {
-    *out = SPINE_MIX_BLEND_ADD;
+  if (std::strcmp(s, "fast-slow") == 0) {
+    *out = spine_interpolation_fast_slow();
+    return true;
+  }
+  if (std::strcmp(s, "circle") == 0) {
+    *out = spine_interpolation_circle();
     return true;
   }
   return false;
@@ -158,18 +158,9 @@ int main(int argc, char **argv) {
   const char *atlas_path = argv[1];
   const char *skeleton_path = argv[2];
 
-  bool legacy_mode = false;
-  for (int i = 3; i < argc; i++) {
-    if (std::strcmp(argv[i], "--anim") == 0) {
-      legacy_mode = true;
-      break;
-    }
-  }
-
   const char *skin = nullptr;
-  const char *anim = nullptr;
+  const char *anim = "<scenario>";
   float time = 0.0f;
-  int loop = 1;
   int y_down = 0;
   spine_physics physics = SPINE_PHYSICS_NONE;
 
@@ -178,43 +169,6 @@ int main(int argc, char **argv) {
     const char *arg = argv[i];
     if (std::strcmp(arg, "--y-down") == 0 && i + 1 < argc) {
       y_down = std::atoi(argv[++i]) ? 1 : 0;
-    }
-  }
-
-  if (legacy_mode) {
-    for (int i = 3; i < argc; i++) {
-      const char *arg = argv[i];
-      if (std::strcmp(arg, "--skin") == 0 && i + 1 < argc) {
-        skin = argv[++i];
-      } else if (std::strcmp(arg, "--anim") == 0 && i + 1 < argc) {
-        anim = argv[++i];
-      } else if (std::strcmp(arg, "--time") == 0 && i + 1 < argc) {
-        time = std::strtof(argv[++i], nullptr);
-      } else if (std::strcmp(arg, "--loop") == 0 && i + 1 < argc) {
-        loop = std::atoi(argv[++i]) ? 1 : 0;
-      } else if (std::strcmp(arg, "--y-down") == 0 && i + 1 < argc) {
-        i += 1;  // already parsed above
-      } else if (std::strcmp(arg, "--physics") == 0 && i + 1 < argc) {
-        const char *mode = argv[++i];
-        if (std::strcmp(mode, "none") == 0) physics = SPINE_PHYSICS_NONE;
-        else if (std::strcmp(mode, "reset") == 0) physics = SPINE_PHYSICS_RESET;
-        else if (std::strcmp(mode, "update") == 0) physics = SPINE_PHYSICS_UPDATE;
-        else if (std::strcmp(mode, "pose") == 0) physics = SPINE_PHYSICS_POSE;
-        else {
-          std::cerr << "invalid physics mode: " << mode << "\n";
-          return 2;
-        }
-      } else {
-        std::cerr << "unknown arg: " << arg << "\n";
-        usage();
-        return 2;
-      }
-    }
-
-    if (!anim || anim[0] == '\0') {
-      std::cerr << "missing required --anim <name>\n";
-      usage();
-      return 2;
     }
   }
 
@@ -285,231 +239,228 @@ int main(int argc, char **argv) {
 
   spine_skeleton_setup_pose(skeleton);
 
-  if (legacy_mode) {
-    if (skin) {
-      if (std::strcmp(skin, "none") == 0) {
-        spine_skeleton_set_skin_2(skeleton, nullptr);
-      } else {
+  if (skin) {
+    if (std::strcmp(skin, "none") == 0) {
+      spine_skeleton_set_skin_2(skeleton, nullptr);
+    } else {
+      spine_skeleton_set_skin_1(skeleton, skin);
+    }
+    spine_skeleton_setup_pose_slots(skeleton);
+    spine_skeleton_update_cache(skeleton);
+  }
+
+  for (int i = 3; i < argc; i++) {
+    const char *arg = argv[i];
+
+    if (std::strcmp(arg, "--y-down") == 0) {
+      i++;  // already processed above
+      continue;
+    }
+
+    if (std::strcmp(arg, "--set-skin") == 0 && i + 1 < argc) {
+      const char *name = argv[i + 1];
+      if (std::strcmp(name, "none") == 0) skin = nullptr;
+      else skin = name;
+      if (skin) {
         spine_skeleton_set_skin_1(skeleton, skin);
+      } else {
+        spine_skeleton_set_skin_2(skeleton, nullptr);
       }
       spine_skeleton_setup_pose_slots(skeleton);
       spine_skeleton_update_cache(skeleton);
+      i += 1;
+      continue;
     }
 
-    spine_animation_state_set_animation_1(state, 0, anim, loop ? true : false);
-    spine_animation_state_update(state, time);
-    spine_animation_state_apply(state, skeleton);
-    spine_skeleton_update(skeleton, time);
-    spine_skeleton_update_world_transform(skeleton, physics);
-    total_time = time;
-  } else {
-    for (int i = 3; i < argc; i++) {
-      const char *arg = argv[i];
-
-      if (std::strcmp(arg, "--y-down") == 0) {
-        i++;  // already processed above
-        continue;
-      }
-
-      if (std::strcmp(arg, "--set-skin") == 0 && i + 1 < argc) {
-        const char *name = argv[i + 1];
-        if (std::strcmp(name, "none") == 0) spine_skeleton_set_skin_2(skeleton, nullptr);
-        else spine_skeleton_set_skin_1(skeleton, name);
-        spine_skeleton_update_cache(skeleton);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--mix") == 0 && i + 3 < argc) {
-        const char *from_name = argv[i + 1];
-        const char *to_name = argv[i + 2];
-        const float duration = std::strtof(argv[i + 3], nullptr);
-        spine_animation_state_data_set_mix_1(state_data, from_name, to_name, duration);
-        i += 3;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--physics") == 0 && i + 1 < argc) {
-        const char *mode = argv[i + 1];
-        if (std::strcmp(mode, "none") == 0) physics = SPINE_PHYSICS_NONE;
-        else if (std::strcmp(mode, "reset") == 0) physics = SPINE_PHYSICS_RESET;
-        else if (std::strcmp(mode, "update") == 0) physics = SPINE_PHYSICS_UPDATE;
-        else if (std::strcmp(mode, "pose") == 0) physics = SPINE_PHYSICS_POSE;
-        else {
-          std::cerr << "invalid physics mode: " << mode << "\n";
-          return 2;
-        }
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--set") == 0 && i + 3 < argc) {
-        const size_t track = (size_t)std::atoi(argv[i + 1]);
-        const char *name = argv[i + 2];
-        const bool looped = std::atoi(argv[i + 3]) ? true : false;
-        last_entry = spine_animation_state_set_animation_1(state, track, name, looped);
-        i += 3;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--add") == 0 && i + 4 < argc) {
-        const size_t track = (size_t)std::atoi(argv[i + 1]);
-        const char *name = argv[i + 2];
-        const bool looped = std::atoi(argv[i + 3]) ? true : false;
-        const float delay = std::strtof(argv[i + 4], nullptr);
-        last_entry = spine_animation_state_add_animation_1(state, track, name, looped, delay);
-        i += 4;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--set-empty") == 0 && i + 2 < argc) {
-        const size_t track = (size_t)std::atoi(argv[i + 1]);
-        const float mix = std::strtof(argv[i + 2], nullptr);
-        last_entry = spine_animation_state_set_empty_animation(state, track, mix);
-        i += 2;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--add-empty") == 0 && i + 3 < argc) {
-        const size_t track = (size_t)std::atoi(argv[i + 1]);
-        const float mix = std::strtof(argv[i + 2], nullptr);
-        const float delay = std::strtof(argv[i + 3], nullptr);
-        last_entry = spine_animation_state_add_empty_animation(state, track, mix, delay);
-        i += 3;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-alpha") == 0 && i + 1 < argc) {
-        if (!last_entry) {
-          std::cerr << "--entry-alpha requires a preceding --set/--add command\n";
-          return 2;
-        }
-        const float alpha = std::strtof(argv[i + 1], nullptr);
-        spine_track_entry_set_alpha(last_entry, alpha);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-event-threshold") == 0 && i + 1 < argc) {
-        if (!last_entry) {
-          std::cerr << "--entry-event-threshold requires a preceding --set/--add command\n";
-          return 2;
-        }
-        const float threshold = std::strtof(argv[i + 1], nullptr);
-        spine_track_entry_set_event_threshold(last_entry, threshold);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-alpha-attachment-threshold") == 0 && i + 1 < argc) {
-        if (!last_entry) {
-          std::cerr << "--entry-alpha-attachment-threshold requires a preceding --set/--add command\n";
-          return 2;
-        }
-        const float threshold = std::strtof(argv[i + 1], nullptr);
-        spine_track_entry_set_alpha_attachment_threshold(last_entry, threshold);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-mix-attachment-threshold") == 0 && i + 1 < argc) {
-        if (!last_entry) {
-          std::cerr << "--entry-mix-attachment-threshold requires a preceding --set/--add command\n";
-          return 2;
-        }
-        const float threshold = std::strtof(argv[i + 1], nullptr);
-        spine_track_entry_set_mix_attachment_threshold(last_entry, threshold);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-mix-draw-order-threshold") == 0 && i + 1 < argc) {
-        if (!last_entry) {
-          std::cerr << "--entry-mix-draw-order-threshold requires a preceding --set/--add command\n";
-          return 2;
-        }
-        const float threshold = std::strtof(argv[i + 1], nullptr);
-        spine_track_entry_set_mix_draw_order_threshold(last_entry, threshold);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-mix-blend") == 0 && i + 1 < argc) {
-        if (!last_entry) {
-          std::cerr << "--entry-mix-blend requires a preceding --set/--add command\n";
-          return 2;
-        }
-        spine_mix_blend blend;
-        if (!parse_mix_blend(argv[i + 1], &blend)) {
-          std::cerr << "--entry-mix-blend must be setup|first|replace|add\n";
-          return 2;
-        }
-        spine_track_entry_set_mix_blend(last_entry, blend);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-hold-previous") == 0 && i + 1 < argc) {
-        if (!last_entry) {
-          std::cerr << "--entry-hold-previous requires a preceding --set/--add command\n";
-          return 2;
-        }
-        const bool hold_previous = std::atoi(argv[i + 1]) ? true : false;
-        spine_track_entry_set_hold_previous(last_entry, hold_previous);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-reverse") == 0 && i + 1 < argc) {
-        if (!last_entry) {
-          std::cerr << "--entry-reverse requires a preceding --set/--add command\n";
-          return 2;
-        }
-        const bool reverse = std::atoi(argv[i + 1]) ? true : false;
-        spine_track_entry_set_reverse(last_entry, reverse);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-shortest-rotation") == 0 && i + 1 < argc) {
-        if (!last_entry) {
-          std::cerr << "--entry-shortest-rotation requires a preceding --set/--add command\n";
-          return 2;
-        }
-        const bool shortest = std::atoi(argv[i + 1]) ? true : false;
-        spine_track_entry_set_shortest_rotation(last_entry, shortest);
-        i += 1;
-        continue;
-      }
-
-      if (std::strcmp(arg, "--entry-reset-rotation-directions") == 0) {
-        if (!last_entry) {
-          std::cerr << "--entry-reset-rotation-directions requires a preceding --set/--add command\n";
-          return 2;
-        }
-        spine_track_entry_reset_rotation_directions(last_entry);
-        continue;
-      }
-
-      if (std::strcmp(arg, "--step") == 0 && i + 1 < argc) {
-        const float dt = std::strtof(argv[i + 1], nullptr);
-        spine_animation_state_update(state, dt);
-        spine_animation_state_apply(state, skeleton);
-        spine_skeleton_update(skeleton, dt);
-        spine_skeleton_update_world_transform(skeleton, physics);
-        total_time += dt;
-        i += 1;
-        continue;
-      }
-
-      std::cerr << "unknown/invalid command: " << arg << "\n";
-      usage();
-      return 2;
+    if (std::strcmp(arg, "--mix") == 0 && i + 3 < argc) {
+      const char *from_name = argv[i + 1];
+      const char *to_name = argv[i + 2];
+      const float duration = std::strtof(argv[i + 3], nullptr);
+      spine_animation_state_data_set_mix_1(state_data, from_name, to_name, duration);
+      i += 3;
+      continue;
     }
 
-    anim = "<scenario>";
-    time = total_time;
+    if (std::strcmp(arg, "--physics") == 0 && i + 1 < argc) {
+      const char *mode = argv[i + 1];
+      if (std::strcmp(mode, "none") == 0) physics = SPINE_PHYSICS_NONE;
+      else if (std::strcmp(mode, "reset") == 0) physics = SPINE_PHYSICS_RESET;
+      else if (std::strcmp(mode, "update") == 0) physics = SPINE_PHYSICS_UPDATE;
+      else if (std::strcmp(mode, "pose") == 0) physics = SPINE_PHYSICS_POSE;
+      else {
+        std::cerr << "invalid physics mode: " << mode << "\n";
+        return 2;
+      }
+      i += 1;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--set") == 0 && i + 3 < argc) {
+      const size_t track = (size_t)std::atoi(argv[i + 1]);
+      const char *name = argv[i + 2];
+      const bool looped = std::atoi(argv[i + 3]) ? true : false;
+      last_entry = spine_animation_state_set_animation_1(state, track, name, looped);
+      i += 3;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--add") == 0 && i + 4 < argc) {
+      const size_t track = (size_t)std::atoi(argv[i + 1]);
+      const char *name = argv[i + 2];
+      const bool looped = std::atoi(argv[i + 3]) ? true : false;
+      const float delay = std::strtof(argv[i + 4], nullptr);
+      last_entry = spine_animation_state_add_animation_1(state, track, name, looped, delay);
+      i += 4;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--set-empty") == 0 && i + 2 < argc) {
+      const size_t track = (size_t)std::atoi(argv[i + 1]);
+      const float mix = std::strtof(argv[i + 2], nullptr);
+      last_entry = spine_animation_state_set_empty_animation(state, track, mix);
+      i += 2;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--add-empty") == 0 && i + 3 < argc) {
+      const size_t track = (size_t)std::atoi(argv[i + 1]);
+      const float mix = std::strtof(argv[i + 2], nullptr);
+      const float delay = std::strtof(argv[i + 3], nullptr);
+      last_entry = spine_animation_state_add_empty_animation(state, track, mix, delay);
+      i += 3;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--entry-alpha") == 0 && i + 1 < argc) {
+      if (!last_entry) {
+        std::cerr << "--entry-alpha requires a preceding --set/--add command\n";
+        return 2;
+      }
+      const float alpha = std::strtof(argv[i + 1], nullptr);
+      spine_track_entry_set_alpha(last_entry, alpha);
+      i += 1;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--entry-event-threshold") == 0 && i + 1 < argc) {
+      if (!last_entry) {
+        std::cerr << "--entry-event-threshold requires a preceding --set/--add command\n";
+        return 2;
+      }
+      const float threshold = std::strtof(argv[i + 1], nullptr);
+      spine_track_entry_set_event_threshold(last_entry, threshold);
+      i += 1;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--entry-alpha-attachment-threshold") == 0 && i + 1 < argc) {
+      if (!last_entry) {
+        std::cerr << "--entry-alpha-attachment-threshold requires a preceding --set/--add command\n";
+        return 2;
+      }
+      const float threshold = std::strtof(argv[i + 1], nullptr);
+      spine_track_entry_set_alpha_attachment_threshold(last_entry, threshold);
+      i += 1;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--entry-mix-attachment-threshold") == 0 && i + 1 < argc) {
+      if (!last_entry) {
+        std::cerr << "--entry-mix-attachment-threshold requires a preceding --set/--add command\n";
+        return 2;
+      }
+      const float threshold = std::strtof(argv[i + 1], nullptr);
+      spine_track_entry_set_mix_attachment_threshold(last_entry, threshold);
+      i += 1;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--entry-mix-draw-order-threshold") == 0 && i + 1 < argc) {
+      if (!last_entry) {
+        std::cerr << "--entry-mix-draw-order-threshold requires a preceding --set/--add command\n";
+        return 2;
+      }
+      const float threshold = std::strtof(argv[i + 1], nullptr);
+      spine_track_entry_set_mix_draw_order_threshold(last_entry, threshold);
+      i += 1;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--entry-additive") == 0 && i + 1 < argc) {
+      if (!last_entry) {
+        std::cerr << "--entry-additive requires a preceding --set/--add command\n";
+        return 2;
+      }
+      const bool additive = std::atoi(argv[i + 1]) ? true : false;
+      spine_track_entry_set_additive(last_entry, additive);
+      i += 1;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--entry-mix-interpolation") == 0 && i + 1 < argc) {
+      if (!last_entry) {
+        std::cerr << "--entry-mix-interpolation requires a preceding --set/--add command\n";
+        return 2;
+      }
+      spine_interpolation interpolation;
+      if (!parse_mix_interpolation(argv[i + 1], &interpolation)) {
+        std::cerr << "--entry-mix-interpolation must be linear|smooth|slow-fast|fast-slow|circle\n";
+        return 2;
+      }
+      spine_track_entry_set_mix_interpolation(last_entry, interpolation);
+      i += 1;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--entry-reverse") == 0 && i + 1 < argc) {
+      if (!last_entry) {
+        std::cerr << "--entry-reverse requires a preceding --set/--add command\n";
+        return 2;
+      }
+      const bool reverse = std::atoi(argv[i + 1]) ? true : false;
+      spine_track_entry_set_reverse(last_entry, reverse);
+      i += 1;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--entry-shortest-rotation") == 0 && i + 1 < argc) {
+      if (!last_entry) {
+        std::cerr << "--entry-shortest-rotation requires a preceding --set/--add command\n";
+        return 2;
+      }
+      const bool shortest = std::atoi(argv[i + 1]) ? true : false;
+      spine_track_entry_set_shortest_rotation(last_entry, shortest);
+      i += 1;
+      continue;
+    }
+
+    if (std::strcmp(arg, "--entry-reset-rotation-directions") == 0) {
+      if (!last_entry) {
+        std::cerr << "--entry-reset-rotation-directions requires a preceding --set/--add command\n";
+        return 2;
+      }
+      spine_track_entry_reset_rotation_directions(last_entry);
+      continue;
+    }
+
+    if (std::strcmp(arg, "--step") == 0 && i + 1 < argc) {
+      const float dt = std::strtof(argv[i + 1], nullptr);
+      spine_animation_state_update(state, dt);
+      spine_animation_state_apply(state, skeleton);
+      spine_skeleton_update(skeleton, dt);
+      spine_skeleton_update_world_transform(skeleton, physics);
+      total_time += dt;
+      i += 1;
+      continue;
+    }
+
+    std::cerr << "unknown/invalid command: " << arg << "\n";
+    usage();
+    return 2;
   }
+
+  anim = "<scenario>";
+  time = total_time;
 
   spine_render_command cmd = spine_skeleton_drawable_render(drawable);
 
@@ -527,15 +478,11 @@ int main(int argc, char **argv) {
   }
 
   std::cout << "{";
-  std::cout << "\"mode\":\"" << (legacy_mode ? "legacy" : "scenario") << "\",";
+  std::cout << "\"mode\":\"scenario\",";
   std::cout << "\"y_down\":" << y_down << ",";
   std::cout << "\"pma\":" << (premultipliedAlpha ? 1 : 0) << ",";
   std::cout << "\"physics\":\"" << physics_name(physics) << "\",";
-  if (legacy_mode) {
-    std::cout << "\"skin\":" << (skin ? ("\"" + json_escape(skin) + "\"") : "null") << ",";
-  } else {
-    std::cout << "\"skin\":null,";
-  }
+  std::cout << "\"skin\":" << (skin ? ("\"" + json_escape(skin) + "\"") : "null") << ",";
   std::cout << "\"anim\":\"" << json_escape(anim) << "\",";
   std::cout << "\"time\":" << time << ",";
   std::cout << "\"draws\":[";

@@ -114,9 +114,7 @@ fn physics_test3_snowglobe_shake_skel_scale_0_15_smoke() {
     skeleton.update_world_transform_with_physics(Physics::Update);
 
     let mut state = AnimationState::new(AnimationStateData::new(data));
-    state
-        .set_animation(0, "shake", true)
-        .expect("set animation shake");
+    state.set_animation(0, "shake", true);
     run_for_frames("snowglobe", &mut skeleton, &mut state, 240);
 }
 
@@ -131,8 +129,6 @@ fn physics_test4_cloud_pot_skel_scale_0_15_smoke() {
     skeleton.update_world_transform_with_physics(Physics::Update);
 
     let mut state = AnimationState::new(AnimationStateData::new(data));
-    state
-        .set_animation(0, "playing-in-the-rain", true)
-        .expect("set animation playing-in-the-rain");
+    state.set_animation(0, "playing-in-the-rain", true);
     run_for_frames("cloud-pot", &mut skeleton, &mut state, 240);
 }

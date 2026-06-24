@@ -99,8 +99,7 @@ Spine is licensed by Esoteric Software. Even though this is a pure Rust implemen
 
 - We keep a small C++ oracle to compare pose dumps against the official runtime.
 - Tools:
-  - One-shot sample (legacy): `spine2d/examples/pose_dump.rs` + `scripts/spine_cpp_lite_oracle.cpp`
-  - Scenario sample (mixing / multi-track): `spine2d/examples/pose_dump_scenario.rs` + `scripts/spine_cpp_lite_oracle.cpp`
+  - Scenario sample (single-track, mixing, and multi-track): `spine2d/examples/pose_dump_scenario.rs` + `scripts/spine_cpp_lite_oracle.cpp`
   - Runner + diff: `scripts/run_spine_cpp_lite_oracle.zsh`, `scripts/compare_pose.py`
   - Dump contents: bones + slots (color/attachment) + drawOrder + constraint runtime values (IK/transform/path)
 

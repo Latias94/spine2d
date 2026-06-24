@@ -293,8 +293,8 @@ def scenario_cases_json() -> List[RenderScenarioCase]:
                 "1",
                 "shoot",
                 "0",
-                "--entry-mix-blend",
-                "add",
+                "--entry-additive",
+                "1",
                 "--entry-alpha",
                 "0.5",
                 "--step",
@@ -358,20 +358,12 @@ def record_one(
         raise FileNotFoundError(f"missing skeleton: {skeleton}")
 
     time_cli = case.time.replace("_", ".")
-    args = [
-        str(atlas),
-        str(skeleton),
-        "--anim",
-        case.anim,
-        "--time",
-        time_cli,
-        "--loop",
-        case.looped,
-        "--physics",
-        case.physics,
-    ]
+    args = [str(atlas), str(skeleton)]
     if case.skin is not None:
-        args.extend(["--skin", case.skin])
+        args.extend(["--set-skin", case.skin])
+    if case.physics != "none":
+        args.extend(["--physics", case.physics])
+    args.extend(["--set", "0", case.anim, case.looped, "--step", time_cli])
 
     out = _run_oracle(args, timeout_seconds=timeout_seconds)
     out_path = out_dir / case.golden_name()
@@ -412,7 +404,7 @@ def write_source(out_dir: Path, *, commit: str, fmt: str, status: str) -> None:
                 f"Status: {status}",
                 "Notes:",
                 "  These files are render-dump goldens produced by the C++ render oracle.",
-                "  Both legacy (--anim/--time) and scenario (--set/--step) cases may be present.",
+                "  All cases use scenario commands (--set/--step).",
                 "  Re-record when the upstream baseline commit changes.",
                 "",
             ]

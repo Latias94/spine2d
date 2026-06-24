@@ -139,7 +139,7 @@ mod web {
                     log::warn!("falling back to embedded demo assets: {e:?}");
                     ExampleBundle {
                         example_name: "embedded".to_string(),
-                        atlas: Atlas::from_str(ATLAS)
+                        atlas: Atlas::parse(ATLAS)
                             .map_err(|e| JsValue::from_str(&format!("{e:?}")))?,
                         data: SkeletonData::from_json_str(SKELETON_JSON)
                             .map_err(|e| JsValue::from_str(&format!("{e:?}")))?,
@@ -165,9 +165,7 @@ mod web {
 
         let state_data = AnimationStateData::new(bundle.data.clone());
         let mut state = AnimationState::new(state_data);
-        state
-            .set_animation(0, &default_animation, true)
-            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
+        state.set_animation(0, default_animation.as_str(), true);
 
         let textures = build_textures(
             &device,
@@ -399,8 +397,7 @@ mod web {
         let atlas_text = fetch_text(atlas_url).await?;
         let json_text = fetch_text(skeleton_url).await?;
 
-        let atlas =
-            Atlas::from_str(&atlas_text).map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
+        let atlas = Atlas::parse(&atlas_text).map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
         let data = SkeletonData::from_json_str(&json_text)
             .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
 
@@ -889,12 +886,8 @@ mod web {
             self.state = AnimationState::new(state_data);
 
             self.current_animation = pick_default_animation(&self.data, requested_anim);
-            if let Err(e) = self.state.set_animation(0, &self.current_animation, true) {
-                log::warn!(
-                    "set_animation({}, loop=true) failed: {e:?}",
-                    self.current_animation
-                );
-            }
+            self.state
+                .set_animation(0, self.current_animation.as_str(), true);
 
             self.textures = build_textures(
                 &self.device,
@@ -930,18 +923,14 @@ mod web {
             self.last_ts_ms = None;
             self.initial_bounds = None;
 
-            if let Err(e) = self.state.set_animation(0, name, looping) {
-                log::warn!("set_animation({name}) failed: {e:?}");
-            }
+            self.state.set_animation(0, name, looping);
         }
 
         fn restart_current_animation(&mut self) {
             let name = self.current_animation.clone();
             self.last_ts_ms = None;
             self.initial_bounds = None;
-            if let Err(e) = self.state.set_animation(0, &name, true) {
-                log::warn!("restart_animation({name}) failed: {e:?}");
-            }
+            self.state.set_animation(0, name.as_str(), true);
         }
 
         fn render(&mut self, ts_ms: f64) -> Result<(), wgpu::SurfaceError> {

@@ -168,13 +168,11 @@ pub fn spawn_spine_instances(
         });
         instance.attach_event_listener();
         if let Some(animation_name) = animation_component.name.as_deref() {
-            if let Err(err) = instance.animation_state.set_animation(
+            instance.animation_state.set_animation(
                 0,
                 animation_name,
                 animation_component.loop_animation,
-            ) {
-                warn!("Failed to set Spine animation for {entity:?}: {err}");
-            }
+            );
         }
         rebuild_pose(&mut instance, 0.0);
         let _ = instance.drain_events();
@@ -326,20 +324,11 @@ pub fn apply_spine_animation_commands(
                 loop_animation,
                 settings,
             } => {
-                let handle = match instance.animation_state.set_animation(
+                let handle = instance.animation_state.set_animation(
                     *track_index,
                     animation,
                     *loop_animation,
-                ) {
-                    Ok(handle) => handle,
-                    Err(err) => {
-                        warn!(
-                            "Failed to set Spine animation for {:?}: {err}",
-                            message.entity
-                        );
-                        continue;
-                    }
-                };
+                );
                 settings.apply(&mut instance.animation_state, handle);
                 if *track_index == 0 {
                     instance.animation_name = Some(animation.clone());
@@ -353,21 +342,12 @@ pub fn apply_spine_animation_commands(
                 delay,
                 settings,
             } => {
-                let handle = match instance.animation_state.add_animation(
+                let handle = instance.animation_state.add_animation(
                     *track_index,
                     animation,
                     *loop_animation,
                     *delay,
-                ) {
-                    Ok(handle) => handle,
-                    Err(err) => {
-                        warn!(
-                            "Failed to queue Spine animation for {:?}: {err}",
-                            message.entity
-                        );
-                        continue;
-                    }
-                };
+                );
                 settings.apply(&mut instance.animation_state, handle);
             }
             SpineAnimationCommandKind::SetEmpty {
@@ -467,7 +447,7 @@ pub fn apply_spine_skeleton_commands(
                 instance.skeleton_control.time = Some(time);
                 instance.skeleton.set_time(time);
             }
-            SpineSkeletonCommandKind::ResetToSetupPose => {
+            SpineSkeletonCommandKind::SetupPose => {
                 instance.skeleton.setup_pose();
             }
         }
@@ -502,14 +482,12 @@ pub fn update_spine_animations(
                     || instance.loop_animation != animation_ref.loop_animation)
             {
                 instance.animation_state.clear_tracks();
-                if let Some(animation_name) = animation_ref.name.as_deref()
-                    && let Err(err) = instance.animation_state.set_animation(
+                if let Some(animation_name) = animation_ref.name.as_deref() {
+                    instance.animation_state.set_animation(
                         0,
                         animation_name,
                         animation_ref.loop_animation,
-                    )
-                {
-                    warn!("Failed to set Spine animation for {entity:?}: {err}");
+                    );
                 }
                 instance.animation_name = animation_ref.name.clone();
                 instance.loop_animation = animation_ref.loop_animation;
@@ -593,8 +571,8 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
                     mix_duration: entry.mix_duration(),
                     mix_time: entry.mix_time(),
                     alpha: entry.alpha(),
-                    hold_previous: entry.hold_previous(),
-                    mix_blend: entry.mix_blend(),
+                    additive: entry.additive(),
+                    mix_interpolation: entry.mix_interpolation(),
                     reverse: entry.reverse(),
                 })
             })
@@ -629,9 +607,8 @@ fn apply_animation_mix(
     duration: f32,
     entity: Entity,
 ) {
-    if let Err(err) = state_data.set_mix(from, to, duration) {
-        warn!("Failed to set Spine animation mix for {entity:?} ({from} -> {to}): {err}");
-    }
+    let _ = entity;
+    state_data.set_mix(from, to, duration);
 }
 
 fn draw_list_bounds(draw_list: &spine2d::DrawList, flip_y: bool) -> SpineBounds {
@@ -743,7 +720,7 @@ mod tests {
         let skeleton_data =
             SkeletonData::from_json_str(include_str!("../../spine2d-web/assets/demo.json"))
                 .expect("parse demo skeleton");
-        let atlas = Atlas::from_str(include_str!("../../spine2d-web/assets/demo.atlas"))
+        let atlas = Atlas::parse(include_str!("../../spine2d-web/assets/demo.atlas"))
             .expect("parse demo atlas");
 
         let skeleton = app
@@ -796,7 +773,7 @@ mod tests {
             "#,
         )
         .expect("parse event skeleton");
-        let atlas = Atlas::from_str(include_str!("../../spine2d-web/assets/demo.atlas"))
+        let atlas = Atlas::parse(include_str!("../../spine2d-web/assets/demo.atlas"))
             .expect("parse demo atlas");
 
         let skeleton = app
@@ -1593,8 +1570,8 @@ mod tests {
                     SpineTrackEntrySettings::new()
                         .with_alpha(0.5)
                         .with_looped(false)
-                        .with_mix_blend(spine2d::MixBlend::Add)
-                        .with_hold_previous(true)
+                        .with_additive(true)
+                        .with_mix_interpolation(spine2d::MixInterpolation::Smooth)
                         .with_reverse(true)
                         .with_shortest_rotation(true)
                         .with_mix_duration(0.25)
@@ -1607,8 +1584,8 @@ mod tests {
             assert_eq!(entry.animation().name, "first");
             assert_eq!(entry.alpha(), 0.5);
             assert!(!entry.looped());
-            assert_eq!(entry.mix_blend(), spine2d::MixBlend::Add);
-            assert!(entry.hold_previous());
+            assert!(entry.additive());
+            assert_eq!(entry.mix_interpolation(), spine2d::MixInterpolation::Smooth);
             assert!(entry.reverse());
             assert!(entry.shortest_rotation());
             assert_eq!(entry.mix_duration(), 0.25);
@@ -1721,7 +1698,7 @@ mod tests {
     }
 
     #[test]
-    fn failed_animation_command_does_not_apply_settings_to_prior_entry() {
+    fn missing_animation_command_panics_without_applying_settings_to_prior_entry() {
         let mut app = app_with_lifecycle_systems();
         let (skeleton, atlas) = event_handles(&mut app);
 
@@ -1737,15 +1714,15 @@ mod tests {
                 SpineAnimationCommand::set(entity, 0, "missing", true).with_entry_settings(
                     SpineTrackEntrySettings::new()
                         .with_alpha(0.25)
-                        .with_mix_blend(spine2d::MixBlend::Add),
+                        .with_additive(true),
                 ),
             );
-        app.update();
+        assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| app.update())).is_err());
 
         current_track_entry(&app, entity, 0, |entry| {
             assert_eq!(entry.animation().name, "first");
             assert_eq!(entry.alpha(), 1.0);
-            assert_eq!(entry.mix_blend(), spine2d::MixBlend::Replace);
+            assert!(!entry.additive());
         });
     }
 

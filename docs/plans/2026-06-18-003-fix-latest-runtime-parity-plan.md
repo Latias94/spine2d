@@ -15,7 +15,7 @@ Align the first batch of `spine2d` runtime behavior with the latest reproducible
 
 ## Problem Frame
 
-The previous implementation tracks an older 4.3 development baseline. Latest upstream `spine-cpp` no longer encodes IK scale behavior as a `uniform` bool, adds `ScaleYMode` to IK and physics constraints, decodes binary path `positionMode` differently, and supports `drawOrderFolder` timelines. These are behavior surfaces, not compatibility niceties, so stale parsing silently produces wrong poses or misaligned binary animation streams.
+The previous implementation tracked an older 4.3 development baseline. At the time of this batch, the reproducible upstream anchor was `spine-flutter-4.3.4`; the current active anchor is now `spine-ts-4.3.8` (`8e12b1250ab88c0f890849ea45aab80338cead63`), tracked in `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md`. The behavior issues in this older batch remain useful history: official `spine-cpp` no longer encodes IK scale behavior as a `uniform` bool, adds `ScaleYMode` to IK and physics constraints, decodes binary path `positionMode` differently, and supports `drawOrderFolder` timelines. These are behavior surfaces, not compatibility niceties, so stale parsing silently produces wrong poses or misaligned binary animation streams.
 
 ---
 
@@ -33,7 +33,7 @@ The previous implementation tracks an older 4.3 development baseline. Latest ups
 
 - **KTD1. Replace stale bool semantics in the model:** `ScaleYMode` is the upstream concept and should live in `model.rs` so JSON, binary, and runtime share one Interface.
 - **KTD2. Model draw-order folder as a separate timeline:** Upstream applies folder timelines to the current draw order and only replaces slots that belong to the folder, so preserving that locality is more accurate than pre-expanding to a global setup order.
-- **KTD3. Keep latest tag explicit:** Use `spine-flutter-4.3.4` as the reproducible latest-tag baseline for this batch, while documenting that it is a runtime-specific tag rather than a whole-repo generic `4.3.x` tag.
+- **KTD3. Keep the batch tag explicit:** This historical batch used `spine-flutter-4.3.4` as its reproducible tag. Current parity work has superseded it with `spine-ts-4.3.8`; do not treat this older tag as the active baseline.
 - **KTD4. Defer broad timeline-semantics consolidation:** `TimelineSemantics` is the deeper Module direction, but this fix first creates green behavior signals around the changed upstream surface.
 
 ---
@@ -92,7 +92,7 @@ flowchart TB
 
 **Approach:** For IK, treat `flags & 2` as a following `ScaleYMode` byte. For physics, decode negative `scaleX` sentinel values into `ScaleYMode::Uniform` and `ScaleYMode::Volume`. For path constraints, change `positionMode` to `((flags >> 1) & 1)`.
 
-**Patterns to follow:** Existing `map_*` binary helpers and upstream `SkeletonBinary.cpp` at `spine-flutter-4.3.4`.
+**Patterns to follow:** Existing `map_*` binary helpers and upstream `SkeletonBinary.cpp`; the historical comparison point for this batch was `spine-flutter-4.3.4`, while current verification should use the pinned `spine-ts-4.3.8` checkout.
 
 **Test scenarios:**
 
@@ -154,7 +154,7 @@ flowchart TB
 
 ## Scope Boundaries
 
-- This plan does not implement stale development-branch `TrackEntry::additive`, `keepHold`, or `mixInterpolation` assumptions. Current TrackEntry parity is tracked in `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md` and follows the local C++ `mixBlend` / `holdPrevious` surface instead.
+- This plan predates the latest-tag TrackEntry API cleanup. Current TrackEntry parity is tracked in `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md` and follows pinned `spine-ts-4.3.8` C++ `additive` / `mixInterpolation`; stale-checkout `mixBlend` / `holdPrevious` public controls have been removed.
 - This plan does not re-record oracle pose/render goldens.
 - This plan does not introduce the larger `TimelineSemantics` or `SkeletonDataBuilder` Module refactors, though the changed code should not block those follow-ups.
 
@@ -176,7 +176,7 @@ flowchart TB
 
 ## Sources / Research
 
-- `spine-cpp/src/spine/SkeletonJson.cpp` at `spine-flutter-4.3.4`: IK and physics `scaleY`, plus `drawOrderFolder` parsing.
-- `spine-cpp/src/spine/SkeletonBinary.cpp` at `spine-flutter-4.3.4`: IK `ScaleYMode` byte, physics `scaleX` sentinel, path `positionMode`, and binary draw-order folder section placement.
-- `spine-cpp/include/spine/ConstraintData.h` at `spine-flutter-4.3.4`: `ScaleYMode` enum values and string mapping.
-- `spine-cpp/src/spine/IkConstraint.cpp` and `PhysicsConstraint.cpp` at `spine-flutter-4.3.4`: runtime `Uniform` and `Volume` scale application.
+- `spine-cpp/src/spine/SkeletonJson.cpp`: IK and physics `scaleY`, plus `drawOrderFolder` parsing.
+- `spine-cpp/src/spine/SkeletonBinary.cpp`: IK `ScaleYMode` byte, physics `scaleX` sentinel, path `positionMode`, and binary draw-order folder section placement.
+- `spine-cpp/include/spine/ConstraintData.h`: `ScaleYMode` enum values and string mapping.
+- `spine-cpp/src/spine/IkConstraint.cpp` and `PhysicsConstraint.cpp`: runtime `Uniform` and `Volume` scale application.

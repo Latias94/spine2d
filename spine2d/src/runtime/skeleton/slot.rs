@@ -201,7 +201,7 @@ impl Slot {
     }
 
     pub fn applied_sequence_index(&self) -> i32 {
-        self.applied_pose().sequence_index()
+        self.pose_for(true).sequence_index()
     }
 
     pub fn set_sequence_index(&mut self, sequence_index: i32) {
@@ -229,7 +229,7 @@ impl Slot {
     }
 
     pub fn applied_color(&self) -> [f32; 4] {
-        self.applied_pose().color()
+        self.pose_for(true).color()
     }
 
     pub fn set_color(&mut self, color: [f32; 4]) {
@@ -241,7 +241,7 @@ impl Slot {
     }
 
     pub fn applied_has_dark(&self) -> bool {
-        self.applied_pose().has_dark()
+        self.pose_for(true).has_dark()
     }
 
     pub fn set_has_dark(&mut self, has_dark: bool) {
@@ -253,19 +253,11 @@ impl Slot {
     }
 
     pub fn applied_dark_color(&self) -> [f32; 3] {
-        self.applied_pose().dark_color()
+        self.pose_for(true).dark_color()
     }
 
     pub fn set_dark_color(&mut self, dark_color: [f32; 3]) {
         self.dark_color = dark_color;
-    }
-
-    pub(crate) fn applied_pose(&self) -> SlotPoseRef<'_> {
-        if self.pose_constrained {
-            SlotPoseRef::Applied(&self.applied_pose)
-        } else {
-            SlotPoseRef::Pose(self)
-        }
     }
 
     pub(crate) fn pose_for(&self, applied_pose: bool) -> SlotPoseRef<'_> {

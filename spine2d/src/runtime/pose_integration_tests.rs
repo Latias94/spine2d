@@ -93,7 +93,7 @@ fn animation_state_apply_drives_skeleton_pose() {
     let mut state = AnimationState::new(AnimationStateData::new(skeleton_data.clone()));
     let mut skeleton = crate::Skeleton::new(skeleton_data);
 
-    state.set_animation(0, "move", false).unwrap();
+    state.set_animation(0, "move", false);
     state.update(0.5);
     skeleton.setup_pose();
     state.apply(&mut skeleton);
@@ -205,18 +205,18 @@ fn animation_state_mixes_pose_between_entries() {
     });
 
     let mut data = AnimationStateData::new(skeleton_data.clone());
-    data.set_mix("a", "b", 1.0).unwrap();
+    data.set_mix("a", "b", 1.0);
 
     let mut state = AnimationState::new(data);
     let mut skeleton = crate::Skeleton::new(skeleton_data);
 
-    state.set_animation(0, "a", false).unwrap();
+    state.set_animation(0, "a", false);
     state.update(0.0);
     skeleton.setup_pose();
     state.apply(&mut skeleton);
     assert_approx(skeleton.bones[0].x, 10.0);
 
-    state.set_animation(0, "b", false).unwrap();
+    state.set_animation(0, "b", false);
     state.update(0.5);
     skeleton.setup_pose();
     state.apply(&mut skeleton);
@@ -302,7 +302,7 @@ fn track_entry_shortest_rotation_disables_rotation_accumulator() {
         let mut skeleton = crate::Skeleton::new(skeleton_data);
         skeleton.setup_pose();
 
-        let entry = state.set_animation(0, "spin", false).unwrap();
+        let entry = state.set_animation(0, "spin", false);
         entry.set_alpha(&mut state, 0.5);
         entry.set_shortest_rotation(&mut state, shortest_rotation);
 
@@ -399,7 +399,7 @@ fn track_entry_reverse_samples_from_animation_end() {
     let mut skeleton = crate::Skeleton::new(skeleton_data);
     skeleton.setup_pose();
 
-    let entry = state.set_animation(0, "move", false).unwrap();
+    let entry = state.set_animation(0, "move", false);
     entry.set_reverse(&mut state, true);
 
     state.update(0.25);

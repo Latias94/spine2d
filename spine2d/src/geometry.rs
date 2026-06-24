@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 #[derive(Default)]
 pub(crate) struct Triangulator;
 

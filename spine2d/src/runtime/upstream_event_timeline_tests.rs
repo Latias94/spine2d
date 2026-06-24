@@ -1,4 +1,4 @@
-use super::animation_state::collect_events_for_tests;
+use super::animation_state::collect_events;
 use crate::{Event, EventTimeline};
 
 #[derive(Debug)]
@@ -88,7 +88,8 @@ fn fire(
             time_looped %= duration;
         }
 
-        let fired = collect_events_for_tests(&timeline, last_time_looped, time_looped);
+        let mut fired = Vec::new();
+        collect_events(&timeline, last_time_looped, time_looped, &mut fired);
 
         for event in fired {
             let fired = event
@@ -100,14 +101,16 @@ fn fire(
             if looped {
                 event_index %= expected_names.len();
             } else if fired_events_count >= events_count {
-                let _ = collect_events_for_tests(&timeline, last_time_looped, time_looped);
+                let mut ignored = Vec::new();
+                collect_events(&timeline, last_time_looped, time_looped, &mut ignored);
                 return Err(Fail(format!(
                     "Too many events fired. frames={frames:?} time_start={time_start} time_end={time_end} time_step={time_step} looped={looped}"
                 )));
             }
 
             if fired != expected_names[event_index] {
-                let _ = collect_events_for_tests(&timeline, last_time_looped, time_looped);
+                let mut ignored = Vec::new();
+                collect_events(&timeline, last_time_looped, time_looped, &mut ignored);
                 return Err(Fail(format!(
                     "Wrong event fired: got {fired:?}, expected {:?}. frames={frames:?} time_start={time_start} time_end={time_end} time_step={time_step} looped={looped}",
                     expected_names[event_index]

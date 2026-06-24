@@ -40,6 +40,7 @@ cd "$ROOT_DIR"
 echo "Building Rust render dump..."
 cargo build -p spine2d --example render_dump --features json >/dev/null
 RENDER_DUMP_BIN="$ROOT_DIR/target/debug/examples/render_dump"
+RENDER_ORACLE_BIN="$ROOT_DIR/scripts/run_spine_cpp_lite_render_oracle.zsh"
 
 typeset -a scenarios
 scenarios=(
@@ -60,11 +61,11 @@ for spec in "${scenarios[@]}"; do
   IFS='|' read -r name atlas skel anim time <<<"$spec"
   echo "== $name (anim=$anim t=$time) =="
 
-  "$ROOT_DIR/scripts/run_spine_cpp_lite_render_oracle.zsh" \
-    "$atlas" "$skel" --anim "$anim" --time "$time" > "$TMP_DIR/cpp_${name}.json"
+  "$RENDER_ORACLE_BIN" \
+    "$atlas" "$skel" --set 0 "$anim" 1 --step "$time" > "$TMP_DIR/cpp_${name}.json"
 
   "$RENDER_DUMP_BIN" \
-    "$atlas" "$skel" --anim "$anim" --time "$time" > "$TMP_DIR/rust_${name}.json"
+    "$atlas" "$skel" --set 0 "$anim" 1 --step "$time" > "$TMP_DIR/rust_${name}.json"
 
   if python3 "$ROOT_DIR/scripts/compare_render.py" \
     "$TMP_DIR/cpp_${name}.json" "$TMP_DIR/rust_${name}.json" \

@@ -1,10 +1,10 @@
 Source: https://github.com/EsotericSoftware/spine-runtimes
-Tag: spine-flutter-4.3.4
-TargetCommit: 80dc680a4345ac09cdc5d4c1a77ec572a3f295d1
-RecordedAtUTC: 2026-06-17T18:26:34Z
+Tag: spine-ts-4.3.8
+TargetCommit: 8e12b1250ab88c0f890849ea45aab80338cead63
+RecordedAtUTC: 2026-06-23T23:46:25Z
 Format: skel
 Status: OK
 Notes:
   These files are render-dump goldens produced by the C++ render oracle.
-  Both legacy (--anim/--time) and scenario (--set/--step) cases may be present.
+  All cases use scenario commands (--set/--step).
   Re-record when the upstream baseline commit changes.

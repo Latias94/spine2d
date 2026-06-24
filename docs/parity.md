@@ -164,7 +164,7 @@ Oracle status:
   - `spine-libgdx` `AttachmentTimelineTests`
 - ✅ `add_empty_animation` (delay adjustment matches upstream: empty mix ends with previous entry end) (has unit test coverage)
 - ✅ Per-timeline property gating (`computeHold`): `first/subsequent/holdFirst/holdSubsequent/holdMix` (has unit tests)
-- ✅ Per-entry `mixBlend` (Replace/Add) plumbed through `AnimationState::apply` (has unit tests)
+- ✅ Per-entry `additive` and `mixInterpolation` are plumbed through `AnimationState::apply`; latest-tag TrackEntry no longer exposes public `mixBlend`/`holdPrevious` controls (has unit tests)
 - ✅ Attachment and drawOrder mix thresholds (`mixAttachmentThreshold`, `mixDrawOrderThreshold`, `alphaAttachmentThreshold`) + unkeyed attachment state tracking (has unit tests)
 - ✅ “property id” mapping matches `spine-cpp` (including Deform/Sequence `slotIndex<<16 | id` packing)
 - ✅ Constraint pose timelines apply even when the constraint is not in the update cache (`PosedActive` vs `Constraint::_active` semantics; locked by an oracle scenario)

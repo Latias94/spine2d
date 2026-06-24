@@ -1,5 +1,5 @@
 use crate::runtime::{AnimationState, AnimationStateData, TrackEntryHandle};
-use crate::{Atlas, MixBlend, Physics, Skeleton, SkeletonData};
+use crate::{Atlas, Physics, Skeleton, SkeletonData};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -61,7 +61,6 @@ struct RenderCase {
 }
 
 #[derive(Clone, Debug)]
-#[allow(dead_code)]
 enum RenderScenarioCommand {
     Mix {
         from: &'static str,
@@ -73,32 +72,8 @@ enum RenderScenarioCommand {
         animation: &'static str,
         looped: bool,
     },
-    Add {
-        track: usize,
-        animation: &'static str,
-        looped: bool,
-        delay: f32,
-    },
-    SetEmpty {
-        track: usize,
-        mix_duration: f32,
-    },
-    AddEmpty {
-        track: usize,
-        mix_duration: f32,
-        delay: f32,
-    },
-    SetSkin(Option<&'static str>),
-    Physics(Physics),
     EntryAlpha(f32),
-    EntryEventThreshold(f32),
-    EntryAlphaAttachmentThreshold(f32),
-    EntryMixAttachmentThreshold(f32),
-    EntryMixDrawOrderThreshold(f32),
-    EntryMixBlend(MixBlend),
-    EntryReverse(bool),
-    EntryShortestRotation(bool),
-    EntryResetRotationDirections,
+    EntryAdditive(bool),
     Step(f32),
 }
 
@@ -383,7 +358,7 @@ fn render_scenario_cases_json() -> Vec<RenderScenarioCase> {
                     animation: "shoot",
                     looped: false,
                 },
-                RenderScenarioCommand::EntryMixBlend(MixBlend::Add),
+                RenderScenarioCommand::EntryAdditive(true),
                 RenderScenarioCommand::EntryAlpha(0.5),
                 RenderScenarioCommand::Step(0.3),
             ],
@@ -665,7 +640,7 @@ fn render_scenario_cases_skel() -> Vec<RenderScenarioCase> {
                     animation: "shoot",
                     looped: false,
                 },
-                RenderScenarioCommand::EntryMixBlend(MixBlend::Add),
+                RenderScenarioCommand::EntryAdditive(true),
                 RenderScenarioCommand::EntryAlpha(0.5),
                 RenderScenarioCommand::Step(0.3),
             ],
@@ -703,14 +678,6 @@ fn load_skeleton_data(path: &Path) -> Arc<SkeletonData> {
 
 #[derive(Clone, Debug, Deserialize)]
 struct RenderDoc {
-    #[allow(dead_code)]
-    physics: String,
-    #[allow(dead_code)]
-    skin: Option<String>,
-    #[allow(dead_code)]
-    anim: String,
-    #[allow(dead_code)]
-    time: f32,
     draws: Vec<RenderDrawDoc>,
 }
 
@@ -913,7 +880,7 @@ fn assert_render_parity(case: &RenderCase, golden_path: &Path) {
     let skeleton_path = example_path(case.skeleton);
     let atlas_text = read_to_string(&atlas_path);
     let atlas =
-        Atlas::from_str(&atlas_text).unwrap_or_else(|e| panic!("parse atlas {atlas_path:?}: {e}"));
+        Atlas::parse(&atlas_text).unwrap_or_else(|e| panic!("parse atlas {atlas_path:?}: {e}"));
 
     let data = load_skeleton_data(&skeleton_path);
     let mut skeleton = Skeleton::new(data.clone());
@@ -926,9 +893,7 @@ fn assert_render_parity(case: &RenderCase, golden_path: &Path) {
     }
 
     let mut state = AnimationState::new(AnimationStateData::new(data));
-    state
-        .set_animation(0, case.anim, case.looped)
-        .unwrap_or_else(|e| panic!("set animation {:?}: {e}", case.anim));
+    state.set_animation(0, case.anim, case.looped);
     state.update(case.time);
     state.apply(&mut skeleton);
     skeleton.update(case.time);
@@ -1045,24 +1010,7 @@ fn apply_entry_command(
 ) {
     match *cmd {
         RenderScenarioCommand::EntryAlpha(alpha) => last_entry.set_alpha(state, alpha),
-        RenderScenarioCommand::EntryEventThreshold(t) => last_entry.set_event_threshold(state, t),
-        RenderScenarioCommand::EntryAlphaAttachmentThreshold(t) => {
-            last_entry.set_alpha_attachment_threshold(state, t);
-        }
-        RenderScenarioCommand::EntryMixAttachmentThreshold(t) => {
-            last_entry.set_mix_attachment_threshold(state, t);
-        }
-        RenderScenarioCommand::EntryMixDrawOrderThreshold(t) => {
-            last_entry.set_mix_draw_order_threshold(state, t);
-        }
-        RenderScenarioCommand::EntryMixBlend(v) => last_entry.set_mix_blend(state, v),
-        RenderScenarioCommand::EntryReverse(v) => last_entry.set_reverse(state, v),
-        RenderScenarioCommand::EntryShortestRotation(v) => {
-            last_entry.set_shortest_rotation(state, v)
-        }
-        RenderScenarioCommand::EntryResetRotationDirections => {
-            last_entry.reset_rotation_directions(state)
-        }
+        RenderScenarioCommand::EntryAdditive(v) => last_entry.set_additive(state, v),
         _ => unreachable!("non-entry command passed to apply_entry_command"),
     }
 }
@@ -1072,7 +1020,7 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
     let skeleton_path = example_path(case.skeleton);
     let atlas_text = read_to_string(&atlas_path);
     let atlas =
-        Atlas::from_str(&atlas_text).unwrap_or_else(|e| panic!("parse atlas {atlas_path:?}: {e}"));
+        Atlas::parse(&atlas_text).unwrap_or_else(|e| panic!("parse atlas {atlas_path:?}: {e}"));
 
     let data = load_skeleton_data(&skeleton_path);
     let mut skeleton = Skeleton::new(data.clone());
@@ -1080,68 +1028,24 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
 
     let mut state = AnimationState::new(AnimationStateData::new(data));
 
-    let mut physics = case.physics;
+    let physics = case.physics;
     let mut last_entry: Option<TrackEntryHandle> = None;
     for cmd in &case.commands {
         match *cmd {
             RenderScenarioCommand::Mix { from, to, duration } => {
-                state
-                    .data_mut()
-                    .set_mix(from, to, duration)
-                    .unwrap_or_else(|e| panic!("set mix {from:?}->{to:?}: {e}"));
+                state.data_mut().set_mix(from, to, duration);
             }
             RenderScenarioCommand::Set {
                 track,
                 animation,
                 looped,
             } => {
-                last_entry = Some(
-                    state
-                        .set_animation(track, animation, looped)
-                        .unwrap_or_else(|e| panic!("set animation {track} {animation:?}: {e}")),
-                );
+                last_entry = Some(state.set_animation(track, animation, looped));
             }
-            RenderScenarioCommand::Add {
-                track,
-                animation,
-                looped,
-                delay,
-            } => {
-                last_entry = Some(
-                    state
-                        .add_animation(track, animation, looped, delay)
-                        .unwrap_or_else(|e| panic!("add animation {track} {animation:?}: {e}")),
-                );
-            }
-            RenderScenarioCommand::SetEmpty {
-                track,
-                mix_duration,
-            } => {
-                last_entry = Some(state.set_empty_animation(track, mix_duration));
-            }
-            RenderScenarioCommand::AddEmpty {
-                track,
-                mix_duration,
-                delay,
-            } => {
-                last_entry = Some(state.add_empty_animation(track, mix_duration, delay));
-            }
-            RenderScenarioCommand::SetSkin(name) => {
-                skeleton.set_skin(name);
-            }
-            RenderScenarioCommand::Physics(p) => physics = p,
             RenderScenarioCommand::Step(dt) => {
                 step_animation(&mut state, &mut skeleton, dt, physics)
             }
-            RenderScenarioCommand::EntryAlpha(_)
-            | RenderScenarioCommand::EntryEventThreshold(_)
-            | RenderScenarioCommand::EntryAlphaAttachmentThreshold(_)
-            | RenderScenarioCommand::EntryMixAttachmentThreshold(_)
-            | RenderScenarioCommand::EntryMixDrawOrderThreshold(_)
-            | RenderScenarioCommand::EntryMixBlend(_)
-            | RenderScenarioCommand::EntryReverse(_)
-            | RenderScenarioCommand::EntryShortestRotation(_)
-            | RenderScenarioCommand::EntryResetRotationDirections => {
+            RenderScenarioCommand::EntryAlpha(_) | RenderScenarioCommand::EntryAdditive(_) => {
                 let Some(entry) = last_entry.as_ref() else {
                     panic!(
                         "{:?}: entry command requires a preceding set/add",
@@ -1161,7 +1065,7 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
         .unwrap_or_else(|e| panic!("parse golden {golden_path:?}: {e}"));
     let golden_tris = triangles_from_doc(&golden);
 
-    // Scenario mode exercises mixing chains (including mixBlend/additive overlays),
+    // Scenario mode exercises mixing chains (including additive overlays),
     // which tends to magnify small floating-point differences across implementations.
     // Keep the tolerance tight enough to catch semantic mismatches but avoid flakiness.
     let eps_pos = 3e-3_f32;

@@ -1,4 +1,5 @@
-use crate::{MixBlend, Skeleton, SkeletonData, apply_animation, build_draw_list};
+use crate::runtime::MixBlend;
+use crate::{Skeleton, SkeletonData, apply_animation, build_draw_list};
 
 const SKELETON_SLOT_RGBA_TIMELINE: &str = r#"
 {

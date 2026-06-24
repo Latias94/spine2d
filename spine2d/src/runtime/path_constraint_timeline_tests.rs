@@ -1,4 +1,5 @@
-use crate::{MixBlend, Skeleton, SkeletonData, apply_animation};
+use crate::runtime::MixBlend;
+use crate::{Skeleton, SkeletonData, apply_animation};
 
 const SKELETON_WITH_PATH_CONSTRAINT_AND_TIMELINES: &str = r#"
 {

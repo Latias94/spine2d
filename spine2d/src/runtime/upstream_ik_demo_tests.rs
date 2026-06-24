@@ -64,8 +64,8 @@ fn ik_test_crosshair_parent_world_to_local_matches_upstream_demo_flow() {
     skeleton.y = 20.0;
 
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
-    state.set_animation(0, "walk", true).expect("set walk");
-    state.set_animation(1, "aim", true).expect("set aim");
+    state.set_animation(0, "walk", true);
+    state.set_animation(1, "aim", true);
 
     let dt = 1.0 / 60.0;
     state.update(dt);
@@ -76,7 +76,7 @@ fn ik_test_crosshair_parent_world_to_local_matches_upstream_demo_flow() {
     let crosshair = bone_index(&data, "crosshair");
     let parent = skeleton.bones[crosshair]
         .parent_index()
-        .expect("crosshair should have a parent bone");
+        .expect("crosshair parent");
 
     let target_world_x = 320.0;
     let target_world_y = 240.0;

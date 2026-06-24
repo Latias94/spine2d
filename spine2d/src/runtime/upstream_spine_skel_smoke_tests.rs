@@ -142,9 +142,7 @@ fn run_each_animation_sample_smoke(path: &Path, example_label: &str) {
         let mut state_data = AnimationStateData::new(data.clone());
         state_data.set_default_mix(0.2);
         let mut state = AnimationState::new(state_data);
-        state
-            .set_animation(0, &anim, true)
-            .unwrap_or_else(|e| panic!("set animation {anim} ({example_label}): {e}"));
+        state.set_animation(0, anim.as_str(), true);
 
         for _ in 0..120 {
             let dt = 1.0 / 60.0;
@@ -180,13 +178,9 @@ fn run_queued_animations_smoke(data: Arc<SkeletonData>, example_label: &str) {
     state_data.set_default_mix(0.2);
     let mut state = AnimationState::new(state_data);
 
-    state
-        .set_animation(0, &animations[0], false)
-        .unwrap_or_else(|e| panic!("set animation {} ({example_label}): {e}", animations[0]));
+    state.set_animation(0, animations[0].as_str(), false);
     for name in animations.iter().skip(1) {
-        state
-            .add_animation(0, name, false, 0.0)
-            .unwrap_or_else(|e| panic!("add animation {name} ({example_label}): {e}"));
+        state.add_animation(0, name, false, 0.0);
     }
 
     for _ in 0..MAX_FRAMES {
@@ -222,18 +216,12 @@ fn run_multitrack_overlay_smoke(data: Arc<SkeletonData>, example_label: &str) {
     state_data.set_default_mix(0.2);
     let mut state = AnimationState::new(state_data);
 
-    state
-        .set_animation(0, &animations[0], true)
-        .unwrap_or_else(|e| panic!("set track0 {} ({example_label}): {e}", animations[0]));
-    state
-        .set_animation(1, &animations[1], true)
-        .unwrap_or_else(|e| panic!("set track1 {} ({example_label}): {e}", animations[1]));
+    state.set_animation(0, animations[0].as_str(), true);
+    state.set_animation(1, animations[1].as_str(), true);
 
     if let Some(name) = animations.get(2) {
-        let e = state
-            .set_animation(2, name, true)
-            .unwrap_or_else(|e| panic!("set track2 {name} ({example_label}): {e}"));
-        e.set_mix_blend(&mut state, crate::MixBlend::Add);
+        let e = state.set_animation(2, name, true);
+        e.set_additive(&mut state, true);
         e.set_alpha(&mut state, 0.5);
     }
 

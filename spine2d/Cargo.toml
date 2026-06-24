@@ -40,11 +40,6 @@ features = []
 rustdoc-args = ["--cfg", "docsrs"]
 
 [[example]]
-name = "pose_dump"
-path = "examples/pose_dump.rs"
-required-features = ["json"]
-
-[[example]]
 name = "pose_dump_scenario"
 path = "examples/pose_dump_scenario.rs"
 required-features = ["json"]

@@ -966,6 +966,84 @@ pub enum TimelineKind {
     DrawOrderFolder(usize),
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum TimelineRef<'a> {
+    Event {
+        timeline: &'a EventTimeline,
+    },
+    SlotAttachment {
+        index: usize,
+        timeline: &'a AttachmentTimeline,
+    },
+    Deform {
+        index: usize,
+        timeline: &'a DeformTimeline,
+    },
+    Sequence {
+        index: usize,
+        timeline: &'a SequenceTimeline,
+    },
+    Bone {
+        index: usize,
+        timeline: &'a BoneTimeline,
+    },
+    SlotColor {
+        index: usize,
+        timeline: &'a ColorTimeline,
+    },
+    SlotRgb {
+        index: usize,
+        timeline: &'a RgbTimeline,
+    },
+    SlotAlpha {
+        index: usize,
+        timeline: &'a AlphaTimeline,
+    },
+    SlotRgba2 {
+        index: usize,
+        timeline: &'a Rgba2Timeline,
+    },
+    SlotRgb2 {
+        index: usize,
+        timeline: &'a Rgb2Timeline,
+    },
+    IkConstraint {
+        index: usize,
+        timeline: &'a IkConstraintTimeline,
+    },
+    TransformConstraint {
+        index: usize,
+        timeline: &'a TransformConstraintTimeline,
+    },
+    PathConstraint {
+        index: usize,
+        timeline: &'a PathConstraintTimeline,
+    },
+    PhysicsConstraint {
+        index: usize,
+        timeline: &'a PhysicsConstraintTimeline,
+    },
+    PhysicsReset {
+        index: usize,
+        timeline: &'a PhysicsConstraintResetTimeline,
+    },
+    SliderTime {
+        index: usize,
+        timeline: &'a SliderConstraintTimeline,
+    },
+    SliderMix {
+        index: usize,
+        timeline: &'a SliderConstraintTimeline,
+    },
+    DrawOrder {
+        timeline: &'a DrawOrderTimeline,
+    },
+    DrawOrderFolder {
+        index: usize,
+        timeline: &'a DrawOrderFolderTimeline,
+    },
+}
+
 #[derive(Clone, Debug)]
 pub struct Animation {
     pub name: String,
@@ -989,7 +1067,101 @@ pub struct Animation {
     pub slider_mix_timelines: Vec<SliderConstraintTimeline>,
     pub draw_order_timeline: Option<DrawOrderTimeline>,
     pub draw_order_folder_timelines: Vec<DrawOrderFolderTimeline>,
-    pub timeline_order: Vec<TimelineKind>,
+    pub(crate) timeline_order: Vec<TimelineKind>,
+}
+
+impl Animation {
+    pub fn timelines(&self) -> impl Iterator<Item = TimelineRef<'_>> + '_ {
+        self.timeline_order
+            .iter()
+            .filter_map(|kind| self.timeline_ref(*kind))
+            .chain(
+                self.event_timeline
+                    .as_ref()
+                    .map(|timeline| TimelineRef::Event { timeline }),
+            )
+    }
+
+    pub(crate) fn timeline_order(&self) -> &[TimelineKind] {
+        &self.timeline_order
+    }
+
+    fn timeline_ref(&self, kind: TimelineKind) -> Option<TimelineRef<'_>> {
+        match kind {
+            TimelineKind::SlotAttachment(index) => self
+                .slot_attachment_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::SlotAttachment { index, timeline }),
+            TimelineKind::Deform(index) => self
+                .deform_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::Deform { index, timeline }),
+            TimelineKind::Sequence(index) => self
+                .sequence_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::Sequence { index, timeline }),
+            TimelineKind::Bone(index) => self
+                .bone_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::Bone { index, timeline }),
+            TimelineKind::SlotColor(index) => self
+                .slot_color_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::SlotColor { index, timeline }),
+            TimelineKind::SlotRgb(index) => self
+                .slot_rgb_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::SlotRgb { index, timeline }),
+            TimelineKind::SlotAlpha(index) => self
+                .slot_alpha_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::SlotAlpha { index, timeline }),
+            TimelineKind::SlotRgba2(index) => self
+                .slot_rgba2_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::SlotRgba2 { index, timeline }),
+            TimelineKind::SlotRgb2(index) => self
+                .slot_rgb2_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::SlotRgb2 { index, timeline }),
+            TimelineKind::IkConstraint(index) => self
+                .ik_constraint_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::IkConstraint { index, timeline }),
+            TimelineKind::TransformConstraint(index) => self
+                .transform_constraint_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::TransformConstraint { index, timeline }),
+            TimelineKind::PathConstraint(index) => self
+                .path_constraint_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::PathConstraint { index, timeline }),
+            TimelineKind::PhysicsConstraint(index) => self
+                .physics_constraint_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::PhysicsConstraint { index, timeline }),
+            TimelineKind::PhysicsReset(index) => self
+                .physics_reset_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::PhysicsReset { index, timeline }),
+            TimelineKind::SliderTime(index) => self
+                .slider_time_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::SliderTime { index, timeline }),
+            TimelineKind::SliderMix(index) => self
+                .slider_mix_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::SliderMix { index, timeline }),
+            TimelineKind::DrawOrder => self
+                .draw_order_timeline
+                .as_ref()
+                .map(|timeline| TimelineRef::DrawOrder { timeline }),
+            TimelineKind::DrawOrderFolder(index) => self
+                .draw_order_folder_timelines
+                .get(index)
+                .map(|timeline| TimelineRef::DrawOrderFolder { index, timeline }),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

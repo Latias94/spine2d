@@ -1,6 +1,7 @@
+use crate::runtime::MixBlend;
 use crate::{
-    AttachmentData, AttachmentFrame, AttachmentTimeline, MixBlend, Skeleton, SkeletonData,
-    apply_animation, apply_attachment, build_draw_list,
+    AttachmentData, AttachmentFrame, AttachmentTimeline, Skeleton, SkeletonData, apply_animation,
+    apply_attachment, build_draw_list,
 };
 
 const SKELETON_UNWEIGHTED: &str = r#"

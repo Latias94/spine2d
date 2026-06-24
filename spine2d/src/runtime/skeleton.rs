@@ -19,7 +19,7 @@ pub use transform::TransformConstraint;
 
 use crate::{SkeletonData, geometry::SkeletonClipper};
 use path::{PathConstraintScratch, estimate_path_attachment_scratch_capacities};
-use slot::{SlotPose, SlotPoseRef};
+use slot::SlotPose;
 use std::sync::Arc;
 
 #[derive(Copy, Clone, Debug)]
@@ -84,7 +84,11 @@ impl ConstraintRef<'_> {
 }
 
 fn atan2_degrees(y: f32, x: f32) -> f32 {
-    atan2_radians(y, x).to_degrees()
+    atan2_radians(y, x) * (180.0f32 / std::f32::consts::PI)
+}
+
+fn degrees_to_radians(degrees: f32) -> f32 {
+    degrees * (std::f32::consts::PI / 180.0f32)
 }
 
 fn atan2_radians(y: f32, x: f32) -> f32 {
@@ -573,34 +577,14 @@ impl Skeleton {
 
     pub(crate) fn draw_order_target_mut(&mut self, applied_pose: bool) -> &mut Vec<usize> {
         if applied_pose {
-            self.ensure_draw_order_constrained();
+            if !self.draw_order_constrained {
+                self.draw_order_constrained = true;
+                self.applied_draw_order.clone_from(&self.draw_order);
+            }
             &mut self.applied_draw_order
         } else {
             &mut self.draw_order
         }
-    }
-
-    pub(crate) fn set_draw_order_to_setup(&mut self, applied_pose: bool) {
-        let slot_count = self.slots.len();
-        let target = self.draw_order_target_mut(applied_pose);
-        target.clear();
-        target.extend(0..slot_count);
-    }
-
-    pub(crate) fn set_draw_order_from_slice(&mut self, applied_pose: bool, order: &[usize]) {
-        let target = self.draw_order_target_mut(applied_pose);
-        target.clear();
-        target.extend_from_slice(order);
-    }
-
-    pub(crate) fn slot_pose_ref(
-        &self,
-        slot_index: usize,
-        applied_pose: bool,
-    ) -> Option<SlotPoseRef<'_>> {
-        self.slots
-            .get(slot_index)
-            .map(|slot| slot.pose_for(applied_pose))
     }
 
     pub(crate) fn slot_attachment_data_for_pose(
@@ -620,28 +604,6 @@ impl Skeleton {
         }
 
         self.attachment(slot_index, key)
-    }
-
-    fn ensure_draw_order_constrained(&mut self) {
-        if !self.draw_order_constrained {
-            self.draw_order_constrained = true;
-            self.applied_draw_order.clone_from(&self.draw_order);
-        }
-    }
-
-    fn set_draw_order_constrained(&mut self, constrained: bool) {
-        self.draw_order_constrained = constrained;
-        if constrained {
-            self.applied_draw_order.clone_from(&self.draw_order);
-        } else {
-            self.applied_draw_order.clear();
-        }
-    }
-
-    fn reset_constrained_draw_order(&mut self) {
-        if self.draw_order_constrained {
-            self.applied_draw_order.clone_from(&self.draw_order);
-        }
     }
 
     pub fn skin_name(&self) -> Option<&str> {
@@ -1076,7 +1038,12 @@ impl Skeleton {
                         || !animation.draw_order_folder_timelines.is_empty()
                 })
         });
-        self.set_draw_order_constrained(constrained);
+        self.draw_order_constrained = constrained;
+        if constrained {
+            self.applied_draw_order.clone_from(&self.draw_order);
+        } else {
+            self.applied_draw_order.clear();
+        }
         self.update_slot_constrained_state();
     }
 
@@ -1374,7 +1341,9 @@ impl Skeleton {
         }
 
         self.draw_order = (0..self.slots.len()).collect::<Vec<_>>();
-        self.reset_constrained_draw_order();
+        if self.draw_order_constrained {
+            self.applied_draw_order.clone_from(&self.draw_order);
+        }
         self.reset_constrained_slot_poses();
     }
 
@@ -1809,7 +1778,9 @@ impl Skeleton {
 
     pub fn update_world_transform_with_physics(&mut self, physics: Physics) {
         self.update_epoch = self.update_epoch.wrapping_add(1);
-        self.reset_constrained_draw_order();
+        if self.draw_order_constrained {
+            self.applied_draw_order.clone_from(&self.draw_order);
+        }
         self.reset_constrained_slot_poses();
         self.reset_applied_transforms();
 

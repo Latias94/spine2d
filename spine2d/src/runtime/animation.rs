@@ -1,19 +1,55 @@
+use crate::model::TimelineKind;
 use crate::{
     AlphaTimeline, Animation, AttachmentTimeline, BoneTimeline, ColorTimeline, Curve,
     DeformTimeline, DrawOrderFolderTimeline, DrawOrderTimeline, IkConstraintTimeline,
     InheritTimeline, PathConstraintTimeline, PhysicsConstraintResetTimeline,
     PhysicsConstraintTimeline, Rgb2Timeline, RgbTimeline, Rgba2Timeline, RotateFrame,
     RotateTimeline, ScaleTimeline, ScaleXTimeline, ScaleYTimeline, ShearTimeline, ShearXTimeline,
-    ShearYTimeline, Skeleton, SliderConstraintTimeline, TimelineKind, TransformConstraintTimeline,
+    ShearYTimeline, Skeleton, SliderConstraintTimeline, TransformConstraintTimeline,
     TranslateTimeline, TranslateXTimeline, TranslateYTimeline, Vec2Frame,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum MixBlend {
+pub(crate) enum MixBlend {
     Setup,
     First,
     Replace,
     Add,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum MixInterpolation {
+    Linear,
+    Smooth,
+    SlowFast,
+    FastSlow,
+    Circle,
+}
+
+impl Default for MixInterpolation {
+    fn default() -> Self {
+        Self::Linear
+    }
+}
+
+impl MixInterpolation {
+    pub(crate) fn apply(self, a: f32) -> f32 {
+        match self {
+            Self::Linear => a,
+            Self::Smooth => a * a * (3.0 - 2.0 * a),
+            Self::SlowFast => a * a,
+            Self::FastSlow => -((a - 1.0) * (a - 1.0)) + 1.0,
+            Self::Circle => {
+                if a <= 0.5 {
+                    let a = a * 2.0;
+                    (1.0 - (1.0 - a * a).sqrt()) / 2.0
+                } else {
+                    let a = (a - 1.0) * 2.0;
+                    ((1.0 - a * a).sqrt() + 1.0) / 2.0
+                }
+            }
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -23,26 +59,17 @@ pub(crate) enum MixFrom {
     First,
 }
 
-impl MixFrom {
-    fn from_blend(blend: MixBlend) -> Self {
-        match blend {
-            MixBlend::Setup => Self::Setup,
-            MixBlend::First => Self::First,
-            MixBlend::Replace | MixBlend::Add => Self::Current,
-        }
-    }
-}
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum MixDirection {
+pub(crate) enum MixDirection {
     In,
     Out,
 }
 
-pub(crate) const ANIMATION_STATE_CURRENT: i32 = 2;
+pub(crate) const ANIMATION_STATE_RETAIN: i32 = 2;
 pub(crate) const ANIMATION_STATE_SETUP: i32 = 1;
 
-pub fn apply_animation(
+#[cfg(test)]
+pub(crate) fn apply_animation(
     animation: &Animation,
     skeleton: &mut Skeleton,
     time: f32,
@@ -74,12 +101,12 @@ pub fn apply_animation(
 
     let mut time = time;
     if looped && animation.duration > 0.0 {
-        time = time.rem_euclid(animation.duration);
+        time %= animation.duration;
     }
 
     // Plain animation apply does not model AnimationState's attachmentState gating.
     // Always apply attachments for standalone animation sampling.
-    for kind in animation.timeline_order.iter().copied() {
+    for kind in animation.timeline_order().iter().copied() {
         apply_animation_timeline(
             animation,
             kind,
@@ -103,7 +130,7 @@ pub fn apply_animation(
 ///
 /// This matches Spine's `Animation::apply(..., appliedPose=true)` usage, which is required by
 /// constraints such as Slider (Spine 4.3) that drive pose changes during `updateWorldTransform`.
-pub(crate) fn apply_animation_applied(
+pub(super) fn apply_animation_applied(
     animation: &Animation,
     skeleton: &mut Skeleton,
     time: f32,
@@ -135,10 +162,10 @@ pub(crate) fn apply_animation_applied(
 
     let mut time = time;
     if looped && animation.duration > 0.0 {
-        time = time.rem_euclid(animation.duration);
+        time %= animation.duration;
     }
 
-    for kind in animation.timeline_order.iter().copied() {
+    for kind in animation.timeline_order().iter().copied() {
         apply_animation_timeline(
             animation,
             kind,
@@ -188,9 +215,7 @@ pub(crate) struct StateTimelineApply<'a> {
     pub direction: MixDirection,
     pub attachments: bool,
     pub unkeyed_state: i32,
-    pub draw_order_from_current: bool,
-    pub draw_order_out: Option<bool>,
-    pub draw_order_folder_out: bool,
+    pub draw_order_out: bool,
     pub physics_last_time: f32,
     pub physics_time: f32,
     pub rotate: Option<RotateTimelineState<'a>>,
@@ -236,10 +261,16 @@ fn apply_animation_timeline(
         }
         TimelineKind::Bone(i) => match &animation.bone_timelines[i] {
             BoneTimeline::Rotate(t) => {
+                let from = match ctx.blend {
+                    MixBlend::Setup => MixFrom::Setup,
+                    MixBlend::First => MixFrom::First,
+                    MixBlend::Replace | MixBlend::Add => MixFrom::Current,
+                };
+                let add = ctx.blend == MixBlend::Add;
                 if ctx.applied_pose {
                     apply_rotate_applied(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
                 } else {
-                    apply_rotate(t, skeleton, ctx.time, ctx.alpha, ctx.blend);
+                    apply_rotate_with(t, skeleton, ctx.time, ctx.alpha, from, add);
                 }
             }
             BoneTimeline::Translate(t) => {
@@ -384,30 +415,45 @@ fn apply_animation_timeline(
             );
         }
         TimelineKind::TransformConstraint(i) => {
-            apply_transform_constraint_timeline(
+            apply_transform_constraint_timeline_with(
                 &animation.transform_constraint_timelines[i],
                 skeleton,
                 ctx.time,
                 ctx.alpha,
-                ctx.blend,
+                match ctx.blend {
+                    MixBlend::Setup => MixFrom::Setup,
+                    MixBlend::First => MixFrom::First,
+                    MixBlend::Replace | MixBlend::Add => MixFrom::Current,
+                },
+                ctx.blend == MixBlend::Add,
             );
         }
         TimelineKind::PathConstraint(i) => {
-            apply_path_constraint_timeline(
+            apply_path_constraint_timeline_with(
                 &animation.path_constraint_timelines[i],
                 skeleton,
                 ctx.time,
                 ctx.alpha,
-                ctx.blend,
+                match ctx.blend {
+                    MixBlend::Setup => MixFrom::Setup,
+                    MixBlend::First => MixFrom::First,
+                    MixBlend::Replace | MixBlend::Add => MixFrom::Current,
+                },
+                ctx.blend == MixBlend::Add,
             );
         }
         TimelineKind::PhysicsConstraint(i) => {
-            apply_physics_constraint_timeline(
+            apply_physics_constraint_timeline_with(
                 &animation.physics_constraint_timelines[i],
                 skeleton,
                 ctx.time,
                 ctx.alpha,
-                ctx.blend,
+                match ctx.blend {
+                    MixBlend::Setup => MixFrom::Setup,
+                    MixBlend::First => MixFrom::First,
+                    MixBlend::Replace | MixBlend::Add => MixFrom::Current,
+                },
+                ctx.blend == MixBlend::Add,
             );
         }
         TimelineKind::PhysicsReset(i) => {
@@ -419,21 +465,31 @@ fn apply_animation_timeline(
             );
         }
         TimelineKind::SliderTime(i) => {
-            apply_slider_time_timeline(
+            apply_slider_time_timeline_with(
                 &animation.slider_time_timelines[i],
                 skeleton,
                 ctx.time,
                 ctx.alpha,
-                ctx.blend,
+                match ctx.blend {
+                    MixBlend::Setup => MixFrom::Setup,
+                    MixBlend::First => MixFrom::First,
+                    MixBlend::Replace | MixBlend::Add => MixFrom::Current,
+                },
+                ctx.blend == MixBlend::Add,
             );
         }
         TimelineKind::SliderMix(i) => {
-            apply_slider_mix_timeline(
+            apply_slider_mix_timeline_with(
                 &animation.slider_mix_timelines[i],
                 skeleton,
                 ctx.time,
                 ctx.alpha,
-                ctx.blend,
+                match ctx.blend {
+                    MixBlend::Setup => MixFrom::Setup,
+                    MixBlend::First => MixFrom::First,
+                    MixBlend::Replace | MixBlend::Add => MixFrom::Current,
+                },
+                ctx.blend == MixBlend::Add,
             );
         }
         TimelineKind::DrawOrder => {
@@ -442,7 +498,7 @@ fn apply_animation_timeline(
                     timeline,
                     skeleton,
                     ctx.time,
-                    mix_blend_is_current(ctx.blend),
+                    matches!(ctx.blend, MixBlend::Replace | MixBlend::Add),
                     false,
                     ctx.applied_pose,
                 );
@@ -453,7 +509,7 @@ fn apply_animation_timeline(
                 &animation.draw_order_folder_timelines[i],
                 skeleton,
                 ctx.time,
-                mix_blend_is_current(ctx.blend),
+                matches!(ctx.blend, MixBlend::Replace | MixBlend::Add),
                 false,
                 ctx.applied_pose,
             );
@@ -467,6 +523,8 @@ pub(crate) fn apply_state_timeline(
     skeleton: &mut Skeleton,
     ctx: StateTimelineApply<'_>,
 ) {
+    let from_current = matches!(ctx.from, MixFrom::Current);
+
     match kind {
         TimelineKind::SlotAttachment(i) => {
             apply_attachment(
@@ -689,15 +747,13 @@ pub(crate) fn apply_state_timeline(
             );
         }
         TimelineKind::DrawOrder => {
-            if let Some(timeline) = animation.draw_order_timeline.as_ref()
-                && let Some(out) = ctx.draw_order_out
-            {
+            if let Some(timeline) = animation.draw_order_timeline.as_ref() {
                 apply_draw_order(
                     timeline,
                     skeleton,
                     ctx.time,
-                    ctx.draw_order_from_current,
-                    out,
+                    from_current,
+                    ctx.draw_order_out,
                     false,
                 );
             }
@@ -707,8 +763,8 @@ pub(crate) fn apply_state_timeline(
                 &animation.draw_order_folder_timelines[i],
                 skeleton,
                 ctx.time,
-                ctx.draw_order_from_current,
-                ctx.draw_order_folder_out,
+                from_current,
+                matches!(ctx.direction, MixDirection::Out),
                 false,
             );
         }
@@ -1347,23 +1403,6 @@ pub(crate) fn apply_shear_y_applied(
     }
 }
 
-pub(crate) fn apply_slider_time_timeline(
-    timeline: &SliderConstraintTimeline,
-    skeleton: &mut Skeleton,
-    time: f32,
-    alpha: f32,
-    blend: MixBlend,
-) {
-    apply_slider_time_timeline_with(
-        timeline,
-        skeleton,
-        time,
-        alpha,
-        MixFrom::from_blend(blend),
-        blend == MixBlend::Add,
-    );
-}
-
 pub(crate) fn apply_slider_time_timeline_with(
     timeline: &SliderConstraintTimeline,
     skeleton: &mut Skeleton,
@@ -1394,23 +1433,6 @@ pub(crate) fn apply_slider_time_timeline_with(
     let sampled = sample_float(&timeline.frames, time);
     constraint.time =
         apply_absolute_value(from, add, alpha, constraint.time, data.setup_time, sampled);
-}
-
-pub(crate) fn apply_slider_mix_timeline(
-    timeline: &SliderConstraintTimeline,
-    skeleton: &mut Skeleton,
-    time: f32,
-    alpha: f32,
-    blend: MixBlend,
-) {
-    apply_slider_mix_timeline_with(
-        timeline,
-        skeleton,
-        time,
-        alpha,
-        MixFrom::from_blend(blend),
-        blend == MixBlend::Add,
-    );
 }
 
 pub(crate) fn apply_slider_mix_timeline_with(
@@ -1525,23 +1547,6 @@ pub(crate) fn apply_physics_reset_timeline(
             }
         }
     }
-}
-
-pub(crate) fn apply_physics_constraint_timeline(
-    timeline: &PhysicsConstraintTimeline,
-    skeleton: &mut Skeleton,
-    time: f32,
-    alpha: f32,
-    blend: MixBlend,
-) {
-    apply_physics_constraint_timeline_with(
-        timeline,
-        skeleton,
-        time,
-        alpha,
-        MixFrom::from_blend(blend),
-        blend == MixBlend::Add,
-    );
 }
 
 pub(crate) fn apply_physics_constraint_timeline_with(
@@ -1727,23 +1732,6 @@ pub(crate) fn apply_physics_constraint_timeline_with(
             |d| d.mix_global,
         ),
     }
-}
-
-pub(crate) fn apply_path_constraint_timeline(
-    timeline: &PathConstraintTimeline,
-    skeleton: &mut Skeleton,
-    time: f32,
-    alpha: f32,
-    blend: MixBlend,
-) {
-    apply_path_constraint_timeline_with(
-        timeline,
-        skeleton,
-        time,
-        alpha,
-        MixFrom::from_blend(blend),
-        blend == MixBlend::Add,
-    );
 }
 
 pub(crate) fn apply_path_constraint_timeline_with(
@@ -1948,23 +1936,6 @@ fn sample_path_mix(frames: &[crate::PathMixFrame], time: f32) -> (f32, f32, f32)
             next.mix_y,
         ),
     )
-}
-
-pub(crate) fn apply_transform_constraint_timeline(
-    timeline: &TransformConstraintTimeline,
-    skeleton: &mut Skeleton,
-    time: f32,
-    alpha: f32,
-    blend: MixBlend,
-) {
-    apply_transform_constraint_timeline_with(
-        timeline,
-        skeleton,
-        time,
-        alpha,
-        MixFrom::from_blend(blend),
-        blend == MixBlend::Add,
-    );
 }
 
 pub(crate) fn apply_transform_constraint_timeline_with(
@@ -2685,7 +2656,9 @@ fn set_attachment(
     applied_pose: bool,
 ) {
     let (old_key, old_skin) = skeleton
-        .slot_pose_ref(slot_index, applied_pose)
+        .slots
+        .get(slot_index)
+        .map(|slot| slot.pose_for(applied_pose))
         .map(|pose| {
             (
                 pose.attachment_name().map(|s| s.to_string()),
@@ -2718,7 +2691,7 @@ fn set_attachment(
 
     if old_key == new_key && old_skin == new_skin {
         if attachments {
-            slot.attachment_state = unkeyed_state + ANIMATION_STATE_CURRENT;
+            slot.attachment_state = unkeyed_state + ANIMATION_STATE_RETAIN;
         }
         return;
     }
@@ -2733,7 +2706,7 @@ fn set_attachment(
     }
 
     if attachments {
-        slot.attachment_state = unkeyed_state + ANIMATION_STATE_CURRENT;
+        slot.attachment_state = unkeyed_state + ANIMATION_STATE_RETAIN;
     }
 }
 
@@ -2747,7 +2720,10 @@ pub(crate) fn apply_draw_order(
 ) {
     if out {
         if !from_current {
-            skeleton.set_draw_order_to_setup(applied_pose);
+            let slot_count = skeleton.slots.len();
+            let target = skeleton.draw_order_target_mut(applied_pose);
+            target.clear();
+            target.extend(0..slot_count);
         }
         return;
     }
@@ -2758,7 +2734,10 @@ pub(crate) fn apply_draw_order(
 
     if time < timeline.frames[0].time {
         if !from_current {
-            skeleton.set_draw_order_to_setup(applied_pose);
+            let slot_count = skeleton.slots.len();
+            let target = skeleton.draw_order_target_mut(applied_pose);
+            target.clear();
+            target.extend(0..slot_count);
         }
         return;
     }
@@ -2772,10 +2751,15 @@ pub(crate) fn apply_draw_order(
         .as_ref()
     {
         if order.len() == skeleton.slots.len() {
-            skeleton.set_draw_order_from_slice(applied_pose, order);
+            let target = skeleton.draw_order_target_mut(applied_pose);
+            target.clear();
+            target.extend_from_slice(order);
         }
     } else {
-        skeleton.set_draw_order_to_setup(applied_pose);
+        let slot_count = skeleton.slots.len();
+        let target = skeleton.draw_order_target_mut(applied_pose);
+        target.clear();
+        target.extend(0..slot_count);
     }
 }
 
@@ -2808,11 +2792,6 @@ pub(crate) fn apply_draw_order_folder(
         setup_draw_order_folder(timeline, skeleton, applied_pose);
     }
 }
-
-fn mix_blend_is_current(blend: MixBlend) -> bool {
-    matches!(blend, MixBlend::Replace | MixBlend::Add)
-}
-
 fn setup_draw_order_folder(
     timeline: &DrawOrderFolderTimeline,
     skeleton: &mut Skeleton,
@@ -3446,23 +3425,6 @@ pub(crate) fn apply_rotate_mixed(
     state[base + 1] = diff;
 
     bone.rotation = r1 + total * alpha;
-}
-
-pub(crate) fn apply_rotate(
-    timeline: &RotateTimeline,
-    skeleton: &mut Skeleton,
-    time: f32,
-    alpha: f32,
-    blend: MixBlend,
-) {
-    apply_rotate_with(
-        timeline,
-        skeleton,
-        time,
-        alpha,
-        MixFrom::from_blend(blend),
-        blend == MixBlend::Add,
-    );
 }
 
 pub(crate) fn apply_rotate_with(

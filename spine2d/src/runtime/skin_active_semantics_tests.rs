@@ -139,7 +139,7 @@ fn skin_required_active_and_gating_match_spine_cpp_semantics() {
     // Bone timeline gating: `aware` anim drives `hat-control.translate` but the bone is inactive
     // under this skin, so its local transform must remain at setup values.
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
-    state.set_animation(0, "aware", true).expect("set aware");
+    state.set_animation(0, "aware", true);
     state.update(0.1667);
     state.apply(&mut skeleton);
 

@@ -1,4 +1,4 @@
-use super::{Skeleton, atan2_degrees, cos_f32, sin_f32, sqrt_f32};
+use super::{Skeleton, atan2_degrees, cos_f32, degrees_to_radians, sin_f32, sqrt_f32};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 static Y_DOWN: AtomicBool = AtomicBool::new(false);
@@ -368,7 +368,7 @@ impl Bone {
     ///
     /// Mirrors the official runtimes' `BonePose.worldToLocalRotation`.
     pub fn world_to_local_rotation(&self, world_rotation: f32) -> f32 {
-        let world_rotation = world_rotation.to_radians();
+        let world_rotation = degrees_to_radians(world_rotation);
         let sin_rot = sin_f32(world_rotation);
         let cos_rot = cos_f32(world_rotation);
         atan2_degrees(
@@ -382,7 +382,7 @@ impl Bone {
     ///
     /// Mirrors the official runtimes' `BonePose.localToWorldRotation`.
     pub fn local_to_world_rotation(&self, local_rotation: f32) -> f32 {
-        let local_rotation = (local_rotation - self.arotation - self.ashear_x).to_radians();
+        let local_rotation = degrees_to_radians(local_rotation - self.arotation - self.ashear_x);
         let sin_rot = sin_f32(local_rotation);
         let cos_rot = cos_f32(local_rotation);
         atan2_degrees(
@@ -396,7 +396,7 @@ impl Bone {
     /// Mirrors the official runtimes' `BonePose.rotateWorld`. Like the world
     /// matrix setters, this mutates only this bone's stored world transform.
     pub fn rotate_world(&mut self, degrees: f32) {
-        let degrees = degrees.to_radians();
+        let degrees = degrees_to_radians(degrees);
         let sin_rot = sin_f32(degrees);
         let cos_rot = cos_f32(degrees);
         let ra = self.a;
@@ -438,8 +438,8 @@ pub(super) fn update_world_transform_root(
     scale_x: f32,
     scale_y: f32,
 ) {
-    let rotation_x = (bone.arotation + bone.ashear_x).to_radians();
-    let rotation_y = (bone.arotation + 90.0 + bone.ashear_y).to_radians();
+    let rotation_x = degrees_to_radians(bone.arotation + bone.ashear_x);
+    let rotation_y = degrees_to_radians(bone.arotation + 90.0 + bone.ashear_y);
     let la = cos_f32(rotation_x) * bone.ascale_x;
     let lb = cos_f32(rotation_y) * bone.ascale_y;
     let lc = sin_f32(rotation_x) * bone.ascale_x;
@@ -464,26 +464,26 @@ pub(super) fn update_world_transform_child(
     let mut pc = parent.c;
     let mut pd = parent.d;
 
-    bone.world_x = pa * bone.ax + pb * bone.ay + parent.world_x;
-    bone.world_y = pc * bone.ax + pd * bone.ay + parent.world_y;
+    bone.world_x = pa.mul_add(bone.ax, pb * bone.ay) + parent.world_x;
+    bone.world_y = pc.mul_add(bone.ax, pd * bone.ay) + parent.world_y;
 
     match bone.inherit {
         crate::Inherit::Normal => {
-            let rotation_x = (bone.arotation + bone.ashear_x).to_radians();
-            let rotation_y = (bone.arotation + 90.0 + bone.ashear_y).to_radians();
+            let rotation_x = degrees_to_radians(bone.arotation + bone.ashear_x);
+            let rotation_y = degrees_to_radians(bone.arotation + 90.0 + bone.ashear_y);
             let la = cos_f32(rotation_x) * bone.ascale_x;
             let lb = cos_f32(rotation_y) * bone.ascale_y;
             let lc = sin_f32(rotation_x) * bone.ascale_x;
             let ld = sin_f32(rotation_y) * bone.ascale_y;
 
-            bone.a = pa * la + pb * lc;
-            bone.b = pa * lb + pb * ld;
-            bone.c = pc * la + pd * lc;
-            bone.d = pc * lb + pd * ld;
+            bone.a = pa.mul_add(la, pb * lc);
+            bone.b = pa.mul_add(lb, pb * ld);
+            bone.c = pc.mul_add(la, pd * lc);
+            bone.d = pc.mul_add(lb, pd * ld);
         }
         crate::Inherit::OnlyTranslation => {
-            let rotation_x = (bone.arotation + bone.ashear_x).to_radians();
-            let rotation_y = (bone.arotation + 90.0 + bone.ashear_y).to_radians();
+            let rotation_x = degrees_to_radians(bone.arotation + bone.ashear_x);
+            let rotation_y = degrees_to_radians(bone.arotation + 90.0 + bone.ashear_y);
             bone.a = cos_f32(rotation_x) * bone.ascale_x;
             bone.b = cos_f32(rotation_y) * bone.ascale_y;
             bone.c = sin_f32(rotation_x) * bone.ascale_x;
@@ -521,17 +521,17 @@ pub(super) fn update_world_transform_child(
                 prx = 90.0 - atan2_degrees(pd, pb);
             }
 
-            let rotation_x = (bone.arotation + bone.ashear_x - prx).to_radians();
-            let rotation_y = (bone.arotation + bone.ashear_y - prx + 90.0).to_radians();
+            let rotation_x = degrees_to_radians(bone.arotation + bone.ashear_x - prx);
+            let rotation_y = degrees_to_radians(bone.arotation + bone.ashear_y - prx + 90.0);
             let la = cos_f32(rotation_x) * bone.ascale_x;
             let lb = cos_f32(rotation_y) * bone.ascale_y;
             let lc = sin_f32(rotation_x) * bone.ascale_x;
             let ld = sin_f32(rotation_y) * bone.ascale_y;
 
-            bone.a = pa * la - pb * lc;
-            bone.b = pa * lb - pb * ld;
-            bone.c = pc * la + pd * lc;
-            bone.d = pc * lb + pd * ld;
+            bone.a = pa.mul_add(la, -(pb * lc));
+            bone.b = pa.mul_add(lb, -(pb * ld));
+            bone.c = pc.mul_add(la, pd * lc);
+            bone.d = pc.mul_add(lb, pd * ld);
 
             bone.a *= skeleton_scale_x;
             bone.b *= skeleton_scale_x;
@@ -539,7 +539,7 @@ pub(super) fn update_world_transform_child(
             bone.d *= skeleton_scale_y;
         }
         crate::Inherit::NoScale | crate::Inherit::NoScaleOrReflection => {
-            let rotation = bone.arotation.to_radians();
+            let rotation = degrees_to_radians(bone.arotation);
             let cos = cos_f32(rotation);
             let sin = sin_f32(rotation);
 
@@ -560,17 +560,17 @@ pub(super) fn update_world_transform_child(
                 }
             }
 
-            let shear_x = bone.ashear_x.to_radians();
-            let shear_y = (90.0 + bone.ashear_y).to_radians();
+            let shear_x = degrees_to_radians(bone.ashear_x);
+            let shear_y = degrees_to_radians(90.0 + bone.ashear_y);
             let la = cos_f32(shear_x) * bone.ascale_x;
             let lb = cos_f32(shear_y) * bone.ascale_y;
             let lc = sin_f32(shear_x) * bone.ascale_x;
             let ld = sin_f32(shear_y) * bone.ascale_y;
 
-            bone.a = za * la + zb * lc;
-            bone.b = za * lb + zb * ld;
-            bone.c = zc * la + zd * lc;
-            bone.d = zc * lb + zd * ld;
+            bone.a = za.mul_add(la, zb * lc);
+            bone.b = za.mul_add(lb, zb * ld);
+            bone.c = zc.mul_add(la, zd * lc);
+            bone.d = zc.mul_add(lb, zd * ld);
 
             bone.a *= skeleton_scale_x;
             bone.b *= skeleton_scale_x;
@@ -746,7 +746,7 @@ pub(super) fn update_applied_transform(skeleton: &mut Skeleton, bone_index: usiz
                     ty = -ty;
                 }
                 let rotation = atan2_degrees(ty, tx);
-                let r = rotation.to_radians();
+                let r = degrees_to_radians(rotation);
                 let cos_r = cos_f32(r);
                 let sin_r = sin_f32(r);
                 let mut za = (pa * cos_r + pb * sin_r) * sxi;

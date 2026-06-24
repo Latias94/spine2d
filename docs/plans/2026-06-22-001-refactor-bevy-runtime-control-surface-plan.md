@@ -25,7 +25,7 @@ The project is still early enough to break public API. That should be used to ma
 
 **Core runtime API**
 
-- R1. `AnimationStateData` exposes a complete, validated mix-configuration API for default mix, pair mix, pair lookup, and pair removal or reset.
+- R1. `AnimationStateData` exposes the official mix-configuration API shape for default mix, name-based pair mix assignment, animation-reference pair lookup, and clearing all mixes.
 - R2. `AnimationState` exposes official-style empty-animation convenience where missing, including applying empty animations across active tracks.
 - R3. `TrackEntry` configuration remains reachable through safe Rust ownership rules and supports every public per-entry control already implemented in core runtime.
 - R4. `Skeleton` runtime controls needed by backends are explicit and documented: physics update mode, wind, gravity, time, setup pose, and reset/update ordering.
@@ -141,20 +141,20 @@ flowchart LR
 
 **Files:** `spine2d/src/runtime/animation_state.rs`, `spine2d/src/runtime/animation_state_tests.rs`, `spine2d/src/runtime/mod.rs`, `spine2d/src/lib.rs`.
 
-**Approach:** Add validated setters/getters around default mix and pair mixes, including lookup and removal/reset behavior. Keep storage keyed by animation indexes, not strings, so runtime lookup remains cheap and tied to `SkeletonData`.
+**Approach:** Expose default mix and official mix setters/getters without Rust-only validation or removal APIs. Name-based setters assert on missing animation names like the latest C++ name overloads; animation-reference accessors return direct values and mix storage follows official animation-name pair equality.
 
-**Patterns to follow:** Existing `AnimationStateData::set_mix` validation and `TrackEntryHandle` public API style in `spine2d/src/runtime/animation_state.rs`.
+**Patterns to follow:** Current `AnimationStateData::set_mix`, `set_mix_animation`, `get_mix_animation`, and `clear` behavior plus the `TrackEntryHandle` public API style in `spine2d/src/runtime/animation_state.rs`.
 
 **Test scenarios:**
 
 - Happy path: setting default mix changes the mix duration for transitions without a pair override.
 - Happy path: setting a pair mix overrides default mix for a known animation pair.
-- Edge case: querying a missing pair returns the default mix or an explicit absence according to the final API contract.
-- Error path: unknown animation names return `Error::UnknownAnimation`.
-- Error path: negative, NaN, or infinite durations return `Error::InvalidValue`.
+- Edge case: querying a missing animation-reference pair returns the default mix.
+- Error path: unknown animation names panic/assert like C++ name overloads.
+- Direct-assignment path: negative, NaN, and infinite durations are stored directly like C++.
 - Regression path: existing animation-state tests keep their behavior when no mix settings are configured.
 
-**Verification:** Core API compiles from the crate root, focused tests prove validation behavior, and existing `spine2d` animation-state tests remain green.
+**Verification:** Core API compiles from the crate root, focused tests prove direct C++-style mix behavior, and existing `spine2d` animation-state tests remain green.
 
 ### U2. Fill missing core runtime convenience controls
 
@@ -166,7 +166,7 @@ flowchart LR
 
 **Files:** `spine2d/src/runtime/animation_state.rs`, `spine2d/src/runtime/animation_state_tests.rs`, `spine2d/src/runtime/skeleton.rs`, `spine2d/src/runtime/skeleton_tests.rs`.
 
-**Approach:** Add missing convenience operations such as setting empty animations across tracks and any missing TrackEntry setters already supported internally. Review skeleton controls and expose small validated methods where public fields are currently the only path.
+**Approach:** Add missing convenience operations such as setting empty animations across tracks and any missing TrackEntry setters already supported internally. Review skeleton controls and expose explicit methods where public fields are currently the only path.
 
 **Patterns to follow:** Current local C++ TrackEntry evidence, the core `TrackEntrySettings` value object, and prior cleanup slices that removed Rust-only TrackEntry controls when no matching C++ surface exists.
 
@@ -199,8 +199,8 @@ flowchart LR
 - Happy path: changing the config component after spawn updates the existing runtime instance before the next animation transition.
 - Happy path: runtime commands update default mix and pair mix on an existing instance.
 - Precedence scenario: if a changed component and command both target mix settings in the same frame, the documented schedule order determines the final runtime value.
-- Error path: invalid mix duration emits a warning and leaves the previous runtime value unchanged.
-- Error path: unknown animation names emit a warning and leave the previous runtime value unchanged.
+- Direct-assignment path: invalid-looking mix durations are forwarded to core runtime without Bevy-side validation, matching C++ direct assignment.
+- Error path: unknown animation names panic through the core runtime name overloads instead of being converted into Bevy warnings.
 
 **Verification:** `spine2d-bevy` tests prove spawn, changed-component, command, and conflict-order behavior.
 
@@ -214,17 +214,17 @@ flowchart LR
 
 **Files:** `spine2d-bevy/src/components.rs`, `spine2d-bevy/src/systems.rs`, `spine2d-bevy/src/spine_world.rs`, `spine2d-bevy/examples/basic.rs`, `spine2d-bevy/examples/multi_spine.rs`, `README.md`.
 
-**Approach:** Replace narrow command constructors with a command model that can carry optional `SpineTrackEntrySettings`. Apply settings immediately to the `TrackEntryHandle` returned by core `set`, `add`, `set_empty`, and `add_empty`. Include alpha, mixBlend, holdPrevious, reverse, shortest rotation, mix duration, track end, delay, animation start/end/last, and threshold controls.
+**Approach:** Replace narrow command constructors with a command model that can carry optional `SpineTrackEntrySettings`. Apply settings immediately to the `TrackEntryHandle` returned by core `set`, `add`, `set_empty`, and `add_empty`. Include alpha, additive, mix interpolation, reverse, shortest rotation, mix duration, track end, delay, animation start/end/last, and threshold controls.
 
 **Patterns to follow:** Core `TrackEntryHandle` setter list and the existing Bevy command tests for set/add/clear behavior.
 
 **Test scenarios:**
 
-- Happy path: a set-animation command with alpha, mixBlend, and holdPrevious produces a current entry whose fields match the settings.
+- Happy path: a set-animation command with alpha, additive, and mix interpolation produces a current entry whose fields match the settings.
 - Happy path: an add-animation command with delay and mix duration applies both to the queued entry.
 - Happy path: empty-animation commands accept track-entry settings where they make sense and preserve empty-animation track end semantics.
 - Edge case: reset rotation directions can be requested on the returned entry without needing persistent handles.
-- Error path: settings on a failed animation command are not applied to any prior entry.
+- Error path: settings on a missing-animation command are not applied to any prior entry before the core panic/assert boundary is reached.
 - Integration scenario: a queued entry with event threshold emits outgoing events according to the configured threshold after the transition begins.
 
 **Verification:** Tests read runtime state through test-only access or the new snapshot path and prove settings land on the correct entry.
@@ -241,7 +241,7 @@ flowchart LR
 
 **Approach:** Add a durable skeleton-control component plus commands for one-shot resets. Store the current physics mode and world-control values in `SpineInstance`, use them when rebuilding pose, and call `update_world_transform_with_physics` rather than the current physics-free update path.
 
-**Patterns to follow:** Core `Skeleton::set_wind`, `Skeleton::set_gravity`, `Skeleton::set_time`, `Skeleton::set_to_setup_pose`, and `Skeleton::update_world_transform_with_physics`.
+**Patterns to follow:** Core `Skeleton::set_wind`, `Skeleton::set_gravity`, `Skeleton::set_time`, `Skeleton::setup_pose`, and `Skeleton::update_world_transform_with_physics`.
 
 **Test scenarios:**
 
@@ -364,7 +364,7 @@ flowchart LR
 ## Success Metrics
 
 - Bevy users can implement issue #4's mix use case through public API with no crate-private access.
-- Bevy users can configure entry-level alpha/mixBlend/reverse/threshold/mix settings in one command path.
+- Bevy users can configure entry-level alpha/additive/mix-interpolation/reverse/threshold/mix settings in one command path.
 - Physics-capable assets can be driven from Bevy with explicit `Physics` mode and wind/gravity controls.
 - Runtime state needed by gameplay is observable as ECS data after each update.
 - The backend public API reads as one coherent generation rather than a list of historical patches.
@@ -374,10 +374,10 @@ flowchart LR
 ## Sources & Research
 
 - GitHub issue: `https://github.com/Latias94/spine2d/issues/4`, opened on 2026-06-22, reports that Bevy has no public path to `set_mix`.
-- Local core runtime: `spine2d/src/runtime/animation_state.rs` already contains `AnimationStateData`, `TrackEntryHandle`, `set_animation`, `add_animation`, empty-animation helpers, and current-track read access. The earlier Rust-only `MixInterpolation` extension was removed in commit `2f7dcb4` after the local C++ reference showed no matching API.
-- Local core runtime: `spine2d/src/runtime/skeleton.rs` already contains `Physics`, `set_wind`, `set_gravity`, `set_time`, `set_to_setup_pose`, and `update_world_transform_with_physics`.
+- Local core runtime: `spine2d/src/runtime/animation_state.rs` already contains `AnimationStateData`, `TrackEntryHandle`, `set_animation`, `add_animation`, empty-animation helpers, current-track read access, and latest-tag TrackEntry settings for `additive` plus `mix_interpolation`.
+- Local core runtime: `spine2d/src/runtime/skeleton.rs` already contains `Physics`, `set_wind`, `set_gravity`, `set_time`, `setup_pose`, and `update_world_transform_with_physics`.
 - Local backend: `spine2d-bevy/src/components.rs`, `spine2d-bevy/src/systems.rs`, and `spine2d-bevy/src/spine_world.rs` show the current public Bevy API, private runtime storage, command handling, update order, and tests.
 - Project decisions: `docs/decisions.md` records the pure Rust runtime goal, renderer-agnostic core boundary, and generational `TrackEntryHandle` ownership model.
-- Parity baseline: `docs/parity-4.3-beta.md`, `docs/upstream-audit-4.3.2.md`, and `docs/knowledge/engineering/current-state.md` pin the active official 4.3 reference to `spine-flutter-4.3.4` at `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`.
-- Prior TrackEntry cleanup: `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md` and `docs/knowledge/engineering/current-state.md` document why the public surface follows current local C++ `mixBlend` / `holdPrevious` TrackEntry concepts rather than stale development-branch compatibility APIs.
+- Parity baseline: `docs/knowledge/engineering/current-state.md` pins the active official 4.3 reference to `spine-ts-4.3.8` at `8e12b1250ab88c0f890849ea45aab80338cead63`, with `spine-cpp` as the behavior reference.
+- Prior TrackEntry cleanup: `docs/plans/2026-06-23-001-refactor-spine-cpp-parity-hardening-plan.md` and `docs/knowledge/engineering/current-state.md` document why the current public surface follows latest-tag C++ `additive` / `mixInterpolation` and removes the stale-checkout `mixBlend` / `holdPrevious` controls.
 - Official reference checkout: `repo-ref/spine-runtimes/spine-libgdx/spine-libgdx/src/com/esotericsoftware/spine/AnimationState.java` and `repo-ref/spine-runtimes/spine-libgdx/spine-libgdx/src/com/esotericsoftware/spine/Skeleton.java` show the upstream concepts this plan wraps in Rust/Bevy form.

@@ -9,19 +9,19 @@ For the detailed module-by-module upstream mapping, see `docs/upstream-audit-4.3
 
 - Upstream repository: `https://github.com/EsotericSoftware/spine-runtimes`
 - Current refresh branch: `4.3`
-- Pinned upstream commit for the current refresh: `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`
-- Current refresh reference: tag `spine-flutter-4.3.4`
-- Previous beta commit (examples + oracle reference): `d050ae66829ed5e46bb38690c83f792ffc2b3d8b`
+- Pinned upstream commit for the current refresh: `8e12b1250ab88c0f890849ea45aab80338cead63`
+- Current refresh reference: tag `spine-ts-4.3.8`
+- Previous beta / interim refresh commits: `d050ae66829ed5e46bb38690c83f792ffc2b3d8b`, `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`
   - Imported examples: `assets/spine-runtimes/SOURCE.txt`
   - Golden dumps (C++ oracle outputs): `spine2d/tests/golden/SOURCE.txt` (Status: OK)
-- Historical note: this file records the 4.3-beta migration context; current work uses the pinned latest tag commit above.
+- Historical note: this file records the 4.3-beta migration context; current work uses `spine-cpp` from the pinned latest tag commit above.
 
 ## Current parity status
 
 - Unit tests: `cargo test -p spine2d --features json` ✅
 - Upstream smoke / oracle parity: `cargo test -p spine2d --features json,binary,upstream-smoke` ✅
 - Local verification on 2026-06-18: `cargo nextest run -p spine2d --features json,binary --lib` passed.
-- The refresh must re-record oracle goldens before this status is considered current for `spine-flutter-4.3.4 @ 80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`.
+- The refresh must re-record oracle goldens before this status is considered current for `spine-ts-4.3.8 @ 8e12b1250ab88c0f890849ea45aab80338cead63`.
 
 ## Module matrix (4.3)
 
@@ -62,7 +62,7 @@ Legend:
 ## Coverage gaps (next)
 
 - Render parity is enforced by golden tests (JSON + `.skel`) under `--features upstream-smoke`.
-- The C++ render oracle supports both legacy single-anim dumps and scenario-mode command streams (`--set/--mix/--step/...`) to lock multi-track mixing + clipping geometry.
+- The C++ render oracle and Rust `render_dump` example are scenario-only; use command streams (`--set/--mix/--step/...`) to lock multi-track mixing + clipping geometry.
 - Next: expand render scenarios when a new visual delta is discovered (eg. additional skins, endSlot clipping edge cases, MixBlend::Add long-tail).
 
 ## Re-record checklist (baseline refresh)
@@ -70,7 +70,7 @@ Legend:
 When bumping the upstream commit (or switching tags), do this once:
 
 1. Re-import examples (writes commit pin):
-   - `python3 ./scripts/prepare_spine_runtimes_web_assets.py --scope tests --mode export --rev spine-flutter-4.3.4`
+   - `python3 ./scripts/prepare_spine_runtimes_web_assets.py --scope tests --mode export --rev spine-ts-4.3.8`
 2. Re-record C++ oracle pose goldens (writes commit pin):
    - `python3 ./scripts/record_oracle_goldens.py --keep-going`
 3. Re-record C++ oracle render goldens:

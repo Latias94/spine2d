@@ -121,7 +121,7 @@
 - 渲染对齐（新增并锁定）：
   - 修复 `RegionAttachment.updateRegion/computeWorldVertices` 的顶点顺序与 UV 映射（包含 rotate=90），用 C++ runtime 的 `SkeletonRenderer` 作为 oracle 对齐（spineboy/alien/dragon）
   - 修复 `.atlas` 多 page 解析（`dragon.atlas` 这类资源正确分配 region→page）
-  - 新增工具链：`scripts/run_spine_cpp_lite_render_oracle.zsh`（支持 legacy + scenario mode）+ `spine2d/examples/render_dump.rs` + `scripts/compare_render.py`
+  - 新增工具链：`scripts/run_spine_cpp_lite_render_oracle.zsh`（scenario mode）+ `spine2d/examples/render_dump.rs` + `scripts/compare_render.py`
   - AnimationStateTests：#5（interrupt）、#6（interrupt with delay）、#7（interrupt with delay and mix time）、#8（animation 0 events do not fire during mix）
   - AnimationStateTests：#9（event threshold, some animation 0 events fire during mix）、#10（event threshold, all animation 0 events fire during mix）
   - AnimationStateTests：#11（looping）、#12（not looping, track end past animation duration）
@@ -171,8 +171,8 @@
 - 测试：新增 `spineboy-pro.json` 的 pose 回归快照（与 C++ oracle 输出对齐，eps=1e-3，`--features upstream-smoke`）。
 - 测试：扩展 pose parity 到“场景级”对齐（C++ oracle scenario）：`run -> walk`（mix=0.2，dt=0.1/0.25）与 multi-track `run + aim`（dt=0.2）。
 - 测试：补齐 `spineboy-pro.json run -> walk (mix=0.2)` 的场景快照：`t=0.4`（切换后 dt=0.1）与 `t=0.55`（切换后 dt=0.25），作为单轨道混合过渡的 pose oracle 回归信号。
-- 测试：扩展 TrackEntry `mixBlend=Add` 对齐覆盖：新增 `run + aim(add, alpha=0.5) t=0.2` 与 `aim(add) -> shoot(add) t=0.4` 的场景快照，锁定 `alpha` 与 `MixBlend::Add` 在混合路径中的官方语义。
-- 测试：补齐 TrackEntry `mixBlend` Add/Replace 在 mixingFrom/out 时的 blend 选择逻辑：新增 spineboy `aim(add) -> shoot(replace)` 与 `aim(replace) -> shoot(add)` 的场景快照，锁定 `applyMixingFrom` 使用 per-timeline `MixFrom` 与 `MixBlend` 的分支选择。
+- 测试：扩展 latest-tag TrackEntry `additive=true` 对齐覆盖：新增 `run + aim(add, alpha=0.5) t=0.2` 与 `aim(add) -> shoot(add) t=0.4` 的场景快照，锁定 `alpha` 与内部 `MixBlend::Add` 在混合路径中的官方语义。
+- 测试：补齐 TrackEntry `additive` 在 mixingFrom/out 时的内部 blend 选择逻辑：新增 spineboy `aim(add) -> shoot(replace)` 与 `aim(replace) -> shoot(add)` 的场景快照，锁定 `applyMixingFrom` 使用 per-timeline `MixFrom` 与 `MixBlend` 的分支选择。
 - 测试：补齐多段 mixing 链中的 `holdMix` 对齐覆盖：新增 spineboy/tank 多段场景快照，锁定 `computeHold/holdMix` 在真实资源上的行为。
 - 工具：C++ oracle 场景模式新增 TrackEntry threshold 参数（`--entry-alpha-attachment-threshold`/`--entry-mix-attachment-threshold`/`--entry-mix-draw-order-threshold`/`--entry-event-threshold`），便于锁定 thresholds 的边界语义。
 - 测试：新增 spineboy thresholds 场景快照：`shoot(alpha=0.5, alphaAttachmentThreshold=0.6) t=0.1`（验证 attachment gate）与 `shoot(mixAttachmentThreshold=0, mixDrawOrderThreshold=0) -> empty(mix=0.2) t=0.2`（验证 thresholds + unkeyed 交互）。
@@ -181,7 +181,7 @@
 - 测试：补齐 `mixDrawOrderThreshold` 的可观测边界对齐：新增 `tank-pro.json shoot(track1) -> shoot(track1) (mix=0.2) t=0.4` 场景快照，分别覆盖 `mixDrawOrderThreshold=0`（不应用 drawOrder）与 `mixDrawOrderThreshold=1`（强制应用 drawOrder）。
 - 测试：移植 `spine-c-unit-tests` 的 headless smoke（spineboy/raptor/goblins：顺序播放所有动画直到结束，不崩溃），并补齐 spineboy 官方 headless `run -> walk` 过渡的多时间点采样回归（`t=0.25/0.333333/0.416667/0.5`）。
 - 工具：C++ oracle 与 Rust pose dump 扩展输出 slots/drawOrder/constraints，并由 `scripts/compare_pose.py` 支持对齐 diff（便于锁定 attachment/constraint 等非骨骼状态差异）。
-- 修正：`applyMixingFrom` 在 TrackEntry `mixBlend=Add` 且 `MixDirection::Out` 时，Attachment/DrawOrder 由 per-timeline `MixFrom` 与 threshold 共同决定（对齐 spine-cpp），并由场景对齐锁定：track1 `aim(add) -> shoot(add)`（crosshair/muzzle-glow）。
+- 修正：`applyMixingFrom` 在 TrackEntry `additive=true` 且 `MixDirection::Out` 时，Attachment/DrawOrder 由 per-timeline `MixFrom` 与 threshold 共同决定（对齐 spine-cpp），并由场景对齐锁定：track1 `aim(add) -> shoot(add)`（crosshair/muzzle-glow）。
 - 增补：`AnimationState::add_empty_animation`（匹配上游 AddEmptyAnimation 的 delay 调整语义），并在 `pose_dump_scenario` 支持 `--add-empty` 方便做更多场景对齐。
 - 修正：旋转混合（rotation accumulator）对齐 `spine-cpp` 的 `sign(0)=0` 语义，避免首帧混合在负向 diff 下错误额外叠加 360°（导致 180° 翻转），并由 scenario parity 锁定回归。
 - M4（进行中）：补齐 TrackEntry 行为开关：`reverse`（倒放采样，禁用 event timeline 派发）与 `shortestRotation`（禁用 rotation accumulator），并新增单元测试锁定语义。
@@ -195,7 +195,7 @@
 - JSON 兼容性：rotate timeline 支持 `value`/`angle` 两种字段名（便于直接解析官方示例导出）。
 - 修正：RotateTimeline 对齐 `spine-cpp`：纯 apply（alpha==1）走相对值公式（不额外做 `wrapDegrees`）；混合路径仍由 rotation accumulator 负责短路径与跨帧方向检测。
 - 修正：`AnimationState::apply` 的旋转混合引入 `spine-cpp` 风格的 per-entry rotation accumulator（跨帧方向检测），进一步贴近官方旋转混合语义。
-- M4（进行中）：`AnimationState::apply` 进入 `spine-cpp` 风格的 per-timeline 混合：实现 `computeHold`（Current/Setup/First + Hold/HoldMix）、TrackEntry `mixBlend`（含 Add）、`unkeyedState`，并补充 attachment/drawOrder thresholds 的单测锁语义。
+- M4（进行中）：`AnimationState::apply` 进入 `spine-cpp` 风格的 per-timeline 混合：实现 `computeHold`（Current/Setup/First + Hold/HoldMix）、TrackEntry `additive` 驱动的内部 `MixBlend::Add`、`unkeyedState`，并补充 attachment/drawOrder thresholds 的单测锁语义。
 - M4（完成）：对齐 `spine-cpp` 的 propertyId：使用 `Property<<32 | index` 编码，并为 VertexAttachment/Sequence 分配进程级递增 ID（Deform/Sequence 使用 `slotIndex<<16 | id`）。
 - `spine2d-wgpu`：`examples/basic.rs` 确保首帧触发 `RedrawRequested`（避免窗口空白）。
 - M4（进行中）：支持 two-color tint（slot setup `dark` + `rgba2`/`rgb2` timelines），并在 `spine2d-wgpu` shader 端打通 darkColor；新增 `tank-pro.json shoot t=0.3` oracle 回归测试锁定语义。

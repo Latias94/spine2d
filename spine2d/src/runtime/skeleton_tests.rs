@@ -1481,7 +1481,7 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
     assert_eq!(bone.world_position(), (15.0, 16.0));
     assert_approx(bone.world_scale_x(), 5.0);
     assert_approx(bone.world_scale_y(), 2.0);
-    assert_approx(bone.world_rotation_x(), 4.0f32.atan2(3.0).to_degrees());
+    assert_approx_angle(bone.world_rotation_x(), 4.0f32.atan2(3.0).to_degrees());
     assert_approx(bone.world_rotation_y(), 90.0);
 }
 

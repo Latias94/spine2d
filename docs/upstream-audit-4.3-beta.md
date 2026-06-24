@@ -10,10 +10,10 @@ It complements:
 ## Baseline
 
 - Upstream repo: `https://github.com/EsotericSoftware/spine-runtimes`
-- Reference tag `spine-flutter-4.3.4`
-- Pinned commit for the current refresh: `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`
-- Previous beta commit: `d050ae66829ed5e46bb38690c83f792ffc2b3d8b`
-- Historical note: this file keeps the 4.3-beta audit name, but current work uses the pinned latest tag commit above.
+- Reference tag `spine-ts-4.3.8`
+- Pinned commit for the current refresh: `8e12b1250ab88c0f890849ea45aab80338cead63`
+- Previous beta / interim refresh commits: `d050ae66829ed5e46bb38690c83f792ffc2b3d8b`, `80dc680a4345ac09cdc5d4c1a77ec572a3f295d1`
+- Historical note: this file keeps the 4.3-beta audit name, but current work uses `spine-cpp` from the pinned latest tag commit above.
 
 ## Reference ladder (when runtimes differ)
 

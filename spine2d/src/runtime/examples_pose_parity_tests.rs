@@ -147,7 +147,7 @@ fn assert_spineboy_run_pose(time: f32, expected: &[BoneExpected]) {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
 
-    state.set_animation(0, "run", true).expect("set run");
+    state.set_animation(0, "run", true);
     state.update(time);
 
     skeleton.setup_pose();
@@ -182,7 +182,7 @@ fn assert_tank_drive_treads_pose(time: f32, expected: &[BoneExpected], expected_
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
 
-    state.set_animation(0, "drive", true).expect("set drive");
+    state.set_animation(0, "drive", true);
     state.update(time);
 
     skeleton.setup_pose();
@@ -469,7 +469,7 @@ fn example_tank_shoot_rgba2_slot_color_matches_spine_cpp_lite_0p3() {
     let mut skeleton = Skeleton::new(data.clone());
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
 
-    state.set_animation(0, "shoot", false).expect("set shoot");
+    state.set_animation(0, "shoot", false);
     state.update(0.3);
 
     skeleton.setup_pose();
@@ -497,14 +497,14 @@ fn example_tank_shoot_rgba2_slot_color_matches_spine_cpp_lite_0p3() {
 #[test]
 fn example_spineboy_run_to_walk_mixing_mid_pose_matches_spine_cpp_lite() {
     let mut h = SpineboyHarness::new(|state_data| {
-        state_data.set_mix("run", "walk", 0.2).expect("set mix");
+        state_data.set_mix("run", "walk", 0.2);
     });
     h.skeleton.setup_pose();
 
-    h.state.set_animation(0, "run", true).expect("set run");
+    h.state.set_animation(0, "run", true);
     h.step(0.3);
 
-    h.state.set_animation(0, "walk", true).expect("set walk");
+    h.state.set_animation(0, "walk", true);
     h.step(0.1);
 
     assert_spineboy_pose(
@@ -676,14 +676,14 @@ fn example_spineboy_run_to_walk_mixing_mid_pose_matches_spine_cpp_lite() {
 #[test]
 fn example_spineboy_run_to_walk_mixing_done_pose_matches_spine_cpp_lite() {
     let mut h = SpineboyHarness::new(|state_data| {
-        state_data.set_mix("run", "walk", 0.2).expect("set mix");
+        state_data.set_mix("run", "walk", 0.2);
     });
     h.skeleton.setup_pose();
 
-    h.state.set_animation(0, "run", true).expect("set run");
+    h.state.set_animation(0, "run", true);
     h.step(0.3);
 
-    h.state.set_animation(0, "walk", true).expect("set walk");
+    h.state.set_animation(0, "walk", true);
     h.step(0.25);
 
     assert_spineboy_pose(
@@ -855,8 +855,8 @@ fn example_spineboy_run_plus_aim_pose_matches_spine_cpp_lite_0p2() {
     let mut h = SpineboyHarness::new(|_| {});
     h.skeleton.setup_pose();
 
-    h.state.set_animation(0, "run", true).expect("set run");
-    h.state.set_animation(1, "aim", true).expect("set aim");
+    h.state.set_animation(0, "run", true);
+    h.state.set_animation(1, "aim", true);
     h.step(0.2);
 
     assert_spineboy_pose(
@@ -1032,17 +1032,17 @@ fn example_spineboy_run_plus_aim_pose_matches_spine_cpp_lite_0p2() {
 #[test]
 fn example_spineboy_aim_to_shoot_additive_mixing_clears_crosshair_and_keeps_rgba_colors() {
     let mut h = SpineboyHarness::new(|state_data| {
-        state_data.set_mix("aim", "shoot", 0.2).expect("set mix");
+        state_data.set_mix("aim", "shoot", 0.2);
     });
     h.skeleton.setup_pose();
 
-    h.state.set_animation(0, "run", true).expect("set run");
-    let aim = h.state.set_animation(1, "aim", true).expect("set aim");
-    aim.set_mix_blend(&mut h.state, crate::MixBlend::Add);
+    h.state.set_animation(0, "run", true);
+    let aim = h.state.set_animation(1, "aim", true);
+    aim.set_additive(&mut h.state, true);
     h.step(0.3);
 
-    let shoot = h.state.set_animation(1, "shoot", false).expect("set shoot");
-    shoot.set_mix_blend(&mut h.state, crate::MixBlend::Add);
+    let shoot = h.state.set_animation(1, "shoot", false);
+    shoot.set_additive(&mut h.state, true);
     h.step(0.1);
 
     assert_slot_attachment(&h, "crosshair", None);

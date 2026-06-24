@@ -1,5 +1,5 @@
-use crate::runtime::{AnimationState, AnimationStateData};
-use crate::{MixBlend, SequenceMode, Skeleton, SkeletonData, apply_animation, build_draw_list};
+use crate::runtime::{AnimationState, AnimationStateData, MixBlend};
+use crate::{SequenceMode, Skeleton, SkeletonData, apply_animation, build_draw_list};
 
 const CROSS_SLOT_LINKED_MESH_SEQUENCE: &str = r#"
 {
@@ -100,7 +100,7 @@ fn sequence_timeline_drives_slot_sequence_index_and_render_path() {
 
     let state_data = AnimationStateData::new(data);
     let mut state = AnimationState::new(state_data);
-    state.set_animation(0, "fly", true).unwrap();
+    state.set_animation(0, "fly", true);
 
     state.update(0.0);
     state.apply(&mut skeleton);

@@ -207,7 +207,7 @@ mod tests {
     fn demo_instance() -> SpineInstance {
         let data = SkeletonData::from_json_str(include_str!("../../spine2d-web/assets/demo.json"))
             .expect("parse demo skeleton");
-        let atlas = Atlas::from_str(include_str!("../../spine2d-web/assets/demo.atlas"))
+        let atlas = Atlas::parse(include_str!("../../spine2d-web/assets/demo.atlas"))
             .expect("parse demo atlas");
 
         SpineInstance::new(SpineInstanceParts {

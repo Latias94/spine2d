@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use spine2d::MixBlend;
 
 use crate::{SpineAtlasAsset, SpineSkeletonAsset};
 
@@ -232,8 +231,8 @@ pub struct SpineTrackState {
     pub mix_duration: f32,
     pub mix_time: f32,
     pub alpha: f32,
-    pub hold_previous: bool,
-    pub mix_blend: MixBlend,
+    pub additive: bool,
+    pub mix_interpolation: spine2d::MixInterpolation,
     pub reverse: bool,
 }
 
@@ -324,10 +323,10 @@ impl SpineSkeletonCommand {
         }
     }
 
-    pub fn reset_to_setup_pose(entity: Entity) -> Self {
+    pub fn setup_pose(entity: Entity) -> Self {
         Self {
             entity,
-            command: SpineSkeletonCommandKind::ResetToSetupPose,
+            command: SpineSkeletonCommandKind::SetupPose,
         }
     }
 }
@@ -339,7 +338,7 @@ pub enum SpineSkeletonCommandKind {
     SetWind(Vec2),
     SetGravity(Vec2),
     SetTime(f32),
-    ResetToSetupPose,
+    SetupPose,
 }
 
 impl SpineAnimationCommand {
@@ -516,7 +515,192 @@ pub enum SpineAnimationCommandKind {
     ClearMixes,
 }
 
-pub type SpineTrackEntrySettings = spine2d::TrackEntrySettings;
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SpineTrackEntrySettings {
+    pub track_end: Option<f32>,
+    pub delay: Option<f32>,
+    pub time_scale: Option<f32>,
+    pub looped: Option<bool>,
+    pub mix_duration: Option<f32>,
+    pub mix_interpolation: Option<spine2d::MixInterpolation>,
+    pub additive: Option<bool>,
+    pub alpha: Option<f32>,
+    pub reverse: Option<bool>,
+    pub shortest_rotation: Option<bool>,
+    pub reset_rotation_directions: bool,
+    pub alpha_attachment_threshold: Option<f32>,
+    pub mix_attachment_threshold: Option<f32>,
+    pub mix_draw_order_threshold: Option<f32>,
+    pub event_threshold: Option<f32>,
+    pub animation_start: Option<f32>,
+    pub animation_end: Option<f32>,
+    pub animation_last: Option<f32>,
+}
+
+impl SpineTrackEntrySettings {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_track_end(mut self, track_end: f32) -> Self {
+        self.track_end = Some(track_end);
+        self
+    }
+
+    pub fn with_delay(mut self, delay: f32) -> Self {
+        self.delay = Some(delay);
+        self
+    }
+
+    pub fn with_time_scale(mut self, time_scale: f32) -> Self {
+        self.time_scale = Some(time_scale);
+        self
+    }
+
+    pub fn with_looped(mut self, looped: bool) -> Self {
+        self.looped = Some(looped);
+        self
+    }
+
+    pub fn with_mix_duration(mut self, mix_duration: f32) -> Self {
+        self.mix_duration = Some(mix_duration);
+        self
+    }
+
+    pub fn with_mix_interpolation(mut self, mix_interpolation: spine2d::MixInterpolation) -> Self {
+        self.mix_interpolation = Some(mix_interpolation);
+        self
+    }
+
+    pub fn with_additive(mut self, additive: bool) -> Self {
+        self.additive = Some(additive);
+        self
+    }
+
+    pub fn with_alpha(mut self, alpha: f32) -> Self {
+        self.alpha = Some(alpha);
+        self
+    }
+
+    pub fn with_reverse(mut self, reverse: bool) -> Self {
+        self.reverse = Some(reverse);
+        self
+    }
+
+    pub fn with_shortest_rotation(mut self, shortest_rotation: bool) -> Self {
+        self.shortest_rotation = Some(shortest_rotation);
+        self
+    }
+
+    pub fn with_reset_rotation_directions(mut self) -> Self {
+        self.reset_rotation_directions = true;
+        self
+    }
+
+    pub fn with_alpha_attachment_threshold(mut self, threshold: f32) -> Self {
+        self.alpha_attachment_threshold = Some(threshold);
+        self
+    }
+
+    pub fn with_mix_attachment_threshold(mut self, threshold: f32) -> Self {
+        self.mix_attachment_threshold = Some(threshold);
+        self
+    }
+
+    pub fn with_mix_draw_order_threshold(mut self, threshold: f32) -> Self {
+        self.mix_draw_order_threshold = Some(threshold);
+        self
+    }
+
+    pub fn with_event_threshold(mut self, threshold: f32) -> Self {
+        self.event_threshold = Some(threshold);
+        self
+    }
+
+    pub fn with_animation_start(mut self, animation_start: f32) -> Self {
+        self.animation_start = Some(animation_start);
+        self
+    }
+
+    pub fn with_animation_end(mut self, animation_end: f32) -> Self {
+        self.animation_end = Some(animation_end);
+        self
+    }
+
+    pub fn with_animation_last(mut self, animation_last: f32) -> Self {
+        self.animation_last = Some(animation_last);
+        self
+    }
+
+    pub(crate) fn apply(
+        &self,
+        state: &mut spine2d::AnimationState,
+        handle: spine2d::TrackEntryHandle,
+    ) {
+        if let Some(track_end) = self.track_end {
+            handle.set_track_end(state, track_end);
+        }
+
+        match (self.mix_duration, self.delay) {
+            (Some(mix_duration), Some(delay)) => {
+                handle.set_mix_duration_with_delay(state, mix_duration, delay);
+            }
+            (Some(mix_duration), None) => {
+                handle.set_mix_duration(state, mix_duration);
+            }
+            (None, Some(delay)) => {
+                handle.set_delay(state, delay);
+            }
+            (None, None) => {}
+        }
+
+        if let Some(time_scale) = self.time_scale {
+            handle.set_time_scale(state, time_scale);
+        }
+        if let Some(looped) = self.looped {
+            handle.set_loop(state, looped);
+        }
+        if let Some(mix_interpolation) = self.mix_interpolation {
+            handle.set_mix_interpolation(state, mix_interpolation);
+        }
+        if let Some(additive) = self.additive {
+            handle.set_additive(state, additive);
+        }
+        if let Some(alpha) = self.alpha {
+            handle.set_alpha(state, alpha);
+        }
+        if let Some(reverse) = self.reverse {
+            handle.set_reverse(state, reverse);
+        }
+        if let Some(shortest_rotation) = self.shortest_rotation {
+            handle.set_shortest_rotation(state, shortest_rotation);
+        }
+        if self.reset_rotation_directions {
+            handle.reset_rotation_directions(state);
+        }
+        if let Some(threshold) = self.alpha_attachment_threshold {
+            handle.set_alpha_attachment_threshold(state, threshold);
+        }
+        if let Some(threshold) = self.mix_attachment_threshold {
+            handle.set_mix_attachment_threshold(state, threshold);
+        }
+        if let Some(threshold) = self.mix_draw_order_threshold {
+            handle.set_mix_draw_order_threshold(state, threshold);
+        }
+        if let Some(threshold) = self.event_threshold {
+            handle.set_event_threshold(state, threshold);
+        }
+        if let Some(animation_start) = self.animation_start {
+            handle.set_animation_start(state, animation_start);
+        }
+        if let Some(animation_end) = self.animation_end {
+            handle.set_animation_end(state, animation_end);
+        }
+        if let Some(animation_last) = self.animation_last {
+            handle.set_animation_last(state, animation_last);
+        }
+    }
+}
 
 #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SpineSystemSet {

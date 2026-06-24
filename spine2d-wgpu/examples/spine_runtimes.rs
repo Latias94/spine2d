@@ -567,7 +567,7 @@ impl App {
                 return;
             }
         };
-        let atlas = match Atlas::from_str(&atlas_text) {
+        let atlas = match Atlas::parse(&atlas_text) {
             Ok(a) => a,
             Err(e) => {
                 self.last_error = Some(format!("parse atlas {atlas_path:?}: {e}"));
@@ -605,10 +605,7 @@ impl App {
             self.last_error = Some("No animations in skeleton data.".to_string());
             return;
         };
-        if let Err(e) = state.set_animation(0, &chosen_animation, true) {
-            self.last_error = Some(format!("set_animation({chosen_animation:?}) failed: {e:?}"));
-            return;
-        }
+        state.set_animation(0, chosen_animation.as_str(), true);
 
         skeleton.setup_pose();
         state.apply(&mut skeleton);
@@ -794,7 +791,7 @@ impl ApplicationHandler for App {
                 return;
             }
         };
-        let atlas = match Atlas::from_str(&atlas_text) {
+        let atlas = match Atlas::parse(&atlas_text) {
             Ok(a) => a,
             Err(e) => {
                 eprintln!("parse atlas {:?}: {e}", self.atlas_path);
@@ -829,18 +826,7 @@ impl ApplicationHandler for App {
             return;
         };
 
-        if let Err(e) = state.set_animation(0, &chosen_animation, true) {
-            eprintln!(
-                "Failed to set animation {chosen_animation:?}: {e}\nAvailable animations:\n  {}",
-                data.animations
-                    .iter()
-                    .map(|a| a.name.as_str())
-                    .collect::<Vec<_>>()
-                    .join("\n  ")
-            );
-            event_loop.exit();
-            return;
-        }
+        state.set_animation(0, chosen_animation.as_str(), true);
 
         // IMPORTANT: Our current runtime path assumes a clean base pose each frame
         // (otherwise constraints/local transforms can accumulate and look like "no keyframes").

@@ -1,10 +1,10 @@
 Source: https://github.com/EsotericSoftware/spine-runtimes
-TargetCommit: 80dc680a4345ac09cdc5d4c1a77ec572a3f295d1
-RecordedAtUTC: 2026-06-19T18:17:23Z
+TargetCommit: 8e12b1250ab88c0f890849ea45aab80338cead63
+RecordedAtUTC: 2026-06-24T00:05:53Z
 Status: OK
 Notes:
   This directory contains golden dumps produced by the C++ oracle (built from spine-c + spine-cpp):
   - Pose dumps: `oracle_scenarios/` and `oracle_scenarios_skel/` (recorded by `scripts/record_oracle_goldens.py`)
   - Render dumps: `render_oracle_scenarios/` and `render_oracle_scenarios_skel/` (recorded by `scripts/record_oracle_render_goldens.py`)
   When the upstream baseline changes, these files must be re-recorded to avoid false test failures.
-Tag: spine-flutter-4.3.4
+Tag: spine-ts-4.3.8

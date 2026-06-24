@@ -1,4 +1,5 @@
-use crate::{MixBlend, Skeleton, SkeletonData, apply_animation};
+use crate::runtime::MixBlend;
+use crate::{Skeleton, SkeletonData, apply_animation};
 
 const SKELETON_TRANSFORM_WITH_TIMELINE: &str = r#"
 {

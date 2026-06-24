@@ -116,7 +116,7 @@ impl ApplicationHandler for App {
         let mut renderer = SpineRenderer::new(&device, config.format);
         renderer.update_globals_ortho_centered(&queue, config.width as f32, config.height as f32);
 
-        let atlas = Atlas::from_str(ATLAS).unwrap();
+        let atlas = Atlas::parse(ATLAS).unwrap();
         let sampler = create_sampler_for_atlas_page(&device, &atlas.pages[0]);
 
         // Simple procedural RGBA texture (64x64): a UV gradient to make UV mistakes obvious.

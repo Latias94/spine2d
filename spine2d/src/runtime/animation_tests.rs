@@ -1,6 +1,8 @@
-use crate::runtime::{MixDirection, MixFrom, apply_inherit, apply_rotate_mixed, apply_rotate_with};
+use crate::runtime::{
+    MixBlend, MixDirection, MixFrom, apply_inherit, apply_rotate_mixed, apply_rotate_with,
+};
 use crate::{
-    BoneData, BoneTimeline, Curve, Inherit, InheritFrame, InheritTimeline, MixBlend, RotateFrame,
+    BoneData, BoneTimeline, Curve, Inherit, InheritFrame, InheritTimeline, RotateFrame,
     RotateTimeline, ScaleTimeline, ShearTimeline, Skeleton, SkeletonData, TranslateTimeline,
     Vec2Frame, apply_animation,
 };

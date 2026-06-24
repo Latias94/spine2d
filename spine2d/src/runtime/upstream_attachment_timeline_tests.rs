@@ -134,7 +134,7 @@ fn attachment_timeline_libgdx_upstream_tests() {
     let state_data = AnimationStateData::new(data);
     let mut state = AnimationState::new(state_data);
 
-    state.set_animation(0, "animation", true).unwrap();
+    state.set_animation(0, "animation", true);
 
     let mut test_step = |delta: f32, expected: &str| {
         state.update(delta);
