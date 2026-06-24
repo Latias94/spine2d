@@ -6,6 +6,7 @@ pub use animation::*;
 pub use animation_state::*;
 pub use skeleton::*;
 
+#[cfg(any(test, feature = "json", feature = "binary"))]
 pub(crate) fn finalize_animation(mut animation: crate::Animation) -> crate::Animation {
     if animation.timeline_order.is_empty() {
         animation.timeline_order = crate::model::timeline_order_for_animation(&animation);

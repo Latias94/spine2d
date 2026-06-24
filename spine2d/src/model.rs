@@ -116,6 +116,7 @@ pub enum ScaleYMode {
 }
 
 impl ScaleYMode {
+    #[cfg(feature = "json")]
     pub(crate) fn from_name(name: &str) -> Self {
         match name {
             "uniform" => Self::Uniform,
@@ -1450,6 +1451,7 @@ impl Default for SkeletonData {
     }
 }
 
+#[cfg(any(test, feature = "json", feature = "binary"))]
 pub(crate) fn timeline_order_for_animation(animation: &Animation) -> Vec<TimelineKind> {
     let mut timeline_order = Vec::new();
     timeline_order
