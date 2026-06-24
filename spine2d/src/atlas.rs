@@ -19,7 +19,7 @@ impl Atlas {
         }
     }
 
-    pub fn region(&self, name: &str) -> Option<&AtlasRegion> {
+    pub fn find_region(&self, name: &str) -> Option<&AtlasRegion> {
         self.regions.iter().find(|region| region.name == name)
     }
 }
@@ -474,7 +474,7 @@ head
         assert_eq!(atlas.pages[0].wrap_u, AtlasWrap::ClampToEdge);
         assert_eq!(atlas.pages[0].wrap_v, AtlasWrap::ClampToEdge);
 
-        let region = atlas.region("head").unwrap();
+        let region = atlas.find_region("head").unwrap();
         assert_eq!(region.page, 0);
         assert_eq!(region.degrees, 0);
         assert_eq!(region.x, 0);
@@ -508,8 +508,8 @@ r1
         assert_eq!(atlas.pages[1].texture_path, "page1.png");
         assert_eq!(atlas.pages[1].index, 1);
 
-        let r0 = atlas.region("r0").unwrap();
-        let r1 = atlas.region("r1").unwrap();
+        let r0 = atlas.find_region("r0").unwrap();
+        let r1 = atlas.find_region("r1").unwrap();
         assert_eq!(r0.page, 0);
         assert_eq!(r1.page, 1);
         assert_eq!(r1.x, 2);
@@ -545,12 +545,12 @@ alpha
             vec!["beta", "alpha"]
         );
 
-        let beta = atlas.region("beta").unwrap();
+        let beta = atlas.find_region("beta").unwrap();
         assert_eq!(beta.index, 3);
         assert_eq!(beta.names, vec!["split"]);
         assert_eq!(beta.values, vec![1.0, 2.0, 3.0, 4.0]);
 
-        let alpha = atlas.region("alpha").unwrap();
+        let alpha = atlas.find_region("alpha").unwrap();
         assert_eq!(alpha.index, -1);
         assert_eq!(alpha.names, vec!["pad"]);
         assert_eq!(alpha.values, vec![5.0, 6.0, 7.0, 8.0]);
@@ -570,7 +570,7 @@ head
         )
         .unwrap();
 
-        let region = atlas.region("head").unwrap();
+        let region = atlas.find_region("head").unwrap();
         assert_eq!(region.region_width, 8);
         assert_eq!(region.region_height, 16);
         assert_eq!(region.packed_width, 8);
@@ -581,7 +581,7 @@ head
         assert!((region.v2 - 48.0 / 64.0).abs() <= 1.0e-6);
 
         atlas.flip_v();
-        let region = atlas.region("head").unwrap();
+        let region = atlas.find_region("head").unwrap();
         assert!((region.v - (1.0 - 32.0 / 64.0)).abs() <= 1.0e-6);
         assert!((region.v2 - (1.0 - 48.0 / 64.0)).abs() <= 1.0e-6);
     }
@@ -598,7 +598,7 @@ head
         )
         .unwrap();
 
-        let region = atlas.region("head").unwrap();
+        let region = atlas.find_region("head").unwrap();
         assert_eq!(region.x, 16);
         assert_eq!(region.y, 32);
         assert_eq!(region.width, 8);
@@ -662,7 +662,7 @@ head
         )
         .unwrap();
 
-        let region = atlas.region("head").unwrap();
+        let region = atlas.find_region("head").unwrap();
         assert_eq!(region.width, 10);
         assert_eq!(region.height, 11);
         assert_eq!(region.original_width, 20);
@@ -684,7 +684,7 @@ head
         )
         .unwrap();
 
-        let region = atlas.region("head").unwrap();
+        let region = atlas.find_region("head").unwrap();
         assert_eq!(region.x, 1);
         assert_eq!(region.y, 2);
         assert_eq!(region.width, 3);
@@ -717,12 +717,12 @@ r270
         )
         .unwrap();
 
-        assert_eq!(atlas.region("r0").unwrap().degrees, 0);
-        assert_eq!(atlas.region("r90").unwrap().degrees, 90);
-        assert!(atlas.region("r90").unwrap().rotate);
-        assert_eq!(atlas.region("r180").unwrap().degrees, 180);
-        assert!(!atlas.region("r180").unwrap().rotate);
-        assert_eq!(atlas.region("r270").unwrap().degrees, 270);
-        assert!(!atlas.region("r270").unwrap().rotate);
+        assert_eq!(atlas.find_region("r0").unwrap().degrees, 0);
+        assert_eq!(atlas.find_region("r90").unwrap().degrees, 90);
+        assert!(atlas.find_region("r90").unwrap().rotate);
+        assert_eq!(atlas.find_region("r180").unwrap().degrees, 180);
+        assert!(!atlas.find_region("r180").unwrap().rotate);
+        assert_eq!(atlas.find_region("r270").unwrap().degrees, 270);
+        assert!(!atlas.find_region("r270").unwrap().rotate);
     }
 }

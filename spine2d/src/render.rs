@@ -127,7 +127,8 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                         region.sequence.as_ref(),
                         slot.applied_sequence_index(),
                     );
-                    let atlas_region_opt = atlas.and_then(|a| a.region(attachment_path.as_ref()));
+                    let atlas_region_opt =
+                        atlas.and_then(|a| a.find_region(attachment_path.as_ref()));
 
                     let local = region_local_vertices_with_atlas_region(
                         region.x,
@@ -335,7 +336,8 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     );
                     let (texture_path, atlas_region_and_page, premultiplied_alpha) =
                         if let Some(atlas) = atlas {
-                            if let Some(atlas_region) = atlas.region(attachment_path.as_ref()) {
+                            if let Some(atlas_region) = atlas.find_region(attachment_path.as_ref())
+                            {
                                 if let Some(page) = atlas.pages.get(atlas_region.page) {
                                     if page.width > 0 && page.height > 0 {
                                         (
