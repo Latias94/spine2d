@@ -85,7 +85,8 @@ impl SpineboyHarness {
     fn step(&mut self, dt: f32) {
         self.state.update(dt);
         self.state.apply(&mut self.skeleton);
-        self.skeleton.update_world_transform();
+        self.skeleton
+            .update_world_transform_with_physics(crate::Physics::None);
     }
 }
 
@@ -152,7 +153,7 @@ fn assert_spineboy_run_pose(time: f32, expected: &[BoneExpected]) {
 
     skeleton.setup_pose();
     state.apply(&mut skeleton);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     for b in expected {
         let i = bone_index(&data, b.name);
@@ -187,7 +188,7 @@ fn assert_tank_drive_treads_pose(time: f32, expected: &[BoneExpected], expected_
 
     skeleton.setup_pose();
     state.apply(&mut skeleton);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert!(!skeleton.path_constraints.is_empty());
     assert_approx(skeleton.path_constraints[0].position, expected_position);

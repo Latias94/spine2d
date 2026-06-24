@@ -910,13 +910,13 @@ fn slider_draw_order_uses_applied_buffer_without_mutating_pose() {
     assert_eq!(skeleton.draw_order_pose(), &[0, 1]);
     assert_eq!(skeleton.draw_order(), &[0, 1]);
 
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_eq!(skeleton.draw_order_pose(), &[0, 1]);
     assert_eq!(skeleton.draw_order(), &[1, 0]);
 
     skeleton.slider_constraints_mut()[0].set_mix(0.0);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_eq!(skeleton.draw_order_pose(), &[0, 1]);
     assert_eq!(skeleton.draw_order(), &[0, 1]);
@@ -931,7 +931,7 @@ fn slider_slot_pose_uses_applied_buffer_without_mutating_pose() {
     assert_eq!(skeleton.slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
     assert_eq!(skeleton.slots()[0].applied_color(), [0.1, 0.2, 0.3, 0.4]);
 
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_eq!(skeleton.slots()[0].attachment_name(), Some("base"));
     assert_eq!(skeleton.slots()[0].applied_attachment_name(), Some("alt"));
@@ -943,7 +943,7 @@ fn slider_slot_pose_uses_applied_buffer_without_mutating_pose() {
     );
 
     skeleton.slider_constraints_mut()[0].set_mix(0.0);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_eq!(skeleton.slots()[0].attachment_name(), Some("base"));
     assert_eq!(skeleton.slots()[0].applied_attachment_name(), Some("base"));
@@ -1399,7 +1399,7 @@ fn skeleton_bounds_cover_region_and_mesh_attachments() {
     });
 
     let mut skeleton = Skeleton::new(data);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert_eq!(skeleton.bounds(), Some((-1.0, -1.0, 6.0, 7.0)));
 }
 
@@ -1407,7 +1407,7 @@ fn skeleton_bounds_cover_region_and_mesh_attachments() {
 fn skeleton_bounds_with_clipping_respects_clip_polygons_and_end_slots() {
     let mut skeleton = Skeleton::new(clipping_bounds_skeleton_data());
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_eq!(skeleton.bounds(), Some((-2.0, -2.0, 7.0, 4.0)));
     assert_eq!(
@@ -1524,7 +1524,7 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
 
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.set_scale(2.0, 3.0);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert!(!Bone::is_y_down());
     assert_eq!(skeleton.scale(), (2.0, 3.0));
     assert_eq!(skeleton.scale_y(), 3.0);
@@ -1535,7 +1535,7 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
 
     let mut skeleton = Skeleton::new(data);
     skeleton.set_scale(2.0, 3.0);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert!(Bone::is_y_down());
     assert_eq!(skeleton.scale(), (2.0, -3.0));
     assert_eq!(skeleton.scale_y(), -3.0);
@@ -1605,7 +1605,7 @@ fn bone_rotation_helpers_match_bone_pose_formulas() {
 #[test]
 fn skeleton_bone_world_transform_helper_recomputes_modified_local_pose() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     skeleton.bones_mut()[0].set_applied_position(12.0, 34.0);
     skeleton.bones_mut()[0].set_applied_rotation(90.0);
@@ -1621,7 +1621,7 @@ fn skeleton_bone_world_transform_helper_recomputes_modified_local_pose() {
 fn skeleton_bone_local_transform_helper_rebuilds_applied_pose_from_world() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
     skeleton.set_position(2.0, 3.0);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     skeleton.modify_bone_local(0);
 
     let bone = &mut skeleton.bones_mut()[0];
@@ -1647,7 +1647,7 @@ fn skeleton_bone_local_transform_helper_rebuilds_applied_pose_from_world() {
 #[test]
 fn skeleton_validate_bone_local_transform_uses_world_modified_marker() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     skeleton.bones_mut()[0].set_world_position(21.0, 22.0);
     skeleton.validate_bone_local_transform(0);
@@ -2052,7 +2052,7 @@ fn update_world_transform_root_and_child() {
     });
 
     let mut skeleton = Skeleton::new(data);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let root = &skeleton.bones[0];
     assert_approx(root.world_x, 10.0);
@@ -2121,7 +2121,7 @@ fn update_world_transform_parent_rotation_affects_child_translation() {
     });
 
     let mut skeleton = Skeleton::new(data);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let child = &skeleton.bones[1];
     assert_approx(child.world_x, 0.0);

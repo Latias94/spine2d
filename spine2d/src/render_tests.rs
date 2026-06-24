@@ -30,7 +30,7 @@ fn build_draw_list_region_attachment_quad() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.draws.len(), 1);
@@ -79,7 +79,7 @@ fn build_draw_list_batches_draws_by_texture_path() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.draws.len(), 1);
@@ -115,7 +115,7 @@ fn build_draw_list_splits_draws_by_vertex_color() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.draws.len(), 2);
@@ -149,7 +149,7 @@ fn build_draw_list_with_atlas_sets_uv_and_page_texture() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let atlas = Atlas::parse(
         r#"
@@ -199,7 +199,7 @@ fn build_draw_list_with_rotated_atlas_region_rotates_uvs() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let atlas = Atlas::parse(
         r#"
@@ -269,7 +269,7 @@ fn build_draw_list_mesh_attachment_outputs_vertices_and_indices() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.vertices.len(), 4);
@@ -307,7 +307,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_to_region_rect() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let atlas = Atlas::parse(
         r#"
@@ -355,7 +355,7 @@ fn build_draw_list_with_atlas_maps_region_uvs_for_rotated_region_90() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let atlas = Atlas::parse(
         r#"
@@ -422,7 +422,7 @@ fn build_draw_list_skips_attachments_on_inactive_bones() {
 
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     // `weapon` is skinRequired and no skin is set, so the bone is inactive and spine-cpp skips
     // rendering attachments in this slot.
@@ -471,7 +471,7 @@ fn build_draw_list_weighted_mesh_uses_multiple_bones() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.vertices.len(), 4);
@@ -521,7 +521,7 @@ fn build_draw_list_clipping_end_slot_ends_after_target_slot() {
 
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.draws.len(), 2);
@@ -582,7 +582,7 @@ fn build_draw_list_clipping_end_slot_ends_on_non_rendered_attachment_slot() {
 
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.draws.len(), 1);
@@ -642,7 +642,7 @@ fn build_draw_list_clipping_slot_inactive_does_not_start_clipping() {
 
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     // Simulate skinRequired exclusion: clip slot's bone is inactive.
     let clip_bone_index = 1usize;
@@ -708,7 +708,7 @@ fn build_draw_list_clipping_end_slot_bone_inactive_still_ends_clipping() {
 
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     // `skinRequired` is inactive (no skin set), but it is the clip end slot. Clipping must still
     // end there so subsequent slots are not clipped.
@@ -758,7 +758,7 @@ fn build_draw_list_splits_draws_by_blend_mode() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.draws.len(), 2);
@@ -792,7 +792,7 @@ fn build_draw_list_with_atlas_marks_pma_and_premultiplies_vertex_color() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let atlas = Atlas::parse(
         r#"
@@ -845,7 +845,7 @@ fn build_draw_list_multiplies_skeleton_slot_and_attachment_tints() {
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
     skeleton.color = [0.5, 1.0, 1.0, 0.5];
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.vertices.len(), 4);
@@ -915,7 +915,7 @@ head
     let mut skeleton = crate::Skeleton::new(data.clone());
     skeleton.setup_pose();
     skeleton.color = [1.0, 1.0, 1.0, 0.5];
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas_pma);
     assert_eq!(draw_list.vertices.len(), 4);
     for v in &draw_list.vertices {
@@ -929,7 +929,7 @@ head
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
     skeleton.color = [1.0, 1.0, 1.0, 0.5];
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas_non_pma);
     assert_eq!(draw_list.vertices.len(), 4);
     for v in &draw_list.vertices {
@@ -962,7 +962,7 @@ fn build_draw_list_with_atlas_applies_region_trim_offset_and_orig() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let atlas = Atlas::parse(
         r#"
@@ -1021,7 +1021,7 @@ fn build_draw_list_with_atlas_applies_rotated_region_trim_using_packed_swap() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let atlas = Atlas::parse(
         r#"
@@ -1086,7 +1086,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_90() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let atlas = Atlas::parse(
         r#"
@@ -1142,7 +1142,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_180() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let atlas = Atlas::parse(
         r#"
@@ -1198,7 +1198,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_270() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let atlas = Atlas::parse(
         r#"
@@ -1259,7 +1259,7 @@ fn build_draw_list_clipping_attachment_clips_region_geometry() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.draws.len(), 1);
@@ -1329,7 +1329,7 @@ fn build_draw_list_inverse_clipping_attachment_keeps_outer_region_geometry() {
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert_eq!(draw_list.draws.len(), 1);

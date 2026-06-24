@@ -63,7 +63,7 @@ fn smoke_example(relative: &str) {
 
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert_skeleton_finite(&skeleton);
 
     if let Some(anim) = data.animations.first() {
@@ -75,7 +75,7 @@ fn smoke_example(relative: &str) {
             1.0,
             MixBlend::Replace,
         );
-        skeleton.update_world_transform();
+        skeleton.update_world_transform_with_physics(crate::Physics::None);
         assert_skeleton_finite(&skeleton);
     }
 
@@ -96,7 +96,7 @@ fn smoke_example(relative: &str) {
         let dt = 0.2;
         state.update(dt);
         state.apply(&mut skeleton);
-        skeleton.update_world_transform();
+        skeleton.update_world_transform_with_physics(crate::Physics::None);
         assert_skeleton_finite(&skeleton);
 
         let draw_list = build_draw_list(&skeleton);

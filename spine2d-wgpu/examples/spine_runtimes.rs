@@ -590,7 +590,7 @@ impl App {
             skeleton.set_skin(Some(skin_name));
         }
         skeleton.setup_pose();
-        skeleton.update_world_transform();
+        skeleton.update_world_transform_with_physics(spine2d::Physics::None);
 
         let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
         let chosen_animation = {
@@ -609,7 +609,7 @@ impl App {
 
         skeleton.setup_pose();
         state.apply(&mut skeleton);
-        skeleton.update_world_transform();
+        skeleton.update_world_transform_with_physics(spine2d::Physics::None);
 
         let mut textures = HashMapTextureProvider {
             bind_groups: HashMap::new(),
@@ -802,7 +802,7 @@ impl ApplicationHandler for App {
 
         let mut skeleton = Skeleton::new(data.clone());
         skeleton.setup_pose();
-        skeleton.update_world_transform();
+        skeleton.update_world_transform_with_physics(spine2d::Physics::None);
 
         let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
         let chosen_animation = if let Some(anim_name) = self.animation.as_deref() {
@@ -832,7 +832,7 @@ impl ApplicationHandler for App {
         // (otherwise constraints/local transforms can accumulate and look like "no keyframes").
         skeleton.setup_pose();
         state.apply(&mut skeleton);
-        skeleton.update_world_transform();
+        skeleton.update_world_transform_with_physics(spine2d::Physics::None);
 
         let window = Arc::new(
             event_loop
@@ -1113,7 +1113,7 @@ impl ApplicationHandler for App {
                     state.update(dt);
                     skeleton.setup_pose();
                     state.apply(skeleton);
-                    skeleton.update_world_transform();
+                    skeleton.update_world_transform_with_physics(spine2d::Physics::None);
 
                     self.draw_list.clear();
                     spine2d::append_draw_list_with_atlas(&mut self.draw_list, skeleton, atlas);

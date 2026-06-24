@@ -50,7 +50,7 @@ fn ik_timeline_mix_zero_disables_constraint_effect() {
 
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let (tip_x, tip_y) = child_tip(&skeleton, 2);
     assert_approx(tip_x, 2.0);
@@ -65,7 +65,7 @@ fn ik_timeline_interpolates_mix_and_moves_tip_toward_target() {
 
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.5, false, 1.0, MixBlend::Replace);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let (tip_x, tip_y) = child_tip(&skeleton, 2);
     assert!(tip_x < 2.0);

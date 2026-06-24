@@ -316,7 +316,7 @@ fn pose_at(data: Arc<SkeletonData>, animation_name: &str, time: f32) -> Skeleton
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, time, true, 1.0, MixBlend::Replace);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     skeleton
 }
 
@@ -989,7 +989,7 @@ fn debug_dump_spineboy_run_to_walk_t04_skel_vs_json() {
     state_skel.set_animation(0, "run", true);
     state_skel.update(0.3);
     state_skel.apply(&mut skeleton_skel);
-    skeleton_skel.update_world_transform();
+    skeleton_skel.update_world_transform_with_physics(crate::Physics::None);
 
     let mut skeleton_json = Skeleton::new(data_json.clone());
     let mut state_json = crate::runtime::AnimationState::new(state_data_json);
@@ -997,7 +997,7 @@ fn debug_dump_spineboy_run_to_walk_t04_skel_vs_json() {
     state_json.set_animation(0, "run", true);
     state_json.update(0.3);
     state_json.apply(&mut skeleton_json);
-    skeleton_json.update_world_transform();
+    skeleton_json.update_world_transform_with_physics(crate::Physics::None);
 
     println!("--- after run only ---");
     for bone_name in ["rear-thigh", "rear-shin", "rear-foot"] {
@@ -1075,8 +1075,8 @@ fn debug_dump_spineboy_run_to_walk_t04_skel_vs_json() {
         }
     }
 
-    skeleton_json.update_world_transform();
-    skeleton_skel.update_world_transform();
+    skeleton_json.update_world_transform_with_physics(crate::Physics::None);
+    skeleton_skel.update_world_transform_with_physics(crate::Physics::None);
 
     println!("--- after walk mix ---");
 
@@ -1370,7 +1370,7 @@ fn debug_dump_spineboy_run_to_walk_after_state_apply_before_world_skel_vs_json()
     state_skel.set_animation(0, "run", true);
     state_skel.update(0.3);
     state_skel.apply(&mut skeleton_skel);
-    skeleton_skel.update_world_transform();
+    skeleton_skel.update_world_transform_with_physics(crate::Physics::None);
     state_skel.set_animation(0, "walk", true);
     state_skel.update(0.1);
     state_skel.apply(&mut skeleton_skel);
@@ -1381,7 +1381,7 @@ fn debug_dump_spineboy_run_to_walk_after_state_apply_before_world_skel_vs_json()
     state_json.set_animation(0, "run", true);
     state_json.update(0.3);
     state_json.apply(&mut skeleton_json);
-    skeleton_json.update_world_transform();
+    skeleton_json.update_world_transform_with_physics(crate::Physics::None);
     state_json.set_animation(0, "walk", true);
     state_json.update(0.1);
     state_json.apply(&mut skeleton_json);
@@ -1421,8 +1421,8 @@ fn debug_dump_spineboy_run_to_walk_after_state_apply_before_world_skel_vs_json()
             a.ay - b.ay,
         );
     }
-    skeleton_json.update_world_transform();
-    skeleton_skel.update_world_transform();
+    skeleton_json.update_world_transform_with_physics(crate::Physics::None);
+    skeleton_skel.update_world_transform_with_physics(crate::Physics::None);
     println!("--- after world ---");
     println!(
         "rust cache: {:?}",

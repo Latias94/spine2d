@@ -161,7 +161,7 @@ mod web {
             skeleton.set_skin(Some(skin));
         }
         skeleton.setup_pose();
-        skeleton.update_world_transform();
+        skeleton.update_world_transform_with_physics(spine2d::Physics::None);
 
         let state_data = AnimationStateData::new(bundle.data.clone());
         let mut state = AnimationState::new(state_data);
@@ -880,7 +880,8 @@ mod web {
                 self.skeleton.set_skin(Some(skin));
             }
             self.skeleton.setup_pose();
-            self.skeleton.update_world_transform();
+            self.skeleton
+                .update_world_transform_with_physics(spine2d::Physics::None);
 
             let state_data = AnimationStateData::new(self.data.clone());
             self.state = AnimationState::new(state_data);
@@ -952,7 +953,8 @@ mod web {
             self.skeleton.setup_pose();
             self.state.apply(&mut self.skeleton);
             self.skeleton.update(dt);
-            self.skeleton.update_world_transform();
+            self.skeleton
+                .update_world_transform_with_physics(spine2d::Physics::None);
 
             self.draw_list.clear();
             spine2d::append_draw_list_with_atlas(&mut self.draw_list, &self.skeleton, &self.atlas);

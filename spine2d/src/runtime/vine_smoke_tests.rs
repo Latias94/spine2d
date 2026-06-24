@@ -27,7 +27,7 @@ fn vine_pro_json_parses_and_updates_world_transform() {
 
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     for bone in &skeleton.bones {
         assert!(bone.world_x.is_finite());

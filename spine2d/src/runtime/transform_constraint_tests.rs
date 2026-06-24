@@ -161,7 +161,7 @@ fn transform_constraint_absolute_world_rotates_and_translates_bone_toward_target
     let data = SkeletonData::from_json_str(SKELETON_TRANSFORM_ABSOLUTE_WORLD).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let bone = &skeleton.bones[1];
     let target = &skeleton.bones[2];
@@ -176,7 +176,7 @@ fn constraints_apply_in_order_across_types() {
     let data = SkeletonData::from_json_str(SKELETON_CONSTRAINT_ORDER_TRANSFORM_THEN_IK).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_angle_approx(bone_world_rotation_degrees(&skeleton, 1), 90.0);
 }
@@ -186,7 +186,7 @@ fn transform_constraint_relative_world_rotates_by_target_rotation() {
     let data = SkeletonData::from_json_str(SKELETON_TRANSFORM_RELATIVE_WORLD_ROTATION).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_angle_approx(bone_world_rotation_degrees(&skeleton, 1), 135.0);
 }
@@ -196,7 +196,7 @@ fn transform_constraint_absolute_local_rotates_toward_target_local_rotation() {
     let data = SkeletonData::from_json_str(SKELETON_TRANSFORM_ABSOLUTE_LOCAL_ROTATION).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_angle_approx(bone_world_rotation_degrees(&skeleton, 1), 90.0);
 }
@@ -206,7 +206,7 @@ fn transform_constraint_relative_local_rotates_by_target_local_rotation() {
     let data = SkeletonData::from_json_str(SKELETON_TRANSFORM_RELATIVE_LOCAL_ROTATION).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_angle_approx(bone_world_rotation_degrees(&skeleton, 1), 135.0);
 }

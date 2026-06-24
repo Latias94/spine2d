@@ -500,7 +500,7 @@ fn assert_path_constraint_solve(json: &str) {
     let data = SkeletonData::from_json_str(json).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let bone = &skeleton.bones[1];
     assert_approx(bone.world_x, 5.0);
@@ -528,7 +528,7 @@ fn path_constraint_solve_position_percent_spacing_percent() {
     .unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let bone = &skeleton.bones[1];
     assert_approx(bone.world_x, 5.0);
@@ -545,7 +545,7 @@ fn path_constraint_solve_rotate_mode_chain_two_bones() {
             .unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let b1 = &skeleton.bones[1];
     let b2 = &skeleton.bones[2];
@@ -577,7 +577,7 @@ fn path_constraint_solve_rotate_mode_chain_scale_scales_along_path() {
         .unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let bone = &skeleton.bones[1];
     assert_approx(bone.a, 2.0);
@@ -591,7 +591,7 @@ fn path_constraint_solve_spacing_proportional_two_bones() {
             .unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let b1 = &skeleton.bones[1];
     let b2 = &skeleton.bones[2];
@@ -612,7 +612,7 @@ fn path_constraint_solve_closed_wraps_position() {
     let data = SkeletonData::from_json_str(SKELETON_PATH_CONSTRAINT_SOLVE_CLOSED_WRAP).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let bone = &skeleton.bones[1];
     assert_approx_eps(bone.world_x, 5.0, 2.0e-1);
@@ -633,7 +633,7 @@ fn path_constraint_mix_zero_disables_effect() {
     skeleton.path_constraints[0].mix_x = 0.0;
     skeleton.path_constraints[0].mix_y = 0.0;
 
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     let after = &skeleton.bones[1];
 
     assert_approx(after.world_x, 0.0);
@@ -650,7 +650,7 @@ fn path_constraint_chain_spacing_zero_uses_tangent_angle() {
             .unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let bone = &skeleton.bones[1];
     assert_approx(bone.world_x, 0.0);
@@ -667,7 +667,7 @@ fn path_constraint_spacing_mode_length_two_bones() {
             .unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let b1 = &skeleton.bones[1];
     let b2 = &skeleton.bones[2];
@@ -683,7 +683,7 @@ fn path_constraint_mix_rotate_partial_rotates_halfway() {
         SkeletonData::from_json_str(SKELETON_PATH_CONSTRAINT_SOLVE_MIX_ROTATE_PARTIAL).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let bone = &skeleton.bones[1];
     let angle = wrap_pi(bone.c.atan2(bone.a));

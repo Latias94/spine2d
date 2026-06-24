@@ -224,7 +224,7 @@ fn deform_timeline_unweighted_is_applied_to_slot_and_rendered() {
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("d").unwrap();
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
     assert_eq!(skeleton.slots[0].deform.len(), 8);
@@ -244,7 +244,7 @@ fn deform_timeline_weighted_is_applied_as_offsets() {
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("d").unwrap();
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
     assert_eq!(skeleton.slots[0].deform.len(), 8);
@@ -264,7 +264,7 @@ fn deform_timeline_applies_negative_alpha_like_cpp() {
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("d").unwrap();
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     apply_animation(
         animation,
@@ -289,7 +289,7 @@ fn deform_timeline_applies_to_linked_mesh_inheriting_parent_deform_from_default_
 
     skeleton.set_skin(Some("skinA"));
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
     assert_eq!(skeleton.slots[0].deform.len(), 8);
@@ -321,7 +321,7 @@ fn json_linkedmesh_source_resolves_parent_mesh_and_timeline_attachment() {
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.set_skin(Some("variant"));
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let draw_list = build_draw_list(&skeleton);
     assert!(!draw_list.vertices.is_empty());
@@ -336,7 +336,7 @@ fn attachment_switch_between_linked_mesh_and_parent_preserves_deform_when_timeli
 
     skeleton.set_skin(Some("skinA"));
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
     assert_eq!(skeleton.slots[0].deform.len(), 8);
@@ -368,7 +368,7 @@ fn deform_timeline_applies_to_cross_slot_linked_mesh_timeline_slots() {
     let (_, animation) = data.animation("d").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let source = data
         .skin("default")

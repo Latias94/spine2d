@@ -110,7 +110,7 @@ fn slot_attachment_timeline_switches_attachment() {
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("anim").unwrap();
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     apply_animation(animation, &mut skeleton, 0.25, false, 1.0, MixBlend::First);
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("a"));
@@ -129,7 +129,7 @@ fn draw_order_timeline_reorders_slots() {
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("anim").unwrap();
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert_eq!(skeleton.draw_order, vec![0, 1]);
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::First);
@@ -147,7 +147,7 @@ fn draw_order_folder_timeline_reorders_only_folder_slots() {
     let mut skeleton = Skeleton::new(data.clone());
     let (_, animation) = data.animation("anim").unwrap();
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::First);
     assert_eq!(skeleton.draw_order, vec![3, 0, 2, 1]);

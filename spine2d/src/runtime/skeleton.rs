@@ -1772,10 +1772,6 @@ impl Skeleton {
         Some(out)
     }
 
-    pub fn update_world_transform(&mut self) {
-        self.update_world_transform_with_physics(Physics::None);
-    }
-
     pub fn update_world_transform_with_physics(&mut self, physics: Physics) {
         self.update_epoch = self.update_epoch.wrapping_add(1);
         if self.draw_order_constrained {

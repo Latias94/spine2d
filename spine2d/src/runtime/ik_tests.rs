@@ -89,7 +89,7 @@ fn ik_two_bones_moves_end_effector_close_to_target() {
     let data = SkeletonData::from_json_str(SKELETON_IK_TWO_BONES).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let target = &skeleton.bones[3];
     let child = &skeleton.bones[2];
@@ -106,7 +106,7 @@ fn ik_one_bone_rotates_toward_target() {
     let data = SkeletonData::from_json_str(SKELETON_IK_ONE_BONE).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let target = &skeleton.bones[2];
     let bone = &skeleton.bones[1];
@@ -124,7 +124,7 @@ fn ik_one_bone_negative_mix_rotates_away_from_target() {
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
     skeleton.ik_constraints_mut()[0].set_mix(-1.0);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert!(skeleton.bones[1].arotation < 0.0);
 }
@@ -135,7 +135,7 @@ fn ik_one_bone_nan_mix_propagates_nan_rotation() {
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
     skeleton.ik_constraints_mut()[0].set_mix(f32::NAN);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert!(skeleton.bones[1].arotation.is_nan());
 }
@@ -152,14 +152,14 @@ fn ik_scale_y_mode_controls_stretch_scale_y() {
     let data = SkeletonData::from_json_str(&one_bone_stretch_json(None)).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert_approx(skeleton.bones[1].ascale_x, 2.0);
     assert_approx(skeleton.bones[1].ascale_y, 2.0);
 
     let data = SkeletonData::from_json_str(&one_bone_stretch_json(Some("uniform"))).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert_approx(skeleton.bones[1].ascale_x, 2.0);
     assert_approx(skeleton.bones[1].ascale_y, 4.0);
 }

@@ -290,6 +290,8 @@ flowchart TB
 
 **Recent update:** Commit `7cd8d8c` removed the Rust-only success return from `Skeleton::set_attachment`, matching C++ `Skeleton::setAttachment` as a void method with no-op-on-miss behavior.
 
+**Recent update:** The Rust-only zero-argument `Skeleton::update_world_transform()` helper was removed. Callers now use `Skeleton::update_world_transform_with_physics(Physics::None)` for the old no-physics path, matching latest-tag `spine-cpp` where `Skeleton::updateWorldTransform` always takes an explicit `Physics` argument.
+
 **Recent update:** The binary `.skel` `spineboy_run_to_walk_mix0_2_t0_4` IK boundary now matches direct `spine-cpp` oracle output. The golden was correct; Rust was choosing the stretched two-bone IK branch when the cosine landed one `f32` ULP above `1.0`. The IK solver now keeps only that one-ULP overrun on the C++ tiny-bend path, and BonePose transform math uses C++-style degree/radian conversion plus fused multiply-add shaped world updates. Full core parity passed with `619 passed, 10 skipped`.
 
 **Requirements:** R2, R3, R7.

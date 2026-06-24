@@ -35,13 +35,13 @@
 
 ### M2：核心数据结构与骨骼变换（pose 计算）
 
-目标：实现 Skeleton pose + `update_world_transform`，为渲染输出打基础。
+目标：实现 Skeleton pose + `update_world_transform_with_physics`，为渲染输出打基础。
 
 交付：
 - JSON 解析扩展：slots/skins/attachments（先 region + mesh 的数据面），constraints（先 IK/transform/path 的数据结构，执行可后置）。
 - 运行时：
   - Bone 本地/世界变换（矩阵或分解参数，选一种并固定）
-  - `update_world_transform`（不含高级约束可先落地）
+  - `update_world_transform_with_physics(Physics::None)`（不含高级约束可先落地）
 - 测试：
   - 解析测试：字段缺省/兼容性/错误定位
   - 变换测试：简单层级下的 world transform 数值断言
@@ -134,7 +134,7 @@
   - AnimationStateTests：#26（setEmptyAnimation）
   - AnimationStateTests：#27（TrackEntry listener）
 - 运行时实现：TrackEntry 存储从 `Rc<RefCell<_>>` 重构为 arena + generational handle（避免运行时借用 panic）。
-- M2（进行中）：新增 `Skeleton::update_world_transform` 与 `Bone` 本地/世界变换数据结构，并补充基础数值测试（root/child、父级旋转影响子级平移）。
+- M2（进行中）：新增 `Skeleton::update_world_transform_with_physics` 与 `Bone` 本地/世界变换数据结构，并补充基础数值测试（root/child、父级旋转影响子级平移）。
 - M2（进行中）：新增 bone timeline（`rotate/translate/scale`）与 `apply_animation` 采样/应用（含最短旋转路径、loop time），并扩展 JSON `animations.bones.*` 解析与对应单元测试。
 - M2（进行中）：`AnimationState::apply` 开始实际驱动 `Skeleton` pose（当前先按 `MixBlend::Replace`/`alpha=1` 应用 current track，mixing 权重后续补齐），并新增一条最小闭环集成测试。
 - M2（进行中）：bone timelines 语义调整为“相对 setup pose”（rotate/translate 为偏移，scale 为倍率），并补齐 time < first frame 时的 Setup/Replace 行为，测试已覆盖非零 setup 值场景。
@@ -156,15 +156,15 @@
 - M4（进行中）：支持 `animations.*.attachments.*.*.*.deform`（mesh FFD）解析与运行时 apply，写入 `Slot::deform`，并在渲染输出中对 unweighted/weighted mesh 生效；新增对应单元测试。
 - M4（进行中）：支持 `animations.*.slots.*.attachment` 与 `animations.*.drawOrder` 的解析与 apply，驱动 slot attachment 切换与 draw order 重排；新增对应单元测试。
 - M4（进行中）：支持 slot setup color（slots[].color）与 `animations.*.slots.*.color`（插值 RGBA + curve），并让 `DrawList` 顶点颜色随 slot 颜色变化；新增对应单元测试。
-- M4（进行中）：支持 JSON `ik`（1/2 bone IK）解析与在 `Skeleton::update_world_transform` 中求解（对齐 4.3：`mix/softness/stretch/compress/uniform` + `bendPositive`），并新增数值测试验证末端逼近 target。
+- M4（进行中）：支持 JSON `ik`（1/2 bone IK）解析与在 `Skeleton::update_world_transform_with_physics` 中求解（对齐 4.3：`mix/softness/stretch/compress/uniform` + `bendPositive`），并新增数值测试验证末端逼近 target。
 - M4（进行中）：支持 `animations.*.ik`（IK timeline）解析与 apply（`mix/softness` 插值 + `bendPositive`），并新增测试验证 mix=0 禁用约束、mix/softness 插值生效。
 - M4（进行中）：曲线（`curve`）语义对齐官方：Bezier 曲线在 **(time,value)** 空间，且多值 timeline（如 translate/scale/shear、color、ik、path mix、transform mix）为每个 valueIndex 单独存储与采样 curve；已通过 C++ oracle 对比 `spineboy-pro.json` 的 `run` 动画多个时间点，pose diff（eps=1e-3）为 0。
-- M4（进行中）：支持 JSON `transform` constraint（absolute/relative × local/world）解析与在 `Skeleton::update_world_transform` 中按 `order` 与 IK 混排执行；支持 `animations.*.transform` mix timeline；新增单元测试锁定四分支旋转、absolute-world 平移、timeline 插值与跨类型 order。
+- M4（进行中）：支持 JSON `transform` constraint（absolute/relative × local/world）解析与在 `Skeleton::update_world_transform_with_physics` 中按 `order` 与 IK 混排执行；支持 `animations.*.transform` mix timeline；新增单元测试锁定四分支旋转、absolute-world 平移、timeline 插值与跨类型 order。
 - M4（进行中）：支持 JSON `path` constraint 数据结构与解析（含 4.3 `skins` 数组格式、`type: "path"` attachment）；支持 `animations.*.path` 的 position/spacing/mix timelines 驱动运行时参数；已实现 path constraint 求解并新增最小数值测试（constantSpeed true/false、mix=0 禁用）。
 - M4（进行中）：PathConstraint 求解测试覆盖面扩展：`positionMode=percent`、`spacingMode=percent/proportional/length`、`rotateMode=chain/chainScale`（含 2 bone chain 与 scale 校验）、`closed=true`（position wrap）、`mixRotate<1`（渐进旋转）、chain+spacing=0（走 `positions[p+2]` 切线角分支）。
-- M4（进行中）：新增真实导出数据 `vine-pro.json` smoke test：解析成功 + `Skeleton::update_world_transform()` 不 panic，且骨骼矩阵/位移均为有限数值（非 NaN/Inf）。
+- M4（进行中）：新增真实导出数据 `vine-pro.json` smoke test：解析成功 + `Skeleton::update_world_transform_with_physics(Physics::None)` 不 panic，且骨骼矩阵/位移均为有限数值（非 NaN/Inf）。
 - JSON 解析：新增 `SkeletonData::from_json_str_with_scale(input, scale)`（默认 `from_json_str` 等价于 `scale=1`），并补测试锁定 PathConstraint 的“按 mode 条件缩放”行为。
-- 测试：新增多份官方 `examples/*/export/*.json` 的 smoke tests（解析 + apply 一条动画 + `update_world_transform` + `build_draw_list`，并检查无 NaN/Inf），用于快速回归真实数据兼容性。
+- 测试：新增多份官方 `examples/*/export/*.json` 的 smoke tests（解析 + apply 一条动画 + `update_world_transform_with_physics(Physics::None)` + `build_draw_list`，并检查无 NaN/Inf），用于快速回归真实数据兼容性。
 - M4（进行中）：启动 Binary `.skel` loader（feature `binary`），覆盖 bones/slots/constraints/skins/animations 的解析（含 4.x 细分 timeline 类型，如 `translateX/Y`、`scaleX/Y`、`shearX/Y`、`inherit`、slot `rgb/alpha`），并新增 `.skel` smoke test（`spineboy-pro.skel` 可解析与采样一帧）。
 - 修正：对齐 `spine-cpp` 的二进制默认值编码：`IkConstraintData.mix` 默认 `0`（flags 缺省不赋值），`TransformConstraintData` 的各 `mix*` 默认 `0`（仅在 flag 置位时读取），避免 `.skel` 加载后约束默认误开启导致 pose 偏移。
 - 测试：扩展 C++ oracle 支持 `.skel` 输入，并为多份官方 examples（spineboy/tank/dragon/mix-and-match/goblins）补齐 `.skel` 场景快照，作为行为回归信号（与 C++ oracle 输出对齐，eps=1e-3）。

@@ -77,7 +77,7 @@ fn slot_color_timeline_interpolates_and_affects_draw_list_vertex_colors() {
 
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     apply_animation(animation, &mut skeleton, 0.5, false, 1.0, MixBlend::Replace);
     assert_approx(skeleton.slots[0].color[0], 0.0);
@@ -100,7 +100,7 @@ fn slot_color_timeline_applies_negative_alpha_like_cpp() {
 
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     apply_animation(
         animation,
@@ -123,7 +123,7 @@ fn slot_rgba2_timeline_applies_negative_alpha_to_dark_color_like_cpp() {
 
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     apply_animation(
         animation,

@@ -97,7 +97,7 @@ fn animation_state_apply_drives_skeleton_pose() {
     state.update(0.5);
     skeleton.setup_pose();
     state.apply(&mut skeleton);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_approx(skeleton.bones[0].x, 7.0);
     assert_approx(skeleton.bones[0].world_x, 7.0);

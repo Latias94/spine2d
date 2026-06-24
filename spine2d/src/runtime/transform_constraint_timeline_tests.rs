@@ -63,7 +63,7 @@ fn transform_timeline_mix_zero_disables_rotation() {
 
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_angle_approx(bone_world_rotation_degrees(&skeleton, 1), 0.0);
 }
@@ -76,7 +76,7 @@ fn transform_timeline_interpolates_mix_rotate() {
 
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.5, false, 1.0, MixBlend::Replace);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert_angle_approx(bone_world_rotation_degrees(&skeleton, 1), 45.0);
 }

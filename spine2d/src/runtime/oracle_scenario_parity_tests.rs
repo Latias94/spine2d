@@ -6094,13 +6094,13 @@ fn oracle_spineboy_aim_to_shoot_add_t0_4_matches_cpp() {
     aim.set_additive(&mut state, true);
     state.update(0.3);
     state.apply(&mut skeleton);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let shoot = state.set_animation(1, "shoot", false);
     shoot.set_additive(&mut state, true);
     state.update(0.1);
     state.apply(&mut skeleton);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let rust = dump_pose(&skeleton, 0.4, None);
     let cpp = read_pose(&golden_path("spineboy_aim_to_shoot_add_t0_4.json"));
@@ -6127,14 +6127,14 @@ fn oracle_spineboy_aim_add_to_shoot_replace_t0_4_matches_cpp() {
     aim.set_additive(&mut state, true);
     state.update(0.3);
     state.apply(&mut skeleton);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     // Deliberately leave the new entry as default `MixBlend::Replace` to lock the
     // from(Add) -> to(Replace) interaction in `applyMixingFrom`.
     state.set_animation(1, "shoot", false);
     state.update(0.1);
     state.apply(&mut skeleton);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let rust = dump_pose(&skeleton, 0.4, None);
     let cpp = read_pose(&golden_path("spineboy_aim_add_to_shoot_replace_t0_4.json"));
@@ -6160,13 +6160,13 @@ fn oracle_spineboy_aim_replace_to_shoot_add_t0_4_matches_cpp() {
     state.set_animation(1, "aim", true);
     state.update(0.3);
     state.apply(&mut skeleton);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let shoot = state.set_animation(1, "shoot", false);
     shoot.set_additive(&mut state, true);
     state.update(0.1);
     state.apply(&mut skeleton);
-    skeleton.update_world_transform();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let rust = dump_pose(&skeleton, 0.4, None);
     let cpp = read_pose(&golden_path("spineboy_aim_replace_to_shoot_add_t0_4.json"));
