@@ -954,7 +954,7 @@ impl SkeletonData {
             slider: Vec<String>,
         }
 
-        let mut skins = HashMap::<String, SkinData>::new();
+        let mut skins = IndexMap::<String, SkinData>::new();
         let mut pending_skin_constraints: HashMap<String, PendingSkinConstraints> = HashMap::new();
         if let Some(skins_def) = root.skins {
             #[derive(Clone, Debug)]
@@ -1667,7 +1667,7 @@ impl SkeletonData {
                     },
                 )
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<IndexMap<_, _>>();
 
         let (ik_defs, transform_defs, path_defs, physics_defs, slider_defs) =
             if let Some(constraints) = root.constraints {
@@ -4342,7 +4342,7 @@ fn parse_weighted_mesh_vertices(
 }
 
 fn resolve_linked_mesh_parent(
-    skins: &HashMap<String, SkinData>,
+    skins: &IndexMap<String, SkinData>,
     source_slot_index: usize,
     explicit_skin: Option<&str>,
     source: &str,

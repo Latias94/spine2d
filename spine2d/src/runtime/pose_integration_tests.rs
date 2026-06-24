@@ -89,8 +89,8 @@ fn animation_state_apply_drives_skeleton_pose() {
             ..Default::default()
         }],
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: vec![animation],
         animation_index,
         ik_constraints: Vec::new(),
@@ -214,8 +214,8 @@ fn animation_state_mixes_pose_between_entries() {
             ..Default::default()
         }],
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: vec![anim_a, anim_b],
         animation_index,
         ik_constraints: Vec::new(),
@@ -318,8 +318,8 @@ fn track_entry_shortest_rotation_disables_rotation_accumulator() {
                 ..Default::default()
             }],
             slots: Vec::new(),
-            skins: HashMap::new(),
-            events: HashMap::new(),
+            skins: indexmap::IndexMap::new(),
+            events: indexmap::IndexMap::new(),
             animations: vec![animation],
             animation_index,
             ik_constraints: Vec::new(),
@@ -425,8 +425,8 @@ fn track_entry_reverse_samples_from_animation_end() {
             ..Default::default()
         }],
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: vec![animation],
         animation_index,
         ik_constraints: Vec::new(),

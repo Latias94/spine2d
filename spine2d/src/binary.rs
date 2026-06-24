@@ -1525,7 +1525,7 @@ impl crate::SkeletonData {
 
         // Skins (default + named)
         let mut pending_linked_meshes = Vec::<PendingLinkedMesh>::new();
-        let mut skins_map = HashMap::<String, SkinData>::new();
+        let mut skins_map = IndexMap::<String, SkinData>::new();
         let mut skin_order = Vec::<String>::new();
 
         // Default skin
@@ -1794,7 +1794,7 @@ impl crate::SkeletonData {
 
         // Events
         let events_count = input.read_varint(true)? as usize;
-        let mut events = HashMap::<String, crate::EventData>::new();
+        let mut events = IndexMap::<String, crate::EventData>::new();
         let mut event_defs = Vec::<crate::EventData>::with_capacity(events_count);
         for _ in 0..events_count {
             let name = input.read_string()?.unwrap_or_default();
@@ -1903,7 +1903,7 @@ fn read_animation(
     name: &str,
     strings: &[String],
     skin_order: &[String],
-    skins: &HashMap<String, SkinData>,
+    skins: &IndexMap<String, SkinData>,
     slots: &[SlotData],
     constraint_refs: &[ConstraintRef],
     path_constraints: &[PathConstraintData],

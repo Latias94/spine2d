@@ -95,7 +95,7 @@ fn build_data() -> Arc<SkeletonData> {
             }),
         );
     }
-    let mut skins = HashMap::new();
+    let mut skins = indexmap::IndexMap::new();
     skins.insert(
         "default".to_string(),
         SkinData {
@@ -126,7 +126,7 @@ fn build_data() -> Arc<SkeletonData> {
         bones,
         slots,
         skins,
-        events: HashMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: vec![animation],
         animation_index,
         ik_constraints: Vec::new(),

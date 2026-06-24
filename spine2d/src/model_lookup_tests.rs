@@ -220,6 +220,44 @@ fn animation_bones_reports_unique_affected_bone_indices_like_cpp() {
     assert_eq!(animation.bones(), vec![2, 0]);
 }
 
+#[test]
+fn skeleton_data_skins_and_events_preserve_cpp_array_order() {
+    let mut data = SkeletonData::default();
+    for skin_name in ["skin-b", "default", "skin-a"] {
+        data.skins
+            .insert(skin_name.to_string(), SkinData::new(skin_name, 0));
+    }
+    for event_name in ["event-b", "event-a"] {
+        data.events.insert(
+            event_name.to_string(),
+            EventData {
+                name: event_name.to_string(),
+                int_value: 0,
+                float_value: 0.0,
+                string: String::new(),
+                audio_path: String::new(),
+                volume: 1.0,
+                balance: 0.0,
+            },
+        );
+    }
+
+    assert_eq!(
+        data.skins
+            .values()
+            .map(|skin| skin.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["skin-b", "default", "skin-a"]
+    );
+    assert_eq!(
+        data.events
+            .values()
+            .map(|event| event.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["event-b", "event-a"]
+    );
+}
+
 #[cfg(feature = "json")]
 #[test]
 fn skeleton_data_constraints_follow_cpp_unified_order_after_json_parse() {
@@ -262,6 +300,50 @@ fn skeleton_data_constraints_follow_cpp_unified_order_after_json_parse() {
             (3, "path"),
             (4, "transform"),
         ]
+    );
+}
+
+#[cfg(feature = "json")]
+#[test]
+fn skeleton_data_skins_and_events_follow_cpp_order_after_json_parse() {
+    let data = SkeletonData::from_json_str(
+        r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [
+    { "name": "root" }
+  ],
+  "slots": [
+    { "name": "slot", "bone": "root" }
+  ],
+  "skins": [
+    { "name": "skin-b" },
+    { "name": "default" },
+    { "name": "skin-a" }
+  ],
+  "events": {
+    "event-b": { "int": 2 },
+    "event-a": { "int": 1 }
+  },
+  "animations": {}
+}
+"#,
+    )
+    .expect("parse skeleton json");
+
+    assert_eq!(
+        data.skins
+            .values()
+            .map(|skin| skin.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["skin-b", "default", "skin-a"]
+    );
+    assert_eq!(
+        data.events
+            .values()
+            .map(|event| event.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["event-b", "event-a"]
     );
 }
 

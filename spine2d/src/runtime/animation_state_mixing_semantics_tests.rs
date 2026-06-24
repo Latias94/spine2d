@@ -46,8 +46,8 @@ fn base_skeleton_data() -> SkeletonData {
             ..Default::default()
         }],
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),

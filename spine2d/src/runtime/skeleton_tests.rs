@@ -46,8 +46,8 @@ fn empty_skeleton_data() -> Arc<SkeletonData> {
         reference_scale: 100.0,
         bones: Vec::new(),
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -117,7 +117,7 @@ fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
         region_attachment("custom-shared", [0.0, 0.0, 1.0, 1.0]),
     );
 
-    let mut skins = HashMap::new();
+    let mut skins = indexmap::IndexMap::new();
     skins.insert("default".to_string(), default_skin);
     skins.insert("custom".to_string(), custom_skin);
 
@@ -164,7 +164,7 @@ fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
             },
         ],
         skins,
-        events: HashMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -190,7 +190,7 @@ fn linked_mesh_attachment_skeleton_data() -> Arc<SkeletonData> {
         mesh_attachment("other", "default", "other", 3),
     );
 
-    let mut skins = HashMap::new();
+    let mut skins = indexmap::IndexMap::new();
     skins.insert("default".to_string(), default_skin);
 
     Arc::new(SkeletonData {
@@ -219,7 +219,7 @@ fn linked_mesh_attachment_skeleton_data() -> Arc<SkeletonData> {
             ..Default::default()
         }],
         skins,
-        events: HashMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -249,7 +249,7 @@ fn skin_switch_linked_mesh_skeleton_data() -> Arc<SkeletonData> {
         mesh_attachment("new-mesh", "source", "parent", 2),
     );
 
-    let mut skins = HashMap::new();
+    let mut skins = indexmap::IndexMap::new();
     skins.insert("default".to_string(), default_skin);
     skins.insert("old".to_string(), old_skin);
     skins.insert("new".to_string(), new_skin);
@@ -280,7 +280,7 @@ fn skin_switch_linked_mesh_skeleton_data() -> Arc<SkeletonData> {
             ..Default::default()
         }],
         skins,
-        events: HashMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -348,8 +348,8 @@ fn constraint_lookup_skeleton_data() -> Arc<SkeletonData> {
             attachment: None,
             ..Default::default()
         }],
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: vec![IkConstraintData {
@@ -488,8 +488,8 @@ fn slider_draw_order_skeleton_data() -> Arc<SkeletonData> {
                 ..Default::default()
             },
         ],
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: vec![animation],
         animation_index,
         ik_constraints: Vec::new(),
@@ -592,7 +592,7 @@ fn slider_slot_pose_skeleton_data() -> Arc<SkeletonData> {
         }),
     );
 
-    let mut skins = HashMap::new();
+    let mut skins = indexmap::IndexMap::new();
     skins.insert("default".to_string(), default_skin);
 
     Arc::new(SkeletonData {
@@ -622,7 +622,7 @@ fn slider_slot_pose_skeleton_data() -> Arc<SkeletonData> {
             ..Default::default()
         }],
         skins,
-        events: HashMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: vec![animation],
         animation_index,
         ik_constraints: Vec::new(),
@@ -702,8 +702,8 @@ fn setup_pose_split_skeleton_data() -> Arc<SkeletonData> {
                 ..Default::default()
             },
         ],
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: vec![IkConstraintData {
@@ -826,7 +826,7 @@ fn clipping_bounds_skeleton_data() -> Arc<SkeletonData> {
         }),
     );
 
-    let mut skins = HashMap::new();
+    let mut skins = indexmap::IndexMap::new();
     skins.insert("default".to_string(), default_skin);
 
     Arc::new(SkeletonData {
@@ -869,7 +869,7 @@ fn clipping_bounds_skeleton_data() -> Arc<SkeletonData> {
             },
         ],
         skins,
-        events: HashMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -1436,7 +1436,7 @@ fn skeleton_bounds_cover_region_and_mesh_attachments() {
         }),
     );
 
-    let mut skins = HashMap::new();
+    let mut skins = indexmap::IndexMap::new();
     skins.insert("default".to_string(), default_skin);
 
     let data = Arc::new(SkeletonData {
@@ -1473,7 +1473,7 @@ fn skeleton_bounds_cover_region_and_mesh_attachments() {
             },
         ],
         skins,
-        events: HashMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -1523,8 +1523,8 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
             ..Default::default()
         }],
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -1614,8 +1614,8 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
             ..Default::default()
         }],
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -1788,8 +1788,8 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
             attachment: None,
             ..Default::default()
         }],
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -2004,8 +2004,8 @@ fn constraint_accessors_expose_pose_state() {
             ..Default::default()
         }],
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -2062,8 +2062,8 @@ fn skeleton_physics_controls_broadcast_to_all_constraints() {
             ..Default::default()
         }],
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -2179,8 +2179,8 @@ fn update_world_transform_root_and_child() {
             },
         ],
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
@@ -2257,8 +2257,8 @@ fn update_world_transform_parent_rotation_affects_child_translation() {
             },
         ],
         slots: Vec::new(),
-        skins: HashMap::new(),
-        events: HashMap::new(),
+        skins: indexmap::IndexMap::new(),
+        events: indexmap::IndexMap::new(),
         animations: Vec::new(),
         animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
