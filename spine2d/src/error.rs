@@ -77,16 +77,6 @@ pub enum Error {
 
     #[cfg(feature = "json")]
     #[error(
-        "unsupported weighted mesh for skin '{skin}', slot '{slot}', attachment '{attachment}'"
-    )]
-    JsonUnsupportedWeightedMesh {
-        skin: String,
-        slot: String,
-        attachment: String,
-    },
-
-    #[cfg(feature = "json")]
-    #[error(
         "invalid mesh data for skin '{skin}', slot '{slot}', attachment '{attachment}': {message}"
     )]
     JsonInvalidMeshData {
