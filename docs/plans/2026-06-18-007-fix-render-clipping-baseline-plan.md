@@ -42,7 +42,7 @@ The repository still contains manifest and documentation text that treats `spine
 - **Goal:** Make the active baseline manifest, checker, and current docs agree on branch `4.3` commit `7fffd822fa17d924276d8727caa87fb98ccf015e`.
 - **Requirements:** R1, R2
 - **Dependencies:** None
-- **Files:** `spine-upstream.toml`, `scripts/check_spine_baseline.py`, `docs/parity.md`, `docs/decisions.md`, `docs/upstream-tests.md`, `docs/parity-4.3-beta.md`, `docs/upstream-audit-4.3-beta.md`
+- **Files:** `spine-upstream.toml`, `scripts/check_spine_baseline.py`, `docs/parity.md`, `docs/decisions.md`, `docs/upstream-tests.md`, `docs/upstream-audit-4.3-latest.md`
 - **Approach:** Replace latest-tag language with branch-commit language while leaving golden `SOURCE.txt` files as generation evidence until they are re-recorded.
 - **Patterns to follow:** Existing `scripts/upstream_baseline.py` manifest loader and `docs/plans/2026-06-18-002-chore-refresh-43-baseline-plan.md`.
 - **Test scenarios:** Verify local manifest text with `scripts/check_spine_baseline.py`; verify the remote branch still resolves to the pinned commit with `--verify-remote`.

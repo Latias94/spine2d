@@ -52,14 +52,12 @@ REQUIRED_TEXT = {
     "docs/parity.md": [
         ref_label(),
         f"commit `{EXPECTED_COMMIT}`",
+        "docs/upstream-audit-4.3-latest.md",
     ],
-    "docs/parity-4.3-beta.md": [
-        f"Pinned upstream commit for the current refresh: `{EXPECTED_COMMIT}`",
-        f"Current refresh reference: {ref_label()}",
-    ],
-    "docs/upstream-audit-4.3-beta.md": [
-        f"Pinned commit for the current refresh: `{EXPECTED_COMMIT}`",
-        f"Reference {ref_label()}",
+    "docs/upstream-audit-4.3-latest.md": [
+        f"Pinned ref: `{EXPECTED_REV}`",
+        f"Pinned commit: `{EXPECTED_COMMIT}`",
+        "Primary reference path: `spine-cpp/`",
     ],
     "docs/decisions.md": [
         f"upstream {ref_label()} at `{EXPECTED_COMMIT}`",

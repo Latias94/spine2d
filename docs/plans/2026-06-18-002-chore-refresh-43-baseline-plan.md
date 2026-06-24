@@ -44,7 +44,7 @@ The repository currently documents and scripts a `4.3-beta` default even though 
 - **Goal:** Replace stale beta-as-current language with a clear current baseline record.
 - **Requirements:** R1, R3
 - **Dependencies:** none
-- **Files:** `docs/decisions.md`, `docs/parity.md`, `docs/parity-4.3-beta.md`, `docs/upstream-audit-4.3-beta.md`, `README.md`
+- **Files:** `docs/decisions.md`, `docs/parity.md`, `docs/upstream-audit-4.3-latest.md`, `README.md`
 - **Approach:** Keep historical beta docs intact where they describe prior work, but add current-baseline notes that name branch `4.3`, commit `7fffd822fa17d924276d8727caa87fb98ccf015e`, and explain the `spine-libgdx-4.3.2` tag caveat.
 - **Patterns to follow:** `docs/decisions.md` target-version section; `docs/parity.md` baseline note.
 - **Test scenarios:** Test expectation: none -- documentation-only change.

@@ -27,7 +27,7 @@ TBD
 - Render oracle: add scenario-mode command stream support (`--set/--add/--mix/--entry-*/--step`) to lock down multi-track mixing + clipping geometry parity against the upstream C++ runtime.
 - Tests: add render-oracle scenario parity cases (JSON + `.skel`) and record corresponding new goldens.
 - Packaging: silence a `dead_code` warning in default (no-feature) builds by gating JSON-only helpers.
-- Docs: clarify render oracle workflow and scenario coverage in `docs/parity-4.3-beta.md` and `docs/roadmap.md`.
+- Docs: clarify render oracle workflow and scenario coverage in `docs/parity.md` and `docs/roadmap.md`.
 
 ## 0.1.0
 

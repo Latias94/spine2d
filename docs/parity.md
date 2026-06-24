@@ -6,7 +6,7 @@ Items are only considered *done* when we have a regression signal (unit tests an
 Baseline note:
 - Current Spine 4.3 parity work targets upstream `spine-runtimes` tag `spine-ts-4.3.8` pinned at commit `8e12b1250ab88c0f890849ea45aab80338cead63`.
 - `spine-cpp` is the sole behaviour reference for runtime parity. Runtime-specific tags such as `spine-ts-4.3.8` and `spine-libgdx-4.3.2` are release/reproducibility markers, not alternate semantic references.
-- Historical `4.3-beta` parity work is tracked in `docs/parity-4.3-beta.md`.
+- Module-by-module audit work is tracked in `docs/upstream-audit-4.3-latest.md`.
 - The scenario golden dumps under `spine2d/tests/golden/` must be re-recorded when the baseline commit changes; until then, `--features upstream-smoke` will report expected failures.
 - For the currently pinned tag, `cargo nextest run -p spine2d --features json,binary,upstream-smoke` is expected to be green.
 
