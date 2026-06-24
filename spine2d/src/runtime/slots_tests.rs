@@ -24,6 +24,10 @@ fn parse_slots_and_default_skin_region_attachment() {
     let data = SkeletonData::from_json_str(JSON).unwrap();
     assert_eq!(data.slots.len(), 1);
     assert_eq!(data.skins.len(), 1);
+    assert_eq!(
+        data.default_skin().map(|skin| skin.name.as_str()),
+        Some("default")
+    );
 
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
@@ -46,4 +50,23 @@ fn parse_slots_and_default_skin_region_attachment() {
         }
         _ => panic!("expected region attachment"),
     }
+}
+
+#[test]
+fn skeleton_data_default_skin_is_none_when_no_default_skin_exists() {
+    let data = SkeletonData::from_json_str(
+        r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [ { "name": "root" } ],
+  "skins": {
+    "custom": {}
+  },
+  "animations": {}
+}
+"#,
+    )
+    .unwrap();
+
+    assert!(data.default_skin().is_none());
 }

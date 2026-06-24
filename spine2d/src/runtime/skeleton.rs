@@ -1280,8 +1280,8 @@ impl Skeleton {
     pub fn setup_pose_slots(&mut self) {
         let skin_name = self.skin.as_deref();
         let skin = skin_name.and_then(|n| self.data.find_skin(n));
-        let default_skin = if skin_name != Some("default") {
-            self.data.find_skin("default")
+        let default_skin = if skin_name != Some(crate::SkeletonData::DEFAULT_SKIN_NAME) {
+            self.data.default_skin()
         } else {
             None
         };
@@ -1363,13 +1363,13 @@ impl Skeleton {
             {
                 return Some(att);
             }
-            if skin_name != "default"
-                && let Some(default_skin) = self.data.find_skin("default")
+            if skin_name != crate::SkeletonData::DEFAULT_SKIN_NAME
+                && let Some(default_skin) = self.data.default_skin()
                 && let Some(att) = default_skin.attachment(slot_index, attachment_name)
             {
                 return Some(att);
             }
-        } else if let Some(default_skin) = self.data.find_skin("default")
+        } else if let Some(default_skin) = self.data.default_skin()
             && let Some(att) = default_skin.attachment(slot_index, attachment_name)
         {
             return Some(att);
@@ -1655,10 +1655,10 @@ impl Skeleton {
             {
                 return Some(skin_name.to_string());
             }
-            if skin_name != "default"
+            if skin_name != crate::SkeletonData::DEFAULT_SKIN_NAME
                 && self
                     .data
-                    .find_skin("default")
+                    .default_skin()
                     .and_then(|skin| skin.attachment(slot_index, attachment_name))
                     .is_some()
             {
@@ -1669,7 +1669,7 @@ impl Skeleton {
 
         if self
             .data
-            .find_skin("default")
+            .default_skin()
             .and_then(|skin| skin.attachment(slot_index, attachment_name))
             .is_some()
         {

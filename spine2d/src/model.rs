@@ -1203,6 +1203,7 @@ pub struct SkeletonData {
 }
 
 impl SkeletonData {
+    pub const DEFAULT_SKIN_NAME: &'static str = "default";
     pub const DEFAULT_REFERENCE_SCALE: f32 = 100.0;
     pub const DEFAULT_FPS: f32 = 30.0;
 
@@ -1213,6 +1214,22 @@ impl SkeletonData {
 
     pub fn find_skin(&self, name: &str) -> Option<&SkinData> {
         self.skins.get(name)
+    }
+
+    pub fn default_skin(&self) -> Option<&SkinData> {
+        self.find_skin(Self::DEFAULT_SKIN_NAME)
+    }
+
+    pub fn find_slider_animations<'data, 'out>(
+        &'data self,
+        animations: &'out mut Vec<&'data Animation>,
+    ) -> &'out mut Vec<&'data Animation> {
+        animations.extend(self.slider_constraints.iter().filter_map(|constraint| {
+            constraint
+                .animation
+                .and_then(|index| self.animations.get(index))
+        }));
+        animations
     }
 }
 

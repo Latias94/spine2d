@@ -10,10 +10,12 @@ const SKELETON_WITH_SLIDER_TIMELINES: &str = r#"
       "name": "slider",
       "bone": "root",
       "time": 1.0,
-      "mix": 0.5
+      "mix": 0.5,
+      "animation": "anim"
     }
   ],
   "animations": {
+    "idle": {},
     "anim": {
       "slider": {
         "slider": {
@@ -64,4 +66,17 @@ fn slider_timelines_apply_negative_alpha_like_cpp() {
 
     assert_approx(skeleton.slider_constraints[0].time(), 0.0);
     assert_approx(skeleton.slider_constraints[0].mix(), 0.3);
+}
+
+#[test]
+fn skeleton_data_find_slider_animations_appends_like_cpp() {
+    let data = SkeletonData::from_json_str(SKELETON_WITH_SLIDER_TIMELINES).unwrap();
+    let idle = data.find_animation("idle").unwrap();
+    let mut animations = vec![idle];
+
+    let returned_len = data.find_slider_animations(&mut animations).len();
+
+    assert_eq!(returned_len, 2);
+    assert_eq!(animations[0].name, "idle");
+    assert_eq!(animations[1].name, "anim");
 }
