@@ -22,10 +22,6 @@ impl Atlas {
     pub fn region(&self, name: &str) -> Option<&AtlasRegion> {
         self.regions.iter().find(|region| region.name == name)
     }
-
-    pub fn page(&self, index: usize) -> Option<&AtlasPage> {
-        self.pages.get(index)
-    }
 }
 
 #[derive(Clone, Debug)]
