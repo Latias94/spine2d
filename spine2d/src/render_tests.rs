@@ -155,7 +155,6 @@ fn build_draw_list_with_atlas_sets_uv_and_page_texture() {
         r#"
 page.png
 size: 64,64
-
 head
   rotate: false
   xy: 16, 32
@@ -205,7 +204,6 @@ fn build_draw_list_with_rotated_atlas_region_rotates_uvs() {
         r#"
 page.png
 size: 64,64
-
 head
   rotate: true
   xy: 16, 32
@@ -313,7 +311,6 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_to_region_rect() {
         r#"
 page.png
 size: 64,64
-
 mesh0
   rotate: false
   xy: 16, 32
@@ -361,7 +358,6 @@ fn build_draw_list_with_atlas_maps_region_uvs_for_rotated_region_90() {
         r#"
 page.png
 size: 64,64
-
 head
   rotate: true
   xy: 16, 32
@@ -799,7 +795,6 @@ fn build_draw_list_with_atlas_marks_pma_and_premultiplies_vertex_color() {
 page.png
 size: 64,64
 pma: true
-
 head
   rotate: false
   xy: 0, 0
@@ -888,7 +883,6 @@ fn build_draw_list_two_color_tint_sets_dark_color_alpha_by_pma_and_premultiplies
 page.png
 size: 64,64
 pma: true
-
 head
   rotate: false
   xy: 0, 0
@@ -902,7 +896,6 @@ head
 page.png
 size: 64,64
 pma: false
-
 head
   rotate: false
   xy: 0, 0
@@ -968,7 +961,6 @@ fn build_draw_list_with_atlas_applies_region_trim_offset_and_orig() {
         r#"
 page.png
 size: 64,64
-
 head
   rotate: false
   xy: 0, 0
@@ -1027,7 +1019,6 @@ fn build_draw_list_with_atlas_applies_rotated_region_trim_using_packed_swap() {
         r#"
 page.png
 size: 64,64
-
 head
   rotate: true
   xy: 0, 0
@@ -1092,7 +1083,6 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_90() {
         r#"
 page.png
 size: 100,100
-
 mesh0
   rotate: 90
   bounds: 30, 20, 30, 40
@@ -1148,7 +1138,6 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_180() {
         r#"
 page.png
 size: 100,100
-
 mesh0
   rotate: 180
   bounds: 30, 20, 30, 40
@@ -1204,7 +1193,6 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_270() {
         r#"
 page.png
 size: 100,100
-
 mesh0
   rotate: 270
   bounds: 30, 20, 30, 40
