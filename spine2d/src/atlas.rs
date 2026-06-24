@@ -36,7 +36,6 @@ pub struct AtlasPage {
     pub format: AtlasFormat,
     pub width: u32,
     pub height: u32,
-    pub scale: f32,
     pub pma: bool,
     pub min_filter: AtlasFilter,
     pub mag_filter: AtlasFilter,
@@ -172,7 +171,6 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
                 format: AtlasFormat::default(),
                 width: 0,
                 height: 0,
-                scale: 1.0,
                 pma: false,
                 min_filter: AtlasFilter::default(),
                 mag_filter: AtlasFilter::default(),
@@ -200,14 +198,6 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
                         if let Some(page) = pages.get_mut(page_index) {
                             page.width = w;
                             page.height = h;
-                        }
-                    }
-                    "scale" => {
-                        let s: f32 = value.parse().map_err(|_| Error::AtlasParse {
-                            message: format!("invalid page scale: {value}"),
-                        })?;
-                        if let Some(page) = pages.get_mut(page_index) {
-                            page.scale = if s.is_finite() { s } else { 1.0 };
                         }
                     }
                     "filter" => {
@@ -482,7 +472,6 @@ head
         assert_eq!(atlas.pages[0].format, AtlasFormat::RGBA8888);
         assert_eq!(atlas.pages[0].width, 64);
         assert_eq!(atlas.pages[0].height, 64);
-        assert!((atlas.pages[0].scale - 0.5).abs() <= 1.0e-6);
         assert!(atlas.pages[0].pma);
         assert_eq!(atlas.pages[0].min_filter, AtlasFilter::Linear);
         assert_eq!(atlas.pages[0].mag_filter, AtlasFilter::Linear);
