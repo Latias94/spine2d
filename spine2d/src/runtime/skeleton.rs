@@ -597,7 +597,7 @@ impl Skeleton {
         let key = pose.attachment_name()?;
 
         if let Some(source_skin) = pose.attachment_skin()
-            && let Some(skin) = self.data.skin(source_skin)
+            && let Some(skin) = self.data.find_skin(source_skin)
             && let Some(att) = skin.attachment(slot_index, key)
         {
             return Some(att);
@@ -611,7 +611,7 @@ impl Skeleton {
     }
 
     pub fn skin(&self) -> Option<&crate::SkinData> {
-        self.skin_name().and_then(|name| self.data.skin(name))
+        self.skin_name().and_then(|name| self.data.find_skin(name))
     }
 
     pub fn color(&self) -> [f32; 4] {
@@ -936,7 +936,7 @@ impl Skeleton {
             bone.active = !required;
         }
 
-        let skin = self.skin.as_deref().and_then(|n| self.data.skin(n));
+        let skin = self.skin.as_deref().and_then(|n| self.data.find_skin(n));
         if let Some(skin) = skin {
             for &bone_index in &skin.bones {
                 let mut cur = Some(bone_index);
@@ -1123,7 +1123,7 @@ impl Skeleton {
                 self.skin = Some(name.to_string());
             }
         }
-        let new_skin = self.skin.as_deref().and_then(|n| self.data.skin(n));
+        let new_skin = self.skin.as_deref().and_then(|n| self.data.find_skin(n));
 
         // Spine-cpp: when switching from no skin to a skin, the setup attachment names are
         // applied from the new skin.
@@ -1279,9 +1279,9 @@ impl Skeleton {
 
     pub fn setup_pose_slots(&mut self) {
         let skin_name = self.skin.as_deref();
-        let skin = skin_name.and_then(|n| self.data.skin(n));
+        let skin = skin_name.and_then(|n| self.data.find_skin(n));
         let default_skin = if skin_name != Some("default") {
-            self.data.skin("default")
+            self.data.find_skin("default")
         } else {
             None
         };
@@ -1358,18 +1358,18 @@ impl Skeleton {
 
         let skin_name = self.skin.as_deref();
         if let Some(skin_name) = skin_name {
-            if let Some(skin) = self.data.skin(skin_name)
+            if let Some(skin) = self.data.find_skin(skin_name)
                 && let Some(att) = skin.attachment(slot_index, attachment_name)
             {
                 return Some(att);
             }
             if skin_name != "default"
-                && let Some(default_skin) = self.data.skin("default")
+                && let Some(default_skin) = self.data.find_skin("default")
                 && let Some(att) = default_skin.attachment(slot_index, attachment_name)
             {
                 return Some(att);
             }
-        } else if let Some(default_skin) = self.data.skin("default")
+        } else if let Some(default_skin) = self.data.find_skin("default")
             && let Some(att) = default_skin.attachment(slot_index, attachment_name)
         {
             return Some(att);
@@ -1649,7 +1649,7 @@ impl Skeleton {
         if let Some(skin_name) = self.skin.as_deref() {
             if self
                 .data
-                .skin(skin_name)
+                .find_skin(skin_name)
                 .and_then(|skin| skin.attachment(slot_index, attachment_name))
                 .is_some()
             {
@@ -1658,7 +1658,7 @@ impl Skeleton {
             if skin_name != "default"
                 && self
                     .data
-                    .skin("default")
+                    .find_skin("default")
                     .and_then(|skin| skin.attachment(slot_index, attachment_name))
                     .is_some()
             {
@@ -1669,7 +1669,7 @@ impl Skeleton {
 
         if self
             .data
-            .skin("default")
+            .find_skin("default")
             .and_then(|skin| skin.attachment(slot_index, attachment_name))
             .is_some()
         {
@@ -1685,7 +1685,7 @@ impl Skeleton {
         source_skin: &str,
         key: &str,
     ) -> Option<(bool, String, String)> {
-        let skin = self.data.skin(source_skin)?;
+        let skin = self.data.find_skin(source_skin)?;
         let attachment = skin.attachment(slot_index, key)?;
         match attachment {
             crate::AttachmentData::Mesh(mesh) => Some((

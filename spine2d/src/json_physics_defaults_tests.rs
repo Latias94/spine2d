@@ -137,7 +137,7 @@ fn json_clipping_flags_parse_convex_and_inverse() {
 
     let data = SkeletonData::from_json_str(json).expect("parse skeleton json");
     let clip = data
-        .skin("default")
+        .find_skin("default")
         .and_then(|skin| skin.attachment(0, "clip"))
         .and_then(|attachment| match attachment {
             crate::AttachmentData::Clipping(clip) => Some(clip),

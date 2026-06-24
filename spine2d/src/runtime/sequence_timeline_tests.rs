@@ -118,7 +118,7 @@ fn sequence_timeline_drives_slot_sequence_index_and_render_path() {
 #[test]
 fn sequence_timeline_applies_to_cross_slot_linked_mesh_timeline_slots() {
     let data = SkeletonData::from_json_str(CROSS_SLOT_LINKED_MESH_SEQUENCE).unwrap();
-    let (_, animation) = data.animation("sequence").unwrap();
+    let animation = data.find_animation("sequence").unwrap();
     assert_eq!(animation.sequence_timelines.len(), 1);
     let timeline = &animation.sequence_timelines[0];
     assert_eq!(timeline.skin, "default");
@@ -129,7 +129,7 @@ fn sequence_timeline_applies_to_cross_slot_linked_mesh_timeline_slots() {
     assert_eq!(timeline.frames[0].index, 2);
 
     let source = data
-        .skin("default")
+        .find_skin("default")
         .and_then(|skin| skin.attachment(0, "source"))
         .and_then(|attachment| match attachment {
             crate::AttachmentData::Mesh(mesh) => Some(mesh),

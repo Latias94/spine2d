@@ -43,7 +43,7 @@ fn assert_approx(actual: f32, expected: f32) {
 #[test]
 fn slider_timelines_update_runtime_values() {
     let data = SkeletonData::from_json_str(SKELETON_WITH_SLIDER_TIMELINES).unwrap();
-    let (_, anim) = data.animation("anim").unwrap();
+    let anim = data.find_animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();
@@ -56,7 +56,7 @@ fn slider_timelines_update_runtime_values() {
 #[test]
 fn slider_timelines_apply_negative_alpha_like_cpp() {
     let data = SkeletonData::from_json_str(SKELETON_WITH_SLIDER_TIMELINES).unwrap();
-    let (_, anim) = data.animation("anim").unwrap();
+    let anim = data.find_animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();

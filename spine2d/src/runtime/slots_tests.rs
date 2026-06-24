@@ -33,7 +33,7 @@ fn parse_slots_and_default_skin_region_attachment() {
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("head"));
     assert_eq!(skeleton.skin.as_deref(), None);
 
-    let skin = skeleton.data.skin("default").unwrap();
+    let skin = skeleton.data.find_skin("default").unwrap();
     let attachment = skin.attachment(0, "head").unwrap();
     match attachment {
         crate::AttachmentData::Region(region) => {

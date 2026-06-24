@@ -182,7 +182,7 @@ fn mix_and_match_add_skin_composition_matches_upstream_demo_semantics() {
     let mut custom = SkinData::new("custom-girl", data.slots.len());
     for skin_name in component_skins {
         let skin = data
-            .skin(skin_name)
+            .find_skin(skin_name)
             .unwrap_or_else(|| panic!("missing skin: {skin_name}"));
 
         for &i in &skin.bones {

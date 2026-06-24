@@ -1182,12 +1182,12 @@ pub struct SkeletonData {
 }
 
 impl SkeletonData {
-    pub fn animation(&self, name: &str) -> Option<(usize, &Animation)> {
+    pub fn find_animation(&self, name: &str) -> Option<&Animation> {
         let index = *self.animation_index.get(name)?;
-        Some((index, &self.animations[index]))
+        self.animations.get(index)
     }
 
-    pub fn skin(&self, name: &str) -> Option<&SkinData> {
+    pub fn find_skin(&self, name: &str) -> Option<&SkinData> {
         self.skins.get(name)
     }
 }

@@ -284,7 +284,7 @@ mod web {
 
     fn pick_default_animation(data: &SkeletonData, requested: Option<&str>) -> String {
         if let Some(name) = requested {
-            if data.animation(name).is_some() {
+            if data.find_animation(name).is_some() {
                 return name.to_string();
             }
         }
@@ -294,7 +294,7 @@ mod web {
         }
 
         for name in ["run", "walk", "idle", "spin"] {
-            if data.animation(name).is_some() {
+            if data.find_animation(name).is_some() {
                 return name.to_string();
             }
         }
@@ -313,7 +313,7 @@ mod web {
             if name.is_empty() {
                 return None;
             }
-            if data.skin(name).is_some() {
+            if data.find_skin(name).is_some() {
                 return Some(name.to_string());
             }
         }
@@ -322,7 +322,7 @@ mod web {
             return Some(name);
         }
 
-        if data.skin("default").is_some() {
+        if data.find_skin("default").is_some() {
             return Some("default".to_string());
         }
 
@@ -346,7 +346,7 @@ mod web {
     fn recommended_animation(data: &SkeletonData) -> Option<String> {
         // Mirrors upstream webgl example defaults for common test exports.
         for name in ["dance", "flying", "animation"] {
-            if data.animation(name).is_some() {
+            if data.find_animation(name).is_some() {
                 return Some(name.to_string());
             }
         }
@@ -361,7 +361,7 @@ mod web {
             "chibi-stickers" => "spineboy",
             _ => return None,
         };
-        data.skin(name).map(|_| name.to_string())
+        data.find_skin(name).map(|_| name.to_string())
     }
 
     async fn load_upstream_manifest() -> Result<WebManifest, JsValue> {

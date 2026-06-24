@@ -38,7 +38,7 @@ fn json_events_parse_defaults_and_key_overrides() {
     assert!((silent.volume - 1.0).abs() < 1e-6);
     assert!((silent.balance - 0.0).abs() < 1e-6);
 
-    let (_ai, anim) = data.animation("a").expect("animation a");
+    let anim = data.find_animation("a").expect("animation a");
     let timeline = anim.event_timeline.as_ref().expect("event timeline");
     assert_eq!(timeline.events.len(), 3);
 
@@ -94,7 +94,7 @@ fn json_events_keep_file_order_for_same_time() {
 "#;
 
     let data = SkeletonData::from_json_str(json).expect("parse");
-    let (_ai, anim) = data.animation("anim").expect("animation");
+    let anim = data.find_animation("anim").expect("animation");
     let timeline = anim.event_timeline.as_ref().expect("event timeline");
     assert_eq!(timeline.events.len(), 2);
     assert_eq!(timeline.events[0].name, "b");

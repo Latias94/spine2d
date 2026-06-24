@@ -58,7 +58,7 @@ fn assert_angle_approx(actual: f32, expected: f32) {
 #[test]
 fn transform_timeline_mix_zero_disables_rotation() {
     let data = SkeletonData::from_json_str(SKELETON_TRANSFORM_WITH_TIMELINE).unwrap();
-    let (_, anim) = data.animation("anim").unwrap();
+    let anim = data.find_animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();
@@ -71,7 +71,7 @@ fn transform_timeline_mix_zero_disables_rotation() {
 #[test]
 fn transform_timeline_interpolates_mix_rotate() {
     let data = SkeletonData::from_json_str(SKELETON_TRANSFORM_WITH_TIMELINE).unwrap();
-    let (_, anim) = data.animation("anim").unwrap();
+    let anim = data.find_animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();
@@ -84,7 +84,7 @@ fn transform_timeline_interpolates_mix_rotate() {
 #[test]
 fn transform_timeline_applies_negative_alpha_like_cpp() {
     let data = SkeletonData::from_json_str(SKELETON_TRANSFORM_WITH_TIMELINE).unwrap();
-    let (_, anim) = data.animation("anim").unwrap();
+    let anim = data.find_animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();

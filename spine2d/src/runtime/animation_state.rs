@@ -108,13 +108,13 @@ fn vertex_attachment_id(attachment: &crate::AttachmentData) -> Option<u32> {
 
 fn deform_timeline_vertex_id(data: &SkeletonData, timeline: &crate::DeformTimeline) -> Option<u32> {
     let attachment = data
-        .skin(timeline.skin.as_str())
+        .find_skin(timeline.skin.as_str())
         .and_then(|s| s.attachment(timeline.slot_index, timeline.attachment.as_str()))?;
 
     match attachment {
         crate::AttachmentData::Mesh(m) => {
             let target = data
-                .skin(m.timeline_skin.as_str())
+                .find_skin(m.timeline_skin.as_str())
                 .and_then(|s| s.attachment(timeline.slot_index, m.timeline_attachment.as_str()))?;
             vertex_attachment_id(target)
         }
@@ -126,7 +126,7 @@ fn sequence_timeline_sequence_id(
     data: &SkeletonData,
     timeline: &crate::SequenceTimeline,
 ) -> Option<u32> {
-    data.skin(timeline.skin.as_str())
+    data.find_skin(timeline.skin.as_str())
         .and_then(|s| s.attachment(timeline.slot_index, timeline.attachment.as_str()))
         .and_then(|a| match a {
             crate::AttachmentData::Region(r) => r.sequence.as_ref().map(|s| s.id),
@@ -417,11 +417,11 @@ impl AnimationStateData {
 
     pub fn set_mix(&mut self, from: &str, to: &str, duration: f32) {
         assert!(
-            self.skeleton_data.animation(from).is_some(),
+            self.skeleton_data.find_animation(from).is_some(),
             "unknown animation: {from}"
         );
         assert!(
-            self.skeleton_data.animation(to).is_some(),
+            self.skeleton_data.find_animation(to).is_some(),
             "unknown animation: {to}"
         );
         self.mixes
@@ -1284,10 +1284,10 @@ impl AnimationState {
 
     fn resolve_animation_name(&self, animation_name: impl AsRef<str>) -> (u64, Animation) {
         let animation_name = animation_name.as_ref();
-        let (_, animation) = self
+        let animation = self
             .data
             .skeleton_data()
-            .animation(animation_name)
+            .find_animation(animation_name)
             .unwrap_or_else(|| panic!("unknown animation: {}", animation_name));
         (animation_identity(animation), animation.clone())
     }

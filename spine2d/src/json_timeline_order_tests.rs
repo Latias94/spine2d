@@ -40,7 +40,7 @@ fn json_animation_preserves_object_order_in_timeline_order() {
     "#;
 
     let data = SkeletonData::from_json_str(json).expect("parse json");
-    let (_, animation) = data.animation("mix").expect("animation exists");
+    let animation = data.find_animation("mix").expect("animation exists");
     assert_eq!(
         animation.timeline_order(),
         vec![

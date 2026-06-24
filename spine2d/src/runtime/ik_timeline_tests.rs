@@ -45,7 +45,7 @@ fn child_tip(skeleton: &Skeleton, child_index: usize) -> (f32, f32) {
 #[test]
 fn ik_timeline_mix_zero_disables_constraint_effect() {
     let data = SkeletonData::from_json_str(SKELETON_IK_WITH_TIMELINE).unwrap();
-    let (_, anim) = data.animation("anim").unwrap();
+    let anim = data.find_animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();
@@ -60,7 +60,7 @@ fn ik_timeline_mix_zero_disables_constraint_effect() {
 #[test]
 fn ik_timeline_interpolates_mix_and_moves_tip_toward_target() {
     let data = SkeletonData::from_json_str(SKELETON_IK_WITH_TIMELINE).unwrap();
-    let (_, anim) = data.animation("anim").unwrap();
+    let anim = data.find_animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();
@@ -75,7 +75,7 @@ fn ik_timeline_interpolates_mix_and_moves_tip_toward_target() {
 #[test]
 fn ik_timeline_interpolates_softness() {
     let data = SkeletonData::from_json_str(SKELETON_IK_WITH_TIMELINE).unwrap();
-    let (_, anim) = data.animation("anim").unwrap();
+    let anim = data.find_animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();
@@ -87,7 +87,7 @@ fn ik_timeline_interpolates_softness() {
 #[test]
 fn ik_timeline_applies_negative_alpha_like_cpp() {
     let data = SkeletonData::from_json_str(SKELETON_IK_WITH_TIMELINE).unwrap();
-    let (_, anim) = data.animation("anim").unwrap();
+    let anim = data.find_animation("anim").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();

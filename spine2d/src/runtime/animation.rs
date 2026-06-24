@@ -2888,7 +2888,7 @@ pub(crate) fn apply_deform(
 fn deform_timeline_slots(timeline: &DeformTimeline, skeleton: &Skeleton) -> Vec<usize> {
     skeleton
         .data
-        .skin(timeline.skin.as_str())
+        .find_skin(timeline.skin.as_str())
         .and_then(|skin| skin.attachment(timeline.slot_index, timeline.attachment.as_str()))
         .and_then(|attachment| match attachment {
             crate::AttachmentData::Mesh(mesh) => Some(mesh.timeline_slots.clone()),
@@ -3070,7 +3070,7 @@ pub(crate) fn apply_sequence_timeline(
 fn sequence_timeline_slots(timeline: &crate::SequenceTimeline, skeleton: &Skeleton) -> Vec<usize> {
     skeleton
         .data
-        .skin(timeline.skin.as_str())
+        .find_skin(timeline.skin.as_str())
         .and_then(|skin| skin.attachment(timeline.slot_index, timeline.attachment.as_str()))
         .and_then(|attachment| match attachment {
             crate::AttachmentData::Mesh(mesh) => Some(mesh.timeline_slots.clone()),
@@ -3161,7 +3161,7 @@ fn sequence_timeline_index(
 ) -> Option<i32> {
     let sequence = skeleton
         .data
-        .skin(timeline.skin.as_str())
+        .find_skin(timeline.skin.as_str())
         .and_then(|s| s.attachment(timeline.slot_index, timeline.attachment.as_str()))
         .and_then(|a| match a {
             crate::AttachmentData::Region(r) => r.sequence.as_ref(),

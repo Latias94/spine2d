@@ -108,7 +108,7 @@ const SKELETON_DRAW_ORDER_FOLDER: &str = r#"
 fn slot_attachment_timeline_switches_attachment() {
     let data = SkeletonData::from_json_str(SKELETON_ATTACHMENT_TIMELINE).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
-    let (_, animation) = data.animation("anim").unwrap();
+    let animation = data.find_animation("anim").unwrap();
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
@@ -127,7 +127,7 @@ fn slot_attachment_timeline_switches_attachment() {
 fn draw_order_timeline_reorders_slots() {
     let data = SkeletonData::from_json_str(SKELETON_DRAW_ORDER).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
-    let (_, animation) = data.animation("anim").unwrap();
+    let animation = data.find_animation("anim").unwrap();
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert_eq!(skeleton.draw_order, vec![0, 1]);
@@ -145,7 +145,7 @@ fn draw_order_timeline_reorders_slots() {
 fn draw_order_folder_timeline_reorders_only_folder_slots() {
     let data = SkeletonData::from_json_str(SKELETON_DRAW_ORDER_FOLDER).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
-    let (_, animation) = data.animation("anim").unwrap();
+    let animation = data.find_animation("anim").unwrap();
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 

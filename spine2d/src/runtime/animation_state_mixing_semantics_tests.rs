@@ -666,7 +666,7 @@ fn additive_path_and_physics_timelines_follow_upstream_add_rules() {
 #[test]
 fn physics_constraint_timeline_applies_negative_alpha_like_cpp() {
     let data = SkeletonData::from_json_str(&additive_path_physics_json()).unwrap();
-    let (_, anim) = data.animation("base").unwrap();
+    let anim = data.find_animation("base").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
 
     skeleton.setup_pose();

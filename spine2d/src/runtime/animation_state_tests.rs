@@ -149,8 +149,8 @@ fn with_queued_track_entry<R>(
 #[test]
 fn animation_state_data_default_mix_is_directly_stored_and_used_as_fallback() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
-    let (_, from) = data.animation("events0").unwrap();
-    let (_, to) = data.animation("events1").unwrap();
+    let from = data.find_animation("events0").unwrap();
+    let to = data.find_animation("events1").unwrap();
     let mut state_data = AnimationStateData::new(data.clone());
 
     assert_eq!(state_data.default_mix(), 0.0);
@@ -171,8 +171,8 @@ fn animation_state_data_default_mix_is_directly_stored_and_used_as_fallback() {
 #[test]
 fn animation_state_data_named_mix_overrides_default_mix() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
-    let (_, from) = data.animation("events0").unwrap();
-    let (_, to) = data.animation("events1").unwrap();
+    let from = data.find_animation("events0").unwrap();
+    let to = data.find_animation("events1").unwrap();
     let mut state_data = AnimationStateData::new(data.clone());
 
     state_data.set_default_mix(0.25);
@@ -189,8 +189,8 @@ fn animation_state_data_named_mix_overrides_default_mix() {
 #[test]
 fn animation_state_data_animation_mix_accessors_match_name_mix_storage() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
-    let (_, from) = data.animation("events0").unwrap();
-    let (_, to) = data.animation("events1").unwrap();
+    let from = data.find_animation("events0").unwrap();
+    let to = data.find_animation("events1").unwrap();
     let mut state_data = AnimationStateData::new(data.clone());
 
     state_data.set_default_mix(0.25);
@@ -204,8 +204,8 @@ fn animation_state_data_animation_mix_accessors_match_name_mix_storage() {
 #[test]
 fn animation_state_data_clear_resets_default_and_animation_mixes() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
-    let (_, from) = data.animation("events0").unwrap();
-    let (_, to) = data.animation("events1").unwrap();
+    let from = data.find_animation("events0").unwrap();
+    let to = data.find_animation("events1").unwrap();
     let mut state_data = AnimationStateData::new(data.clone());
 
     state_data.set_default_mix(0.25);
@@ -237,7 +237,12 @@ fn animation_state_data_skeleton_data_accessor_exposes_bound_skeleton() {
         state_data.skeleton_data() as *const crate::SkeletonData,
         data_ptr
     );
-    assert!(state_data.skeleton_data().animation("events0").is_some());
+    assert!(
+        state_data
+            .skeleton_data()
+            .find_animation("events0")
+            .is_some()
+    );
 }
 
 #[test]
@@ -296,8 +301,8 @@ fn track_entry_handle_reads_current_and_queued_entries() {
 #[test]
 fn animation_state_data_name_mix_panics_on_unknown_animations() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
-    let (_, from) = data.animation("events0").unwrap();
-    let (_, to) = data.animation("events1").unwrap();
+    let from = data.find_animation("events0").unwrap();
+    let to = data.find_animation("events1").unwrap();
     let mut state_data = AnimationStateData::new(data.clone());
 
     assert!(
@@ -322,8 +327,8 @@ fn animation_state_data_name_mix_panics_on_unknown_animations() {
 #[test]
 fn animation_state_data_animation_mix_accepts_animation_references() {
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
-    let mut from = data.animation("events0").unwrap().1.clone();
-    let mut to = data.animation("events1").unwrap().1.clone();
+    let mut from = data.find_animation("events0").unwrap().clone();
+    let mut to = data.find_animation("events1").unwrap().clone();
     let mut state_data = AnimationStateData::new(data.clone());
 
     from.name = "from-reference".to_string();
@@ -521,9 +526,8 @@ fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
     let replacement = state
         .data()
         .skeleton_data()
-        .animation("events1")
+        .find_animation("events1")
         .unwrap()
-        .1
         .clone();
     let mut replacement = replacement;
     replacement.duration += 10.0;
@@ -548,9 +552,8 @@ fn track_entry_set_animation_preserves_animation_references() {
     let mut unknown = state
         .data()
         .skeleton_data()
-        .animation("events1")
+        .find_animation("events1")
         .unwrap()
-        .1
         .clone();
     unknown.name = "missing".into();
     unknown.duration += 10.0;
@@ -571,9 +574,9 @@ fn animation_state_set_and_add_preserve_animation_references() {
     state_data.set_default_mix(0.2);
     let mut state = AnimationState::new(state_data);
 
-    let mut alpha = data.animation("events0").unwrap().1.clone();
+    let mut alpha = data.find_animation("events0").unwrap().clone();
     alpha.duration += 5.0;
-    let mut beta = data.animation("events1").unwrap().1.clone();
+    let mut beta = data.find_animation("events1").unwrap().clone();
     beta.duration += 7.0;
 
     let current = state.set_animation_ref(0, &alpha, false);

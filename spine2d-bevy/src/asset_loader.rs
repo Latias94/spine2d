@@ -57,11 +57,11 @@ impl SpineSkeletonAsset {
     }
 
     pub fn has_animation(&self, name: &str) -> bool {
-        self.data.animation(name).is_some()
+        self.data.find_animation(name).is_some()
     }
 
     pub fn has_skin(&self, name: &str) -> bool {
-        self.data.skin(name).is_some()
+        self.data.find_skin(name).is_some()
     }
 
     pub fn has_event(&self, name: &str) -> bool {

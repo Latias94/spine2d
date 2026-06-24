@@ -73,7 +73,7 @@ fn assert_approx(actual: f32, expected: f32) {
 #[test]
 fn slot_color_timeline_interpolates_and_affects_draw_list_vertex_colors() {
     let data = SkeletonData::from_json_str(SKELETON_SLOT_RGBA_TIMELINE).unwrap();
-    let (_, animation) = data.animation("anim").unwrap();
+    let animation = data.find_animation("anim").unwrap();
 
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
@@ -96,7 +96,7 @@ fn slot_color_timeline_interpolates_and_affects_draw_list_vertex_colors() {
 #[test]
 fn slot_color_timeline_applies_negative_alpha_like_cpp() {
     let data = SkeletonData::from_json_str(SKELETON_SLOT_RGBA_TIMELINE).unwrap();
-    let (_, animation) = data.animation("anim").unwrap();
+    let animation = data.find_animation("anim").unwrap();
 
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
@@ -119,7 +119,7 @@ fn slot_color_timeline_applies_negative_alpha_like_cpp() {
 #[test]
 fn slot_rgba2_timeline_applies_negative_alpha_to_dark_color_like_cpp() {
     let data = SkeletonData::from_json_str(SKELETON_SLOT_RGBA2_TIMELINE).unwrap();
-    let (_, animation) = data.animation("anim").unwrap();
+    let animation = data.find_animation("anim").unwrap();
 
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();

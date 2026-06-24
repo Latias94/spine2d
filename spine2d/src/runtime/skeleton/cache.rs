@@ -36,9 +36,9 @@ pub(super) fn rebuild_update_cache(skeleton: &Skeleton) -> Vec<UpdateCacheItem> 
     }
 
     let current_skin_name = skeleton.skin.as_deref();
-    let current_skin = current_skin_name.and_then(|n| skeleton.data.skin(n));
+    let current_skin = current_skin_name.and_then(|n| skeleton.data.find_skin(n));
     let default_skin = if current_skin_name != Some("default") {
-        skeleton.data.skin("default")
+        skeleton.data.find_skin("default")
     } else {
         None
     };

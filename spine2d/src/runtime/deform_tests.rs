@@ -222,7 +222,7 @@ fn assert_approx2(actual: [f32; 2], expected: [f32; 2]) {
 fn deform_timeline_unweighted_is_applied_to_slot_and_rendered() {
     let data = SkeletonData::from_json_str(SKELETON_UNWEIGHTED).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
-    let (_, animation) = data.animation("d").unwrap();
+    let animation = data.find_animation("d").unwrap();
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
@@ -242,7 +242,7 @@ fn deform_timeline_unweighted_is_applied_to_slot_and_rendered() {
 fn deform_timeline_weighted_is_applied_as_offsets() {
     let data = SkeletonData::from_json_str(SKELETON_WEIGHTED).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
-    let (_, animation) = data.animation("d").unwrap();
+    let animation = data.find_animation("d").unwrap();
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
@@ -262,7 +262,7 @@ fn deform_timeline_weighted_is_applied_as_offsets() {
 fn deform_timeline_applies_negative_alpha_like_cpp() {
     let data = SkeletonData::from_json_str(SKELETON_UNWEIGHTED).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
-    let (_, animation) = data.animation("d").unwrap();
+    let animation = data.find_animation("d").unwrap();
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
@@ -285,7 +285,7 @@ fn deform_timeline_applies_negative_alpha_like_cpp() {
 fn deform_timeline_applies_to_linked_mesh_inheriting_parent_deform_from_default_skin() {
     let data = SkeletonData::from_json_str(SKELETON_LINKEDMESH_PARENT_DEFAULT_SKIN_DEFORM).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
-    let (_, animation) = data.animation("d").unwrap();
+    let animation = data.find_animation("d").unwrap();
 
     skeleton.set_skin(Some("skinA"));
     skeleton.setup_pose();
@@ -306,7 +306,7 @@ fn deform_timeline_applies_to_linked_mesh_inheriting_parent_deform_from_default_
 #[test]
 fn json_linkedmesh_source_resolves_parent_mesh_and_timeline_attachment() {
     let data = SkeletonData::from_json_str(SKELETON_LINKEDMESH_SOURCE_PARENT).unwrap();
-    let skin = data.skin("variant").unwrap();
+    let skin = data.find_skin("variant").unwrap();
 
     for attachment_name in ["explicit-child", "path-child"] {
         let attachment = skin.attachment(0, attachment_name).unwrap();
@@ -332,7 +332,7 @@ fn attachment_switch_between_linked_mesh_and_parent_preserves_deform_when_timeli
  {
     let data = SkeletonData::from_json_str(SKELETON_LINKEDMESH_PARENT_DEFAULT_SKIN_DEFORM).unwrap();
     let mut skeleton = Skeleton::new(data.clone());
-    let (_, animation) = data.animation("d").unwrap();
+    let animation = data.find_animation("d").unwrap();
 
     skeleton.set_skin(Some("skinA"));
     skeleton.setup_pose();
@@ -365,13 +365,13 @@ fn attachment_switch_between_linked_mesh_and_parent_preserves_deform_when_timeli
 #[test]
 fn deform_timeline_applies_to_cross_slot_linked_mesh_timeline_slots() {
     let data = SkeletonData::from_json_str(SKELETON_CROSS_SLOT_LINKEDMESH_TIMELINE_SLOTS).unwrap();
-    let (_, animation) = data.animation("d").unwrap();
+    let animation = data.find_animation("d").unwrap();
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     let source = data
-        .skin("default")
+        .find_skin("default")
         .and_then(|skin| skin.attachment(0, "source"))
         .and_then(|attachment| match attachment {
             crate::AttachmentData::Mesh(mesh) => Some(mesh),

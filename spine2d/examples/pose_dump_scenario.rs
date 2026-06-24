@@ -334,9 +334,13 @@ fn curve_info(curve: &Curve) -> serde_json::Value {
 }
 
 fn dump_animation_data(data: &SkeletonData, name: &str) {
-    let Some((index, animation)) = data.animation(name) else {
+    let Some(&index) = data.animation_index.get(name) else {
         panic!("missing animation: {name}");
     };
+    let animation = data
+        .animations
+        .get(index)
+        .unwrap_or_else(|| panic!("animation index out of range for {name}: {index}"));
     let ik_timelines: Vec<_> = animation
         .ik_constraint_timelines
         .iter()

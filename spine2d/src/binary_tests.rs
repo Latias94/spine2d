@@ -291,8 +291,8 @@ fn binary_animation_preserves_parse_order_in_timeline_order() {
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
 
-    let (_, animation_skel) = data_skel.animation("shoot").expect("shoot animation");
-    let (_, animation_json) = data_json.animation("shoot").expect("shoot animation");
+    let animation_skel = data_skel.find_animation("shoot").expect("shoot animation");
+    let animation_json = data_json.find_animation("shoot").expect("shoot animation");
 
     assert_eq!(
         animation_skel.timeline_order, animation_json.timeline_order,
@@ -312,7 +312,9 @@ fn load_example_string(rel: &str) -> String {
 }
 
 fn pose_at(data: Arc<SkeletonData>, animation_name: &str, time: f32) -> Skeleton {
-    let (_, anim) = data.animation(animation_name).expect("animation exists");
+    let anim = data
+        .find_animation(animation_name)
+        .expect("animation exists");
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, time, true, 1.0, MixBlend::Replace);
@@ -536,7 +538,10 @@ fn assert_pose_close(a: &Skeleton, b: &Skeleton, eps: f32, ctx: &str) {
 fn skel_smoke_loads_spineboy_pro() {
     let bytes = load_example_bytes("spineboy/export/spineboy-pro.skel");
     let data = SkeletonData::from_skel_bytes(&bytes).expect("parse skel");
-    assert!(data.animation("run").is_some(), "missing 'run' animation");
+    assert!(
+        data.find_animation("run").is_some(),
+        "missing 'run' animation"
+    );
     let _ = pose_at(data, "run", 0.2);
 }
 
@@ -655,8 +660,8 @@ fn skel_tank_treads_path_attachment_matches_json() {
     let slot_json = slot_index(&data_json, slot_name);
     assert_eq!(slot_skel, slot_json, "slot index");
 
-    let skin_skel = data_skel.skin("default").expect("default skin (skel)");
-    let skin_json = data_json.skin("default").expect("default skin (json)");
+    let skin_skel = data_skel.find_skin("default").expect("default skin (skel)");
+    let skin_json = data_json.find_skin("default").expect("default skin (json)");
 
     let att_skel = skin_skel
         .attachments
@@ -906,8 +911,8 @@ fn debug_dump_spineboy_skel_vs_json_constraints() {
     }
 
     for anim_name in ["run", "walk"] {
-        let (_, a) = data_skel.animation(anim_name).expect("skel animation");
-        let (_, b) = data_json.animation(anim_name).expect("json animation");
+        let a = data_skel.find_animation(anim_name).expect("skel animation");
+        let b = data_json.find_animation(anim_name).expect("json animation");
         println!(
             "animation[{anim_name}] duration {:.3} vs {:.3}, order_len {} vs {}",
             a.duration,
@@ -1241,8 +1246,8 @@ fn debug_dump_spineboy_walk_t01_rear_samples_skel_vs_json() {
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
     for (anim_name, time) in [("walk", 0.1f32), ("run", 0.4f32)] {
-        let (_, anim_skel) = data_skel.animation(anim_name).expect("skel animation");
-        let (_, anim_json) = data_json.animation(anim_name).expect("json animation");
+        let anim_skel = data_skel.find_animation(anim_name).expect("skel animation");
+        let anim_json = data_json.find_animation(anim_name).expect("json animation");
 
         println!(
             "[DEBUG-rear-samples] anim={anim_name} time={time:.9} bits={:08x}",
@@ -1511,8 +1516,8 @@ fn debug_dump_spineboy_walk_animation_skel_vs_json() {
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
 
-    let (_, walk_skel) = data_skel.animation("walk").expect("walk skel");
-    let (_, walk_json) = data_json.animation("walk").expect("walk json");
+    let walk_skel = data_skel.find_animation("walk").expect("walk skel");
+    let walk_json = data_json.find_animation("walk").expect("walk json");
 
     println!(
         "walk duration: {:.6} vs {:.6}; bone {} vs {}; deform {} vs {}; sequence {} vs {}; slotAttachment {} vs {}; ik {} vs {}; transform {} vs {}; path {} vs {}; physics {} vs {}; sliderTime {} vs {}; sliderMix {} vs {}",
