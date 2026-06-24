@@ -590,8 +590,13 @@ fn region_local_vertices_with_atlas_region(
         let oy = r.offset_y as f32;
         let local_x = -width * 0.5 * scale_x + ox * region_scale_x;
         let local_y = -height * 0.5 * scale_y + oy * region_scale_y;
-        let local_x2 = local_x + r.width as f32 * region_scale_x;
-        let local_y2 = local_y + r.height as f32 * region_scale_y;
+        let (packed_x, packed_y) = if r.degrees == 90 {
+            (r.packed_height, r.packed_width)
+        } else {
+            (r.packed_width, r.packed_height)
+        };
+        let local_x2 = local_x + packed_x as f32 * region_scale_x;
+        let local_y2 = local_y + packed_y as f32 * region_scale_y;
         (local_x, local_y, local_x2, local_y2)
     } else {
         (
@@ -657,21 +662,21 @@ fn map_mesh_uv_to_page(
     let oh = region.original_height.max(1) as f32;
     let ox = region.offset_x as f32;
     let oy = region.offset_y as f32;
-    let rw = region.width as f32;
-    let rh = region.height as f32;
+    let pw = region.packed_width as f32;
+    let ph = region.packed_height as f32;
 
     let width;
     let height;
     match region.degrees {
         90 => {
-            u -= (oh - oy - rh) / tex_w;
-            v -= (ow - ox - rw) / tex_h;
+            u -= (oh - oy - pw) / tex_w;
+            v -= (ow - ox - ph) / tex_h;
             width = oh / tex_w;
             height = ow / tex_h;
             [u + region_uv[1] * width, v + (1.0 - region_uv[0]) * height]
         }
         180 => {
-            u -= (ow - ox - rw) / tex_w;
+            u -= (ow - ox - pw) / tex_w;
             v -= oy / tex_h;
             width = ow / tex_w;
             height = oh / tex_h;
@@ -689,7 +694,7 @@ fn map_mesh_uv_to_page(
         }
         _ => {
             u -= ox / tex_w;
-            v -= (oh - oy - rh) / tex_h;
+            v -= (oh - oy - ph) / tex_h;
             width = ow / tex_w;
             height = oh / tex_h;
             [u + region_uv[0] * width, v + region_uv[1] * height]

@@ -86,6 +86,8 @@ pub struct AtlasRegion {
     pub y: u32,
     pub width: u32,
     pub height: u32,
+    pub packed_width: u32,
+    pub packed_height: u32,
     pub offset_x: i32,
     pub offset_y: i32,
     pub original_width: u32,
@@ -125,9 +127,13 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
         if region.degrees == 90 {
             region.u2 = (region.x + region.height) as f32 / page_width;
             region.v2 = (region.y + region.width) as f32 / page_height;
+            region.packed_width = region.height;
+            region.packed_height = region.width;
         } else {
             region.u2 = (region.x + region.width) as f32 / page_width;
             region.v2 = (region.y + region.height) as f32 / page_height;
+            region.packed_width = region.width;
+            region.packed_height = region.height;
         }
         region.region_width = ((region.u2 - region.u) * page_width).abs() as u32;
         region.region_height = ((region.v2 - region.v) * page_height).abs() as u32;
@@ -242,6 +248,8 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
                 y: 0,
                 width: 0,
                 height: 0,
+                packed_width: 0,
+                packed_height: 0,
                 offset_x: 0,
                 offset_y: 0,
                 original_width: 0,
@@ -574,6 +582,8 @@ head
         let region = atlas.region("head").unwrap();
         assert_eq!(region.region_width, 8);
         assert_eq!(region.region_height, 16);
+        assert_eq!(region.packed_width, 8);
+        assert_eq!(region.packed_height, 16);
         assert!((region.u - 16.0 / 64.0).abs() <= 1.0e-6);
         assert!((region.v - 32.0 / 64.0).abs() <= 1.0e-6);
         assert!((region.u2 - 24.0 / 64.0).abs() <= 1.0e-6);
