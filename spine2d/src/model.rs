@@ -317,6 +317,57 @@ pub struct SliderConstraintData {
     pub animation: Option<usize>,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub enum ConstraintDataRef<'a> {
+    Ik(usize, &'a IkConstraintData),
+    Transform(usize, &'a TransformConstraintData),
+    Path(usize, &'a PathConstraintData),
+    Physics(usize, &'a PhysicsConstraintData),
+    Slider(usize, &'a SliderConstraintData),
+}
+
+impl ConstraintDataRef<'_> {
+    pub fn data_index(&self) -> usize {
+        match self {
+            ConstraintDataRef::Ik(index, _)
+            | ConstraintDataRef::Transform(index, _)
+            | ConstraintDataRef::Path(index, _)
+            | ConstraintDataRef::Physics(index, _)
+            | ConstraintDataRef::Slider(index, _) => *index,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        match self {
+            ConstraintDataRef::Ik(_, data) => data.name.as_str(),
+            ConstraintDataRef::Transform(_, data) => data.name.as_str(),
+            ConstraintDataRef::Path(_, data) => data.name.as_str(),
+            ConstraintDataRef::Physics(_, data) => data.name.as_str(),
+            ConstraintDataRef::Slider(_, data) => data.name.as_str(),
+        }
+    }
+
+    pub fn order(&self) -> i32 {
+        match self {
+            ConstraintDataRef::Ik(_, data) => data.order,
+            ConstraintDataRef::Transform(_, data) => data.order,
+            ConstraintDataRef::Path(_, data) => data.order,
+            ConstraintDataRef::Physics(_, data) => data.order,
+            ConstraintDataRef::Slider(_, data) => data.order,
+        }
+    }
+
+    pub fn skin_required(&self) -> bool {
+        match self {
+            ConstraintDataRef::Ik(_, data) => data.skin_required,
+            ConstraintDataRef::Transform(_, data) => data.skin_required,
+            ConstraintDataRef::Path(_, data) => data.skin_required,
+            ConstraintDataRef::Physics(_, data) => data.skin_required,
+            ConstraintDataRef::Slider(_, data) => data.skin_required,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct IkFrame {
     pub time: f32,
@@ -1308,6 +1359,49 @@ impl SkeletonData {
         self.slider_constraints
             .iter()
             .find(|data| data.name == name)
+    }
+
+    /// Returns the C++-style unified constraint data view in update order.
+    pub fn constraints(&self) -> Vec<ConstraintDataRef<'_>> {
+        let mut constraints = Vec::with_capacity(
+            self.ik_constraints.len()
+                + self.transform_constraints.len()
+                + self.path_constraints.len()
+                + self.physics_constraints.len()
+                + self.slider_constraints.len(),
+        );
+        constraints.extend(
+            self.ik_constraints
+                .iter()
+                .enumerate()
+                .map(|(index, data)| ConstraintDataRef::Ik(index, data)),
+        );
+        constraints.extend(
+            self.transform_constraints
+                .iter()
+                .enumerate()
+                .map(|(index, data)| ConstraintDataRef::Transform(index, data)),
+        );
+        constraints.extend(
+            self.path_constraints
+                .iter()
+                .enumerate()
+                .map(|(index, data)| ConstraintDataRef::Path(index, data)),
+        );
+        constraints.extend(
+            self.physics_constraints
+                .iter()
+                .enumerate()
+                .map(|(index, data)| ConstraintDataRef::Physics(index, data)),
+        );
+        constraints.extend(
+            self.slider_constraints
+                .iter()
+                .enumerate()
+                .map(|(index, data)| ConstraintDataRef::Slider(index, data)),
+        );
+        constraints.sort_by_key(|constraint| constraint.order());
+        constraints
     }
 
     pub fn default_skin(&self) -> Option<&SkinData> {

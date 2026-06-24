@@ -1,7 +1,8 @@
 use crate::{
-    Animation, BoneData, BoneTimeline, EventData, IkConstraintData, PathConstraintData,
-    PhysicsConstraintData, PositionMode, RotateMode, RotateTimeline, ScaleXTimeline, ScaleYMode,
-    SkeletonData, SkinData, SliderConstraintData, SlotData, SpacingMode, TransformConstraintData,
+    Animation, BoneData, BoneTimeline, ConstraintDataRef, EventData, IkConstraintData,
+    PathConstraintData, PhysicsConstraintData, PositionMode, RotateMode, RotateTimeline,
+    ScaleXTimeline, ScaleYMode, SkeletonData, SkinData, SliderConstraintData, SlotData,
+    SpacingMode, TransformConstraintData,
 };
 
 #[test]
@@ -56,7 +57,7 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     });
     data.ik_constraints.push(IkConstraintData {
         name: "ik".to_string(),
-        order: 0,
+        order: 2,
         skin_required: false,
         bones: vec![0],
         target: 0,
@@ -69,7 +70,7 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     });
     data.transform_constraints.push(TransformConstraintData {
         name: "transform".to_string(),
-        order: 1,
+        order: 4,
         skin_required: false,
         bones: vec![0],
         source: 0,
@@ -88,7 +89,7 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     });
     data.path_constraints.push(PathConstraintData {
         name: "path".to_string(),
-        order: 2,
+        order: 1,
         bones: vec![0],
         target: 0,
         position_mode: PositionMode::Fixed,
@@ -132,7 +133,7 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     });
     data.slider_constraints.push(SliderConstraintData {
         name: "slider".to_string(),
-        order: 4,
+        order: 0,
         skin_required: false,
         setup_time: 0.0,
         setup_mix: 1.0,
@@ -155,11 +156,32 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     assert_eq!(data.find_ik_constraint("ik").unwrap().target, 0);
     assert_eq!(
         data.find_transform_constraint("transform").unwrap().order,
-        1
+        4
     );
-    assert_eq!(data.find_path_constraint("path").unwrap().order, 2);
+    assert_eq!(data.find_path_constraint("path").unwrap().order, 1);
     assert_eq!(data.find_physics_constraint("physics").unwrap().order, 3);
-    assert_eq!(data.find_slider_constraint("slider").unwrap().order, 4);
+    assert_eq!(data.find_slider_constraint("slider").unwrap().order, 0);
+
+    let constraints = data.constraints();
+    assert_eq!(
+        constraints
+            .iter()
+            .map(|constraint| (constraint.order(), constraint.name()))
+            .collect::<Vec<_>>(),
+        vec![
+            (0, "slider"),
+            (1, "path"),
+            (2, "ik"),
+            (3, "physics"),
+            (4, "transform"),
+        ]
+    );
+    assert!(matches!(
+        constraints[0],
+        ConstraintDataRef::Slider(0, data) if data.name == "slider"
+    ));
+    assert_eq!(constraints[0].data_index(), 0);
+    assert!(!constraints[0].skin_required());
 
     assert!(data.find_bone("").is_none());
     assert!(data.find_slot("").is_none());
@@ -196,6 +218,51 @@ fn animation_bones_reports_unique_affected_bone_indices_like_cpp() {
         }));
 
     assert_eq!(animation.bones(), vec![2, 0]);
+}
+
+#[cfg(feature = "json")]
+#[test]
+fn skeleton_data_constraints_follow_cpp_unified_order_after_json_parse() {
+    let data = SkeletonData::from_json_str(
+        r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [
+    { "name": "root" },
+    { "name": "child", "parent": "root" }
+  ],
+  "slots": [
+    { "name": "slot", "bone": "root" }
+  ],
+  "skins": {},
+  "constraints": [
+    { "type": "physics", "name": "physics", "bone": "child" },
+    { "type": "slider", "name": "slider", "bone": "child", "property": "x", "from": 0, "to": 1, "scale": 1, "animation": "anim" },
+    { "type": "ik", "name": "ik", "bones": ["child"], "target": "root" },
+    { "type": "path", "name": "path", "bones": ["child"], "slot": "slot" },
+    { "type": "transform", "name": "transform", "bones": ["child"], "source": "root" }
+  ],
+  "animations": {
+    "anim": {}
+  }
+}
+"#,
+    )
+    .expect("parse skeleton json");
+
+    assert_eq!(
+        data.constraints()
+            .iter()
+            .map(|constraint| (constraint.order(), constraint.name()))
+            .collect::<Vec<_>>(),
+        vec![
+            (0, "physics"),
+            (1, "slider"),
+            (2, "ik"),
+            (3, "path"),
+            (4, "transform"),
+        ]
+    );
 }
 
 fn empty_animation(name: &str) -> Animation {
