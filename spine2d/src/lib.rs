@@ -31,6 +31,9 @@ pub use version::*;
 #[cfg(test)]
 mod geometry_tests;
 
+#[cfg(test)]
+mod model_lookup_tests;
+
 #[cfg(all(test, feature = "json"))]
 mod render_tests;
 

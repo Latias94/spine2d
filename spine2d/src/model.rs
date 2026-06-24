@@ -1207,6 +1207,14 @@ impl SkeletonData {
     pub const DEFAULT_REFERENCE_SCALE: f32 = 100.0;
     pub const DEFAULT_FPS: f32 = 30.0;
 
+    pub fn find_bone(&self, name: &str) -> Option<&BoneData> {
+        self.bones.iter().find(|data| data.name == name)
+    }
+
+    pub fn find_slot(&self, name: &str) -> Option<&SlotData> {
+        self.slots.iter().find(|data| data.name == name)
+    }
+
     pub fn find_animation(&self, name: &str) -> Option<&Animation> {
         let index = *self.animation_index.get(name)?;
         self.animations.get(index)
@@ -1214,6 +1222,36 @@ impl SkeletonData {
 
     pub fn find_skin(&self, name: &str) -> Option<&SkinData> {
         self.skins.get(name)
+    }
+
+    pub fn find_event(&self, name: &str) -> Option<&EventData> {
+        self.events.get(name)
+    }
+
+    pub fn find_ik_constraint(&self, name: &str) -> Option<&IkConstraintData> {
+        self.ik_constraints.iter().find(|data| data.name == name)
+    }
+
+    pub fn find_transform_constraint(&self, name: &str) -> Option<&TransformConstraintData> {
+        self.transform_constraints
+            .iter()
+            .find(|data| data.name == name)
+    }
+
+    pub fn find_path_constraint(&self, name: &str) -> Option<&PathConstraintData> {
+        self.path_constraints.iter().find(|data| data.name == name)
+    }
+
+    pub fn find_physics_constraint(&self, name: &str) -> Option<&PhysicsConstraintData> {
+        self.physics_constraints
+            .iter()
+            .find(|data| data.name == name)
+    }
+
+    pub fn find_slider_constraint(&self, name: &str) -> Option<&SliderConstraintData> {
+        self.slider_constraints
+            .iter()
+            .find(|data| data.name == name)
     }
 
     pub fn default_skin(&self) -> Option<&SkinData> {
