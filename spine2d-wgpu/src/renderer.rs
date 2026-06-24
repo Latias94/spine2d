@@ -353,7 +353,7 @@ fn create_pipeline(
 fn blend_state(blend: BlendMode, premultiplied_alpha: bool) -> wgpu::BlendState {
     use wgpu::{BlendComponent, BlendFactor, BlendOperation};
 
-    // Mirrors upstream `spine-ts/spine-webgl`:
+    // Mirrors the renderer oracle blend convention:
     // glBlendFuncSeparate(srcColorBlend, dstBlend, srcAlphaBlend, dstBlend)
     // where `srcAlphaBlend` is always ONE.
     let (src_color, dst) = match blend {

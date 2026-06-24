@@ -1141,7 +1141,7 @@ mesh0
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
     assert_eq!(draw_list.draws[0].texture_path, "page.png");
 
-    // Expected values from upstream `MeshAttachment.updateRegion()` (spine-ts) for degrees=90.
+    // Expected values from upstream `MeshAttachment::computeUVs()` (spine-cpp) for degrees=90.
     let uv0 = draw_list.vertices[0].uv; // region_uv (0,0)
     let uv2 = draw_list.vertices[2].uv; // region_uv (1,1)
     assert_approx(uv0[0], 0.21);
@@ -1196,7 +1196,7 @@ mesh0
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
     assert_eq!(draw_list.draws[0].texture_path, "page.png");
 
-    // Expected values from upstream `MeshAttachment.updateRegion()` (spine-ts) for degrees=180.
+    // Expected values from upstream `MeshAttachment::computeUVs()` (spine-cpp) for degrees=180.
     let uv0 = draw_list.vertices[0].uv; // region_uv (0,0)
     let uv2 = draw_list.vertices[2].uv; // region_uv (1,1)
     assert_approx(uv0[0], 0.67);
@@ -1251,7 +1251,7 @@ mesh0
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
     assert_eq!(draw_list.draws[0].texture_path, "page.png");
 
-    // Expected values from upstream `MeshAttachment.updateRegion()` (spine-ts) for degrees=270.
+    // Expected values from upstream `MeshAttachment::computeUVs()` (spine-cpp) for degrees=270.
     let uv0 = draw_list.vertices[0].uv; // region_uv (0,0)
     let uv2 = draw_list.vertices[2].uv; // region_uv (1,1)
     assert_approx(uv0[0], 0.79);

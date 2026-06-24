@@ -578,8 +578,8 @@ fn region_local_vertices_with_atlas_region(
     scale_y: f32,
     atlas_region: Option<&crate::AtlasRegion>,
 ) -> [(f32, f32); 4] {
-    // Ported from upstream `RegionAttachment.updateRegion()` (spine-cpp / spine-ts). This produces
-    // the 4 local vertices (after attachment rotation) in the same order as spine-cpp
+    // Ported from upstream `RegionAttachment::computeUVs()` (spine-cpp). This produces
+    // the 4 local vertices (after attachment rotation) in the same order as `spine-cpp`
     // `RegionAttachment.computeWorldVertices`: BR, BL, UL, UR.
     let (region_scale_x, region_scale_y) = if let Some(r) = atlas_region {
         let ow = r.original_width.max(1) as f32;
@@ -725,7 +725,7 @@ fn slot_dark_color_rgba(
     premultiplied_alpha: bool,
     light_alpha: f32,
 ) -> [f32; 4] {
-    // Mirror upstream `spine-ts/spine-webgl`:
+    // Mirror the renderer oracle's two-color packing convention:
     // - No dark color: (0,0,0,1) so the shader becomes a no-op for the dark term.
     // - With dark color:
     //   - PMA: dark.rgb is premultiplied by the *final* light alpha, dark.a=1.
