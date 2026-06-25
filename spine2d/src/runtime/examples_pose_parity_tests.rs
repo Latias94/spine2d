@@ -478,7 +478,7 @@ fn example_tank_shoot_rgba2_slot_color_matches_spine_cpp_lite_0p3() {
 
     let i = slot_index(&data, "smoke-puff1-bg");
     let slot = &skeleton.slots[i];
-    assert!(slot.applied_has_dark());
+    assert!(slot.applied_has_dark_color());
 
     for (j, exp) in [1.0, 0.835294, 0.0470588, 1.0].into_iter().enumerate() {
         assert_approx(slot.applied_color()[j], exp);

@@ -732,7 +732,7 @@ fn slot_dark_color_rgba(
     // - With dark color:
     //   - PMA: dark.rgb is premultiplied by the *final* light alpha, dark.a=1.
     //   - non-PMA: dark.rgb is not premultiplied, dark.a=0 (shader formula switch).
-    if !slot.applied_has_dark() {
+    if !slot.applied_has_dark_color() {
         return [0.0, 0.0, 0.0, 1.0];
     }
 

@@ -1369,12 +1369,8 @@ impl Skeleton {
             if slot.attachment.is_none() && slot.attachment_skin.is_none() {
                 return;
             }
-            slot.attachment = None;
-            slot.attachment_skin = None;
-            if clear_deform {
-                slot.deform.clear();
-            }
-            slot.sequence_index = -1;
+            let mut pose = slot.pose_mut_for(false);
+            pose.set_attachment(None, None, clear_deform);
             return;
         }
 
@@ -1400,12 +1396,12 @@ impl Skeleton {
             Some(source_skin.as_str()),
         );
         let slot = &mut self.slots[slot_index];
-        slot.attachment = Some(attachment_name.to_string());
-        slot.attachment_skin = Some(source_skin);
-        if clear_deform {
-            slot.deform.clear();
-        }
-        slot.sequence_index = -1;
+        let mut pose = slot.pose_mut_for(false);
+        pose.set_attachment(
+            Some(attachment_name.to_string()),
+            Some(source_skin),
+            clear_deform,
+        );
     }
 
     pub fn bounds(&self) -> Option<(f32, f32, f32, f32)> {

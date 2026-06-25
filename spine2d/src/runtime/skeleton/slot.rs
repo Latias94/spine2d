@@ -59,7 +59,7 @@ impl SlotPoseRef<'_> {
         }
     }
 
-    pub(crate) fn has_dark(&self) -> bool {
+    pub(crate) fn has_dark_color(&self) -> bool {
         match self {
             Self::Pose(slot) => slot.has_dark,
             Self::Applied(pose) => pose.has_dark,
@@ -101,7 +101,7 @@ impl SlotPoseMut<'_> {
         }
     }
 
-    pub(crate) fn set_has_dark(&mut self, has_dark: bool) {
+    pub(crate) fn set_has_dark_color(&mut self, has_dark: bool) {
         match self {
             Self::Pose(slot) => slot.has_dark = has_dark,
             Self::Applied(pose) => pose.has_dark = has_dark,
@@ -147,15 +147,24 @@ impl SlotPoseMut<'_> {
         &mut self,
         attachment: Option<String>,
         attachment_skin: Option<String>,
+        clear_deform: bool,
     ) {
         match self {
             Self::Pose(slot) => {
                 slot.attachment = attachment;
                 slot.attachment_skin = attachment_skin;
+                if clear_deform {
+                    slot.deform.clear();
+                }
+                slot.sequence_index = -1;
             }
             Self::Applied(pose) => {
                 pose.attachment = attachment;
                 pose.attachment_skin = attachment_skin;
+                if clear_deform {
+                    pose.deform.clear();
+                }
+                pose.sequence_index = -1;
             }
         }
     }
@@ -274,15 +283,15 @@ impl Slot {
         self.color = color;
     }
 
-    pub fn has_dark(&self) -> bool {
+    pub fn has_dark_color(&self) -> bool {
         self.has_dark
     }
 
-    pub fn applied_has_dark(&self) -> bool {
-        self.pose_for(true).has_dark()
+    pub fn applied_has_dark_color(&self) -> bool {
+        self.pose_for(true).has_dark_color()
     }
 
-    pub fn set_has_dark(&mut self, has_dark: bool) {
+    pub fn set_has_dark_color(&mut self, has_dark: bool) {
         self.has_dark = has_dark;
     }
 

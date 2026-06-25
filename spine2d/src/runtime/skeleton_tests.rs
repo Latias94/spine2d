@@ -965,7 +965,7 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     assert_eq!(skeleton.bones()[0].position(), (40.0, 50.0));
     assert_eq!(skeleton.ik_constraints()[0].mix(), 0.33);
     assert_eq!(skeleton.slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
-    assert!(skeleton.slots()[0].has_dark());
+    assert!(skeleton.slots()[0].has_dark_color());
     assert_eq!(skeleton.slots()[0].dark_color(), [0.5, 0.6, 0.7]);
     assert_eq!(skeleton.data().slots[0].blend, BlendMode::Additive);
     assert_eq!(skeleton.slots()[0].attachment_name(), None);
@@ -1802,10 +1802,10 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
     assert_eq!(slot.bone, 0);
 
     slot.set_color([0.1, 0.2, 0.3, 0.4]);
-    slot.set_has_dark(true);
+    slot.set_has_dark_color(true);
     slot.set_dark_color([0.5, 0.6, 0.7]);
     assert_eq!(slot.color(), [0.1, 0.2, 0.3, 0.4]);
-    assert!(slot.has_dark());
+    assert!(slot.has_dark_color());
     assert_eq!(slot.dark_color(), [0.5, 0.6, 0.7]);
 
     slot.set_sequence_index(4);

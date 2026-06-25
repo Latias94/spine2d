@@ -137,7 +137,7 @@ fn slot_rgba2_timeline_applies_negative_alpha_to_dark_color_like_cpp() {
     assert_approx(skeleton.slots[0].color[1], -0.5);
     assert_approx(skeleton.slots[0].color[2], 0.0);
     assert_approx(skeleton.slots[0].color[3], 1.0);
-    assert!(skeleton.slots[0].has_dark());
+    assert!(skeleton.slots[0].has_dark_color());
     assert_approx(skeleton.slots[0].dark_color()[0], -0.5);
     assert_approx(skeleton.slots[0].dark_color()[1], 0.0);
     assert_approx(skeleton.slots[0].dark_color()[2], 1.5);

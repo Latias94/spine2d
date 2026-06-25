@@ -1538,7 +1538,7 @@ pub(crate) fn apply_physics_reset_timeline(
     };
 
     if crossed {
-        let now = skeleton.time();
+        let now = skeleton.get_time();
         if let Some(idx) = constraint_opt {
             skeleton.physics_constraints[idx].reset_with_time(now);
         } else {
@@ -1614,7 +1614,7 @@ pub(crate) fn apply_physics_constraint_timeline_with(
 
         if constraint_index == -1 {
             for c in &mut skeleton.physics_constraints {
-                let Some(data) = skeleton.data.physics_constraints.get(c.data_index()) else {
+                let Some(data) = skeleton.data.physics_constraints.get(c.data_index) else {
                     continue;
                 };
                 if !is_global(data) {
@@ -1633,7 +1633,7 @@ pub(crate) fn apply_physics_constraint_timeline_with(
         let setup = skeleton
             .data
             .physics_constraints
-            .get(c.data_index())
+            .get(c.data_index)
             .map(get_setup)
             .unwrap_or(0.0);
         apply_one(c, setup, sampled);
@@ -2265,7 +2265,7 @@ pub(crate) fn apply_slot_color(
         .data
         .slots
         .get(timeline.slot_index)
-        .map(|s| s.color)
+        .map(|s| s.setup_pose.color)
         .unwrap_or([1.0, 1.0, 1.0, 1.0]);
 
     let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
@@ -2314,7 +2314,7 @@ pub(crate) fn apply_slot_rgb(
         .data
         .slots
         .get(timeline.slot_index)
-        .map(|s| s.color)
+        .map(|s| s.setup_pose.color)
         .unwrap_or([1.0, 1.0, 1.0, 1.0]);
 
     let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
@@ -2373,7 +2373,7 @@ pub(crate) fn apply_slot_alpha(
         .data
         .slots
         .get(timeline.slot_index)
-        .map(|s| s.color[3])
+        .map(|s| s.setup_pose.color[3])
         .unwrap_or(1.0);
 
     let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
@@ -2426,7 +2426,13 @@ pub(crate) fn apply_slot_rgba2(
         .data
         .slots
         .get(timeline.slot_index)
-        .map(|s| (s.color, s.has_dark, s.dark_color))
+        .map(|s| {
+            (
+                s.setup_pose.color,
+                s.setup_pose.has_dark,
+                s.setup_pose.dark_color,
+            )
+        })
         .unwrap_or(([1.0, 1.0, 1.0, 1.0], false, [0.0, 0.0, 0.0]));
 
     let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
@@ -2439,7 +2445,7 @@ pub(crate) fn apply_slot_rgba2(
         match blend {
             MixBlend::Setup => {
                 pose.set_color(setup_light);
-                pose.set_has_dark(setup_has_dark);
+                pose.set_has_dark_color(setup_has_dark);
                 pose.set_dark_color(setup_dark);
             }
             MixBlend::First => {
@@ -2454,20 +2460,20 @@ pub(crate) fn apply_slot_rgba2(
     let (target_light, target_dark) = sample_rgba2(&timeline.frames, time);
     if alpha == 1.0 {
         pose.set_color(target_light);
-        pose.set_has_dark(true);
+        pose.set_has_dark_color(true);
         pose.set_dark_color(target_dark);
         return;
     }
 
     if blend == MixBlend::Setup {
         pose.set_color(setup_light);
-        pose.set_has_dark(setup_has_dark);
+        pose.set_has_dark_color(setup_has_dark);
         pose.set_dark_color(setup_dark);
     }
 
     pose.set_color(lerp_color(pose.color(), target_light, alpha));
     pose.set_dark_color(lerp3(pose.dark_color(), target_dark, alpha));
-    pose.set_has_dark(true);
+    pose.set_has_dark_color(true);
 }
 
 pub(crate) fn apply_slot_rgb2(
@@ -2489,7 +2495,13 @@ pub(crate) fn apply_slot_rgb2(
         .data
         .slots
         .get(timeline.slot_index)
-        .map(|s| (s.color, s.has_dark, s.dark_color))
+        .map(|s| {
+            (
+                s.setup_pose.color,
+                s.setup_pose.has_dark,
+                s.setup_pose.dark_color,
+            )
+        })
         .unwrap_or(([1.0, 1.0, 1.0, 1.0], false, [0.0, 0.0, 0.0]));
 
     let Some(slot) = skeleton.slots.get_mut(timeline.slot_index) else {
@@ -2505,7 +2517,7 @@ pub(crate) fn apply_slot_rgb2(
                 color[0] = setup_light[0];
                 color[1] = setup_light[1];
                 color[2] = setup_light[2];
-                pose.set_has_dark(setup_has_dark);
+                pose.set_has_dark_color(setup_has_dark);
                 pose.set_dark_color(setup_dark);
             }
             MixBlend::First => {
@@ -2530,7 +2542,7 @@ pub(crate) fn apply_slot_rgb2(
         color[0] = target_light[0];
         color[1] = target_light[1];
         color[2] = target_light[2];
-        pose.set_has_dark(true);
+        pose.set_has_dark_color(true);
         pose.set_dark_color(target_dark);
         return;
     }
@@ -2540,7 +2552,7 @@ pub(crate) fn apply_slot_rgb2(
         color[0] = setup_light[0];
         color[1] = setup_light[1];
         color[2] = setup_light[2];
-        pose.set_has_dark(setup_has_dark);
+        pose.set_has_dark_color(setup_has_dark);
         pose.set_dark_color(setup_dark);
     }
 
@@ -2552,7 +2564,7 @@ pub(crate) fn apply_slot_rgb2(
     color[1] = out[1];
     color[2] = out[2];
     pose.set_dark_color(lerp3(pose.dark_color(), target_dark, alpha));
-    pose.set_has_dark(true);
+    pose.set_has_dark_color(true);
 }
 
 fn lerp_color(from: [f32; 4], to: [f32; 4], alpha: f32) -> [f32; 4] {
@@ -2698,11 +2710,7 @@ fn set_attachment(
 
     {
         let mut pose = slot.pose_mut_for(applied_pose);
-        if clear_deform {
-            pose.deform_mut().clear();
-        }
-        pose.set_attachment(new_key, new_skin);
-        pose.set_sequence_index(-1);
+        pose.set_attachment(new_key, new_skin, clear_deform);
     }
 
     if attachments {
@@ -2889,7 +2897,7 @@ fn deform_timeline_slots(timeline: &DeformTimeline, skeleton: &Skeleton) -> Vec<
     skeleton
         .data
         .find_skin(timeline.skin.as_str())
-        .and_then(|skin| skin.attachment(timeline.slot_index, timeline.attachment.as_str()))
+        .and_then(|skin| skin.get_attachment(timeline.slot_index, timeline.attachment.as_str()))
         .and_then(|attachment| match attachment {
             crate::AttachmentData::Mesh(mesh) => Some(mesh.timeline_slots.clone()),
             _ => None,
@@ -3071,7 +3079,7 @@ fn sequence_timeline_slots(timeline: &crate::SequenceTimeline, skeleton: &Skelet
     skeleton
         .data
         .find_skin(timeline.skin.as_str())
-        .and_then(|skin| skin.attachment(timeline.slot_index, timeline.attachment.as_str()))
+        .and_then(|skin| skin.get_attachment(timeline.slot_index, timeline.attachment.as_str()))
         .and_then(|attachment| match attachment {
             crate::AttachmentData::Mesh(mesh) => Some(mesh.timeline_slots.clone()),
             _ => None,
@@ -3162,7 +3170,7 @@ fn sequence_timeline_index(
     let sequence = skeleton
         .data
         .find_skin(timeline.skin.as_str())
-        .and_then(|s| s.attachment(timeline.slot_index, timeline.attachment.as_str()))
+        .and_then(|s| s.get_attachment(timeline.slot_index, timeline.attachment.as_str()))
         .and_then(|a| match a {
             crate::AttachmentData::Region(r) => r.sequence.as_ref(),
             crate::AttachmentData::Mesh(m) => m.sequence.as_ref(),
