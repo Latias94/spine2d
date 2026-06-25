@@ -883,6 +883,7 @@ impl SkeletonData {
             let index = bones.len();
             bone_index.insert(bone.name.clone(), index);
             bones.push(BoneData {
+                index,
                 name: bone.name,
                 parent,
                 length: bone.length * scale,
@@ -929,17 +930,21 @@ impl SkeletonData {
                 .transpose()?
                 .map(|c| [c[0], c[1], c[2]]);
             slots.push(SlotData {
+                index,
                 name: slot_name.clone(),
                 bone,
                 attachment: slot.attachment,
-                color: slot
-                    .color
-                    .as_deref()
-                    .map(|s| parse_hex_color_rgba(s, "slot setup color"))
-                    .transpose()?
-                    .unwrap_or([1.0, 1.0, 1.0, 1.0]),
-                has_dark: dark.is_some(),
-                dark_color: dark.unwrap_or([0.0, 0.0, 0.0]),
+                setup_pose: crate::SlotSetupPose {
+                    color: slot
+                        .color
+                        .as_deref()
+                        .map(|s| parse_hex_color_rgba(s, "slot setup color"))
+                        .transpose()?
+                        .unwrap_or([1.0, 1.0, 1.0, 1.0]),
+                    has_dark: dark.is_some(),
+                    dark_color: dark.unwrap_or([0.0, 0.0, 0.0]),
+                    sequence_index: 0,
+                },
                 blend: parse_blend_mode(slot.blend.as_deref(), &slot_name)?,
                 visible: slot.visible.unwrap_or(true),
             });
@@ -1520,8 +1525,8 @@ impl SkeletonData {
                             ),
                         });
                     };
-                    let Some(parent_attachment) =
-                        parent_skin.attachment(pending.source_slot_index, &parent_attachment_name)
+                    let Some(parent_attachment) = parent_skin
+                        .get_attachment(pending.source_slot_index, &parent_attachment_name)
                     else {
                         return Err(Error::JsonInvalidMeshData {
                             skin: pending.skin.clone(),
@@ -2166,7 +2171,6 @@ impl SkeletonData {
         }
 
         let mut animations = Vec::new();
-        let mut animation_index = HashMap::new();
         for (name, def_value) in root.animations {
             let def: AnimationDef = from_json_value(&def_value, &format!("animation '{name}'"))?;
             let animation_color = def.color;
@@ -2512,7 +2516,7 @@ impl SkeletonData {
                                 continue;
                             }
 
-                            let Some(attachment) = skin.attachment(s_index, &attachment_name)
+                            let Some(attachment) = skin.get_attachment(s_index, &attachment_name)
                             else {
                                 return Err(if has_sequence {
                                     Error::JsonUnknownSequenceAttachment {
@@ -2748,7 +2752,11 @@ impl SkeletonData {
                 }
 
                 if let Some(keys) = slot_anim.rgba2 {
-                    if !slots.get(s_index).map(|s| s.has_dark).unwrap_or(false) {
+                    if !slots
+                        .get(s_index)
+                        .map(|s| s.setup_pose.has_dark)
+                        .unwrap_or(false)
+                    {
                         return Err(Error::JsonTwoColorTimelineRequiresDarkSlot {
                             animation: name.clone(),
                             slot: slot_name.clone(),
@@ -2792,7 +2800,11 @@ impl SkeletonData {
                 }
 
                 if let Some(keys) = slot_anim.rgb2 {
-                    if !slots.get(s_index).map(|s| s.has_dark).unwrap_or(false) {
+                    if !slots
+                        .get(s_index)
+                        .map(|s| s.setup_pose.has_dark)
+                        .unwrap_or(false)
+                    {
                         return Err(Error::JsonTwoColorTimelineRequiresDarkSlot {
                             animation: name.clone(),
                             slot: slot_name.clone(),
@@ -3292,7 +3304,6 @@ impl SkeletonData {
                 .transpose()?
                 .unwrap_or(Animation::DEFAULT_COLOR);
 
-            let index = animations.len();
             let animation = Animation {
                 name: name.clone(),
                 duration,
@@ -3319,11 +3330,13 @@ impl SkeletonData {
                 timeline_order,
             };
             animations.push(crate::runtime::finalize_animation(animation));
-            animation_index.insert(name, index);
         }
 
         for (constraint_index, animation_name) in pending_slider_animations {
-            let Some(anim_index) = animation_index.get(&animation_name).copied() else {
+            let Some(anim_index) = animations
+                .iter()
+                .position(|animation| animation.name == animation_name)
+            else {
                 return Err(Error::JsonUnknownSliderAnimation {
                     constraint: slider_constraints
                         .get(constraint_index)
@@ -3354,7 +3367,6 @@ impl SkeletonData {
             skins,
             events,
             animations,
-            animation_index,
             ik_constraints,
             transform_constraints,
             path_constraints,
@@ -4359,7 +4371,9 @@ fn resolve_linked_mesh_parent(
     }
 
     if let Some(default_skin) = skins.get("default")
-        && default_skin.attachment(source_slot_index, source).is_some()
+        && default_skin
+            .get_attachment(source_slot_index, source)
+            .is_some()
     {
         return Some(("default".to_string(), source.to_string()));
     }
@@ -4377,7 +4391,7 @@ fn resolve_linked_mesh_parent(
     for (skin_name, attachment_name) in prefix_matches {
         if skins
             .get(skin_name)
-            .and_then(|skin| skin.attachment(source_slot_index, attachment_name))
+            .and_then(|skin| skin.get_attachment(source_slot_index, attachment_name))
             .is_some()
         {
             return Some((skin_name.to_string(), attachment_name.to_string()));

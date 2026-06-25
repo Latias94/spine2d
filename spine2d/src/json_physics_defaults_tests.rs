@@ -128,7 +128,7 @@ fn json_bone_and_slot_nonessential_fields_are_preserved() {
     let data = SkeletonData::from_json_str(json).expect("parse skeleton json");
     let bone = &data.bones[0];
     assert_eq!(
-        bone.color,
+        bone.get_color(),
         [
             0x11 as f32 / 255.0,
             0x22 as f32 / 255.0,
@@ -136,11 +136,11 @@ fn json_bone_and_slot_nonessential_fields_are_preserved() {
             0x44 as f32 / 255.0
         ]
     );
-    assert_eq!(bone.icon, "root-icon");
-    assert_eq!(bone.icon_size, 2.5);
-    assert_eq!(bone.icon_rotation, 45.0);
-    assert!(!bone.visible);
-    assert!(!data.slots[0].visible);
+    assert_eq!(bone.get_icon(), "root-icon");
+    assert_eq!(bone.get_icon_size(), 2.5);
+    assert_eq!(bone.get_icon_rotation(), 45.0);
+    assert!(!bone.get_visible());
+    assert!(!data.slots[0].get_visible());
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn json_clipping_flags_parse_convex_and_inverse() {
     let data = SkeletonData::from_json_str(json).expect("parse skeleton json");
     let clip = data
         .find_skin("default")
-        .and_then(|skin| skin.attachment(0, "clip"))
+        .and_then(|skin| skin.get_attachment(0, "clip"))
         .and_then(|attachment| match attachment {
             crate::AttachmentData::Clipping(clip) => Some(clip),
             _ => None,

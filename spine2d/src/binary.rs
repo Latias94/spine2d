@@ -20,7 +20,6 @@ use crate::{
 };
 use byteorder::{BigEndian, ByteOrder};
 use indexmap::IndexMap;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 const CURVE_LINEAR: i8 = 0;
@@ -1024,6 +1023,7 @@ impl crate::SkeletonData {
                 visible = input.read_bool()?;
             }
             bones.push(BoneData {
+                index: bones.len(),
                 name,
                 parent,
                 length,
@@ -1070,12 +1070,16 @@ impl crate::SkeletonData {
                 visible = input.read_bool()?;
             }
             slots.push(SlotData {
+                index: slots.len(),
                 name,
                 bone,
                 attachment,
-                color,
-                has_dark,
-                dark_color,
+                setup_pose: crate::SlotSetupPose {
+                    color,
+                    has_dark,
+                    dark_color,
+                    sequence_index: 0,
+                },
                 blend,
                 visible,
             });
@@ -1702,8 +1706,8 @@ impl crate::SkeletonData {
                         message: "linked mesh parent skin not found".to_string(),
                     });
                 };
-                let Some(parent_attachment) =
-                    parent_skin.attachment(pending.source_slot_index, pending.parent_key.as_str())
+                let Some(parent_attachment) = parent_skin
+                    .get_attachment(pending.source_slot_index, pending.parent_key.as_str())
                 else {
                     return Err(Error::BinaryParse {
                         message: format!(
@@ -1827,7 +1831,6 @@ impl crate::SkeletonData {
         // Animations
         let animations_count = input.read_varint(true)? as usize;
         let mut animations = Vec::with_capacity(animations_count);
-        let mut animation_index = HashMap::<String, usize>::new();
         let trace_anim = std::env::var("SPINE2D_BINARY_TRACE_ANIM")
             .ok()
             .is_some_and(|v| v == "1");
@@ -1857,7 +1860,6 @@ impl crate::SkeletonData {
             if trace_anim {
                 eprintln!("[binary] animation[{ai}] endOffset={}", input.cursor);
             }
-            animation_index.insert(name, ai);
             animations.push(anim);
         }
 
@@ -1887,7 +1889,6 @@ impl crate::SkeletonData {
             skins: skins_map,
             events,
             animations,
-            animation_index,
             ik_constraints,
             transform_constraints,
             path_constraints,
@@ -2897,7 +2898,7 @@ fn read_animation(
                             message: "missing attachment name in attachment timeline".to_string(),
                         })?;
                 let attachment = skin
-                    .attachment(slot_index, attachment_key.as_str())
+                    .get_attachment(slot_index, attachment_key.as_str())
                     .ok_or_else(|| Error::BinaryParse {
                         message: format!("attachment not found: {attachment_key}"),
                     })?;

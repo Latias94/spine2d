@@ -229,7 +229,7 @@ fn binary_nonessential_bone_slot_and_animation_fields_are_preserved() {
 
     let bone = &data.bones[0];
     assert_eq!(
-        bone.color,
+        bone.get_color(),
         [
             0x11 as f32 / 255.0,
             0x22 as f32 / 255.0,
@@ -237,11 +237,11 @@ fn binary_nonessential_bone_slot_and_animation_fields_are_preserved() {
             0x44 as f32 / 255.0
         ]
     );
-    assert_eq!(bone.icon, "root-icon");
-    assert_eq!(bone.icon_size, 2.5);
-    assert_eq!(bone.icon_rotation, 45.0);
-    assert!(!bone.visible);
-    assert!(!data.slots[0].visible);
+    assert_eq!(bone.get_icon(), "root-icon");
+    assert_eq!(bone.get_icon_size(), 2.5);
+    assert_eq!(bone.get_icon_rotation(), 45.0);
+    assert!(!bone.get_visible());
+    assert!(!data.slots[0].get_visible());
 
     let animation = data.find_animation("anim").unwrap();
     assert_eq!(
@@ -490,19 +490,14 @@ fn assert_pose_close(a: &Skeleton, b: &Skeleton, eps: f32, ctx: &str) {
     assert_eq!(a.draw_order, b.draw_order, "draw order");
 
     for (i, (ba, bb)) in a.bones.iter().zip(&b.bones).enumerate() {
-        let name_a = bone_name(a, ba.data_index());
-        let name_b = bone_name(b, bb.data_index());
-        assert_eq!(
-            ba.data_index(),
-            bb.data_index(),
-            "{ctx}: bone[{i}] data_index"
-        );
+        let name_a = bone_name(a, ba.data_index);
+        let name_b = bone_name(b, bb.data_index);
+        assert_eq!(ba.data_index, bb.data_index, "{ctx}: bone[{i}] data_index");
         assert_eq!(name_a, name_b, "{ctx}: bone[{i}] name");
         assert_eq!(ba.active, bb.active, "{ctx}: bone[{i}]({name_a}).active");
         assert_eq!(ba.inherit, bb.inherit, "{ctx}: bone[{i}]({name_a}).inherit");
         assert_eq!(
-            ba.parent_index(),
-            bb.parent_index(),
+            ba.parent, bb.parent,
             "{ctx}: bone[{i}]({name_a}).parent_index"
         );
 

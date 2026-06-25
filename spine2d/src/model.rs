@@ -1,30 +1,93 @@
 use indexmap::IndexMap;
-use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub struct BoneData {
-    pub name: String,
-    pub parent: Option<usize>,
-    pub length: f32,
-    pub x: f32,
-    pub y: f32,
-    pub rotation: f32,
-    pub scale_x: f32,
-    pub scale_y: f32,
-    pub shear_x: f32,
-    pub shear_y: f32,
-    pub inherit: Inherit,
-    pub skin_required: bool,
-    pub color: [f32; 4],
-    pub icon: String,
-    pub icon_size: f32,
-    pub icon_rotation: f32,
-    pub visible: bool,
+    pub(crate) index: usize,
+    pub(crate) name: String,
+    pub(crate) parent: Option<usize>,
+    pub(crate) length: f32,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) rotation: f32,
+    pub(crate) scale_x: f32,
+    pub(crate) scale_y: f32,
+    pub(crate) shear_x: f32,
+    pub(crate) shear_y: f32,
+    pub(crate) inherit: Inherit,
+    pub(crate) skin_required: bool,
+    pub(crate) color: [f32; 4],
+    pub(crate) icon: String,
+    pub(crate) icon_size: f32,
+    pub(crate) icon_rotation: f32,
+    pub(crate) visible: bool,
+}
+
+impl BoneData {
+    pub fn get_index(&self) -> usize {
+        self.index
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_length(&self) -> f32 {
+        self.length
+    }
+
+    pub fn set_length(&mut self, length: f32) {
+        self.length = length;
+    }
+
+    pub fn get_skin_required(&self) -> bool {
+        self.skin_required
+    }
+
+    pub fn set_skin_required(&mut self, skin_required: bool) {
+        self.skin_required = skin_required;
+    }
+
+    pub fn get_color(&self) -> [f32; 4] {
+        self.color
+    }
+
+    pub fn get_icon(&self) -> &str {
+        self.icon.as_str()
+    }
+
+    pub fn set_icon(&mut self, icon: impl Into<String>) {
+        self.icon = icon.into();
+    }
+
+    pub fn get_icon_size(&self) -> f32 {
+        self.icon_size
+    }
+
+    pub fn set_icon_size(&mut self, icon_size: f32) {
+        self.icon_size = icon_size;
+    }
+
+    pub fn get_icon_rotation(&self) -> f32 {
+        self.icon_rotation
+    }
+
+    pub fn set_icon_rotation(&mut self, icon_rotation: f32) {
+        self.icon_rotation = icon_rotation;
+    }
+
+    pub fn get_visible(&self) -> bool {
+        self.visible
+    }
+
+    pub fn set_visible(&mut self, visible: bool) {
+        self.visible = visible;
+    }
 }
 
 impl Default for BoneData {
     fn default() -> Self {
         Self {
+            index: 0,
             name: String::new(),
             parent: None,
             length: 0.0,
@@ -58,25 +121,81 @@ pub enum Inherit {
 
 #[derive(Clone, Debug)]
 pub struct SlotData {
-    pub name: String,
-    pub bone: usize,
-    pub attachment: Option<String>,
-    pub color: [f32; 4],
-    pub has_dark: bool,
-    pub dark_color: [f32; 3],
-    pub blend: BlendMode,
-    pub visible: bool,
+    pub(crate) index: usize,
+    pub(crate) name: String,
+    pub(crate) bone: usize,
+    pub(crate) attachment: Option<String>,
+    pub(crate) setup_pose: SlotSetupPose,
+    pub(crate) blend: BlendMode,
+    pub(crate) visible: bool,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct SlotSetupPose {
+    pub(crate) color: [f32; 4],
+    pub(crate) has_dark: bool,
+    pub(crate) dark_color: [f32; 3],
+    pub(crate) sequence_index: i32,
+}
+
+impl Default for SlotSetupPose {
+    fn default() -> Self {
+        Self {
+            color: [1.0, 1.0, 1.0, 1.0],
+            has_dark: false,
+            dark_color: [0.0, 0.0, 0.0],
+            sequence_index: 0,
+        }
+    }
+}
+
+impl SlotData {
+    pub fn get_index(&self) -> usize {
+        self.index
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_attachment_name(&self) -> &str {
+        self.attachment.as_deref().unwrap_or("")
+    }
+
+    pub fn set_attachment_name(&mut self, attachment_name: impl Into<String>) {
+        let attachment_name = attachment_name.into();
+        self.attachment = if attachment_name.is_empty() {
+            None
+        } else {
+            Some(attachment_name)
+        };
+    }
+
+    pub fn get_blend_mode(&self) -> BlendMode {
+        self.blend
+    }
+
+    pub fn set_blend_mode(&mut self, blend: BlendMode) {
+        self.blend = blend;
+    }
+
+    pub fn get_visible(&self) -> bool {
+        self.visible
+    }
+
+    pub fn set_visible(&mut self, visible: bool) {
+        self.visible = visible;
+    }
 }
 
 impl Default for SlotData {
     fn default() -> Self {
         Self {
+            index: 0,
             name: String::new(),
             bone: 0,
             attachment: None,
-            color: [1.0, 1.0, 1.0, 1.0],
-            has_dark: false,
-            dark_color: [0.0, 0.0, 0.0],
+            setup_pose: SlotSetupPose::default(),
             blend: BlendMode::Normal,
             visible: true,
         }
@@ -314,57 +433,36 @@ pub struct SliderConstraintData {
     pub scale: f32,
     pub local: bool,
 
-    /// Resolved animation index in `SkeletonData::animations`.
-    pub animation: Option<usize>,
+    pub(crate) animation: Option<usize>,
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum ConstraintDataRef<'a> {
-    Ik(usize, &'a IkConstraintData),
-    Transform(usize, &'a TransformConstraintData),
-    Path(usize, &'a PathConstraintData),
-    Physics(usize, &'a PhysicsConstraintData),
-    Slider(usize, &'a SliderConstraintData),
+    Ik(&'a IkConstraintData),
+    Transform(&'a TransformConstraintData),
+    Path(&'a PathConstraintData),
+    Physics(&'a PhysicsConstraintData),
+    Slider(&'a SliderConstraintData),
 }
 
 impl ConstraintDataRef<'_> {
-    pub fn data_index(&self) -> usize {
-        match self {
-            ConstraintDataRef::Ik(index, _)
-            | ConstraintDataRef::Transform(index, _)
-            | ConstraintDataRef::Path(index, _)
-            | ConstraintDataRef::Physics(index, _)
-            | ConstraintDataRef::Slider(index, _) => *index,
-        }
-    }
-
     pub fn name(&self) -> &str {
         match self {
-            ConstraintDataRef::Ik(_, data) => data.name.as_str(),
-            ConstraintDataRef::Transform(_, data) => data.name.as_str(),
-            ConstraintDataRef::Path(_, data) => data.name.as_str(),
-            ConstraintDataRef::Physics(_, data) => data.name.as_str(),
-            ConstraintDataRef::Slider(_, data) => data.name.as_str(),
-        }
-    }
-
-    pub fn order(&self) -> i32 {
-        match self {
-            ConstraintDataRef::Ik(_, data) => data.order,
-            ConstraintDataRef::Transform(_, data) => data.order,
-            ConstraintDataRef::Path(_, data) => data.order,
-            ConstraintDataRef::Physics(_, data) => data.order,
-            ConstraintDataRef::Slider(_, data) => data.order,
+            ConstraintDataRef::Ik(data) => data.name.as_str(),
+            ConstraintDataRef::Transform(data) => data.name.as_str(),
+            ConstraintDataRef::Path(data) => data.name.as_str(),
+            ConstraintDataRef::Physics(data) => data.name.as_str(),
+            ConstraintDataRef::Slider(data) => data.name.as_str(),
         }
     }
 
     pub fn skin_required(&self) -> bool {
         match self {
-            ConstraintDataRef::Ik(_, data) => data.skin_required,
-            ConstraintDataRef::Transform(_, data) => data.skin_required,
-            ConstraintDataRef::Path(_, data) => data.skin_required,
-            ConstraintDataRef::Physics(_, data) => data.skin_required,
-            ConstraintDataRef::Slider(_, data) => data.skin_required,
+            ConstraintDataRef::Ik(data) => data.skin_required,
+            ConstraintDataRef::Transform(data) => data.skin_required,
+            ConstraintDataRef::Path(data) => data.skin_required,
+            ConstraintDataRef::Physics(data) => data.skin_required,
+            ConstraintDataRef::Slider(data) => data.skin_required,
         }
     }
 }
@@ -611,28 +709,26 @@ impl ClippingAttachmentData {
 
 #[derive(Clone, Debug)]
 pub struct SkinData {
-    pub name: String,
-    pub color: [f32; 4],
-    pub attachments: Vec<IndexMap<String, AttachmentData>>,
-    pub bones: Vec<usize>,
-    pub ik_constraints: Vec<usize>,
-    pub transform_constraints: Vec<usize>,
-    pub path_constraints: Vec<usize>,
-    pub physics_constraints: Vec<usize>,
-    pub slider_constraints: Vec<usize>,
+    pub(crate) name: String,
+    pub(crate) color: [f32; 4],
+    pub(crate) attachments: Vec<IndexMap<String, AttachmentData>>,
+    pub(crate) bones: Vec<usize>,
+    pub(crate) ik_constraints: Vec<usize>,
+    pub(crate) transform_constraints: Vec<usize>,
+    pub(crate) path_constraints: Vec<usize>,
+    pub(crate) physics_constraints: Vec<usize>,
+    pub(crate) slider_constraints: Vec<usize>,
 }
 
 impl SkinData {
     pub const DEFAULT_COLOR: [f32; 4] = [0.99607843, 0.61960787, 0.30980393, 1.0];
 
-    /// Creates an empty skin with storage for `slot_count` slots.
-    ///
-    /// This is intended for runtime composition use-cases (eg. "mix and match" skins).
-    pub fn new(name: impl Into<String>, slot_count: usize) -> Self {
+    /// Creates an empty skin.
+    pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
             color: Self::DEFAULT_COLOR,
-            attachments: (0..slot_count).map(|_| IndexMap::new()).collect(),
+            attachments: Vec::new(),
             bones: Vec::new(),
             ik_constraints: Vec::new(),
             transform_constraints: Vec::new(),
@@ -640,6 +736,22 @@ impl SkinData {
             physics_constraints: Vec::new(),
             slider_constraints: Vec::new(),
         }
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_color(&self) -> [f32; 4] {
+        self.color
+    }
+
+    pub fn get_attachments(&self) -> &[IndexMap<String, AttachmentData>] {
+        &self.attachments
+    }
+
+    pub fn get_bones(&self) -> &[usize] {
+        &self.bones
     }
 
     /// Merges `other` into `self` (union of bones/constraints + last-write-wins attachments).
@@ -700,7 +812,11 @@ impl SkinData {
         self.attachments[slot_index].insert(attachment_name.into(), attachment);
     }
 
-    pub fn attachment(&self, slot_index: usize, attachment_name: &str) -> Option<&AttachmentData> {
+    pub fn get_attachment(
+        &self,
+        slot_index: usize,
+        attachment_name: &str,
+    ) -> Option<&AttachmentData> {
         self.attachments
             .get(slot_index)
             .and_then(|slot_map| slot_map.get(attachment_name))
@@ -711,32 +827,6 @@ impl SkinData {
         if let Some(slot_map) = self.attachments.get_mut(slot_index) {
             slot_map.shift_remove(attachment_name);
         }
-    }
-
-    pub fn names_for_slot(&self, slot_index: usize) -> Vec<&str> {
-        self.attachments
-            .get(slot_index)
-            .map(|slot_map| slot_map.keys().map(String::as_str).collect())
-            .unwrap_or_default()
-    }
-
-    pub fn attachments_for_slot(&self, slot_index: usize) -> Vec<&AttachmentData> {
-        self.attachments
-            .get(slot_index)
-            .map(|slot_map| slot_map.values().collect())
-            .unwrap_or_default()
-    }
-
-    pub fn attachment_entries(&self) -> Vec<(usize, &str, &AttachmentData)> {
-        self.attachments
-            .iter()
-            .enumerate()
-            .flat_map(|(slot_index, slot_map)| {
-                slot_map
-                    .iter()
-                    .map(move |(name, attachment)| (slot_index, name.as_str(), attachment))
-            })
-            .collect()
     }
 }
 
@@ -1287,34 +1377,117 @@ impl BoneTimeline {
 
 #[derive(Clone, Debug)]
 pub struct SkeletonData {
-    pub name: String,
-    pub spine_version: Option<String>,
-    pub hash: String,
-    pub x: f32,
-    pub y: f32,
-    pub width: f32,
-    pub height: f32,
-    pub reference_scale: f32,
-    pub fps: f32,
-    pub images_path: String,
-    pub audio_path: String,
-    pub bones: Vec<BoneData>,
-    pub slots: Vec<SlotData>,
-    pub skins: IndexMap<String, SkinData>,
-    pub events: IndexMap<String, EventData>,
-    pub animations: Vec<Animation>,
-    pub animation_index: HashMap<String, usize>,
-    pub ik_constraints: Vec<IkConstraintData>,
-    pub transform_constraints: Vec<TransformConstraintData>,
-    pub path_constraints: Vec<PathConstraintData>,
-    pub physics_constraints: Vec<PhysicsConstraintData>,
-    pub slider_constraints: Vec<SliderConstraintData>,
+    pub(crate) name: String,
+    pub(crate) spine_version: Option<String>,
+    pub(crate) hash: String,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) width: f32,
+    pub(crate) height: f32,
+    pub(crate) reference_scale: f32,
+    pub(crate) fps: f32,
+    pub(crate) images_path: String,
+    pub(crate) audio_path: String,
+    pub(crate) bones: Vec<BoneData>,
+    pub(crate) slots: Vec<SlotData>,
+    pub(crate) skins: IndexMap<String, SkinData>,
+    pub(crate) events: IndexMap<String, EventData>,
+    pub(crate) animations: Vec<Animation>,
+    pub(crate) ik_constraints: Vec<IkConstraintData>,
+    pub(crate) transform_constraints: Vec<TransformConstraintData>,
+    pub(crate) path_constraints: Vec<PathConstraintData>,
+    pub(crate) physics_constraints: Vec<PhysicsConstraintData>,
+    pub(crate) slider_constraints: Vec<SliderConstraintData>,
 }
 
 impl SkeletonData {
     pub const DEFAULT_SKIN_NAME: &'static str = "default";
     pub const DEFAULT_REFERENCE_SCALE: f32 = 100.0;
     pub const DEFAULT_FPS: f32 = 30.0;
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_spine_version(&self) -> Option<&str> {
+        self.spine_version.as_deref()
+    }
+
+    pub fn get_hash(&self) -> &str {
+        self.hash.as_str()
+    }
+
+    pub fn get_x(&self) -> f32 {
+        self.x
+    }
+
+    pub fn get_y(&self) -> f32 {
+        self.y
+    }
+
+    pub fn get_width(&self) -> f32 {
+        self.width
+    }
+
+    pub fn get_height(&self) -> f32 {
+        self.height
+    }
+
+    pub fn get_reference_scale(&self) -> f32 {
+        self.reference_scale
+    }
+
+    pub fn get_fps(&self) -> f32 {
+        self.fps
+    }
+
+    pub fn get_images_path(&self) -> &str {
+        self.images_path.as_str()
+    }
+
+    pub fn get_audio_path(&self) -> &str {
+        self.audio_path.as_str()
+    }
+
+    pub fn get_bones(&self) -> &[BoneData] {
+        &self.bones
+    }
+
+    pub fn get_slots(&self) -> &[SlotData] {
+        &self.slots
+    }
+
+    pub fn get_skins(&self) -> &IndexMap<String, SkinData> {
+        &self.skins
+    }
+
+    pub fn get_events(&self) -> &IndexMap<String, EventData> {
+        &self.events
+    }
+
+    pub fn get_animations(&self) -> &[Animation] {
+        &self.animations
+    }
+
+    pub fn get_ik_constraints(&self) -> &[IkConstraintData] {
+        &self.ik_constraints
+    }
+
+    pub fn get_transform_constraints(&self) -> &[TransformConstraintData] {
+        &self.transform_constraints
+    }
+
+    pub fn get_path_constraints(&self) -> &[PathConstraintData] {
+        &self.path_constraints
+    }
+
+    pub fn get_physics_constraints(&self) -> &[PhysicsConstraintData] {
+        &self.physics_constraints
+    }
+
+    pub fn get_slider_constraints(&self) -> &[SliderConstraintData] {
+        &self.slider_constraints
+    }
 
     pub fn find_bone(&self, name: &str) -> Option<&BoneData> {
         self.bones.iter().find(|data| data.name == name)
@@ -1363,7 +1536,7 @@ impl SkeletonData {
     }
 
     /// Returns the C++-style unified constraint data view in update order.
-    pub fn constraints(&self) -> Vec<ConstraintDataRef<'_>> {
+    pub fn get_constraints(&self) -> Vec<ConstraintDataRef<'_>> {
         let mut constraints = Vec::with_capacity(
             self.ik_constraints.len()
                 + self.transform_constraints.len()
@@ -1375,37 +1548,43 @@ impl SkeletonData {
             self.ik_constraints
                 .iter()
                 .enumerate()
-                .map(|(index, data)| ConstraintDataRef::Ik(index, data)),
+                .map(|(_, data)| ConstraintDataRef::Ik(data)),
         );
         constraints.extend(
             self.transform_constraints
                 .iter()
                 .enumerate()
-                .map(|(index, data)| ConstraintDataRef::Transform(index, data)),
+                .map(|(_, data)| ConstraintDataRef::Transform(data)),
         );
         constraints.extend(
             self.path_constraints
                 .iter()
                 .enumerate()
-                .map(|(index, data)| ConstraintDataRef::Path(index, data)),
+                .map(|(_, data)| ConstraintDataRef::Path(data)),
         );
         constraints.extend(
             self.physics_constraints
                 .iter()
                 .enumerate()
-                .map(|(index, data)| ConstraintDataRef::Physics(index, data)),
+                .map(|(_, data)| ConstraintDataRef::Physics(data)),
         );
         constraints.extend(
             self.slider_constraints
                 .iter()
                 .enumerate()
-                .map(|(index, data)| ConstraintDataRef::Slider(index, data)),
+                .map(|(_, data)| ConstraintDataRef::Slider(data)),
         );
-        constraints.sort_by_key(|constraint| constraint.order());
+        constraints.sort_by_key(|constraint| match constraint {
+            ConstraintDataRef::Ik(data) => data.order,
+            ConstraintDataRef::Transform(data) => data.order,
+            ConstraintDataRef::Path(data) => data.order,
+            ConstraintDataRef::Physics(data) => data.order,
+            ConstraintDataRef::Slider(data) => data.order,
+        });
         constraints
     }
 
-    pub fn default_skin(&self) -> Option<&SkinData> {
+    pub fn get_default_skin(&self) -> Option<&SkinData> {
         self.find_skin(Self::DEFAULT_SKIN_NAME)
     }
 
@@ -1441,7 +1620,6 @@ impl Default for SkeletonData {
             skins: IndexMap::new(),
             events: IndexMap::new(),
             animations: Vec::new(),
-            animation_index: HashMap::new(),
             ik_constraints: Vec::new(),
             transform_constraints: Vec::new(),
             path_constraints: Vec::new(),

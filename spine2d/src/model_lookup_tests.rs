@@ -12,12 +12,19 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
         name: "root".to_string(),
         ..BoneData::default()
     });
+    data.bones.push(BoneData {
+        name: "child".to_string(),
+        parent: Some(0),
+        ..BoneData::default()
+    });
     data.slots.push(SlotData {
         name: "slot".to_string(),
+        bone: 1,
+        setup_pose: crate::SlotSetupPose::default(),
         ..SlotData::default()
     });
     data.skins
-        .insert("skin-key".to_string(), SkinData::new("skin", 0));
+        .insert("skin-key".to_string(), SkinData::new("skin"));
     data.events.insert(
         "event-key".to_string(),
         EventData {
@@ -148,9 +155,17 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
         animation: None,
     });
 
-    assert_eq!(data.find_bone("root").unwrap().name, "root");
-    assert_eq!(data.find_slot("slot").unwrap().name, "slot");
-    assert_eq!(data.find_skin("skin").unwrap().name, "skin");
+    assert_eq!(data.find_bone("root").unwrap().get_name(), "root");
+    assert_eq!(
+        data.bones[data.find_bone("child").unwrap().parent.unwrap()].get_name(),
+        "root"
+    );
+    assert_eq!(data.find_slot("slot").unwrap().get_name(), "slot");
+    assert_eq!(
+        data.bones[data.find_slot("slot").unwrap().bone].get_name(),
+        "child"
+    );
+    assert_eq!(data.find_skin("skin").unwrap().get_name(), "skin");
     assert_eq!(data.find_event("event").unwrap().string, "payload");
     assert_eq!(data.find_animation("animation").unwrap().name, "animation");
     assert_eq!(data.find_ik_constraint("ik").unwrap().target, 0);
@@ -162,11 +177,20 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     assert_eq!(data.find_physics_constraint("physics").unwrap().order, 3);
     assert_eq!(data.find_slider_constraint("slider").unwrap().order, 0);
 
-    let constraints = data.constraints();
+    let constraints = data.get_constraints();
     assert_eq!(
         constraints
             .iter()
-            .map(|constraint| (constraint.order(), constraint.name()))
+            .map(|constraint| {
+                let order = match constraint {
+                    ConstraintDataRef::Ik(data) => data.order,
+                    ConstraintDataRef::Transform(data) => data.order,
+                    ConstraintDataRef::Path(data) => data.order,
+                    ConstraintDataRef::Physics(data) => data.order,
+                    ConstraintDataRef::Slider(data) => data.order,
+                };
+                (order, constraint.name())
+            })
             .collect::<Vec<_>>(),
         vec![
             (0, "slider"),
@@ -178,10 +202,8 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     );
     assert!(matches!(
         constraints[0],
-        ConstraintDataRef::Slider(0, data) if data.name == "slider"
+        ConstraintDataRef::Slider(data) if data.name == "slider"
     ));
-    assert_eq!(constraints[0].data_index(), 0);
-    assert!(!constraints[0].skin_required());
 
     assert!(data.find_bone("").is_none());
     assert!(data.find_slot("").is_none());
@@ -193,6 +215,36 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     assert!(data.find_path_constraint("").is_none());
     assert!(data.find_physics_constraint("").is_none());
     assert!(data.find_slider_constraint("").is_none());
+}
+
+#[test]
+fn bone_and_slot_data_accessors_match_cpp_surface() {
+    let mut bone = BoneData::default();
+    bone.set_length(12.5);
+    bone.set_skin_required(true);
+    bone.set_icon("root-icon");
+    bone.set_icon_size(2.5);
+    bone.set_icon_rotation(45.0);
+    bone.set_visible(false);
+
+    assert_eq!(bone.get_name(), "");
+    assert_eq!(bone.get_length(), 12.5);
+    assert!(bone.get_skin_required());
+    assert_eq!(bone.get_color(), [0.61, 0.61, 0.61, 1.0]);
+    assert_eq!(bone.get_icon(), "root-icon");
+    assert_eq!(bone.get_icon_size(), 2.5);
+    assert_eq!(bone.get_icon_rotation(), 45.0);
+    assert!(!bone.get_visible());
+
+    let mut slot = SlotData::default();
+    slot.set_attachment_name("head");
+    slot.set_blend_mode(crate::BlendMode::Additive);
+    slot.set_visible(false);
+
+    assert_eq!(slot.get_name(), "");
+    assert_eq!(slot.get_attachment_name(), "head");
+    assert_eq!(slot.get_blend_mode(), crate::BlendMode::Additive);
+    assert!(!slot.get_visible());
 }
 
 #[test]
@@ -225,7 +277,7 @@ fn skeleton_data_skins_and_events_preserve_cpp_array_order() {
     let mut data = SkeletonData::default();
     for skin_name in ["skin-b", "default", "skin-a"] {
         data.skins
-            .insert(skin_name.to_string(), SkinData::new(skin_name, 0));
+            .insert(skin_name.to_string(), SkinData::new(skin_name));
     }
     for event_name in ["event-b", "event-a"] {
         data.events.insert(
@@ -289,9 +341,18 @@ fn skeleton_data_constraints_follow_cpp_unified_order_after_json_parse() {
     .expect("parse skeleton json");
 
     assert_eq!(
-        data.constraints()
+        data.get_constraints()
             .iter()
-            .map(|constraint| (constraint.order(), constraint.name()))
+            .map(|constraint| {
+                let order = match constraint {
+                    ConstraintDataRef::Ik(data) => data.order,
+                    ConstraintDataRef::Transform(data) => data.order,
+                    ConstraintDataRef::Path(data) => data.order,
+                    ConstraintDataRef::Physics(data) => data.order,
+                    ConstraintDataRef::Slider(data) => data.order,
+                };
+                (order, constraint.name())
+            })
             .collect::<Vec<_>>(),
         vec![
             (0, "physics"),
