@@ -512,6 +512,48 @@ fn add_empty_animation_stores_non_finite_delay_directly() {
 }
 
 #[test]
+fn add_empty_animation_on_empty_track_sets_entry_fields_after_start_event_like_cpp() {
+    #[derive(Default)]
+    struct EntryStateOnStart {
+        rows: Rc<RefCell<Vec<(f32, f32, f32)>>>,
+    }
+
+    impl AnimationStateListener for EntryStateOnStart {
+        fn on_event(
+            &mut self,
+            state: &mut AnimationState,
+            entry: TrackEntryHandle,
+            event: &AnimationStateEvent,
+        ) {
+            if matches!(event, AnimationStateEvent::Start)
+                && let Some(entry) = entry.entry(state)
+            {
+                self.rows.borrow_mut().push((
+                    entry.delay(),
+                    entry.mix_duration(),
+                    entry.track_end(),
+                ));
+            }
+        }
+    }
+
+    let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
+    let mut state = AnimationState::new(AnimationStateData::new(data));
+    let rows = Rc::new(RefCell::new(Vec::new()));
+    state.set_listener(EntryStateOnStart { rows: rows.clone() });
+
+    let entry = state.add_empty_animation(0, 0.5, 0.0);
+
+    assert_eq!(*rows.borrow(), vec![(0.0, 0.0, f32::MAX)]);
+    assert_eq!(
+        entry
+            .entry(&state)
+            .map(|entry| { (entry.delay(), entry.mix_duration(), entry.track_end(),) }),
+        Some((0.0, 0.5, 0.5))
+    );
+}
+
+#[test]
 fn track_entry_set_delay_ignores_negative_values() {
     let (mut state, _skeleton, _recording) = setup();
 

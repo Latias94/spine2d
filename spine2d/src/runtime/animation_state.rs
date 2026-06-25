@@ -529,7 +529,7 @@ impl TrackEntry {
         animation: &Animation,
         looped: bool,
     ) -> Self {
-        let track_end = f32::INFINITY;
+        let track_end = f32::MAX;
         Self {
             track_index,
             animation_identity,
@@ -1566,10 +1566,13 @@ impl AnimationState {
             resolved_delay = (resolved_delay + resolved_mix_duration - mix_duration).max(0.0);
         }
 
+        let track_empty = self.tracks[track_index].current.is_none();
         if let Some(entry_ref) = self.entry_mut(entry_id) {
-            entry_ref.delay = resolved_delay;
-            entry_ref.mix_duration = mix_duration;
-            entry_ref.track_end = mix_duration;
+            if !track_empty {
+                entry_ref.delay = resolved_delay;
+                entry_ref.mix_duration = mix_duration;
+                entry_ref.track_end = mix_duration;
+            }
             entry_ref.previous = last;
         }
         if let Some(last) = last
@@ -1578,12 +1581,16 @@ impl AnimationState {
             last_entry.next = Some(entry_id);
         }
 
-        let track_empty = self.tracks[track_index].current.is_none();
         if track_empty {
             self.tracks[track_index].current = Some(entry_id);
             push_event(&mut self.event_queue, entry_id, AnimationStateEvent::Start);
             self.animations_changed = true;
             self.drain_event_queue();
+            if let Some(entry_ref) = self.entry_mut(entry_id) {
+                entry_ref.delay = resolved_delay;
+                entry_ref.mix_duration = mix_duration;
+                entry_ref.track_end = mix_duration;
+            }
         } else {
             self.tracks[track_index].queue.push_back(entry_id);
         }
