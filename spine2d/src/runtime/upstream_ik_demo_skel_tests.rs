@@ -75,9 +75,7 @@ fn ik_test_crosshair_parent_world_to_local_matches_upstream_demo_flow_skel() {
     skeleton.update_world_transform_with_physics(Physics::Pose);
 
     let crosshair = bone_index(&data, "crosshair");
-    let parent = skeleton.bones[crosshair]
-        .parent_index()
-        .expect("crosshair parent");
+    let parent = skeleton.bones[crosshair].parent.expect("crosshair parent");
 
     let target_world_x = 320.0;
     let target_world_y = 240.0;

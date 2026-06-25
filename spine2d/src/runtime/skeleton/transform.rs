@@ -15,10 +15,6 @@ pub struct TransformConstraint {
 }
 
 impl TransformConstraint {
-    pub fn data_index(&self) -> usize {
-        self.data_index
-    }
-
     pub fn bones(&self) -> &[usize] {
         &self.bones
     }

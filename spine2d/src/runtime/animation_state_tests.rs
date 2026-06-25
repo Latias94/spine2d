@@ -1021,7 +1021,6 @@ fn physics_reset_timelines_share_one_property_slot() {
         timeline_order: Vec::new(),
     });
     skeleton_data.animations = vec![animation.clone()];
-    skeleton_data.animation_index.insert("run2".to_string(), 0);
     let state_data = AnimationStateData::new(data.clone());
     let mut state = AnimationState::new(state_data);
     let mut skeleton = Skeleton::new(data.clone());

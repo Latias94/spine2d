@@ -4,7 +4,6 @@ use crate::{
     RegionAttachmentData, Skeleton, SkeletonData, SkinData, SlotData,
 };
 use indexmap::IndexMap;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 fn build_data() -> Arc<SkeletonData> {
@@ -28,9 +27,7 @@ fn build_data() -> Arc<SkeletonData> {
         name: "slot".to_string(),
         bone: 0,
         attachment: None,
-        color: [1.0, 1.0, 1.0, 1.0],
-        has_dark: false,
-        dark_color: [0.0, 0.0, 0.0],
+        setup_pose: crate::SlotSetupPose::default(),
         blend: BlendMode::Normal,
         ..Default::default()
     }];
@@ -72,10 +69,6 @@ fn build_data() -> Arc<SkeletonData> {
         draw_order_folder_timelines: Vec::new(),
         timeline_order: Vec::new(),
     });
-
-    let mut animation_index = HashMap::new();
-    animation_index.insert(animation.name.clone(), 0usize);
-
     let mut attachments = vec![IndexMap::new()];
     for name in ["attachment1", "attachment2"] {
         attachments[0].insert(
@@ -128,7 +121,6 @@ fn build_data() -> Arc<SkeletonData> {
         skins,
         events: indexmap::IndexMap::new(),
         animations: vec![animation],
-        animation_index,
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),

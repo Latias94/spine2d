@@ -480,20 +480,15 @@ fn auto_animation<'a>(asset: &'a SpineSkeletonAsset, animations: &'a [&'a str]) 
 
 fn auto_skin<'a>(example: &ExampleEntry, asset: &'a SpineSkeletonAsset) -> Option<&'a str> {
     recommended_skin(example, asset)
+        .or_else(|| asset.data.find_skin("default").map(|skin| skin.get_name()))
         .or_else(|| {
             asset
                 .data
-                .find_skin("default")
-                .map(|skin| skin.name.as_str())
-        })
-        .or_else(|| {
-            asset
-                .data
-                .skins
+                .get_skins()
                 .iter()
                 .filter_map(|(name, skin)| {
                     let attachment_count = skin
-                        .attachments
+                        .get_attachments()
                         .iter()
                         .map(|attachment| attachment.len())
                         .sum::<usize>();
@@ -511,7 +506,7 @@ fn recommended_skin<'a>(example: &ExampleEntry, asset: &'a SpineSkeletonAsset) -
         "chibi-stickers" => "spineboy",
         _ => return None,
     };
-    asset.data.find_skin(name).map(|skin| skin.name.as_str())
+    asset.data.find_skin(name).map(|skin| skin.get_name())
 }
 
 fn animation_option_count(animations: &[&str]) -> usize {

@@ -53,18 +53,6 @@ pub struct PhysicsConstraint {
 }
 
 impl PhysicsConstraint {
-    pub fn data_index(&self) -> usize {
-        self.data_index
-    }
-
-    pub fn bone_index(&self) -> usize {
-        self.bone
-    }
-
-    pub fn set_bone_index(&mut self, bone: usize) {
-        self.bone = bone;
-    }
-
     pub fn inertia(&self) -> f32 {
         self.inertia
     }

@@ -15,10 +15,6 @@ pub struct PathConstraint {
 }
 
 impl PathConstraint {
-    pub fn data_index(&self) -> usize {
-        self.data_index
-    }
-
     pub fn bones(&self) -> &[usize] {
         &self.bones
     }

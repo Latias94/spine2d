@@ -6,7 +6,6 @@ use crate::{
     RotateTimeline, ScaleTimeline, ShearTimeline, Skeleton, SkeletonData, TranslateTimeline,
     Vec2Frame, apply_animation,
 };
-use std::collections::HashMap;
 use std::sync::Arc;
 
 fn assert_approx(actual: f32, expected: f32) {
@@ -49,7 +48,6 @@ fn skeleton_data_with_root(setup_x: f32, setup_y: f32, setup_rotation: f32) -> A
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -313,7 +311,6 @@ fn inherit_timeline_applies_to_the_keyed_bone() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -435,7 +432,6 @@ fn inherit_timeline_mix_out_restores_setup_for_first_and_setup_modes() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),

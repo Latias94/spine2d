@@ -130,7 +130,7 @@ fn sequence_timeline_applies_to_cross_slot_linked_mesh_timeline_slots() {
 
     let source = data
         .find_skin("default")
-        .and_then(|skin| skin.attachment(0, "source"))
+        .and_then(|skin| skin.get_attachment(0, "source"))
         .and_then(|attachment| match attachment {
             crate::AttachmentData::Mesh(mesh) => Some(mesh),
             _ => None,

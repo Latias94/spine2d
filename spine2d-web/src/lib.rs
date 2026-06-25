@@ -298,7 +298,7 @@ mod web {
                 return name.to_string();
             }
         }
-        data.animations
+        data.get_animations()
             .first()
             .map(|a| a.name.clone())
             .unwrap_or_else(|| "spin".to_string())
@@ -329,8 +329,12 @@ mod web {
         // Fallback: pick the skin with the most attachments so "content-heavy" examples render by
         // default (e.g. mix-and-match).
         let mut best: Option<(&str, usize)> = None;
-        for (name, skin) in &data.skins {
-            let count = skin.attachments.iter().map(|m| m.len()).sum::<usize>();
+        for (name, skin) in data.get_skins() {
+            let count = skin
+                .get_attachments()
+                .iter()
+                .map(|m| m.len())
+                .sum::<usize>();
             if count == 0 {
                 continue;
             }
@@ -652,7 +656,7 @@ mod web {
             let st = state.borrow();
             let anim_names = st
                 .data
-                .animations
+                .get_animations()
                 .iter()
                 .map(|a| a.name.clone())
                 .collect::<Vec<_>>();
@@ -661,7 +665,7 @@ mod web {
 
         {
             let st = state.borrow();
-            let mut skin_names = st.data.skins.keys().cloned().collect::<Vec<_>>();
+            let mut skin_names = st.data.get_skins().keys().cloned().collect::<Vec<_>>();
             skin_names.sort();
             populate_skin_select(
                 document,
@@ -810,11 +814,11 @@ mod web {
                     st.apply_example_bundle(bundle, None);
                     let anim_names = st
                         .data
-                        .animations
+                        .get_animations()
                         .iter()
                         .map(|a| a.name.clone())
                         .collect::<Vec<_>>();
-                    let mut skin_names = st.data.skins.keys().cloned().collect::<Vec<_>>();
+                    let mut skin_names = st.data.get_skins().keys().cloned().collect::<Vec<_>>();
                     skin_names.sort();
                     if let Err(e) = populate_select_options(
                         &document,

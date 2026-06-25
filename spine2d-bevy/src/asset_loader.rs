@@ -13,19 +13,19 @@ impl SpineSkeletonAsset {
     pub fn info(&self) -> SpineSkeletonInfo<'_> {
         let mut animations = self
             .data
-            .animations
+            .get_animations()
             .iter()
             .map(|animation| animation.name.as_str())
             .collect::<Vec<_>>();
         let mut skins = self
             .data
-            .skins
+            .get_skins()
             .keys()
             .map(String::as_str)
             .collect::<Vec<_>>();
         let mut events = self
             .data
-            .events
+            .get_events()
             .keys()
             .map(String::as_str)
             .collect::<Vec<_>>();
@@ -43,17 +43,17 @@ impl SpineSkeletonAsset {
 
     pub fn animations(&self) -> impl Iterator<Item = &str> {
         self.data
-            .animations
+            .get_animations()
             .iter()
             .map(|animation| animation.name.as_str())
     }
 
     pub fn skins(&self) -> impl Iterator<Item = &str> {
-        self.data.skins.keys().map(String::as_str)
+        self.data.get_skins().keys().map(String::as_str)
     }
 
     pub fn events(&self) -> impl Iterator<Item = &str> {
-        self.data.events.keys().map(String::as_str)
+        self.data.get_events().keys().map(String::as_str)
     }
 
     pub fn has_animation(&self, name: &str) -> bool {
@@ -65,7 +65,7 @@ impl SpineSkeletonAsset {
     }
 
     pub fn has_event(&self, name: &str) -> bool {
-        self.data.events.contains_key(name)
+        self.data.get_events().contains_key(name)
     }
 }
 

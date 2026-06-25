@@ -44,7 +44,7 @@ fn point_attachment_computes_world_position_and_rotation() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let attachment = skeleton.attachment(0, "p").unwrap();
+    let attachment = skeleton.get_attachment(0, "p").unwrap();
     let AttachmentData::Point(p) = attachment else {
         panic!("expected point attachment");
     };
@@ -65,7 +65,7 @@ fn point_attachment_world_rotation_uses_bone_matrix_like_cpp() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let attachment = skeleton.attachment(0, "p").unwrap();
+    let attachment = skeleton.get_attachment(0, "p").unwrap();
     let AttachmentData::Point(p) = attachment else {
         panic!("expected point attachment");
     };

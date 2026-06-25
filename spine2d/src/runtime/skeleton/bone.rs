@@ -5,8 +5,8 @@ static Y_DOWN: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone, Debug)]
 pub struct Bone {
-    pub(super) data_index: usize,
-    pub(super) parent: Option<usize>,
+    pub(crate) data_index: usize,
+    pub(crate) parent: Option<usize>,
 
     pub(crate) inherit: crate::Inherit,
     pub(crate) active: bool,
@@ -54,23 +54,28 @@ impl Bone {
         Y_DOWN.store(y_down, Ordering::Relaxed);
     }
 
-    pub fn data_index(&self) -> usize {
-        self.data_index
-    }
-
-    pub fn parent_index(&self) -> Option<usize> {
-        self.parent
-    }
-
-    /// The immediate child bone indices for this bone in the given skeleton.
+    /// The parent bone for this bone in the given skeleton, or `None` for the
+    /// root bone.
     ///
-    /// Mirrors the official runtimes' `Bone.getChildren` while keeping Rust's
-    /// index-based skeleton storage public surface.
-    pub fn child_indices<'a>(&self, skeleton: &'a Skeleton) -> &'a [usize] {
+    /// Mirrors the official runtimes' `Bone::getParent`.
+    pub fn get_parent<'a>(&self, skeleton: &'a Skeleton) -> Option<&'a Bone> {
+        self.parent.and_then(|index| skeleton.bones.get(index))
+    }
+
+    /// The immediate child bones for this bone in the given skeleton.
+    ///
+    /// Mirrors the official runtimes' `Bone::getChildren`.
+    pub fn get_children<'a>(&self, skeleton: &'a Skeleton) -> Vec<&'a Bone> {
         skeleton
             .bone_children
             .get(self.data_index)
-            .map_or(&[], Vec::as_slice)
+            .map(|children| {
+                children
+                    .iter()
+                    .filter_map(|&index| skeleton.bones.get(index))
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     pub fn is_active(&self) -> bool {

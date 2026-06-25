@@ -110,13 +110,13 @@ fn vertex_attachment_id(attachment: &crate::AttachmentData) -> Option<u32> {
 fn deform_timeline_vertex_id(data: &SkeletonData, timeline: &crate::DeformTimeline) -> Option<u32> {
     let attachment = data
         .find_skin(timeline.skin.as_str())
-        .and_then(|s| s.attachment(timeline.slot_index, timeline.attachment.as_str()))?;
+        .and_then(|s| s.get_attachment(timeline.slot_index, timeline.attachment.as_str()))?;
 
     match attachment {
         crate::AttachmentData::Mesh(m) => {
-            let target = data
-                .find_skin(m.timeline_skin.as_str())
-                .and_then(|s| s.attachment(timeline.slot_index, m.timeline_attachment.as_str()))?;
+            let target = data.find_skin(m.timeline_skin.as_str()).and_then(|s| {
+                s.get_attachment(timeline.slot_index, m.timeline_attachment.as_str())
+            })?;
             vertex_attachment_id(target)
         }
         _ => vertex_attachment_id(attachment),
@@ -128,7 +128,7 @@ fn sequence_timeline_sequence_id(
     timeline: &crate::SequenceTimeline,
 ) -> Option<u32> {
     data.find_skin(timeline.skin.as_str())
-        .and_then(|s| s.attachment(timeline.slot_index, timeline.attachment.as_str()))
+        .and_then(|s| s.get_attachment(timeline.slot_index, timeline.attachment.as_str()))
         .and_then(|a| match a {
             crate::AttachmentData::Region(r) => r.sequence.as_ref().map(|s| s.id),
             crate::AttachmentData::Mesh(m) => m.sequence.as_ref().map(|s| s.id),

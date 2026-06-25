@@ -3,7 +3,6 @@ use crate::{
     BoneData, BoneTimeline, Curve, Inherit, RotateFrame, RotateTimeline, TranslateTimeline,
     Vec2Frame,
 };
-use std::collections::HashMap;
 use std::sync::Arc;
 
 fn assert_approx(actual: f32, expected: f32) {
@@ -57,10 +56,6 @@ fn animation_state_apply_drives_skeleton_pose() {
         draw_order_folder_timelines: Vec::new(),
         timeline_order: Vec::new(),
     });
-
-    let mut animation_index = HashMap::new();
-    animation_index.insert("move".to_string(), 0);
-
     let skeleton_data = Arc::new(crate::SkeletonData {
         spine_version: None,
         name: String::new(),
@@ -92,7 +87,6 @@ fn animation_state_apply_drives_skeleton_pose() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: vec![animation],
-        animation_index,
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -182,10 +176,6 @@ fn animation_state_mixes_pose_between_entries() {
         timeline_order: Vec::new(),
     });
 
-    let mut animation_index = HashMap::new();
-    animation_index.insert("a".to_string(), 0);
-    animation_index.insert("b".to_string(), 1);
-
     let skeleton_data = Arc::new(crate::SkeletonData {
         spine_version: None,
         name: String::new(),
@@ -217,7 +207,6 @@ fn animation_state_mixes_pose_between_entries() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: vec![anim_a, anim_b],
-        animation_index,
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -286,10 +275,6 @@ fn track_entry_shortest_rotation_disables_rotation_accumulator() {
             draw_order_folder_timelines: Vec::new(),
             timeline_order: Vec::new(),
         });
-
-        let mut animation_index = HashMap::new();
-        animation_index.insert("spin".to_string(), 0);
-
         let skeleton_data = Arc::new(crate::SkeletonData {
             spine_version: None,
             name: String::new(),
@@ -321,7 +306,6 @@ fn track_entry_shortest_rotation_disables_rotation_accumulator() {
             skins: indexmap::IndexMap::new(),
             events: indexmap::IndexMap::new(),
             animations: vec![animation],
-            animation_index,
             ik_constraints: Vec::new(),
             transform_constraints: Vec::new(),
             path_constraints: Vec::new(),
@@ -393,10 +377,6 @@ fn track_entry_reverse_samples_from_animation_end() {
         draw_order_folder_timelines: Vec::new(),
         timeline_order: Vec::new(),
     });
-
-    let mut animation_index = HashMap::new();
-    animation_index.insert("move".to_string(), 0);
-
     let skeleton_data = Arc::new(crate::SkeletonData {
         spine_version: None,
         name: String::new(),
@@ -428,7 +408,6 @@ fn track_entry_reverse_samples_from_animation_end() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: vec![animation],
-        animation_index,
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),

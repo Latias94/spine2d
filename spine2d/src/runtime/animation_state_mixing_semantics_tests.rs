@@ -6,7 +6,6 @@ use crate::{
     TranslateTimeline, Vec2Frame, apply_animation,
 };
 use indexmap::IndexMap;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 fn assert_approx(actual: f32, expected: f32) {
@@ -49,7 +48,6 @@ fn base_skeleton_data() -> SkeletonData {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -244,9 +242,6 @@ fn additive_mix_out_x(additive: bool) -> f32 {
         translate_animation("from", 10.0),
         empty_test_animation("to"),
     ];
-    data.animation_index.insert("base".to_string(), 0);
-    data.animation_index.insert("from".to_string(), 1);
-    data.animation_index.insert("to".to_string(), 2);
     let data = Arc::new(data);
 
     let mut state_data = AnimationStateData::new(data.clone());
@@ -277,8 +272,6 @@ fn setup_two_track_translate_state(
 
     let mut data = base_skeleton_data();
     data.animations = vec![anim_base, anim_overlay];
-    data.animation_index.insert("base".to_string(), 0);
-    data.animation_index.insert("overlay".to_string(), 1);
     let data = Arc::new(data);
 
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
@@ -341,7 +334,6 @@ fn track_entry_mix_interpolation_smooth_changes_mix_percentage() {
 
     let mut data = base_skeleton_data();
     data.animations = vec![anim_base];
-    data.animation_index.insert("base".to_string(), 0);
     let data = Arc::new(data);
 
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
@@ -364,7 +356,6 @@ fn track_entry_mix_interpolation_defaults_to_linear() {
 
     let mut data = base_skeleton_data();
     data.animations = vec![anim_base];
-    data.animation_index.insert("base".to_string(), 0);
     let data = Arc::new(data);
 
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
@@ -386,7 +377,6 @@ fn track_entry_mix_interpolation_keeps_negative_linear_mix() {
 
     let mut data = base_skeleton_data();
     data.animations = vec![anim_base];
-    data.animation_index.insert("base".to_string(), 0);
     let data = Arc::new(data);
 
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
@@ -408,8 +398,6 @@ fn completed_hold_mix_chain_detaches_current_mixing_from() {
 
     let mut data = base_skeleton_data();
     data.animations = vec![from_anim, to_anim];
-    data.animation_index.insert("from".to_string(), 0);
-    data.animation_index.insert("to".to_string(), 1);
     let data = Arc::new(data);
 
     let mut state_data = AnimationStateData::new(data.clone());
@@ -443,8 +431,6 @@ fn completed_hold_mix_chain_with_negative_track_time_still_detaches() {
 
     let mut data = base_skeleton_data();
     data.animations = vec![from_anim, to_anim];
-    data.animation_index.insert("from".to_string(), 0);
-    data.animation_index.insert("to".to_string(), 1);
     let data = Arc::new(data);
 
     let mut state_data = AnimationStateData::new(data.clone());
@@ -542,8 +528,6 @@ fn track_entry_additive_mixes_out_as_additive() {
 
     let mut data = base_skeleton_data();
     data.animations = vec![anim_base, anim_overlay];
-    data.animation_index.insert("base".to_string(), 0);
-    data.animation_index.insert("overlay".to_string(), 1);
     let data = Arc::new(data);
 
     let state_data = AnimationStateData::new(data.clone());
@@ -634,8 +618,6 @@ fn additive_next_entry_does_not_hold_outgoing_numeric_timeline() {
 
     let mut data = base_skeleton_data();
     data.animations = vec![anim_base, anim_overlay];
-    data.animation_index.insert("base".to_string(), 0);
-    data.animation_index.insert("overlay".to_string(), 1);
     let data = Arc::new(data);
 
     let mut state_data = AnimationStateData::new(data.clone());
@@ -763,9 +745,7 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
             name: "s0".to_string(),
             bone: 0,
             attachment: Some("setup0".to_string()),
-            color: [1.0, 1.0, 1.0, 1.0],
-            has_dark: false,
-            dark_color: [0.0, 0.0, 0.0],
+            setup_pose: crate::SlotSetupPose::default(),
             blend: BlendMode::Normal,
             ..Default::default()
         },
@@ -773,9 +753,7 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
             name: "s1".to_string(),
             bone: 0,
             attachment: Some("setup1".to_string()),
-            color: [1.0, 1.0, 1.0, 1.0],
-            has_dark: false,
-            dark_color: [0.0, 0.0, 0.0],
+            setup_pose: crate::SlotSetupPose::default(),
             blend: BlendMode::Normal,
             ..Default::default()
         },
@@ -847,8 +825,6 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
     );
 
     data.animations = vec![anim_a, anim_b];
-    data.animation_index.insert("a".to_string(), 0);
-    data.animation_index.insert("b".to_string(), 1);
     let data = Arc::new(data);
 
     let mut state_data = AnimationStateData::new(data.clone());
@@ -922,9 +898,7 @@ fn draw_order_current_mix_out_does_not_keep_mixing_from_alive() {
             name: "s0".to_string(),
             bone: 0,
             attachment: None,
-            color: [1.0, 1.0, 1.0, 1.0],
-            has_dark: false,
-            dark_color: [0.0, 0.0, 0.0],
+            setup_pose: crate::SlotSetupPose::default(),
             blend: BlendMode::Normal,
             ..Default::default()
         },
@@ -932,15 +906,12 @@ fn draw_order_current_mix_out_does_not_keep_mixing_from_alive() {
             name: "s1".to_string(),
             bone: 0,
             attachment: None,
-            color: [1.0, 1.0, 1.0, 1.0],
-            has_dark: false,
-            dark_color: [0.0, 0.0, 0.0],
+            setup_pose: crate::SlotSetupPose::default(),
             blend: BlendMode::Normal,
             ..Default::default()
         },
     ];
     data.animations = vec![draw_order_anim];
-    data.animation_index.insert("draw".to_string(), 0);
     let data = Arc::new(data);
 
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
@@ -1015,9 +986,7 @@ fn draw_order_folder_applies_after_draw_order_timeline() {
             name: "s0".to_string(),
             bone: 0,
             attachment: Some("setup0".to_string()),
-            color: [1.0, 1.0, 1.0, 1.0],
-            has_dark: false,
-            dark_color: [0.0, 0.0, 0.0],
+            setup_pose: crate::SlotSetupPose::default(),
             blend: BlendMode::Normal,
             ..Default::default()
         },
@@ -1025,9 +994,7 @@ fn draw_order_folder_applies_after_draw_order_timeline() {
             name: "s1".to_string(),
             bone: 0,
             attachment: Some("setup1".to_string()),
-            color: [1.0, 1.0, 1.0, 1.0],
-            has_dark: false,
-            dark_color: [0.0, 0.0, 0.0],
+            setup_pose: crate::SlotSetupPose::default(),
             blend: BlendMode::Normal,
             ..Default::default()
         },
@@ -1035,9 +1002,7 @@ fn draw_order_folder_applies_after_draw_order_timeline() {
             name: "s2".to_string(),
             bone: 0,
             attachment: Some("setup2".to_string()),
-            color: [1.0, 1.0, 1.0, 1.0],
-            has_dark: false,
-            dark_color: [0.0, 0.0, 0.0],
+            setup_pose: crate::SlotSetupPose::default(),
             blend: BlendMode::Normal,
             ..Default::default()
         },
@@ -1087,7 +1052,6 @@ fn draw_order_folder_applies_after_draw_order_timeline() {
         },
     );
     data.animations = vec![anim_a];
-    data.animation_index.insert("a".to_string(), 0);
     let data = Arc::new(data);
 
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
@@ -1174,9 +1138,7 @@ fn track0_additive_does_not_override_alpha_attachment_threshold_for_attachments(
         name: "slot".to_string(),
         bone: 0,
         attachment: Some("setup".to_string()),
-        color: [1.0, 1.0, 1.0, 1.0],
-        has_dark: false,
-        dark_color: [0.0, 0.0, 0.0],
+        setup_pose: crate::SlotSetupPose::default(),
         blend: BlendMode::Normal,
         ..Default::default()
     }];
@@ -1229,8 +1191,6 @@ fn track0_additive_does_not_override_alpha_attachment_threshold_for_attachments(
         },
     );
     data.animations = vec![anim_a, anim_b];
-    data.animation_index.insert("a".to_string(), 0);
-    data.animation_index.insert("b".to_string(), 1);
     let data = Arc::new(data);
 
     let mut state = AnimationState::new(AnimationStateData::new(data.clone()));

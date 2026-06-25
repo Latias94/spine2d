@@ -10,10 +10,6 @@ pub struct SliderConstraint {
 }
 
 impl SliderConstraint {
-    pub fn data_index(&self) -> usize {
-        self.data_index
-    }
-
     pub fn time(&self) -> f32 {
         self.time
     }

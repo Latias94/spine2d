@@ -51,7 +51,7 @@ fn assert_skeleton_world_finite(relative: &str, skeleton: &Skeleton) {
         assert!(
             ok,
             "non-finite bone transform: example={relative:?} bone_index={i} bone_data_index={} world=({}, {}) matrix=[{}, {}, {}, {}] local=({}, {})",
-            bone.data_index(),
+            bone.data_index,
             bone.world_x,
             bone.world_y,
             bone.a,

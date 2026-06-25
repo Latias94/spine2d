@@ -577,7 +577,7 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
                 })
             })
             .collect(),
-        skeleton_time: instance.skeleton.time(),
+        skeleton_time: instance.skeleton.get_time(),
         physics: instance.skeleton_control.physics,
         wind: Vec2::new(wind_x, wind_y),
         gravity: Vec2::new(gravity_x, gravity_y),
@@ -1783,7 +1783,7 @@ mod tests {
             assert_eq!(instance.skeleton_control.physics, spine2d::Physics::Update);
             assert_eq!(instance.skeleton.wind(), (2.0, 3.0));
             assert_eq!(instance.skeleton.gravity(), (4.0, 5.0));
-            assert_eq!(instance.skeleton.time(), 1.25);
+            assert_eq!(instance.skeleton.get_time(), 1.25);
         });
     }
 
@@ -1838,7 +1838,7 @@ mod tests {
             assert_eq!(instance.skeleton_control.physics, spine2d::Physics::Reset);
             assert_eq!(instance.skeleton.wind(), (8.0, 9.0));
             assert_eq!(instance.skeleton.gravity(), (10.0, 11.0));
-            assert_eq!(instance.skeleton.time(), 2.5);
+            assert_eq!(instance.skeleton.get_time(), 2.5);
         });
     }
 

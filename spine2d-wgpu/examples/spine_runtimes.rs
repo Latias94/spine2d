@@ -398,7 +398,7 @@ impl App {
                             .data
                             .as_ref()
                             .map(|d| {
-                                d.animations
+                                d.get_animations()
                                     .iter()
                                     .map(|a| a.name.clone())
                                     .collect::<Vec<_>>()
@@ -430,7 +430,7 @@ impl App {
                         let skins = self
                             .data
                             .as_ref()
-                            .map(|d| d.skins.keys().cloned().collect::<Vec<_>>())
+                            .map(|d| d.get_skins().keys().cloned().collect::<Vec<_>>())
                             .unwrap_or_default();
                         let mut skins = skins;
                         skins.sort();
@@ -580,7 +580,7 @@ impl App {
             let requested = next.skin.trim();
             if requested == SKIN_NONE_SENTINEL {
                 None
-            } else if !requested.is_empty() && data.skins.contains_key(requested) {
+            } else if !requested.is_empty() && data.find_skin(requested).is_some() {
                 Some(requested.to_string())
             } else {
                 choose_default_skin(&example, &data)
@@ -595,7 +595,7 @@ impl App {
         let mut state = AnimationState::new(AnimationStateData::new(data.clone()));
         let chosen_animation = {
             let requested = next.animation.trim();
-            if !requested.is_empty() && data.animations.iter().any(|a| a.name == requested) {
+            if !requested.is_empty() && data.find_animation(requested).is_some() {
                 Some(requested.to_string())
             } else {
                 choose_default_animation(&data)
@@ -687,7 +687,7 @@ impl App {
         self.ui.animation = self
             .animation
             .clone()
-            .filter(|name| data_ref.animations.iter().any(|a| a.name == *name))
+            .filter(|name| data_ref.find_animation(name).is_some())
             .unwrap_or_default();
         self.ui.skin = chosen_skin.unwrap_or_else(|| SKIN_NONE_SENTINEL.to_string());
         self.ui.prefer_pma_atlas = self.prefer_pma_atlas;
@@ -715,11 +715,11 @@ impl App {
 fn choose_default_animation(data: &SkeletonData) -> Option<String> {
     // Prefer more "stable" animations to avoid defaulting to something very fast (e.g. run).
     for name in ["idle", "walk", "run"] {
-        if data.animations.iter().any(|a| a.name == name) {
+        if data.find_animation(name).is_some() {
             return Some(name.to_string());
         }
     }
-    data.animations.first().map(|a| a.name.clone())
+    data.get_animations().first().map(|a| a.name.clone())
 }
 
 fn choose_default_skin(example: &str, data: &SkeletonData) -> Option<String> {
@@ -731,19 +731,23 @@ fn choose_default_skin(example: &str, data: &SkeletonData) -> Option<String> {
         _ => None,
     };
     if let Some(name) = recommended
-        && data.skins.contains_key(name)
+        && data.find_skin(name).is_some()
     {
         return Some(name.to_string());
     }
 
-    if data.skins.contains_key("default") {
+    if data.find_skin("default").is_some() {
         return Some("default".to_string());
     }
 
     // Fallback: pick the skin with the most attachments.
     let mut best: Option<(&str, usize)> = None;
-    for (name, skin) in &data.skins {
-        let count = skin.attachments.iter().map(|m| m.len()).sum::<usize>();
+    for (name, skin) in data.get_skins() {
+        let count = skin
+            .get_attachments()
+            .iter()
+            .map(|m| m.len())
+            .sum::<usize>();
         if count == 0 {
             continue;
         }
@@ -812,12 +816,12 @@ impl ApplicationHandler for App {
             let preferred = ["idle", "walk", "run"];
             let mut found = None;
             for name in preferred {
-                if data.animations.iter().any(|a| a.name == name) {
+                if data.find_animation(name).is_some() {
                     found = Some(name.to_string());
                     break;
                 }
             }
-            found.or_else(|| data.animations.first().map(|a| a.name.clone()))
+            found.or_else(|| data.get_animations().first().map(|a| a.name.clone()))
         };
 
         let Some(chosen_animation) = chosen_animation else {
