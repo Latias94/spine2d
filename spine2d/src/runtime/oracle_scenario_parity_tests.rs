@@ -1,5 +1,5 @@
 use crate::runtime::{AnimationState, AnimationStateData};
-use crate::{AttachmentData, Skeleton, SkeletonData};
+use crate::{Skeleton, SkeletonData};
 use serde::Deserialize;
 use serde::de::Deserializer;
 use std::collections::{BTreeSet, HashMap};
@@ -257,13 +257,6 @@ fn slot_index(data: &SkeletonData, name: &str) -> usize {
         .unwrap_or_else(|| panic!("missing slot: {name}"))
 }
 
-fn resolve_current_slot_attachment(
-    skeleton: &Skeleton,
-    slot_index: usize,
-) -> Option<&AttachmentData> {
-    skeleton.slot_attachment_data(slot_index)
-}
-
 fn dump_pose(skeleton: &Skeleton, _time: f32, debug_slot: Option<&str>) -> PoseDump {
     let bones = skeleton
         .bones
@@ -311,9 +304,11 @@ fn dump_pose(skeleton: &Skeleton, _time: f32, debug_slot: Option<&str>) -> PoseD
                 .get(i)
                 .map(|s| s.name.as_str())
                 .unwrap_or("<unknown>");
-            let attachment = resolve_current_slot_attachment(skeleton, i).map(|a| AttachmentDump {
-                name: a.name().to_string(),
-            });
+            let attachment = slot
+                .get_applied_attachment(skeleton)
+                .map(|a| AttachmentDump {
+                    name: a.name().to_string(),
+                });
             let dark = slot.applied_dark_color();
             let dark_color = if slot.applied_has_dark() {
                 [dark[0], dark[1], dark[2], 1.0]
@@ -453,7 +448,10 @@ fn dump_pose(skeleton: &Skeleton, _time: f32, debug_slot: Option<&str>) -> PoseD
         DebugDump {
             slot: slot_name.to_string(),
             world_vertices: skeleton
-                .slot_attachment_world_vertices(i)
+                .slots
+                .get(i)
+                .and_then(|slot| slot.get_applied_attachment(skeleton))
+                .and_then(|attachment| attachment.compute_world_vertices(skeleton, i))
                 .unwrap_or_default(),
         }
     });
@@ -1775,7 +1773,7 @@ fn oracle_owl_idle_physics_t0_5_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), Some("head-base"));
+    let rust = dump_pose(&skeleton, skeleton.get_time(), Some("head-base"));
     let cpp = read_pose(&golden_path("owl_idle_physics_t0_5.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -1799,7 +1797,7 @@ fn oracle_owl_idle_physics_jitter_dt_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), Some("head-base"));
+    let rust = dump_pose(&skeleton, skeleton.get_time(), Some("head-base"));
     let cpp = read_pose(&golden_path("owl_idle_physics_jitter_dt_t1_0.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -1824,7 +1822,7 @@ fn oracle_owl_idle_physics_update_pose_update_t1_0_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), Some("head-base"));
+    let rust = dump_pose(&skeleton, skeleton.get_time(), Some("head-base"));
     let cpp = read_pose(&golden_path(
         "owl_idle_physics_update_pose_update_t1_0.json",
     ));
@@ -1849,7 +1847,7 @@ fn oracle_owl_idle_physics_update_reset_update_t1_0_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), Some("head-base"));
+    let rust = dump_pose(&skeleton, skeleton.get_time(), Some("head-base"));
     let cpp = read_pose(&golden_path(
         "owl_idle_physics_update_reset_update_t1_0.json",
     ));
@@ -1876,7 +1874,7 @@ fn oracle_owl_up_plus_left_add_head_base_deform_physics_t0_55_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), Some("head-base"));
+    let rust = dump_pose(&skeleton, skeleton.get_time(), Some("head-base"));
     let cpp = read_pose(&golden_path(
         "owl_up_plus_left_add_head_base_deform_physics_t0_55.json",
     ));
@@ -2442,7 +2440,7 @@ fn oracle_skel_owl_idle_physics_t0_5_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), Some("head-base"));
+    let rust = dump_pose(&skeleton, skeleton.get_time(), Some("head-base"));
     let cpp = read_pose(&golden_skel_path("owl_idle_physics_t0_5.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -2467,7 +2465,7 @@ fn oracle_skel_owl_idle_physics_jitter_dt_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), Some("head-base"));
+    let rust = dump_pose(&skeleton, skeleton.get_time(), Some("head-base"));
     let cpp = read_pose(&golden_skel_path("owl_idle_physics_jitter_dt_t1_0.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -2493,7 +2491,7 @@ fn oracle_skel_owl_idle_physics_update_pose_update_t1_0_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), Some("head-base"));
+    let rust = dump_pose(&skeleton, skeleton.get_time(), Some("head-base"));
     let cpp = read_pose(&golden_skel_path(
         "owl_idle_physics_update_pose_update_t1_0.json",
     ));
@@ -2519,7 +2517,7 @@ fn oracle_skel_owl_idle_physics_update_reset_update_t1_0_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), Some("head-base"));
+    let rust = dump_pose(&skeleton, skeleton.get_time(), Some("head-base"));
     let cpp = read_pose(&golden_skel_path(
         "owl_idle_physics_update_reset_update_t1_0.json",
     ));
@@ -2547,7 +2545,7 @@ fn oracle_skel_owl_up_plus_left_add_head_base_deform_physics_t0_55_matches_cpp()
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), Some("head-base"));
+    let rust = dump_pose(&skeleton, skeleton.get_time(), Some("head-base"));
     let cpp = read_pose(&golden_skel_path(
         "owl_up_plus_left_add_head_base_deform_physics_t0_55.json",
     ));
@@ -7319,7 +7317,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_t0_5_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "cloud_pot_playing_in_the_rain_physics_t0_5.json",
     ));
@@ -7340,7 +7338,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "cloud_pot_playing_in_the_rain_physics_t1_0.json",
     ));
@@ -7364,7 +7362,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_update_to_pose_t1_0_matches_cpp(
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Pose);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "cloud_pot_playing_in_the_rain_physics_update_to_pose_t1_0.json",
     ));
@@ -7389,7 +7387,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_update_reset_update_t1_0_matches
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "cloud_pot_playing_in_the_rain_physics_update_reset_update_t1_0.json",
     ));
@@ -7410,7 +7408,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_t10_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "cloud_pot_playing_in_the_rain_physics_t10_0.json",
     ));
@@ -7436,7 +7434,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_jitter_dt_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "cloud_pot_playing_in_the_rain_physics_jitter_dt_t1_0.json",
     ));
@@ -7464,7 +7462,7 @@ fn oracle_cloud_pot_playing_in_the_rain_physics_jitter_dt_t10_0_matches_cpp() {
         }
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "cloud_pot_playing_in_the_rain_physics_jitter_dt_t10_0.json",
     ));
@@ -7485,7 +7483,7 @@ fn oracle_sack_walk_physics_none_t0_5_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::None);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path("sack_walk_physics_none_t0_5.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -7504,7 +7502,7 @@ fn oracle_sack_walk_physics_t0_5_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path("sack_walk_physics_t0_5.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -7528,7 +7526,7 @@ fn oracle_sack_walk_physics_jitter_dt_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path("sack_walk_physics_jitter_dt_t1_0.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -7553,7 +7551,7 @@ fn oracle_sack_walk_physics_update_pose_update_t1_0_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "sack_walk_physics_update_pose_update_t1_0.json",
     ));
@@ -7642,7 +7640,7 @@ fn oracle_celestial_circus_wind_idle_physics_t0_5_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path("celestial_circus_wind_idle_physics_t0_5.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -7668,7 +7666,7 @@ fn oracle_celestial_circus_wind_idle_physics_jitter_dt_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "celestial_circus_wind_idle_physics_jitter_dt_t1_0.json",
     ));
@@ -7697,7 +7695,7 @@ fn oracle_celestial_circus_wind_idle_physics_update_pose_update_t1_0_matches_cpp
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "celestial_circus_wind_idle_physics_update_pose_update_t1_0.json",
     ));
@@ -7724,7 +7722,7 @@ fn oracle_celestial_circus_wind_idle_physics_update_reset_update_t1_0_matches_cp
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "celestial_circus_wind_idle_physics_update_reset_update_t1_0.json",
     ));
@@ -7747,7 +7745,7 @@ fn oracle_celestial_circus_wind_idle_physics_t10_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "celestial_circus_wind_idle_physics_t10_0.json",
     ));
@@ -7768,7 +7766,7 @@ fn oracle_snowglobe_idle_physics_t0_5_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path("snowglobe_idle_physics_t0_5.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -7792,7 +7790,7 @@ fn oracle_snowglobe_idle_physics_jitter_dt_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path("snowglobe_idle_physics_jitter_dt_t1_0.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -7817,7 +7815,7 @@ fn oracle_snowglobe_idle_physics_update_pose_update_t1_0_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "snowglobe_idle_physics_update_pose_update_t1_0.json",
     ));
@@ -7842,7 +7840,7 @@ fn oracle_snowglobe_idle_physics_update_reset_update_t1_0_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "snowglobe_idle_physics_update_reset_update_t1_0.json",
     ));
@@ -7863,7 +7861,7 @@ fn oracle_snowglobe_idle_physics_t10_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path("snowglobe_idle_physics_t10_0.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -7889,7 +7887,7 @@ fn oracle_snowglobe_idle_physics_jitter_dt_t10_0_matches_cpp() {
         }
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path("snowglobe_idle_physics_jitter_dt_t10_0.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -7920,7 +7918,7 @@ fn oracle_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_t0_6_matches_cpp
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_t0_6.json",
     ));
@@ -7972,7 +7970,7 @@ fn oracle_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_jitter_dt_t0_6_m
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_path(
         "snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_jitter_dt_t0_6.json",
     ));
@@ -7994,7 +7992,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_t0_5_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "cloud_pot_playing_in_the_rain_physics_t0_5.json",
     ));
@@ -8016,7 +8014,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "cloud_pot_playing_in_the_rain_physics_t1_0.json",
     ));
@@ -8041,7 +8039,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_update_to_pose_t1_0_matches
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Pose);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "cloud_pot_playing_in_the_rain_physics_update_to_pose_t1_0.json",
     ));
@@ -8067,7 +8065,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_update_reset_update_t1_0_ma
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "cloud_pot_playing_in_the_rain_physics_update_reset_update_t1_0.json",
     ));
@@ -8089,7 +8087,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_t10_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "cloud_pot_playing_in_the_rain_physics_t10_0.json",
     ));
@@ -8116,7 +8114,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_jitter_dt_t1_0_matches_cpp(
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "cloud_pot_playing_in_the_rain_physics_jitter_dt_t1_0.json",
     ));
@@ -8145,7 +8143,7 @@ fn oracle_skel_cloud_pot_playing_in_the_rain_physics_jitter_dt_t10_0_matches_cpp
         }
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "cloud_pot_playing_in_the_rain_physics_jitter_dt_t10_0.json",
     ));
@@ -8167,7 +8165,7 @@ fn oracle_skel_sack_walk_physics_t0_5_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path("sack_walk_physics_t0_5.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -8192,7 +8190,7 @@ fn oracle_skel_sack_walk_physics_jitter_dt_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path("sack_walk_physics_jitter_dt_t1_0.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -8218,7 +8216,7 @@ fn oracle_skel_sack_walk_physics_update_pose_update_t1_0_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "sack_walk_physics_update_pose_update_t1_0.json",
     ));
@@ -8315,7 +8313,7 @@ fn oracle_skel_celestial_circus_wind_idle_physics_t0_5_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "celestial_circus_wind_idle_physics_t0_5.json",
     ));
@@ -8344,7 +8342,7 @@ fn oracle_skel_celestial_circus_wind_idle_physics_jitter_dt_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "celestial_circus_wind_idle_physics_jitter_dt_t1_0.json",
     ));
@@ -8374,7 +8372,7 @@ fn oracle_skel_celestial_circus_wind_idle_physics_update_pose_update_t1_0_matche
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "celestial_circus_wind_idle_physics_update_pose_update_t1_0.json",
     ));
@@ -8402,7 +8400,7 @@ fn oracle_skel_celestial_circus_wind_idle_physics_update_reset_update_t1_0_match
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "celestial_circus_wind_idle_physics_update_reset_update_t1_0.json",
     ));
@@ -8426,7 +8424,7 @@ fn oracle_skel_celestial_circus_wind_idle_physics_t10_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "celestial_circus_wind_idle_physics_t10_0.json",
     ));
@@ -8448,7 +8446,7 @@ fn oracle_skel_snowglobe_idle_physics_t0_5_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path("snowglobe_idle_physics_t0_5.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -8473,7 +8471,7 @@ fn oracle_skel_snowglobe_idle_physics_jitter_dt_t1_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "snowglobe_idle_physics_jitter_dt_t1_0.json",
     ));
@@ -8501,7 +8499,7 @@ fn oracle_skel_snowglobe_idle_physics_update_pose_update_t1_0_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "snowglobe_idle_physics_update_pose_update_t1_0.json",
     ));
@@ -8527,7 +8525,7 @@ fn oracle_skel_snowglobe_idle_physics_update_reset_update_t1_0_matches_cpp() {
         step_with_physics(&mut state, &mut skeleton, dt, crate::Physics::Update);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "snowglobe_idle_physics_update_reset_update_t1_0.json",
     ));
@@ -8549,7 +8547,7 @@ fn oracle_skel_snowglobe_idle_physics_t10_0_matches_cpp() {
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path("snowglobe_idle_physics_t10_0.json"));
     assert_pose_parity(&rust, &cpp, 1.0e-3);
 }
@@ -8576,7 +8574,7 @@ fn oracle_skel_snowglobe_idle_physics_jitter_dt_t10_0_matches_cpp() {
         }
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "snowglobe_idle_physics_jitter_dt_t10_0.json",
     ));
@@ -8610,7 +8608,7 @@ fn oracle_skel_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_t0_6_matche
         step_physics(&mut state, &mut skeleton, dt);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_t0_6.json",
     ));
@@ -8660,7 +8658,7 @@ fn oracle_skel_snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_jitter_dt_t
         step_physics(&mut state, &mut skeleton, 0.016_666_668);
     }
 
-    let rust = dump_pose(&skeleton, skeleton.time(), None);
+    let rust = dump_pose(&skeleton, skeleton.get_time(), None);
     let cpp = read_pose(&golden_skel_path(
         "snowglobe_idle_plus_shake_add_to_empty_mix0_2_physics_jitter_dt_t0_6.json",
     ));

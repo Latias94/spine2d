@@ -32,41 +32,31 @@ pub enum ConstraintRef<'a> {
 }
 
 impl ConstraintRef<'_> {
-    pub fn data_index(&self) -> usize {
-        match self {
-            ConstraintRef::Ik(constraint) => constraint.data_index(),
-            ConstraintRef::Transform(constraint) => constraint.data_index(),
-            ConstraintRef::Path(constraint) => constraint.data_index(),
-            ConstraintRef::Physics(constraint) => constraint.data_index(),
-            ConstraintRef::Slider(constraint) => constraint.data_index(),
-        }
-    }
-
     fn order(&self, data: &SkeletonData) -> i32 {
         match self {
             ConstraintRef::Ik(constraint) => data
                 .ik_constraints
-                .get(constraint.data_index())
+                .get(constraint.data_index)
                 .map(|constraint| constraint.order)
                 .unwrap_or(0),
             ConstraintRef::Transform(constraint) => data
                 .transform_constraints
-                .get(constraint.data_index())
+                .get(constraint.data_index)
                 .map(|constraint| constraint.order)
                 .unwrap_or(0),
             ConstraintRef::Path(constraint) => data
                 .path_constraints
-                .get(constraint.data_index())
+                .get(constraint.data_index)
                 .map(|constraint| constraint.order)
                 .unwrap_or(0),
             ConstraintRef::Physics(constraint) => data
                 .physics_constraints
-                .get(constraint.data_index())
+                .get(constraint.data_index)
                 .map(|constraint| constraint.order)
                 .unwrap_or(0),
             ConstraintRef::Slider(constraint) => data
                 .slider_constraints
-                .get(constraint.data_index())
+                .get(constraint.data_index)
                 .map(|constraint| constraint.order)
                 .unwrap_or(0),
         }
@@ -126,6 +116,44 @@ impl crate::PointAttachmentData {
         let x = cos * bone.a + sin * bone.b;
         let y = cos * bone.c + sin * bone.d;
         atan2_degrees(y, x)
+    }
+}
+
+impl crate::AttachmentData {
+    /// Computes world vertices for vertex-bearing attachments using the current skeleton pose.
+    pub fn compute_world_vertices(
+        &self,
+        skeleton: &Skeleton,
+        slot_index: usize,
+    ) -> Option<Vec<f32>> {
+        let vertices = match self {
+            crate::AttachmentData::Mesh(a) => &a.vertices,
+            crate::AttachmentData::Path(a) => &a.vertices,
+            crate::AttachmentData::BoundingBox(a) => &a.vertices,
+            crate::AttachmentData::Clipping(a) => &a.vertices,
+            crate::AttachmentData::Region(_) | crate::AttachmentData::Point(_) => return None,
+        };
+
+        let world_vertices_length = match vertices {
+            crate::MeshVertices::Unweighted(v) => v.len() * 2,
+            crate::MeshVertices::Weighted(v) => v.len() * 2,
+        };
+        if world_vertices_length == 0 {
+            return Some(Vec::new());
+        }
+
+        let mut out = vec![0.0f32; world_vertices_length];
+        vertices::compute_attachment_world_vertices(
+            skeleton,
+            slot_index,
+            vertices,
+            0,
+            world_vertices_length,
+            &mut out,
+            0,
+            2,
+        );
+        Some(out)
     }
 }
 
@@ -267,19 +295,19 @@ impl Skeleton {
                 attachment: slot.attachment.clone(),
                 attachment_skin: None,
                 attachment_state: 0,
-                sequence_index: 0,
+                sequence_index: slot.setup_pose.sequence_index,
                 deform: Vec::new(),
-                color: slot.color,
-                has_dark: slot.has_dark,
-                dark_color: slot.dark_color,
+                color: slot.setup_pose.color,
+                has_dark: slot.setup_pose.has_dark,
+                dark_color: slot.setup_pose.dark_color,
                 applied_pose: SlotPose {
                     attachment: slot.attachment.clone(),
                     attachment_skin: None,
-                    sequence_index: 0,
+                    sequence_index: slot.setup_pose.sequence_index,
                     deform: Vec::new(),
-                    color: slot.color,
-                    has_dark: slot.has_dark,
-                    dark_color: slot.dark_color,
+                    color: slot.setup_pose.color,
+                    has_dark: slot.setup_pose.has_dark,
+                    dark_color: slot.setup_pose.dark_color,
                 },
                 pose_constrained: false,
             })
@@ -472,12 +500,8 @@ impl Skeleton {
         &mut self.bones
     }
 
-    pub fn root_bone(&self) -> Option<&Bone> {
+    pub fn get_root_bone(&self) -> Option<&Bone> {
         self.bones.first()
-    }
-
-    pub fn root_bone_mut(&mut self) -> Option<&mut Bone> {
-        self.bones.first_mut()
     }
 
     fn bone_index_by_name(&self, bone_name: &str) -> Option<usize> {
@@ -493,11 +517,6 @@ impl Skeleton {
     pub fn find_bone(&self, bone_name: &str) -> Option<&Bone> {
         let index = self.bone_index_by_name(bone_name)?;
         self.bones.get(index)
-    }
-
-    pub fn find_bone_mut(&mut self, bone_name: &str) -> Option<&mut Bone> {
-        let index = self.bone_index_by_name(bone_name)?;
-        self.bones.get_mut(index)
     }
 
     pub fn slots(&self) -> &[Slot] {
@@ -527,11 +546,6 @@ impl Skeleton {
     pub fn find_slot(&self, slot_name: &str) -> Option<&Slot> {
         let index = self.slot_index_by_name(slot_name)?;
         self.slots.get(index)
-    }
-
-    pub fn find_slot_mut(&mut self, slot_name: &str) -> Option<&mut Slot> {
-        let index = self.slot_index_by_name(slot_name)?;
-        self.slots.get_mut(index)
     }
 
     /// The draw order used for rendering.
@@ -580,23 +594,21 @@ impl Skeleton {
 
         if let Some(source_skin) = pose.attachment_skin()
             && let Some(skin) = self.data.find_skin(source_skin)
-            && let Some(att) = skin.attachment(slot_index, key)
+            && let Some(att) = skin.get_attachment(slot_index, key)
         {
             return Some(att);
         }
 
-        self.attachment(slot_index, key)
+        self.get_attachment(slot_index, key)
     }
 
-    pub fn skin_name(&self) -> Option<&str> {
-        self.skin.as_deref()
+    pub fn get_skin(&self) -> Option<&crate::SkinData> {
+        self.skin
+            .as_deref()
+            .and_then(|name| self.data.find_skin(name))
     }
 
-    pub fn skin(&self) -> Option<&crate::SkinData> {
-        self.skin_name().and_then(|name| self.data.find_skin(name))
-    }
-
-    pub fn color(&self) -> [f32; 4] {
+    pub fn get_color(&self) -> [f32; 4] {
         self.color
     }
 
@@ -608,7 +620,7 @@ impl Skeleton {
         &self.ik_constraints
     }
 
-    pub fn constraints(&self) -> Vec<ConstraintRef<'_>> {
+    pub fn get_constraints(&self) -> Vec<ConstraintRef<'_>> {
         let mut constraints = Vec::with_capacity(
             self.ik_constraints.len()
                 + self.transform_constraints.len()
@@ -648,11 +660,6 @@ impl Skeleton {
         self.ik_constraints.get(index)
     }
 
-    pub fn find_ik_constraint_mut(&mut self, constraint_name: &str) -> Option<&mut IkConstraint> {
-        let index = self.ik_constraint_index_by_name(constraint_name)?;
-        self.ik_constraints.get_mut(index)
-    }
-
     pub fn transform_constraints(&self) -> &[TransformConstraint] {
         &self.transform_constraints
     }
@@ -674,14 +681,6 @@ impl Skeleton {
     pub fn find_transform_constraint(&self, constraint_name: &str) -> Option<&TransformConstraint> {
         let index = self.transform_constraint_index_by_name(constraint_name)?;
         self.transform_constraints.get(index)
-    }
-
-    pub fn find_transform_constraint_mut(
-        &mut self,
-        constraint_name: &str,
-    ) -> Option<&mut TransformConstraint> {
-        let index = self.transform_constraint_index_by_name(constraint_name)?;
-        self.transform_constraints.get_mut(index)
     }
 
     pub fn path_constraints(&self) -> &[PathConstraint] {
@@ -707,14 +706,6 @@ impl Skeleton {
         self.path_constraints.get(index)
     }
 
-    pub fn find_path_constraint_mut(
-        &mut self,
-        constraint_name: &str,
-    ) -> Option<&mut PathConstraint> {
-        let index = self.path_constraint_index_by_name(constraint_name)?;
-        self.path_constraints.get_mut(index)
-    }
-
     pub fn physics_constraints(&self) -> &[PhysicsConstraint] {
         &self.physics_constraints
     }
@@ -738,14 +729,6 @@ impl Skeleton {
         self.physics_constraints.get(index)
     }
 
-    pub fn find_physics_constraint_mut(
-        &mut self,
-        constraint_name: &str,
-    ) -> Option<&mut PhysicsConstraint> {
-        let index = self.physics_constraint_index_by_name(constraint_name)?;
-        self.physics_constraints.get_mut(index)
-    }
-
     pub fn slider_constraints(&self) -> &[SliderConstraint] {
         &self.slider_constraints
     }
@@ -767,14 +750,6 @@ impl Skeleton {
     pub fn find_slider_constraint(&self, constraint_name: &str) -> Option<&SliderConstraint> {
         let index = self.slider_constraint_index_by_name(constraint_name)?;
         self.slider_constraints.get(index)
-    }
-
-    pub fn find_slider_constraint_mut(
-        &mut self,
-        constraint_name: &str,
-    ) -> Option<&mut SliderConstraint> {
-        let index = self.slider_constraint_index_by_name(constraint_name)?;
-        self.slider_constraints.get_mut(index)
     }
 
     pub fn x(&self) -> f32 {
@@ -831,7 +806,7 @@ impl Skeleton {
         self.scale_y * if Bone::is_y_down() { -1.0 } else { 1.0 }
     }
 
-    pub fn time(&self) -> f32 {
+    pub fn get_time(&self) -> f32 {
         self.time
     }
 
@@ -1012,7 +987,7 @@ impl Skeleton {
             }
             self.data
                 .slider_constraints
-                .get(slider.data_index())
+                .get(slider.data_index)
                 .and_then(|data| data.animation)
                 .and_then(|animation_index| self.data.animations.get(animation_index))
                 .is_some_and(|animation| {
@@ -1035,7 +1010,7 @@ impl Skeleton {
             if !slider.is_active() {
                 continue;
             }
-            let Some(data) = self.data.slider_constraints.get(slider.data_index()) else {
+            let Some(data) = self.data.slider_constraints.get(slider.data_index) else {
                 continue;
             };
             let Some(animation_index) = data.animation else {
@@ -1096,10 +1071,16 @@ impl Skeleton {
         let old_skin = self.skin.clone();
         match skin_name {
             None => {
+                if old_skin.is_none() {
+                    return;
+                }
                 self.skin = None;
             }
             Some(name) => {
                 if !self.data.skins.contains_key(name) {
+                    return;
+                }
+                if old_skin.as_deref() == Some(name) {
                     return;
                 }
                 self.skin = Some(name.to_string());
@@ -1120,7 +1101,7 @@ impl Skeleton {
                     let Some(setup_name) = setup_name else {
                         continue;
                     };
-                    if new_skin.attachment(slot_index, setup_name).is_some() {
+                    if new_skin.get_attachment(slot_index, setup_name).is_some() {
                         let clear_deform = {
                             let slot = &self.slots[slot_index];
                             self.attachment_change_clears_deform(
@@ -1156,7 +1137,7 @@ impl Skeleton {
                     continue;
                 }
                 if new_skin
-                    .attachment(slot_index, current_key.as_str())
+                    .get_attachment(slot_index, current_key.as_str())
                     .is_some()
                 {
                     let clear_deform = self.attachment_change_clears_deform(
@@ -1263,7 +1244,7 @@ impl Skeleton {
         let skin_name = self.skin.as_deref();
         let skin = skin_name.and_then(|n| self.data.find_skin(n));
         let default_skin = if skin_name != Some(crate::SkeletonData::DEFAULT_SKIN_NAME) {
-            self.data.default_skin()
+            self.data.get_default_skin()
         } else {
             None
         };
@@ -1273,6 +1254,12 @@ impl Skeleton {
                 continue;
             };
             let setup_name = data.attachment.as_deref();
+
+            slot.color = data.setup_pose.color;
+            slot.has_dark = data.setup_pose.has_dark;
+            slot.dark_color = data.setup_pose.dark_color;
+            slot.sequence_index = data.setup_pose.sequence_index;
+            slot.deform.clear();
 
             match setup_name {
                 None => {
@@ -1291,9 +1278,12 @@ impl Skeleton {
                 }
                 Some(name) => {
                     let mut resolved = None;
-                    if skin.and_then(|s| s.attachment(i, name)).is_some() {
+                    if skin.and_then(|s| s.get_attachment(i, name)).is_some() {
                         resolved = Some((name.to_string(), skin_name.map(|n| n.to_string())));
-                    } else if default_skin.and_then(|s| s.attachment(i, name)).is_some() {
+                    } else if default_skin
+                        .and_then(|s| s.get_attachment(i, name))
+                        .is_some()
+                    {
                         resolved = Some((name.to_string(), Some("default".to_string())));
                     }
 
@@ -1315,10 +1305,6 @@ impl Skeleton {
                     }
                 }
             }
-
-            slot.color = data.color;
-            slot.has_dark = data.has_dark;
-            slot.dark_color = data.dark_color;
             slot.applied_pose = SlotPose::from_slot(slot);
         }
 
@@ -1329,7 +1315,7 @@ impl Skeleton {
         self.reset_constrained_slot_poses();
     }
 
-    pub fn attachment(
+    pub fn get_attachment(
         &self,
         slot_index: usize,
         attachment_name: &str,
@@ -1341,32 +1327,23 @@ impl Skeleton {
         let skin_name = self.skin.as_deref();
         if let Some(skin_name) = skin_name {
             if let Some(skin) = self.data.find_skin(skin_name)
-                && let Some(att) = skin.attachment(slot_index, attachment_name)
+                && let Some(att) = skin.get_attachment(slot_index, attachment_name)
             {
                 return Some(att);
             }
             if skin_name != crate::SkeletonData::DEFAULT_SKIN_NAME
-                && let Some(default_skin) = self.data.default_skin()
-                && let Some(att) = default_skin.attachment(slot_index, attachment_name)
+                && let Some(default_skin) = self.data.get_default_skin()
+                && let Some(att) = default_skin.get_attachment(slot_index, attachment_name)
             {
                 return Some(att);
             }
-        } else if let Some(default_skin) = self.data.default_skin()
-            && let Some(att) = default_skin.attachment(slot_index, attachment_name)
+        } else if let Some(default_skin) = self.data.get_default_skin()
+            && let Some(att) = default_skin.get_attachment(slot_index, attachment_name)
         {
             return Some(att);
         }
 
         None
-    }
-
-    pub fn attachment_by_slot_name(
-        &self,
-        slot_name: &str,
-        attachment_name: &str,
-    ) -> Option<&crate::AttachmentData> {
-        let slot_index = self.slot_index_by_name(slot_name)?;
-        self.attachment(slot_index, attachment_name)
     }
 
     pub fn set_attachment(&mut self, slot_name: &str, attachment_name: &str) {
@@ -1449,7 +1426,7 @@ impl Skeleton {
                 continue;
             }
 
-            match self.slot_attachment_data(slot_index) {
+            match self.slot_attachment_data_for_pose(slot_index, true) {
                 Some(crate::AttachmentData::Region(region)) => {
                     let mut vertices = [0.0; 8];
                     for (i, (x, y)) in region_world_vertices(region, bone).into_iter().enumerate() {
@@ -1466,7 +1443,10 @@ impl Skeleton {
                     );
                 }
                 Some(crate::AttachmentData::Mesh(_)) => {
-                    let Some(vertices) = self.slot_attachment_world_vertices(slot_index) else {
+                    let Some(vertices) = self
+                        .slot_attachment_data_for_pose(slot_index, true)
+                        .and_then(|attachment| attachment.compute_world_vertices(self, slot_index))
+                    else {
                         continue;
                     };
                     include_flat_vertices_in_bounds(
@@ -1505,7 +1485,7 @@ impl Skeleton {
                 continue;
             }
 
-            let Some(attachment) = self.slot_attachment_data(slot_index) else {
+            let Some(attachment) = self.slot_attachment_data_for_pose(slot_index, true) else {
                 if clipper.is_clipping() && clip_end_slot == Some(slot_index) {
                     clipper.clip_end();
                     clip_end_slot = None;
@@ -1545,7 +1525,10 @@ impl Skeleton {
                     }
                 }
                 crate::AttachmentData::Mesh(mesh) => {
-                    let Some(vertices) = self.slot_attachment_world_vertices(slot_index) else {
+                    let Some(vertices) = self
+                        .slot_attachment_data_for_pose(slot_index, true)
+                        .and_then(|attachment| attachment.compute_world_vertices(self, slot_index))
+                    else {
                         continue;
                     };
 
@@ -1598,7 +1581,10 @@ impl Skeleton {
                         clip_end_slot = None;
                     }
 
-                    let Some(vertices) = self.slot_attachment_world_vertices(slot_index) else {
+                    let Some(vertices) = self
+                        .slot_attachment_data_for_pose(slot_index, true)
+                        .and_then(|attachment| attachment.compute_world_vertices(self, slot_index))
+                    else {
                         continue;
                     };
                     if clipper.clip_start(&vertices, clip.convex, clip.inverse) {
@@ -1632,7 +1618,7 @@ impl Skeleton {
             if self
                 .data
                 .find_skin(skin_name)
-                .and_then(|skin| skin.attachment(slot_index, attachment_name))
+                .and_then(|skin| skin.get_attachment(slot_index, attachment_name))
                 .is_some()
             {
                 return Some(skin_name.to_string());
@@ -1640,8 +1626,8 @@ impl Skeleton {
             if skin_name != crate::SkeletonData::DEFAULT_SKIN_NAME
                 && self
                     .data
-                    .default_skin()
-                    .and_then(|skin| skin.attachment(slot_index, attachment_name))
+                    .get_default_skin()
+                    .and_then(|skin| skin.get_attachment(slot_index, attachment_name))
                     .is_some()
             {
                 return Some("default".to_string());
@@ -1651,8 +1637,8 @@ impl Skeleton {
 
         if self
             .data
-            .default_skin()
-            .and_then(|skin| skin.attachment(slot_index, attachment_name))
+            .get_default_skin()
+            .and_then(|skin| skin.get_attachment(slot_index, attachment_name))
             .is_some()
         {
             return Some("default".to_string());
@@ -1668,7 +1654,7 @@ impl Skeleton {
         key: &str,
     ) -> Option<(bool, String, String)> {
         let skin = self.data.find_skin(source_skin)?;
-        let attachment = skin.attachment(slot_index, key)?;
+        let attachment = skin.get_attachment(slot_index, key)?;
         match attachment {
             crate::AttachmentData::Mesh(mesh) => Some((
                 true,
@@ -1713,47 +1699,10 @@ impl Skeleton {
         }
     }
 
-    pub fn slot_attachment_data(&self, slot_index: usize) -> Option<&crate::AttachmentData> {
-        self.slot_attachment_data_for_pose(slot_index, true)
-    }
-
     /// Computes full world vertices for the current vertex attachment in a slot.
     ///
     /// This is the Rust runtime equivalent of calling C++ `VertexAttachment::computeWorldVertices`
     /// with the slot's current attachment. Region and point attachments return `None`.
-    pub fn slot_attachment_world_vertices(&self, slot_index: usize) -> Option<Vec<f32>> {
-        let attachment = self.slot_attachment_data(slot_index)?;
-        let vertices = match attachment {
-            crate::AttachmentData::Mesh(a) => &a.vertices,
-            crate::AttachmentData::Point(_) => return None,
-            crate::AttachmentData::Path(a) => &a.vertices,
-            crate::AttachmentData::BoundingBox(a) => &a.vertices,
-            crate::AttachmentData::Clipping(a) => &a.vertices,
-            crate::AttachmentData::Region(_) => return None,
-        };
-
-        let world_vertices_length = match vertices {
-            crate::MeshVertices::Unweighted(v) => v.len() * 2,
-            crate::MeshVertices::Weighted(v) => v.len() * 2,
-        };
-        if world_vertices_length == 0 {
-            return Some(Vec::new());
-        }
-
-        let mut out = vec![0.0f32; world_vertices_length];
-        vertices::compute_attachment_world_vertices(
-            self,
-            slot_index,
-            vertices,
-            0,
-            world_vertices_length,
-            &mut out,
-            0,
-            2,
-        );
-        Some(out)
-    }
-
     pub fn update_world_transform_with_physics(&mut self, physics: Physics) {
         self.update_epoch = self.update_epoch.wrapping_add(1);
         if self.draw_order_constrained {

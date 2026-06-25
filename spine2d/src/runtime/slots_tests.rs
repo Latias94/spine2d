@@ -25,7 +25,7 @@ fn parse_slots_and_default_skin_region_attachment() {
     assert_eq!(data.slots.len(), 1);
     assert_eq!(data.skins.len(), 1);
     assert_eq!(
-        data.default_skin().map(|skin| skin.name.as_str()),
+        data.get_default_skin().map(|skin| skin.name.as_str()),
         Some("default")
     );
 
@@ -35,10 +35,14 @@ fn parse_slots_and_default_skin_region_attachment() {
     assert_eq!(skeleton.slots.len(), 1);
     assert_eq!(skeleton.draw_order, vec![0]);
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("head"));
+    assert!(std::ptr::eq(
+        skeleton.slots[0].get_bone(&skeleton),
+        &skeleton.bones()[0]
+    ));
     assert_eq!(skeleton.skin.as_deref(), None);
 
     let skin = skeleton.data.find_skin("default").unwrap();
-    let attachment = skin.attachment(0, "head").unwrap();
+    let attachment = skin.get_attachment(0, "head").unwrap();
     match attachment {
         crate::AttachmentData::Region(region) => {
             assert_eq!(region.path, "head.png");
@@ -68,5 +72,5 @@ fn skeleton_data_default_skin_is_none_when_no_default_skin_exists() {
     )
     .unwrap();
 
-    assert!(data.default_skin().is_none());
+    assert!(data.get_default_skin().is_none());
 }

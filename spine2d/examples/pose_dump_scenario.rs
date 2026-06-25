@@ -56,9 +56,9 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
     fn bone_name(skeleton: &Skeleton, index: usize) -> &str {
         skeleton
             .data()
-            .bones
+            .get_bones()
             .get(index)
-            .map(|b| b.name.as_str())
+            .map(|b| b.get_name())
             .unwrap_or("<unknown>")
     }
 
@@ -69,45 +69,45 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
             UpdateCacheItem::Bone(index) => format!("bone {}", bone_name(skeleton, index)),
             UpdateCacheItem::Ik(index) => {
                 let name = skeleton
-                    .ik_constraints()
+                    .data()
+                    .get_ik_constraints()
                     .get(index)
-                    .and_then(|c| skeleton.data().ik_constraints.get(c.data_index()))
                     .map(|d| d.name.as_str())
                     .unwrap_or("<unknown>");
                 format!("ik {}", name)
             }
             UpdateCacheItem::Transform(index) => {
                 let name = skeleton
-                    .transform_constraints()
+                    .data()
+                    .get_transform_constraints()
                     .get(index)
-                    .and_then(|c| skeleton.data().transform_constraints.get(c.data_index()))
                     .map(|d| d.name.as_str())
                     .unwrap_or("<unknown>");
                 format!("transform {}", name)
             }
             UpdateCacheItem::Path(index) => {
                 let name = skeleton
-                    .path_constraints()
+                    .data()
+                    .get_path_constraints()
                     .get(index)
-                    .and_then(|c| skeleton.data().path_constraints.get(c.data_index()))
                     .map(|d| d.name.as_str())
                     .unwrap_or("<unknown>");
                 format!("path {}", name)
             }
             UpdateCacheItem::Physics(index) => {
                 let name = skeleton
-                    .physics_constraints()
+                    .data()
+                    .get_physics_constraints()
                     .get(index)
-                    .and_then(|c| skeleton.data().physics_constraints.get(c.data_index()))
                     .map(|d| d.name.as_str())
                     .unwrap_or("<unknown>");
                 format!("physics {}", name)
             }
             UpdateCacheItem::Slider(index) => {
                 let name = skeleton
-                    .slider_constraints()
+                    .data()
+                    .get_slider_constraints()
                     .get(index)
-                    .and_then(|c| skeleton.data().slider_constraints.get(c.data_index()))
                     .map(|d| d.name.as_str())
                     .unwrap_or("<unknown>");
                 format!("slider {}", name)
@@ -314,7 +314,7 @@ fn bone_timeline_info(
         "index": index,
         "kind": kind,
         "boneIndex": bone_index,
-        "boneName": data.bones.get(bone_index).map(|b| b.name.as_str()).unwrap_or("<unknown>"),
+        "boneName": data.get_bones().get(bone_index).map(|b| b.get_name()).unwrap_or("<unknown>"),
         "frames": frames,
     })
 }
@@ -334,19 +334,20 @@ fn curve_info(curve: &Curve) -> serde_json::Value {
 }
 
 fn dump_animation_data(data: &SkeletonData, name: &str) {
-    let Some(&index) = data.animation_index.get(name) else {
+    let Some((index, animation)) = data
+        .get_animations()
+        .iter()
+        .enumerate()
+        .find(|(_, animation)| animation.name == name)
+    else {
         panic!("missing animation: {name}");
     };
-    let animation = data
-        .animations
-        .get(index)
-        .unwrap_or_else(|| panic!("animation index out of range for {name}: {index}"));
     let ik_timelines: Vec<_> = animation
         .ik_constraint_timelines
         .iter()
         .map(|timeline| {
             let constraint_name = data
-                .ik_constraints
+                .get_ik_constraints()
                 .get(timeline.constraint_index)
                 .map(|c| c.name.as_str())
                 .unwrap_or("<unknown>");
@@ -440,9 +441,9 @@ fn debug_dump_bones(label: &str, skeleton: &Skeleton, total_time: f32) {
         let Some((i, bone)) = skeleton.bones().iter().enumerate().find(|(i, _)| {
             skeleton
                 .data()
-                .bones
+                .get_bones()
                 .get(*i)
-                .is_some_and(|b| b.name == name)
+                .is_some_and(|b| b.get_name() == name)
         }) else {
             eprintln!("[DEBUG-runwalk] missing bone {name}");
             continue;
@@ -688,9 +689,9 @@ fn main() {
         .map(|(i, bone)| {
             let name = skeleton
                 .data()
-                .bones
+                .get_bones()
                 .get(i)
-                .map(|b| b.name.as_str())
+                .map(|b| b.get_name())
                 .unwrap_or("<unknown>");
             json!({
                 "i": i,
@@ -709,12 +710,12 @@ fn main() {
         .map(|(i, slot)| {
             let name = skeleton
                 .data()
-                .slots
+                .get_slots()
                 .get(i)
-                .map(|s| s.name.as_str())
+                .map(|s| s.get_name())
                 .unwrap_or("<unknown>");
-            let attachment = skeleton
-                .slot_attachment_data(i)
+            let attachment = slot
+                .get_applied_attachment(&skeleton)
                 .map(|a| json!({"name": a.name()}));
             let has_dark = if slot.has_dark() { 1 } else { 0 };
             let dark_color = if slot.has_dark() {
@@ -748,7 +749,7 @@ fn main() {
         .map(|(i, c)| {
             let name = skeleton
                 .data()
-                .ik_constraints
+                .get_ik_constraints()
                 .get(i)
                 .map(|d| d.name.as_str())
                 .unwrap_or("<unknown>");
@@ -770,7 +771,7 @@ fn main() {
         .map(|(i, c)| {
             let name = skeleton
                 .data()
-                .transform_constraints
+                .get_transform_constraints()
                 .get(i)
                 .map(|d| d.name.as_str())
                 .unwrap_or("<unknown>");
@@ -795,7 +796,7 @@ fn main() {
         .map(|(i, c)| {
             let name = skeleton
                 .data()
-                .path_constraints
+                .get_path_constraints()
                 .get(i)
                 .map(|d| d.name.as_str())
                 .unwrap_or("<unknown>");
@@ -820,19 +821,19 @@ fn main() {
         );
         let transform_constraint_data: Vec<_> = skeleton
             .data()
-            .transform_constraints
+            .get_transform_constraints()
             .iter()
             .map(|c| {
                 let bone_names: Vec<_> = c
                     .bones
                     .iter()
-                    .filter_map(|&i| skeleton.data().bones.get(i).map(|b| b.name.as_str()))
+                    .filter_map(|&i| skeleton.data().get_bones().get(i).map(|b| b.get_name()))
                     .collect();
                 let source_name = skeleton
                     .data()
-                    .bones
+                    .get_bones()
                     .get(c.source)
-                    .map(|b| b.name.as_str())
+                    .map(|b| b.get_name())
                     .unwrap_or("<unknown>");
                 json!({
                     "name": c.name,
@@ -857,14 +858,19 @@ fn main() {
     if let Some(slot_name) = dump_slot_vertices.as_deref()
         && let Some(slot_index) = skeleton
             .data()
-            .slots
+            .get_slots()
             .iter()
-            .position(|s| s.name == slot_name)
-        && let Some(world_vertices) = skeleton.slot_attachment_world_vertices(slot_index)
+            .position(|s| s.get_name() == slot_name)
     {
-        debug_map.insert("slot".to_string(), json!(slot_name));
-        debug_map.insert("slotIndex".to_string(), json!(slot_index as i32));
-        debug_map.insert("worldVertices".to_string(), json!(world_vertices));
+        let slot = &skeleton.slots()[slot_index];
+        if let Some(world_vertices) = slot
+            .get_applied_attachment(&skeleton)
+            .and_then(|attachment| attachment.compute_world_vertices(&skeleton, slot_index))
+        {
+            debug_map.insert("slot".to_string(), json!(slot_name));
+            debug_map.insert("slotIndex".to_string(), json!(slot_index as i32));
+            debug_map.insert("worldVertices".to_string(), json!(world_vertices));
+        }
     }
 
     if let Some(animation_name) = dump_animation_data_name.as_deref() {

@@ -98,15 +98,15 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
         let mut call_clip_end_for_slot = true;
 
         'process_slot: {
-            let Some(attachment) = skeleton.slot_attachment_data(slot_index) else {
+            let Some(slot) = skeleton.slots.get(slot_index) else {
+                break 'process_slot;
+            };
+            let Some(attachment) = slot.get_applied_attachment(skeleton) else {
                 break 'process_slot;
             };
 
             match attachment {
                 AttachmentData::Region(region) => {
-                    let Some(slot) = skeleton.slots.get(slot_index) else {
-                        break 'process_slot;
-                    };
                     let Some(bone) = skeleton.bones.get(slot.bone) else {
                         break 'process_slot;
                     };
@@ -150,7 +150,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     let blend = skeleton
                         .data
                         .slots
-                        .get(slot.data_index())
+                        .get(slot.data_index)
                         .map_or(BlendMode::Normal, |data| data.blend);
                     let (texture_path, uvs, premultiplied_alpha) = if let Some(atlas) = atlas {
                         if let Some(atlas_region) = atlas_region_opt {
@@ -327,7 +327,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     let blend = skeleton
                         .data
                         .slots
-                        .get(slot.data_index())
+                        .get(slot.data_index)
                         .map_or(BlendMode::Normal, |data| data.blend);
                     let attachment_path = effective_attachment_path(
                         mesh.path.as_str(),

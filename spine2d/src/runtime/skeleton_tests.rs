@@ -7,7 +7,6 @@ use crate::{
     SliderConstraintData, SlotData, SpacingMode, TransformConstraint, TransformConstraintData,
     UpdateCacheItem,
 };
-use std::collections::HashMap;
 use std::sync::Arc;
 
 fn assert_approx(actual: f32, expected: f32) {
@@ -49,7 +48,6 @@ fn empty_skeleton_data() -> Arc<SkeletonData> {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -101,7 +99,8 @@ fn mesh_attachment(
 }
 
 fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
-    let mut default_skin = SkinData::new("default", 2);
+    let mut default_skin = SkinData::new("default");
+    default_skin.attachments.resize_with(2, Default::default);
     default_skin.attachments[0].insert(
         "shared".to_string(),
         region_attachment("default-shared", [1.0, 0.0, 0.0, 1.0]),
@@ -111,7 +110,8 @@ fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
         region_attachment("default-fallback", [0.0, 1.0, 0.0, 1.0]),
     );
 
-    let mut custom_skin = SkinData::new("custom", 2);
+    let mut custom_skin = SkinData::new("custom");
+    custom_skin.attachments.resize_with(2, Default::default);
     custom_skin.attachments[0].insert(
         "shared".to_string(),
         region_attachment("custom-shared", [0.0, 0.0, 1.0, 1.0]),
@@ -166,7 +166,6 @@ fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
         skins,
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -176,7 +175,8 @@ fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
 }
 
 fn linked_mesh_attachment_skeleton_data() -> Arc<SkeletonData> {
-    let mut default_skin = SkinData::new("default", 1);
+    let mut default_skin = SkinData::new("default");
+    default_skin.attachments.resize_with(1, Default::default);
     default_skin.attachments[0].insert(
         "parent".to_string(),
         mesh_attachment("parent", "default", "parent", 1),
@@ -221,7 +221,6 @@ fn linked_mesh_attachment_skeleton_data() -> Arc<SkeletonData> {
         skins,
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -231,19 +230,22 @@ fn linked_mesh_attachment_skeleton_data() -> Arc<SkeletonData> {
 }
 
 fn skin_switch_linked_mesh_skeleton_data() -> Arc<SkeletonData> {
-    let mut default_skin = SkinData::new("default", 1);
+    let mut default_skin = SkinData::new("default");
+    default_skin.attachments.resize_with(1, Default::default);
     default_skin.attachments[0].insert(
         "mesh".to_string(),
         mesh_attachment("default-mesh", "source", "parent", 0),
     );
 
-    let mut old_skin = SkinData::new("old", 1);
+    let mut old_skin = SkinData::new("old");
+    old_skin.attachments.resize_with(1, Default::default);
     old_skin.attachments[0].insert(
         "mesh".to_string(),
         mesh_attachment("old-mesh", "source", "parent", 1),
     );
 
-    let mut new_skin = SkinData::new("new", 1);
+    let mut new_skin = SkinData::new("new");
+    new_skin.attachments.resize_with(1, Default::default);
     new_skin.attachments[0].insert(
         "mesh".to_string(),
         mesh_attachment("new-mesh", "source", "parent", 2),
@@ -282,7 +284,6 @@ fn skin_switch_linked_mesh_skeleton_data() -> Arc<SkeletonData> {
         skins,
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -351,7 +352,6 @@ fn constraint_lookup_skeleton_data() -> Arc<SkeletonData> {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: vec![IkConstraintData {
             name: "ik".to_string(),
             order: 0,
@@ -451,10 +451,6 @@ fn slider_draw_order_skeleton_data() -> Arc<SkeletonData> {
         draw_order_folder_timelines: Vec::new(),
         timeline_order: Vec::new(),
     });
-
-    let mut animation_index = HashMap::new();
-    animation_index.insert("slider-draw".to_string(), 0);
-
     Arc::new(SkeletonData {
         spine_version: None,
         name: String::new(),
@@ -491,7 +487,6 @@ fn slider_draw_order_skeleton_data() -> Arc<SkeletonData> {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: vec![animation],
-        animation_index,
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -554,11 +549,8 @@ fn slider_slot_pose_skeleton_data() -> Arc<SkeletonData> {
         draw_order_folder_timelines: Vec::new(),
         timeline_order: Vec::new(),
     });
-
-    let mut animation_index = HashMap::new();
-    animation_index.insert("slider-slot-pose".to_string(), 0);
-
-    let mut default_skin = SkinData::new("default", 1);
+    let mut default_skin = SkinData::new("default");
+    default_skin.attachments.resize_with(1, Default::default);
     default_skin.attachments[0].insert(
         "base".to_string(),
         AttachmentData::Region(RegionAttachmentData {
@@ -618,13 +610,17 @@ fn slider_slot_pose_skeleton_data() -> Arc<SkeletonData> {
             name: "slot0".to_string(),
             bone: 0,
             attachment: Some("base".to_string()),
-            color: [0.1, 0.2, 0.3, 0.4],
+            setup_pose: crate::SlotSetupPose {
+                color: [0.1, 0.2, 0.3, 0.4],
+                has_dark: false,
+                dark_color: [0.0, 0.0, 0.0],
+                sequence_index: 0,
+            },
             ..Default::default()
         }],
         skins,
         events: indexmap::IndexMap::new(),
         animations: vec![animation],
-        animation_index,
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -686,16 +682,21 @@ fn setup_pose_split_skeleton_data() -> Arc<SkeletonData> {
         }],
         slots: vec![
             SlotData {
+                index: 0,
                 name: "slot0".to_string(),
                 bone: 0,
                 attachment: None,
-                color: [0.1, 0.2, 0.3, 0.4],
-                has_dark: true,
-                dark_color: [0.5, 0.6, 0.7],
+                setup_pose: crate::SlotSetupPose {
+                    color: [0.1, 0.2, 0.3, 0.4],
+                    has_dark: true,
+                    dark_color: [0.5, 0.6, 0.7],
+                    sequence_index: 0,
+                },
                 blend: BlendMode::Additive,
                 visible: true,
             },
             SlotData {
+                index: 1,
                 name: "slot1".to_string(),
                 bone: 0,
                 attachment: None,
@@ -705,7 +706,6 @@ fn setup_pose_split_skeleton_data() -> Arc<SkeletonData> {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: vec![IkConstraintData {
             name: "ik".to_string(),
             order: 0,
@@ -775,7 +775,8 @@ fn setup_pose_split_skeleton_data() -> Arc<SkeletonData> {
 }
 
 fn clipping_bounds_skeleton_data() -> Arc<SkeletonData> {
-    let mut default_skin = SkinData::new("default", 3);
+    let mut default_skin = SkinData::new("default");
+    default_skin.attachments.resize_with(3, Default::default);
     default_skin.attachments[0].insert(
         "clip".to_string(),
         AttachmentData::Clipping(ClippingAttachmentData {
@@ -871,7 +872,6 @@ fn clipping_bounds_skeleton_data() -> Arc<SkeletonData> {
         skins,
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -890,7 +890,7 @@ fn skeleton_world_controls_follow_cpp_direct_assignment() {
     assert_eq!(skeleton.gravity(), (0.0, 1.0));
     assert_eq!(skeleton.gravity_x(), 0.0);
     assert_eq!(skeleton.gravity_y(), 1.0);
-    assert_eq!(skeleton.time(), 0.0);
+    assert_eq!(skeleton.get_time(), 0.0);
 
     skeleton.set_wind_x(2.0);
     skeleton.set_wind_y(3.0);
@@ -904,7 +904,7 @@ fn skeleton_world_controls_follow_cpp_direct_assignment() {
     assert_eq!(skeleton.gravity(), (4.0, 5.0));
     assert_eq!(skeleton.gravity_x(), 4.0);
     assert_eq!(skeleton.gravity_y(), 5.0);
-    assert_eq!(skeleton.time(), 1.5);
+    assert_eq!(skeleton.get_time(), 1.5);
 
     skeleton.set_wind(-2.0, 6.0);
     skeleton.set_gravity(7.0, -5.0);
@@ -913,10 +913,10 @@ fn skeleton_world_controls_follow_cpp_direct_assignment() {
 
     assert_eq!(skeleton.wind(), (-2.0, 6.0));
     assert_eq!(skeleton.gravity(), (7.0, -5.0));
-    assert_eq!(skeleton.time(), -0.5);
+    assert_eq!(skeleton.get_time(), -0.5);
 
     skeleton.update(0.25);
-    assert_eq!(skeleton.time(), -0.25);
+    assert_eq!(skeleton.get_time(), -0.25);
 }
 
 #[test]
@@ -1022,7 +1022,9 @@ fn slider_slot_pose_uses_applied_buffer_without_mutating_pose() {
     assert_eq!(skeleton.slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
     assert_eq!(skeleton.slots()[0].applied_color(), [0.2, 0.3, 0.4, 0.5]);
     assert_eq!(
-        skeleton.slot_attachment_data(0).map(AttachmentData::name),
+        skeleton.slots()[0]
+            .get_applied_attachment(&skeleton)
+            .map(AttachmentData::name),
         Some("alt")
     );
 
@@ -1045,8 +1047,7 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
     assert_eq!(skeleton.slots_mut().len(), 0);
     assert!(skeleton.draw_order().is_empty());
     assert!(skeleton.draw_order_mut().is_empty());
-    assert_eq!(skeleton.skin_name(), None);
-    assert!(skeleton.skin().is_none());
+    assert!(skeleton.get_skin().is_none());
     assert_eq!(skeleton.ik_constraints().len(), 0);
     assert_eq!(skeleton.ik_constraints_mut().len(), 0);
     assert_eq!(skeleton.transform_constraints().len(), 0);
@@ -1059,9 +1060,9 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
     assert_eq!(skeleton.slider_constraints_mut().len(), 0);
     assert!(skeleton.update_cache_items().is_empty());
 
-    assert_eq!(skeleton.color(), [1.0, 1.0, 1.0, 1.0]);
+    assert_eq!(skeleton.get_color(), [1.0, 1.0, 1.0, 1.0]);
     skeleton.set_color([0.25, 0.5, 0.75, 0.875]);
-    assert_eq!(skeleton.color(), [0.25, 0.5, 0.75, 0.875]);
+    assert_eq!(skeleton.get_color(), [0.25, 0.5, 0.75, 0.875]);
 
     assert_eq!(skeleton.position(), (0.0, 0.0));
     skeleton.set_position(10.0, -2.0);
@@ -1106,26 +1107,23 @@ fn skeleton_update_cache_items_expose_read_only_solver_order() {
 fn skeleton_finders_match_setup_order() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
 
-    assert_eq!(skeleton.root_bone().unwrap().data_index(), 0);
-    assert_eq!(skeleton.root_bone_mut().unwrap().data_index(), 0);
-    assert_eq!(skeleton.find_bone("root").unwrap().data_index(), 0);
-    assert_eq!(skeleton.find_bone("child").unwrap().data_index(), 1);
+    assert_eq!(skeleton.get_root_bone().unwrap().data_index, 0);
+    assert_eq!(skeleton.bones_mut().first_mut().unwrap().data_index, 0);
+    assert_eq!(skeleton.find_bone("root").unwrap().data_index, 0);
+    assert_eq!(skeleton.find_bone("child").unwrap().data_index, 1);
     assert!(skeleton.find_bone("").is_none());
     assert!(skeleton.find_slot("").is_none());
-    assert_eq!(skeleton.find_bone("child").unwrap().parent_index(), Some(0));
+    assert_eq!(skeleton.find_bone("child").unwrap().parent, Some(0));
 
-    skeleton.root_bone_mut().unwrap().set_y(3.0);
+    skeleton.bones_mut().first_mut().unwrap().set_y(3.0);
     assert_eq!(skeleton.bones()[0].y(), 3.0);
 
-    skeleton.find_bone_mut("child").unwrap().set_x(7.0);
+    skeleton.bones_mut()[1].set_x(7.0);
     assert_eq!(skeleton.bones()[1].x(), 7.0);
 
-    assert_eq!(skeleton.find_slot("slot1").unwrap().data_index(), 1);
-    assert_eq!(skeleton.find_slot("slot0").unwrap().bone_index(), 0);
-    skeleton
-        .find_slot_mut("slot1")
-        .unwrap()
-        .set_color([0.2, 0.3, 0.4, 0.5]);
+    assert_eq!(skeleton.find_slot("slot1").unwrap().data_index, 1);
+    assert_eq!(skeleton.find_slot("slot0").unwrap().bone, 0);
+    skeleton.slots_mut()[1].set_color([0.2, 0.3, 0.4, 0.5]);
     assert_eq!(skeleton.slots()[1].color(), [0.2, 0.3, 0.4, 0.5]);
 }
 
@@ -1133,57 +1131,42 @@ fn skeleton_finders_match_setup_order() {
 fn skeleton_constraint_finders_match_data_names() {
     let mut skeleton = Skeleton::new(constraint_lookup_skeleton_data());
 
-    assert_eq!(skeleton.find_ik_constraint("ik").unwrap().data_index(), 0);
-    skeleton.find_ik_constraint_mut("ik").unwrap().set_mix(0.25);
+    assert_eq!(skeleton.find_ik_constraint("ik").unwrap().data_index, 0);
+    skeleton.ik_constraints_mut()[0].set_mix(0.25);
     assert_eq!(skeleton.ik_constraints()[0].mix(), 0.25);
 
     assert_eq!(
         skeleton
             .find_transform_constraint("transform")
             .unwrap()
-            .data_index(),
+            .data_index,
         0
     );
-    skeleton
-        .find_transform_constraint_mut("transform")
-        .unwrap()
-        .set_mix_x(0.5);
+    skeleton.transform_constraints_mut()[0].set_mix_x(0.5);
     assert_eq!(skeleton.transform_constraints()[0].mix_x(), 0.5);
 
-    assert_eq!(
-        skeleton.find_path_constraint("path").unwrap().data_index(),
-        0
-    );
-    skeleton
-        .find_path_constraint_mut("path")
-        .unwrap()
-        .set_position(2.0);
+    assert_eq!(skeleton.find_path_constraint("path").unwrap().data_index, 0);
+    skeleton.path_constraints_mut()[0].set_position(2.0);
     assert_eq!(skeleton.path_constraints()[0].position(), 2.0);
 
     assert_eq!(
         skeleton
             .find_physics_constraint("physics")
             .unwrap()
-            .data_index(),
+            .data_index,
         0
     );
-    skeleton
-        .find_physics_constraint_mut("physics")
-        .unwrap()
-        .set_mix(0.75);
+    skeleton.physics_constraints_mut()[0].set_mix(0.75);
     assert_eq!(skeleton.physics_constraints()[0].mix(), 0.75);
 
     assert_eq!(
         skeleton
             .find_slider_constraint("slider")
             .unwrap()
-            .data_index(),
+            .data_index,
         0
     );
-    skeleton
-        .find_slider_constraint_mut("slider")
-        .unwrap()
-        .set_time(3.0);
+    skeleton.slider_constraints_mut()[0].set_time(3.0);
     assert_eq!(skeleton.slider_constraints()[0].time(), 3.0);
 
     assert!(skeleton.find_ik_constraint("").is_none());
@@ -1196,7 +1179,7 @@ fn skeleton_constraint_finders_match_data_names() {
 #[test]
 fn skeleton_constraints_expose_ordered_typed_constraint_refs() {
     let skeleton = Skeleton::new(constraint_lookup_skeleton_data());
-    let constraints = skeleton.constraints();
+    let constraints = skeleton.get_constraints();
 
     assert_eq!(constraints.len(), 5);
     assert!(constraints.iter().all(ConstraintRef::is_active));
@@ -1208,11 +1191,11 @@ fn skeleton_constraints_expose_ordered_typed_constraint_refs() {
             ConstraintRef::Physics(physics),
             ConstraintRef::Slider(slider),
         ] => {
-            assert_eq!(ik.data_index(), 0);
-            assert_eq!(transform.data_index(), 0);
-            assert_eq!(path.data_index(), 0);
-            assert_eq!(physics.data_index(), 0);
-            assert_eq!(slider.data_index(), 0);
+            assert_eq!(ik.data_index, 0);
+            assert_eq!(transform.data_index, 0);
+            assert_eq!(path.data_index, 0);
+            assert_eq!(physics.data_index, 0);
+            assert_eq!(slider.data_index, 0);
         }
         other => panic!("unexpected constraint order: {other:?}"),
     }
@@ -1223,57 +1206,54 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
 
     assert_eq!(
-        skeleton.attachment(0, "shared").unwrap().name(),
+        skeleton.get_attachment(0, "shared").unwrap().name(),
         "default-shared"
     );
     assert_eq!(
-        skeleton
-            .attachment_by_slot_name("slot0", "shared")
-            .unwrap()
-            .name(),
+        skeleton.get_attachment(0, "shared").unwrap().name(),
         "default-shared"
     );
     assert_eq!(
-        skeleton
-            .attachment_by_slot_name("slot1", "fallback")
-            .unwrap()
-            .name(),
+        skeleton.get_attachment(1, "fallback").unwrap().name(),
         "default-fallback"
     );
-    assert!(skeleton.attachment(0, "").is_none());
-    assert!(skeleton.attachment_by_slot_name("", "shared").is_none());
+    assert!(skeleton.get_attachment(0, "").is_none());
 
     skeleton.set_skin(Some("missing"));
-    assert_eq!(skeleton.skin_name(), None);
-    assert!(skeleton.skin().is_none());
+    assert!(skeleton.get_skin().is_none());
     assert_eq!(
-        skeleton.attachment(0, "shared").unwrap().name(),
+        skeleton.get_attachment(0, "shared").unwrap().name(),
         "default-shared"
     );
 
     skeleton.set_skin(Some("custom"));
-    assert_eq!(skeleton.skin_name(), Some("custom"));
     assert_eq!(
-        skeleton.skin().map(|skin| skin.name.as_str()),
+        skeleton.get_skin().map(|skin| skin.name.as_str()),
         Some("custom")
     );
     assert_eq!(
-        skeleton.attachment(0, "shared").unwrap().name(),
+        skeleton.get_attachment(0, "shared").unwrap().name(),
         "custom-shared"
     );
     assert_eq!(
-        skeleton
-            .attachment_by_slot_name("slot0", "shared")
-            .unwrap()
-            .name(),
-        "custom-shared"
-    );
-    assert_eq!(
-        skeleton
-            .attachment_by_slot_name("slot1", "fallback")
-            .unwrap()
-            .name(),
+        skeleton.get_attachment(1, "fallback").unwrap().name(),
         "default-fallback"
+    );
+
+    skeleton.set_skin(Some("custom"));
+    let before = (
+        skeleton.slots()[0].attachment.clone(),
+        skeleton.slots()[0].attachment_skin.clone(),
+        skeleton.slots()[0].sequence_index(),
+    );
+    skeleton.set_skin(Some("custom"));
+    assert_eq!(
+        (
+            skeleton.slots()[0].attachment.clone(),
+            skeleton.slots()[0].attachment_skin.clone(),
+            skeleton.slots()[0].sequence_index(),
+        ),
+        before
     );
 }
 
@@ -1365,7 +1345,10 @@ fn skeleton_set_skin_preserves_deform_for_matching_timeline_attachment() {
     }
 
     skeleton.set_skin(Some("new"));
-    assert_eq!(skeleton.skin_name(), Some("new"));
+    assert_eq!(
+        skeleton.get_skin().map(|skin| skin.name.as_str()),
+        Some("new")
+    );
     assert_eq!(skeleton.slots()[0].attachment_skin.as_deref(), Some("new"));
     assert_eq!(skeleton.slots()[0].sequence_index(), -1);
     assert_eq!(skeleton.slots()[0].deform(), &[5.0, 6.0]);
@@ -1375,7 +1358,7 @@ fn skeleton_set_skin_preserves_deform_for_matching_timeline_attachment() {
 fn skeleton_set_skin_from_default_preserves_deform_for_matching_timeline_attachment() {
     let mut skeleton = Skeleton::new(skin_switch_linked_mesh_skeleton_data());
 
-    assert_eq!(skeleton.skin_name(), None);
+    assert!(skeleton.get_skin().is_none());
     assert_eq!(skeleton.slots()[0].attachment_name(), Some("mesh"));
     assert_eq!(
         skeleton.slots()[0].attachment_skin.as_deref(),
@@ -1389,7 +1372,10 @@ fn skeleton_set_skin_from_default_preserves_deform_for_matching_timeline_attachm
     }
 
     skeleton.set_skin(Some("new"));
-    assert_eq!(skeleton.skin_name(), Some("new"));
+    assert_eq!(
+        skeleton.get_skin().map(|skin| skin.name.as_str()),
+        Some("new")
+    );
     assert_eq!(skeleton.slots()[0].attachment_skin.as_deref(), Some("new"));
     assert_eq!(skeleton.slots()[0].sequence_index(), -1);
     assert_eq!(skeleton.slots()[0].deform(), &[7.0, 8.0]);
@@ -1397,7 +1383,8 @@ fn skeleton_set_skin_from_default_preserves_deform_for_matching_timeline_attachm
 
 #[test]
 fn skeleton_bounds_cover_region_and_mesh_attachments() {
-    let mut default_skin = SkinData::new("default", 2);
+    let mut default_skin = SkinData::new("default");
+    default_skin.attachments.resize_with(2, Default::default);
     default_skin.attachments[0].insert(
         "region".to_string(),
         AttachmentData::Region(RegionAttachmentData {
@@ -1475,7 +1462,6 @@ fn skeleton_bounds_cover_region_and_mesh_attachments() {
         skins,
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -1526,7 +1512,6 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -1617,7 +1602,6 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -1647,11 +1631,25 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
 }
 
 #[test]
-fn bone_child_indices_expose_skeleton_hierarchy() {
+fn bone_parent_and_children_expose_skeleton_hierarchy() {
     let skeleton = Skeleton::new(named_attachment_skeleton_data());
 
-    assert_eq!(skeleton.bones()[0].child_indices(&skeleton), &[1]);
-    assert!(skeleton.bones()[1].child_indices(&skeleton).is_empty());
+    assert!(skeleton.bones()[0].get_parent(&skeleton).is_none());
+    assert_eq!(
+        skeleton.bones()[0]
+            .get_children(&skeleton)
+            .iter()
+            .map(|bone| bone.data_index)
+            .collect::<Vec<_>>(),
+        vec![1]
+    );
+    assert_eq!(
+        skeleton.bones()[1]
+            .get_parent(&skeleton)
+            .map(|bone| bone.data_index),
+        Some(0)
+    );
+    assert!(skeleton.bones()[1].get_children(&skeleton).is_empty());
 }
 
 #[test]
@@ -1791,7 +1789,6 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -1802,7 +1799,7 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
     let mut skeleton = Skeleton::new(data);
     let slot = &mut skeleton.slots_mut()[0];
 
-    assert_eq!(slot.bone_index(), 0);
+    assert_eq!(slot.bone, 0);
 
     slot.set_color([0.1, 0.2, 0.3, 0.4]);
     slot.set_has_dark(true);
@@ -1831,7 +1828,7 @@ fn constraint_accessors_expose_pose_state() {
         bend_direction: 1,
         active: true,
     };
-    assert_eq!(ik.data_index(), 1);
+    assert_eq!(ik.data_index, 1);
     ik.bones_mut().push(1);
     ik.set_target(3);
     ik.set_scale_y_mode(ScaleYMode::Volume);
@@ -1872,7 +1869,7 @@ fn constraint_accessors_expose_pose_state() {
     transform.set_mix_scale_y(1.5);
     transform.set_mix_shear_y(1.6);
     transform.set_active(false);
-    assert_eq!(transform.data_index(), 2);
+    assert_eq!(transform.data_index, 2);
     assert_eq!(transform.bones(), &[1, 2]);
     assert_eq!(transform.source(), 3);
     assert_eq!(transform.mix_rotate(), 1.1);
@@ -1902,7 +1899,7 @@ fn constraint_accessors_expose_pose_state() {
     path.set_mix_x(10.0);
     path.set_mix_y(11.0);
     path.set_active(false);
-    assert_eq!(path.data_index(), 3);
+    assert_eq!(path.data_index, 3);
     assert_eq!(path.bones(), &[0, 1]);
     assert_eq!(path.target_slot(), 2);
     assert_eq!(path.position(), 7.0);
@@ -1946,7 +1943,7 @@ fn constraint_accessors_expose_pose_state() {
         remaining: 0.0,
         last_time: 0.0,
     };
-    physics.set_bone_index(2);
+    physics.bone = 2;
     physics.set_inertia(1.1);
     physics.set_strength(1.2);
     physics.set_damping(1.3);
@@ -1956,8 +1953,8 @@ fn constraint_accessors_expose_pose_state() {
     physics.set_mix(1.7);
     physics.set_scale_y_mode(ScaleYMode::Uniform);
     physics.set_active(false);
-    assert_eq!(physics.data_index(), 4);
-    assert_eq!(physics.bone_index(), 2);
+    assert_eq!(physics.data_index, 4);
+    assert_eq!(physics.bone, 2);
     assert_eq!(physics.inertia(), 1.1);
     assert_eq!(physics.strength(), 1.2);
     assert_eq!(physics.damping(), 1.3);
@@ -2007,7 +2004,6 @@ fn constraint_accessors_expose_pose_state() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -2034,7 +2030,7 @@ fn constraint_accessors_expose_pose_state() {
     slider.set_time(2.5);
     slider.set_mix(0.75);
     slider.set_active(false);
-    assert_eq!(slider.data_index(), 0);
+    assert_eq!(slider.data_index, 0);
     assert_eq!(slider.time(), 2.5);
     assert_eq!(slider.mix(), 0.75);
     assert!(!slider.is_active());
@@ -2065,7 +2061,6 @@ fn skeleton_physics_controls_broadcast_to_all_constraints() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -2182,7 +2177,6 @@ fn update_world_transform_root_and_child() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),
@@ -2260,7 +2254,6 @@ fn update_world_transform_parent_rotation_affects_child_translation() {
         skins: indexmap::IndexMap::new(),
         events: indexmap::IndexMap::new(),
         animations: Vec::new(),
-        animation_index: HashMap::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
         path_constraints: Vec::new(),

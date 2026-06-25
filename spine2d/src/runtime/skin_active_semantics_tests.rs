@@ -147,8 +147,8 @@ fn skin_required_active_and_gating_match_spine_cpp_semantics() {
         .as_deref()
         .expect("backpack setup attachment should be applied from skin");
     assert_eq!(key, "backpack");
-    let resolved = skeleton
-        .slot_attachment_data(backpack_slot)
+    let resolved = skeleton.slots[backpack_slot]
+        .get_attachment(&skeleton)
         .expect("resolve backpack attachment");
     assert_eq!(resolved.name(), "boy/backpack");
 
@@ -195,7 +195,10 @@ fn mix_and_match_add_skin_composition_matches_upstream_demo_semantics() {
 
     let mut expected_attachments: HashMap<(usize, String), AttachmentSig> = HashMap::new();
 
-    let mut custom = SkinData::new("custom-girl", data.slots.len());
+    let mut custom = SkinData::new("custom-girl");
+    custom
+        .attachments
+        .resize_with(data.slots.len(), Default::default);
     for skin_name in component_skins {
         let skin = data
             .find_skin(skin_name)
@@ -258,7 +261,7 @@ fn mix_and_match_add_skin_composition_matches_upstream_demo_semantics() {
     assert_eq!(actual_keys, expected_keys);
 
     for ((slot_index, key), expected_sig) in expected_attachments {
-        let Some(actual) = custom.attachment(slot_index, &key) else {
+        let Some(actual) = custom.get_attachment(slot_index, &key) else {
             panic!("custom skin missing attachment: slot={slot_index}, key={key}");
         };
         assert_eq!(
@@ -288,7 +291,7 @@ fn mix_and_match_add_skin_composition_matches_upstream_demo_semantics() {
         .enumerate()
         .find_map(|(i, s)| {
             let setup = s.attachment.as_deref()?;
-            if custom.attachment(i, setup).is_some() {
+            if custom.get_attachment(i, setup).is_some() {
                 Some((i, setup.to_string()))
             } else {
                 None
@@ -359,7 +362,8 @@ fn set_skin_from_skin_to_skin_replaces_shared_attachments_and_preserves_missing_
 
 #[test]
 fn add_skin_is_idempotent_for_lists_and_last_write_wins_for_attachments() {
-    let mut base = SkinData::new("base", 2);
+    let mut base = SkinData::new("base");
+    base.attachments.resize_with(2, Default::default);
     base.bones = vec![1, 2];
     base.ik_constraints = vec![3];
     base.transform_constraints = vec![4];
@@ -383,7 +387,8 @@ fn add_skin_is_idempotent_for_lists_and_last_write_wins_for_attachments() {
         }),
     );
 
-    let mut overlay = SkinData::new("overlay", 2);
+    let mut overlay = SkinData::new("overlay");
+    overlay.attachments.resize_with(2, Default::default);
     overlay.bones = vec![2, 3];
     overlay.ik_constraints = vec![3, 8];
     overlay.transform_constraints = vec![4, 9];
@@ -433,7 +438,7 @@ fn add_skin_is_idempotent_for_lists_and_last_write_wins_for_attachments() {
     assert_eq!(base.physics_constraints, vec![6, 11]);
     assert_eq!(base.slider_constraints, vec![7, 12]);
 
-    let key = base.attachment(0, "key").expect("merged attachment");
+    let key = base.get_attachment(0, "key").expect("merged attachment");
     let AttachmentData::Region(region) = key else {
         panic!("expected region attachment");
     };
@@ -445,7 +450,9 @@ fn add_skin_is_idempotent_for_lists_and_last_write_wins_for_attachments() {
     assert_eq!(region.scale_x, 0.5);
     assert_eq!(region.scale_y, 0.75);
 
-    let other = base.attachment(1, "other").expect("second slot attachment");
+    let other = base
+        .get_attachment(1, "other")
+        .expect("second slot attachment");
     let AttachmentData::Region(region) = other else {
         panic!("expected region attachment");
     };
@@ -460,7 +467,8 @@ fn add_skin_is_idempotent_for_lists_and_last_write_wins_for_attachments() {
 
 #[test]
 fn copy_skin_matches_cpp_deep_copy_surface() {
-    let mut source = SkinData::new("source", 1);
+    let mut source = SkinData::new("source");
+    source.attachments.resize_with(1, Default::default);
     source.bones = vec![1];
     source.ik_constraints = vec![2];
     source.transform_constraints = vec![3];
@@ -469,7 +477,8 @@ fn copy_skin_matches_cpp_deep_copy_surface() {
     source.slider_constraints = vec![6];
     source.set_attachment(0, "key", region_attachment("copied"));
 
-    let mut target = SkinData::new("target", 1);
+    let mut target = SkinData::new("target");
+    target.attachments.resize_with(1, Default::default);
     target.copy_skin(&source);
 
     assert_eq!(target.bones, vec![1]);
@@ -481,7 +490,7 @@ fn copy_skin_matches_cpp_deep_copy_surface() {
 
     source.set_attachment(0, "key", region_attachment("replaced-source"));
 
-    let AttachmentData::Region(region) = target.attachment(0, "key").unwrap() else {
+    let AttachmentData::Region(region) = target.get_attachment(0, "key").unwrap() else {
         panic!("expected copied region attachment");
     };
     assert_eq!(region.name, "copied");
@@ -490,7 +499,8 @@ fn copy_skin_matches_cpp_deep_copy_surface() {
 
 #[test]
 fn skin_attachment_iteration_preserves_insertion_order() {
-    let mut skin = SkinData::new("ordered", 1);
+    let mut skin = SkinData::new("ordered");
+    skin.attachments.resize_with(1, Default::default);
     skin.set_attachment(
         0,
         "first".to_string(),
@@ -526,17 +536,19 @@ fn skin_attachment_iteration_preserves_insertion_order() {
         }),
     );
 
-    assert_eq!(skin.names_for_slot(0), vec!["first", "second"]);
-    let entries = skin.attachment_entries();
-    assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].0, 0);
-    assert_eq!(entries[0].1, "first");
-    assert_eq!(entries[1].1, "second");
+    let slot0 = &skin.attachments[0];
+    assert_eq!(
+        slot0.keys().map(String::as_str).collect::<Vec<_>>(),
+        vec!["first", "second"]
+    );
+    assert_eq!(slot0.len(), 2);
+    assert_eq!(slot0.get_index(0).unwrap().0.as_str(), "first");
+    assert_eq!(slot0.get_index(1).unwrap().0.as_str(), "second");
 }
 
 #[test]
 fn skin_set_attachment_grows_slot_storage_and_remove_is_noop_on_missing_entries() {
-    let mut skin = SkinData::new("growing", 1);
+    let mut skin = SkinData::new("growing");
     skin.set_attachment(
         2,
         "grown",
@@ -555,11 +567,23 @@ fn skin_set_attachment_grows_slot_storage_and_remove_is_noop_on_missing_entries(
         }),
     );
     assert_eq!(skin.attachments.len(), 3);
-    assert_eq!(skin.names_for_slot(2), vec!["grown"]);
-    assert_eq!(skin.attachments_for_slot(2).len(), 1);
+    assert_eq!(
+        skin.attachments[2]
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        vec!["grown"]
+    );
+    assert_eq!(skin.attachments[2].len(), 1);
 
     skin.remove_attachment(2, "missing");
-    assert_eq!(skin.names_for_slot(2), vec!["grown"]);
+    assert_eq!(
+        skin.attachments[2]
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        vec!["grown"]
+    );
     skin.remove_attachment(2, "grown");
-    assert!(skin.names_for_slot(2).is_empty());
+    assert!(skin.attachments[2].is_empty());
 }

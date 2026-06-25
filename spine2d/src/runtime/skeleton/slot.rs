@@ -1,3 +1,5 @@
+use super::{Bone, Skeleton};
+
 #[derive(Clone, Debug)]
 pub(crate) struct SlotPose {
     pub(crate) attachment: Option<String>,
@@ -161,7 +163,7 @@ impl SlotPoseMut<'_> {
 
 #[derive(Clone, Debug)]
 pub struct Slot {
-    pub(super) data_index: usize,
+    pub(crate) data_index: usize,
     pub(crate) bone: usize,
     pub(crate) attachment: Option<String>,
     pub(crate) attachment_skin: Option<String>,
@@ -176,12 +178,22 @@ pub struct Slot {
 }
 
 impl Slot {
-    pub fn data_index(&self) -> usize {
-        self.data_index
-    }
+    fn attachment_data<'a>(
+        skeleton: &'a Skeleton,
+        slot_index: usize,
+        attachment_name: Option<&str>,
+        attachment_skin: Option<&str>,
+    ) -> Option<&'a crate::AttachmentData> {
+        let key = attachment_name?;
 
-    pub fn bone_index(&self) -> usize {
-        self.bone
+        if let Some(source_skin) = attachment_skin
+            && let Some(skin) = skeleton.data.find_skin(source_skin)
+            && let Some(attachment) = skin.get_attachment(slot_index, key)
+        {
+            return Some(attachment);
+        }
+
+        skeleton.get_attachment(slot_index, key)
     }
 
     pub fn attachment_name(&self) -> Option<&str> {
@@ -194,6 +206,32 @@ impl Slot {
         } else {
             self.attachment.as_deref()
         }
+    }
+
+    pub fn get_bone<'a>(&self, skeleton: &'a Skeleton) -> &'a Bone {
+        &skeleton.bones[self.bone]
+    }
+
+    pub fn get_attachment<'a>(&self, skeleton: &'a Skeleton) -> Option<&'a crate::AttachmentData> {
+        Self::attachment_data(
+            skeleton,
+            self.data_index,
+            self.attachment.as_deref(),
+            self.attachment_skin.as_deref(),
+        )
+    }
+
+    pub fn get_applied_attachment<'a>(
+        &self,
+        skeleton: &'a Skeleton,
+    ) -> Option<&'a crate::AttachmentData> {
+        let pose = self.pose_for(true);
+        Self::attachment_data(
+            skeleton,
+            self.data_index,
+            pose.attachment_name(),
+            pose.attachment_skin(),
+        )
     }
 
     pub fn sequence_index(&self) -> i32 {
