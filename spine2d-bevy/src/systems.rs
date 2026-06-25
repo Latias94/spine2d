@@ -567,7 +567,7 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
             .tracks()
             .into_iter()
             .filter_map(|track| {
-                track?.with_entry(animation_state, |entry| SpineTrackState {
+                track?.entry(animation_state).map(|entry| SpineTrackState {
                     track_index: entry.track_index(),
                     animation_name: entry.animation().name.clone(),
                     track_time: entry.track_time(),
@@ -851,7 +851,7 @@ mod tests {
         let state = &spine_world.get(key.0).unwrap().animation_state;
         state
             .current(track_index)
-            .and_then(|handle| handle.with_entry(state, f))
+            .and_then(|handle| handle.entry(state).map(f))
             .unwrap()
     }
 
@@ -869,7 +869,7 @@ mod tests {
         for _ in 0..queue_index {
             handle = handle.next(state).unwrap();
         }
-        handle.with_entry(state, f).unwrap()
+        handle.entry(state).map(f).unwrap()
     }
 
     fn spine_instance<F: FnOnce(&SpineInstance) -> R, R>(app: &App, entity: Entity, f: F) -> R {

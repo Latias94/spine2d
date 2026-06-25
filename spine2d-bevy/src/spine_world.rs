@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use bevy::prelude::*;
 use spine2d::{
     AnimationState, AnimationStateEvent, AnimationStateListener, Atlas, DrawList, Skeleton,
-    TrackEntrySnapshot,
+    TrackEntryHandle,
 };
 
 use crate::{SpineAnimationEventKind, SpineSkeletonControl, components::SpineInstanceId};
@@ -98,14 +98,21 @@ impl SpineEventListener {
 impl AnimationStateListener for SpineEventListener {
     fn on_event(
         &mut self,
-        _state: &mut AnimationState,
-        entry: &TrackEntrySnapshot,
+        state: &mut AnimationState,
+        entry: TrackEntryHandle,
         event: &AnimationStateEvent,
     ) {
+        let Some(entry) = entry.entry(state) else {
+            return;
+        };
+        let track_index = entry.track_index();
+        let animation_name = entry.animation().name.clone();
+        let track_time = entry.track_time();
+
         self.buffer.push(PendingSpineAnimationEvent {
-            track_index: entry.track_index,
-            animation_name: entry.animation_name.clone(),
-            track_time: entry.track_time,
+            track_index,
+            animation_name,
+            track_time,
             kind: match event {
                 AnimationStateEvent::Start => SpineAnimationEventKind::Start,
                 AnimationStateEvent::Interrupt => SpineAnimationEventKind::Interrupt,

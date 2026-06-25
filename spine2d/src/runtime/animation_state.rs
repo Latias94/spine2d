@@ -727,12 +727,8 @@ impl TrackEntryHandle {
         Some(state)
     }
 
-    pub fn with_entry<R>(
-        &self,
-        state: &AnimationState,
-        f: impl FnOnce(&TrackEntry) -> R,
-    ) -> Option<R> {
-        state.entry_for_handle(*self).map(f)
+    pub fn entry<'a>(&self, state: &'a AnimationState) -> Option<&'a TrackEntry> {
+        state.entry_for_handle(*self)
     }
 
     pub fn mixing_from(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
@@ -963,22 +959,6 @@ impl TrackEntryHandle {
 }
 
 #[derive(Clone, Debug)]
-pub struct TrackEntrySnapshot {
-    pub track_index: usize,
-    pub animation_name: String,
-    pub track_time: f32,
-    pub animation_time: f32,
-    pub looped: bool,
-    pub delay: f32,
-    pub mix_duration: f32,
-    pub mix_time: f32,
-    pub alpha: f32,
-    pub additive: bool,
-    pub mix_interpolation: MixInterpolation,
-    pub reverse: bool,
-}
-
-#[derive(Clone, Debug)]
 pub enum AnimationStateEvent {
     Start,
     Interrupt,
@@ -992,7 +972,7 @@ pub trait TrackEntryListener {
     fn on_event(
         &mut self,
         state: &mut AnimationState,
-        entry: &TrackEntrySnapshot,
+        entry: TrackEntryHandle,
         event: &AnimationStateEvent,
     );
 }
@@ -1001,7 +981,7 @@ pub trait AnimationStateListener {
     fn on_event(
         &mut self,
         state: &mut AnimationState,
-        entry: &TrackEntrySnapshot,
+        entry: TrackEntryHandle,
         event: &AnimationStateEvent,
     );
 }
@@ -2226,40 +2206,6 @@ impl AnimationState {
         self.free_list.push(id.index);
     }
 
-    fn snapshot(&self, id: EntryId) -> TrackEntrySnapshot {
-        if let Some(entry) = self.entry(id) {
-            TrackEntrySnapshot {
-                track_index: entry.track_index,
-                animation_name: entry.animation.name.clone(),
-                track_time: entry.track_time,
-                animation_time: entry.animation_time(),
-                looped: entry.looped,
-                delay: entry.delay,
-                mix_duration: entry.mix_duration,
-                mix_time: entry.mix_time,
-                alpha: entry.alpha,
-                additive: entry.additive,
-                mix_interpolation: entry.mix_interpolation,
-                reverse: entry.reverse,
-            }
-        } else {
-            TrackEntrySnapshot {
-                track_index: 0,
-                animation_name: "<disposed>".to_string(),
-                track_time: 0.0,
-                animation_time: 0.0,
-                looped: false,
-                delay: 0.0,
-                mix_duration: 0.0,
-                mix_time: 0.0,
-                alpha: 0.0,
-                additive: false,
-                mix_interpolation: MixInterpolation::default(),
-                reverse: false,
-            }
-        }
-    }
-
     fn take_entry_listener(&mut self, id: EntryId) -> Option<Box<dyn TrackEntryListener>> {
         self.entry_mut(id).and_then(|entry| entry.listener.take())
     }
@@ -2485,18 +2431,18 @@ impl AnimationState {
         while let Some(queued) = self.event_queue.pop_front() {
             let entry_id = queued.entry;
             let event = queued.event;
-            let snapshot = self.snapshot(entry_id);
+            let handle = self.handle(entry_id);
 
             match event {
                 AnimationStateEvent::End => {
                     let entry_listener =
-                        self.notify_event_listeners(entry_id, &snapshot, &AnimationStateEvent::End);
+                        self.notify_event_listeners(entry_id, handle, &AnimationStateEvent::End);
                     self.restore_entry_listener_after_event(entry_id, entry_listener);
 
-                    let snapshot = self.snapshot(entry_id);
+                    let handle = self.handle(entry_id);
                     let entry_listener = self.notify_event_listeners(
                         entry_id,
-                        &snapshot,
+                        handle,
                         &AnimationStateEvent::Dispose,
                     );
                     self.finish_dispose_event(entry_id, entry_listener);
@@ -2504,13 +2450,13 @@ impl AnimationState {
                 AnimationStateEvent::Dispose => {
                     let entry_listener = self.notify_event_listeners(
                         entry_id,
-                        &snapshot,
+                        handle,
                         &AnimationStateEvent::Dispose,
                     );
                     self.finish_dispose_event(entry_id, entry_listener);
                 }
                 event => {
-                    let entry_listener = self.notify_event_listeners(entry_id, &snapshot, &event);
+                    let entry_listener = self.notify_event_listeners(entry_id, handle, &event);
                     self.restore_entry_listener_after_event(entry_id, entry_listener);
                 }
             }
@@ -2522,17 +2468,17 @@ impl AnimationState {
     fn notify_event_listeners(
         &mut self,
         entry_id: EntryId,
-        snapshot: &TrackEntrySnapshot,
+        entry: TrackEntryHandle,
         event: &AnimationStateEvent,
     ) -> Option<Box<dyn TrackEntryListener>> {
         let mut entry_listener = self.take_entry_listener(entry_id);
         if let Some(listener) = entry_listener.as_mut() {
-            listener.on_event(self, snapshot, event);
+            listener.on_event(self, entry, event);
         }
 
         let mut state_listener = self.listener.take();
         if let Some(listener) = state_listener.as_mut() {
-            listener.on_event(self, snapshot, event);
+            listener.on_event(self, entry, event);
         }
         if self.listener.is_none() {
             self.listener = state_listener;

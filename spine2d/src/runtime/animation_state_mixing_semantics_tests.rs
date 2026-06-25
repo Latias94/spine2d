@@ -385,7 +385,8 @@ fn track_entry_mix_interpolation_keeps_negative_linear_mix() {
 
     assert_approx(
         entry
-            .with_entry(&state, |entry| entry.mix_percent())
+            .entry(&state)
+            .map(|entry| entry.mix_percent())
             .unwrap(),
         -0.25,
     );
