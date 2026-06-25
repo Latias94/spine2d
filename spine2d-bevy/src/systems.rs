@@ -437,11 +437,13 @@ pub fn apply_spine_skeleton_commands(
             }
             SpineSkeletonCommandKind::SetWind(wind) => {
                 instance.skeleton_control.wind = wind;
-                instance.skeleton.set_wind(wind.x, wind.y);
+                instance.skeleton.set_wind_x(wind.x);
+                instance.skeleton.set_wind_y(wind.y);
             }
             SpineSkeletonCommandKind::SetGravity(gravity) => {
                 instance.skeleton_control.gravity = gravity;
-                instance.skeleton.set_gravity(gravity.x, gravity.y);
+                instance.skeleton.set_gravity_x(gravity.x);
+                instance.skeleton.set_gravity_y(gravity.y);
             }
             SpineSkeletonCommandKind::SetTime(time) => {
                 instance.skeleton_control.time = Some(time);
@@ -544,16 +546,20 @@ fn rebuild_pose(instance: &mut SpineInstance, delta: f32) {
 }
 
 fn apply_skeleton_control_to_skeleton(skeleton: &mut Skeleton, control: SpineSkeletonControl) {
-    skeleton.set_wind(control.wind.x, control.wind.y);
-    skeleton.set_gravity(control.gravity.x, control.gravity.y);
+    skeleton.set_wind_x(control.wind.x);
+    skeleton.set_wind_y(control.wind.y);
+    skeleton.set_gravity_x(control.gravity.x);
+    skeleton.set_gravity_y(control.gravity.y);
     if let Some(time) = control.time {
         skeleton.set_time(time);
     }
 }
 
 fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) -> SpineRuntimeState {
-    let (wind_x, wind_y) = instance.skeleton.wind();
-    let (gravity_x, gravity_y) = instance.skeleton.gravity();
+    let wind_x = instance.skeleton.wind_x();
+    let wind_y = instance.skeleton.wind_y();
+    let gravity_x = instance.skeleton.gravity_x();
+    let gravity_y = instance.skeleton.gravity_y();
     let animation_state = &instance.animation_state;
     SpineRuntimeState {
         ready: true,
@@ -1781,8 +1787,14 @@ mod tests {
 
         spine_instance(&app, entity, |instance| {
             assert_eq!(instance.skeleton_control.physics, spine2d::Physics::Update);
-            assert_eq!(instance.skeleton.wind(), (2.0, 3.0));
-            assert_eq!(instance.skeleton.gravity(), (4.0, 5.0));
+            assert_eq!(
+                (instance.skeleton.wind_x(), instance.skeleton.wind_y()),
+                (2.0, 3.0)
+            );
+            assert_eq!(
+                (instance.skeleton.gravity_x(), instance.skeleton.gravity_y()),
+                (4.0, 5.0)
+            );
             assert_eq!(instance.skeleton.get_time(), 1.25);
         });
     }
@@ -1804,8 +1816,14 @@ mod tests {
 
         spine_instance(&app, entity, |instance| {
             assert_eq!(instance.skeleton_control.physics, spine2d::Physics::Pose);
-            assert_eq!(instance.skeleton.wind(), (6.0, 7.0));
-            assert_eq!(instance.skeleton.gravity(), (0.0, 1.0));
+            assert_eq!(
+                (instance.skeleton.wind_x(), instance.skeleton.wind_y()),
+                (6.0, 7.0)
+            );
+            assert_eq!(
+                (instance.skeleton.gravity_x(), instance.skeleton.gravity_y()),
+                (0.0, 1.0)
+            );
         });
     }
 
@@ -1836,8 +1854,14 @@ mod tests {
 
         spine_instance(&app, entity, |instance| {
             assert_eq!(instance.skeleton_control.physics, spine2d::Physics::Reset);
-            assert_eq!(instance.skeleton.wind(), (8.0, 9.0));
-            assert_eq!(instance.skeleton.gravity(), (10.0, 11.0));
+            assert_eq!(
+                (instance.skeleton.wind_x(), instance.skeleton.wind_y()),
+                (8.0, 9.0)
+            );
+            assert_eq!(
+                (instance.skeleton.gravity_x(), instance.skeleton.gravity_y()),
+                (10.0, 11.0)
+            );
             assert_eq!(instance.skeleton.get_time(), 2.5);
         });
     }
@@ -1873,7 +1897,10 @@ mod tests {
 
         spine_instance(&app, entity, |instance| {
             assert_eq!(instance.skeleton_control.physics, spine2d::Physics::Update);
-            assert_eq!(instance.skeleton.wind(), (2.0, 2.0));
+            assert_eq!(
+                (instance.skeleton.wind_x(), instance.skeleton.wind_y()),
+                (2.0, 2.0)
+            );
         });
     }
 

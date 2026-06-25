@@ -768,10 +768,6 @@ impl Skeleton {
         self.y = y;
     }
 
-    pub fn position(&self) -> (f32, f32) {
-        (self.x, self.y)
-    }
-
     pub fn set_position(&mut self, x: f32, y: f32) {
         self.x = x;
         self.y = y;
@@ -793,10 +789,6 @@ impl Skeleton {
         self.scale_y = scale_y;
     }
 
-    pub fn scale(&self) -> (f32, f32) {
-        (self.scale_x, self.effective_scale_y())
-    }
-
     pub fn set_scale(&mut self, scale_x: f32, scale_y: f32) {
         self.scale_x = scale_x;
         self.scale_y = scale_y;
@@ -808,10 +800,6 @@ impl Skeleton {
 
     pub fn get_time(&self) -> f32 {
         self.time
-    }
-
-    pub fn wind(&self) -> (f32, f32) {
-        (self.wind_x, self.wind_y)
     }
 
     pub fn wind_x(&self) -> f32 {
@@ -830,15 +818,6 @@ impl Skeleton {
         self.wind_y = wind_y;
     }
 
-    pub fn set_wind(&mut self, x: f32, y: f32) {
-        self.set_wind_x(x);
-        self.set_wind_y(y);
-    }
-
-    pub fn gravity(&self) -> (f32, f32) {
-        (self.gravity_x, self.gravity_y)
-    }
-
     pub fn gravity_x(&self) -> f32 {
         self.gravity_x
     }
@@ -853,11 +832,6 @@ impl Skeleton {
 
     pub fn set_gravity_y(&mut self, gravity_y: f32) {
         self.gravity_y = gravity_y;
-    }
-
-    pub fn set_gravity(&mut self, x: f32, y: f32) {
-        self.set_gravity_x(x);
-        self.set_gravity_y(y);
     }
 
     pub fn physics_translate(&mut self, x: f32, y: f32) {

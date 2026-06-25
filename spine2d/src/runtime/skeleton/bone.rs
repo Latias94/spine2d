@@ -110,10 +110,6 @@ impl Bone {
         self.y = y;
     }
 
-    pub fn position(&self) -> (f32, f32) {
-        (self.x, self.y)
-    }
-
     pub fn set_position(&mut self, x: f32, y: f32) {
         self.x = x;
         self.y = y;
@@ -141,10 +137,6 @@ impl Bone {
 
     pub fn set_scale_y(&mut self, scale_y: f32) {
         self.scale_y = scale_y;
-    }
-
-    pub fn scale(&self) -> (f32, f32) {
-        (self.scale_x, self.scale_y)
     }
 
     pub fn set_scale(&mut self, scale_x: f32, scale_y: f32) {
@@ -184,15 +176,6 @@ impl Bone {
         self.ay = y;
     }
 
-    pub fn applied_position(&self) -> (f32, f32) {
-        (self.ax, self.ay)
-    }
-
-    pub fn set_applied_position(&mut self, x: f32, y: f32) {
-        self.ax = x;
-        self.ay = y;
-    }
-
     pub fn applied_rotation(&self) -> f32 {
         self.arotation
     }
@@ -217,15 +200,6 @@ impl Bone {
         self.ascale_y = scale_y;
     }
 
-    pub fn applied_scale(&self) -> (f32, f32) {
-        (self.ascale_x, self.ascale_y)
-    }
-
-    pub fn set_applied_scale(&mut self, scale_x: f32, scale_y: f32) {
-        self.ascale_x = scale_x;
-        self.ascale_y = scale_y;
-    }
-
     pub fn applied_shear_x(&self) -> f32 {
         self.ashear_x
     }
@@ -239,15 +213,6 @@ impl Bone {
     }
 
     pub fn set_applied_shear_y(&mut self, shear_y: f32) {
-        self.ashear_y = shear_y;
-    }
-
-    pub fn applied_shear(&self) -> (f32, f32) {
-        (self.ashear_x, self.ashear_y)
-    }
-
-    pub fn set_applied_shear(&mut self, shear_x: f32, shear_y: f32) {
-        self.ashear_x = shear_x;
         self.ashear_y = shear_y;
     }
 
@@ -296,15 +261,6 @@ impl Bone {
     }
 
     pub fn set_world_y(&mut self, world_y: f32) {
-        self.world_y = world_y;
-    }
-
-    pub fn world_position(&self) -> (f32, f32) {
-        (self.world_x, self.world_y)
-    }
-
-    pub fn set_world_position(&mut self, world_x: f32, world_y: f32) {
-        self.world_x = world_x;
         self.world_y = world_y;
     }
 
