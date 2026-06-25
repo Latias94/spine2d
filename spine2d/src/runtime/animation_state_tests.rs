@@ -3525,6 +3525,41 @@ fn add_animation_with_delay_on_empty_track() {
 }
 
 #[test]
+fn add_animation_on_empty_track_sets_delay_after_start_event_like_cpp() {
+    #[derive(Default)]
+    struct DelayOnStart {
+        delays: Rc<RefCell<Vec<f32>>>,
+    }
+
+    impl AnimationStateListener for DelayOnStart {
+        fn on_event(
+            &mut self,
+            state: &mut AnimationState,
+            entry: TrackEntryHandle,
+            event: &AnimationStateEvent,
+        ) {
+            if matches!(event, AnimationStateEvent::Start)
+                && let Some(delay) = entry.entry(state).map(|entry| entry.delay())
+            {
+                self.delays.borrow_mut().push(delay);
+            }
+        }
+    }
+
+    let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
+    let mut state = AnimationState::new(AnimationStateData::new(data));
+    let delays = Rc::new(RefCell::new(Vec::new()));
+    state.set_listener(DelayOnStart {
+        delays: delays.clone(),
+    });
+
+    let entry = state.add_animation(0, "events0", false, 5.0);
+
+    assert_eq!(*delays.borrow(), vec![0.0]);
+    assert_eq!(entry.entry(&state).map(|entry| entry.delay()), Some(5.0));
+}
+
+#[test]
 fn state_time_scale_scales_update_and_queue_progression() {
     let (mut state, mut skeleton, _recording) = setup();
 

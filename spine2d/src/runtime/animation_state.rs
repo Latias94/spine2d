@@ -1491,7 +1491,9 @@ impl AnimationState {
         };
 
         if let Some(entry_ref) = self.entry_mut(entry_id) {
-            entry_ref.delay = resolved_delay;
+            if last.is_some() {
+                entry_ref.delay = resolved_delay;
+            }
             entry_ref.mix_duration = resolved_mix_duration;
             entry_ref.previous = last;
         }
@@ -1507,6 +1509,9 @@ impl AnimationState {
             push_event(&mut self.event_queue, entry_id, AnimationStateEvent::Start);
             self.animations_changed = true;
             self.drain_event_queue();
+            if let Some(entry_ref) = self.entry_mut(entry_id) {
+                entry_ref.delay = resolved_delay;
+            }
         } else {
             self.tracks[track_index].queue.push_back(entry_id);
         }
