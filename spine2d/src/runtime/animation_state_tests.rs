@@ -684,6 +684,41 @@ fn animation_state_queue_can_be_disabled_until_next_drain_point() {
 }
 
 #[test]
+fn disable_queue_inside_listener_only_suppresses_reentrant_drain_like_cpp() {
+    #[derive(Default)]
+    struct DisableOnStart {
+        starts: Rc<Cell<usize>>,
+    }
+
+    impl AnimationStateListener for DisableOnStart {
+        fn on_event(
+            &mut self,
+            state: &mut AnimationState,
+            _entry: TrackEntryHandle,
+            event: &AnimationStateEvent,
+        ) {
+            if matches!(event, AnimationStateEvent::Start) {
+                self.starts.set(self.starts.get() + 1);
+                state.disable_queue();
+            }
+        }
+    }
+
+    let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
+    let mut state = AnimationState::new(AnimationStateData::new(data));
+    let starts = Rc::new(Cell::new(0));
+    state.set_listener(DisableOnStart {
+        starts: starts.clone(),
+    });
+
+    state.set_animation(0, "events0", false);
+    assert_eq!(starts.get(), 1);
+
+    state.set_animation(1, "events1", false);
+    assert_eq!(starts.get(), 2);
+}
+
+#[test]
 fn animation_state_manual_track_entry_disposal_matches_cpp_lifetime_control() {
     let (mut auto_state, _skeleton, _recording) = setup();
     let auto_entry = auto_state.set_animation(0, "events0", false);

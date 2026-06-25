@@ -1007,7 +1007,6 @@ pub struct AnimationState {
     event_queue: VecDeque<QueuedEvent>,
     time_scale: f32,
     listener: Option<Box<dyn AnimationStateListener>>,
-    draining_events: bool,
     drain_disabled: bool,
     manual_track_entry_disposal: bool,
     animations_changed: bool,
@@ -1026,7 +1025,6 @@ impl AnimationState {
             event_queue: VecDeque::new(),
             time_scale: 1.0,
             listener: None,
-            draining_events: false,
             drain_disabled: false,
             manual_track_entry_disposal: false,
             animations_changed: false,
@@ -2423,10 +2421,10 @@ impl AnimationState {
     }
 
     fn drain_event_queue(&mut self) {
-        if self.draining_events || self.drain_disabled {
+        if self.drain_disabled {
             return;
         }
-        self.draining_events = true;
+        self.drain_disabled = true;
 
         while let Some(queued) = self.event_queue.pop_front() {
             let entry_id = queued.entry;
@@ -2462,7 +2460,7 @@ impl AnimationState {
             }
         }
 
-        self.draining_events = false;
+        self.drain_disabled = false;
     }
 
     fn notify_event_listeners(
