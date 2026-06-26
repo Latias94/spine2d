@@ -46,6 +46,7 @@ fn base_skeleton_data() -> SkeletonData {
         }],
         slots: Vec::new(),
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -54,6 +55,11 @@ fn base_skeleton_data() -> SkeletonData {
         physics_constraints: Vec::new(),
         slider_constraints: Vec::new(),
     }
+}
+
+fn set_named_default_skin(data: &mut SkeletonData) {
+    let default_skin = data.find_skin(SkeletonData::DEFAULT_SKIN_NAME).cloned();
+    data.set_default_skin(default_skin.as_ref());
 }
 
 fn additive_path_physics_json() -> String {
@@ -821,6 +827,7 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
         physics_constraints: Vec::new(),
         slider_constraints: Vec::new(),
     });
+    set_named_default_skin(&mut data);
 
     data.animations = vec![anim_a, anim_b];
     let data = Arc::new(data);
@@ -1046,6 +1053,7 @@ fn draw_order_folder_applies_after_draw_order_timeline() {
         physics_constraints: Vec::new(),
         slider_constraints: Vec::new(),
     });
+    set_named_default_skin(&mut data);
     data.animations = vec![anim_a];
     let data = Arc::new(data);
 
@@ -1182,6 +1190,7 @@ fn track0_additive_does_not_override_alpha_attachment_threshold_for_attachments(
         physics_constraints: Vec::new(),
         slider_constraints: Vec::new(),
     });
+    set_named_default_skin(&mut data);
     data.animations = vec![anim_a, anim_b];
     let data = Arc::new(data);
 

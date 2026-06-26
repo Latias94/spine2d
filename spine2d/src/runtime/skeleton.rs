@@ -1276,7 +1276,7 @@ impl Skeleton {
     pub fn setup_pose_slots(&mut self) {
         let skin_name = self.skin.as_deref();
         let skin = skin_name.and_then(|n| self.data.find_skin(n));
-        let default_skin = if skin_name != Some(crate::SkeletonData::DEFAULT_SKIN_NAME) {
+        let default_skin = if !self.data.is_default_skin_name(skin_name) {
             self.data.get_default_skin()
         } else {
             None
@@ -1313,11 +1313,11 @@ impl Skeleton {
                     let mut resolved = None;
                     if skin.and_then(|s| s.get_attachment(i, name)).is_some() {
                         resolved = Some((name.to_string(), skin_name.map(|n| n.to_string())));
-                    } else if default_skin
-                        .and_then(|s| s.get_attachment(i, name))
-                        .is_some()
+                    } else if let Some(default_skin) = default_skin
+                        && default_skin.get_attachment(i, name).is_some()
                     {
-                        resolved = Some((name.to_string(), Some("default".to_string())));
+                        resolved =
+                            Some((name.to_string(), Some(default_skin.get_name().to_string())));
                     }
 
                     if let Some((key, source_skin)) = resolved {
@@ -1364,7 +1364,7 @@ impl Skeleton {
             {
                 return Some(att);
             }
-            if skin_name != crate::SkeletonData::DEFAULT_SKIN_NAME
+            if !self.data.is_default_skin_name(Some(skin_name))
                 && let Some(default_skin) = self.data.get_default_skin()
                 && let Some(att) = default_skin.get_attachment(slot_index, attachment_name)
             {
@@ -1652,25 +1652,23 @@ impl Skeleton {
             {
                 return Some(skin_name.to_string());
             }
-            if skin_name != crate::SkeletonData::DEFAULT_SKIN_NAME
-                && self
-                    .data
-                    .get_default_skin()
-                    .and_then(|skin| skin.get_attachment(slot_index, attachment_name))
+            if !self.data.is_default_skin_name(Some(skin_name))
+                && let Some(default_skin) = self.data.get_default_skin()
+                && default_skin
+                    .get_attachment(slot_index, attachment_name)
                     .is_some()
             {
-                return Some("default".to_string());
+                return Some(default_skin.get_name().to_string());
             }
             return None;
         }
 
-        if self
-            .data
-            .get_default_skin()
-            .and_then(|skin| skin.get_attachment(slot_index, attachment_name))
-            .is_some()
+        if let Some(default_skin) = self.data.get_default_skin()
+            && default_skin
+                .get_attachment(slot_index, attachment_name)
+                .is_some()
         {
-            return Some("default".to_string());
+            return Some(default_skin.get_name().to_string());
         }
 
         None

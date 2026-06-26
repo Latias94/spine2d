@@ -115,6 +115,7 @@ fn build_data() -> Arc<SkeletonData> {
         bones,
         slots,
         skins,
+        default_skin: Some(0),
         events: Vec::new(),
         animations: vec![animation],
         ik_constraints: Vec::new(),

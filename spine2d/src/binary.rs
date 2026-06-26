@@ -1556,6 +1556,7 @@ impl crate::SkeletonData {
         let trace_binary = std::env::var("SPINE2D_BINARY_TRACE")
             .ok()
             .is_some_and(|v| v == "1");
+        let mut default_skin_name = None::<String>;
         let default_slot_count = input.read_varint(true)? as usize;
         if default_slot_count != 0 {
             let mut attachments = vec![IndexMap::new(); slots.len()];
@@ -1616,6 +1617,7 @@ impl crate::SkeletonData {
             };
             skins_map.insert("default".to_string(), skin);
             skin_order.push("default".to_string());
+            default_skin_name = Some("default".to_string());
         }
 
         let named_skins_count = input.read_varint(true)? as usize;
@@ -1901,6 +1903,11 @@ impl crate::SkeletonData {
             }
         }
 
+        let skins = skins_map.into_values().collect::<Vec<_>>();
+        let default_skin = default_skin_name
+            .as_deref()
+            .and_then(|name| skins.iter().position(|skin| skin.get_name() == name));
+
         Ok(Arc::new(crate::SkeletonData {
             name: String::new(),
             spine_version,
@@ -1915,7 +1922,8 @@ impl crate::SkeletonData {
             audio_path,
             bones,
             slots,
-            skins: skins_map.into_values().collect(),
+            skins,
+            default_skin,
             events: events
                 .into_values()
                 .map(|event| Arc::unwrap_or_clone(event))

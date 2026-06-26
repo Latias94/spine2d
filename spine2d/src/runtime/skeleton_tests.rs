@@ -46,6 +46,7 @@ fn empty_skeleton_data() -> Arc<SkeletonData> {
         bones: Vec::new(),
         slots: Vec::new(),
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -166,6 +167,7 @@ fn named_attachment_skeleton_data() -> Arc<SkeletonData> {
             },
         ],
         skins,
+        default_skin: Some(0),
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -220,6 +222,7 @@ fn linked_mesh_attachment_skeleton_data() -> Arc<SkeletonData> {
             ..Default::default()
         }],
         skins,
+        default_skin: Some(0),
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -280,6 +283,7 @@ fn skin_switch_linked_mesh_skeleton_data() -> Arc<SkeletonData> {
             ..Default::default()
         }],
         skins,
+        default_skin: Some(0),
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -348,6 +352,7 @@ fn constraint_lookup_skeleton_data() -> Arc<SkeletonData> {
             ..Default::default()
         }],
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: vec![IkConstraintData {
@@ -485,6 +490,7 @@ fn slider_draw_order_skeleton_data() -> Arc<SkeletonData> {
             },
         ],
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: vec![animation],
         ik_constraints: Vec::new(),
@@ -620,6 +626,7 @@ fn slider_slot_pose_skeleton_data() -> Arc<SkeletonData> {
             ..Default::default()
         }],
         skins,
+        default_skin: Some(0),
         events: Vec::new(),
         animations: vec![animation],
         ik_constraints: Vec::new(),
@@ -707,6 +714,7 @@ fn setup_pose_split_skeleton_data() -> Arc<SkeletonData> {
             },
         ],
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: vec![IkConstraintData {
@@ -874,6 +882,7 @@ fn clipping_bounds_skeleton_data() -> Arc<SkeletonData> {
             },
         ],
         skins,
+        default_skin: Some(0),
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -1474,6 +1483,7 @@ fn slider_invalid_bone_index_does_not_activate_constraint() {
         }],
         slots: Vec::new(),
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -1617,6 +1627,54 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
     skeleton.set_attachment("", "shared");
     assert_eq!(skeleton.get_slots()[0].get_attachment_name(), None);
     assert_eq!(skeleton.get_slots()[0].attachment_skin, None);
+}
+
+#[test]
+fn skeleton_default_skin_uses_explicit_index_not_magic_name() {
+    let mut fallback_skin = SkinData::new("fallback");
+    fallback_skin.set_attachment(
+        0,
+        "shared",
+        region_attachment("fallback-shared", [0.8, 0.2, 0.1, 1.0]),
+    );
+
+    let mut data = SkeletonData::default();
+    data.bones.push(BoneData {
+        name: "root".to_string(),
+        parent: None,
+        length: 0.0,
+        skin_required: false,
+        ..Default::default()
+    });
+    data.slots.push(SlotData {
+        name: "slot0".to_string(),
+        bone: 0,
+        attachment: Some("shared".to_string()),
+        ..Default::default()
+    });
+    data.skins.push(fallback_skin);
+
+    assert!(data.get_default_skin().is_none());
+    let fallback = data.find_skin("fallback").cloned();
+    data.set_default_skin(fallback.as_ref());
+    assert_eq!(
+        data.get_default_skin().map(SkinData::get_name),
+        Some("fallback")
+    );
+
+    let mut skeleton = Skeleton::new(Arc::new(data));
+    assert_eq!(
+        skeleton
+            .get_attachment(0, "shared")
+            .map(AttachmentData::get_name),
+        Some("fallback-shared")
+    );
+
+    skeleton.setup_pose_slots();
+    assert_eq!(
+        skeleton.get_slots()[0].attachment_skin.as_deref(),
+        Some("fallback")
+    );
 }
 
 #[test]
@@ -1783,6 +1841,7 @@ fn skeleton_bounds_cover_region_and_mesh_attachments() {
             },
         ],
         skins,
+        default_skin: Some(0),
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -1833,6 +1892,7 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
         }],
         slots: Vec::new(),
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -1933,6 +1993,7 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
         }],
         slots: Vec::new(),
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -2164,6 +2225,7 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
             ..Default::default()
         }],
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -2250,6 +2312,7 @@ fn constraint_accessors_expose_pose_state() {
             },
         ],
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -2445,6 +2508,7 @@ fn constraint_accessors_expose_pose_state() {
         }],
         slots: Vec::new(),
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -2526,6 +2590,7 @@ fn skeleton_physics_controls_broadcast_to_all_constraints() {
         }],
         slots: Vec::new(),
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -2642,6 +2707,7 @@ fn update_world_transform_root_and_child() {
         ],
         slots: Vec::new(),
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
@@ -2719,6 +2785,7 @@ fn update_world_transform_parent_rotation_affects_child_translation() {
         ],
         slots: Vec::new(),
         skins: Vec::new(),
+        default_skin: None,
         events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),

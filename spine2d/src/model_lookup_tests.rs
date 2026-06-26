@@ -657,17 +657,17 @@ fn constraint_data_accessors_match_cpp_surface() {
 #[test]
 fn skeleton_data_header_getters_match_cpp_names() {
     let mut data = SkeletonData::default();
-    data.name = "hero".to_string();
-    data.spine_version = Some("4.3.8".to_string());
-    data.hash = "123".to_string();
-    data.x = 1.0;
-    data.y = 2.0;
-    data.width = 3.0;
-    data.height = 4.0;
-    data.reference_scale = 50.0;
-    data.fps = 24.0;
-    data.images_path = "images/".to_string();
-    data.audio_path = "audio/".to_string();
+    data.set_name("hero");
+    data.set_version("4.3.8");
+    data.set_hash("123");
+    data.set_x(1.0);
+    data.set_y(2.0);
+    data.set_width(3.0);
+    data.set_height(4.0);
+    data.set_reference_scale(50.0);
+    data.set_fps(24.0);
+    data.set_images_path("images/");
+    data.set_audio_path("audio/");
 
     assert_eq!(data.get_name(), "hero");
     assert_eq!(data.get_version(), Some("4.3.8"));

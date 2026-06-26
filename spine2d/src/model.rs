@@ -2752,6 +2752,7 @@ pub struct SkeletonData {
     pub(crate) bones: Vec<BoneData>,
     pub(crate) slots: Vec<SlotData>,
     pub(crate) skins: Vec<SkinData>,
+    pub(crate) default_skin: Option<usize>,
     pub(crate) events: Vec<EventData>,
     pub(crate) animations: Vec<Animation>,
     pub(crate) ik_constraints: Vec<IkConstraintData>,
@@ -2770,44 +2771,88 @@ impl SkeletonData {
         self.name.as_str()
     }
 
+    pub fn set_name(&mut self, name: impl Into<String>) {
+        self.name = name.into();
+    }
+
     pub fn get_version(&self) -> Option<&str> {
         self.spine_version.as_deref()
+    }
+
+    pub fn set_version(&mut self, version: impl Into<String>) {
+        self.spine_version = Some(version.into());
     }
 
     pub fn get_hash(&self) -> &str {
         self.hash.as_str()
     }
 
+    pub fn set_hash(&mut self, hash: impl Into<String>) {
+        self.hash = hash.into();
+    }
+
     pub fn get_x(&self) -> f32 {
         self.x
+    }
+
+    pub fn set_x(&mut self, x: f32) {
+        self.x = x;
     }
 
     pub fn get_y(&self) -> f32 {
         self.y
     }
 
+    pub fn set_y(&mut self, y: f32) {
+        self.y = y;
+    }
+
     pub fn get_width(&self) -> f32 {
         self.width
+    }
+
+    pub fn set_width(&mut self, width: f32) {
+        self.width = width;
     }
 
     pub fn get_height(&self) -> f32 {
         self.height
     }
 
+    pub fn set_height(&mut self, height: f32) {
+        self.height = height;
+    }
+
     pub fn get_reference_scale(&self) -> f32 {
         self.reference_scale
+    }
+
+    pub fn set_reference_scale(&mut self, reference_scale: f32) {
+        self.reference_scale = reference_scale;
     }
 
     pub fn get_fps(&self) -> f32 {
         self.fps
     }
 
+    pub fn set_fps(&mut self, fps: f32) {
+        self.fps = fps;
+    }
+
     pub fn get_images_path(&self) -> &str {
         self.images_path.as_str()
     }
 
+    pub fn set_images_path(&mut self, images_path: impl Into<String>) {
+        self.images_path = images_path.into();
+    }
+
     pub fn get_audio_path(&self) -> &str {
         self.audio_path.as_str()
+    }
+
+    pub fn set_audio_path(&mut self, audio_path: impl Into<String>) {
+        self.audio_path = audio_path.into();
     }
 
     pub fn get_bones(&self) -> &[BoneData] {
@@ -2820,6 +2865,28 @@ impl SkeletonData {
 
     pub fn get_skins(&self) -> &[SkinData] {
         &self.skins
+    }
+
+    pub fn get_default_skin(&self) -> Option<&SkinData> {
+        self.default_skin.and_then(|index| self.skins.get(index))
+    }
+
+    pub fn set_default_skin(&mut self, default_skin: Option<&SkinData>) {
+        self.default_skin = default_skin.and_then(|skin| {
+            self.skins
+                .iter()
+                .position(|candidate| candidate.name == skin.name)
+        });
+    }
+
+    pub(crate) fn is_default_skin_name(&self, skin_name: Option<&str>) -> bool {
+        let Some(skin_name) = skin_name else {
+            return false;
+        };
+        self.skins
+            .iter()
+            .position(|skin| skin.get_name() == skin_name)
+            .is_some_and(|index| Some(index) == self.default_skin)
     }
 
     pub fn get_events(&self) -> &[EventData] {
@@ -2897,10 +2964,6 @@ impl SkeletonData {
         constraints
     }
 
-    pub fn get_default_skin(&self) -> Option<&SkinData> {
-        self.find_skin(Self::DEFAULT_SKIN_NAME)
-    }
-
     pub fn find_slider_animations<'data, 'out>(
         &'data self,
         animations: &'out mut Vec<&'data Animation>,
@@ -2931,6 +2994,7 @@ impl Default for SkeletonData {
             bones: Vec::new(),
             slots: Vec::new(),
             skins: Vec::new(),
+            default_skin: None,
             events: Vec::new(),
             animations: Vec::new(),
             ik_constraints: Vec::new(),

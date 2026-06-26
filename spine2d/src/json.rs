@@ -3397,6 +3397,11 @@ impl SkeletonData {
             }
         }
 
+        let skins = skins.into_values().collect::<Vec<_>>();
+        let default_skin = skins
+            .iter()
+            .position(|skin| skin.get_name() == SkeletonData::DEFAULT_SKIN_NAME);
+
         Ok(Arc::new(SkeletonData {
             name: String::new(),
             spine_version,
@@ -3411,7 +3416,8 @@ impl SkeletonData {
             audio_path,
             bones,
             slots,
-            skins: skins.into_values().collect(),
+            skins,
+            default_skin,
             events: events
                 .into_values()
                 .map(|event| Arc::unwrap_or_clone(event))
