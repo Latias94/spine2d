@@ -20,7 +20,7 @@ impl Atlas {
     }
 
     pub fn find_region(&self, name: &str) -> Option<&AtlasRegion> {
-        self.regions.iter().find(|region| region.name == name)
+        self.regions.iter().find(|region| region.get_name() == name)
     }
 
     pub fn get_pages(&self) -> &[AtlasPage] {
@@ -82,29 +82,123 @@ pub enum AtlasWrap {
 
 #[derive(Clone, Debug)]
 pub struct AtlasRegion {
-    pub name: String,
-    pub page: usize,
-    pub index: i32,
-    pub rotate: bool,
-    pub degrees: i32,
-    pub x: u32,
-    pub y: u32,
-    pub width: u32,
-    pub height: u32,
-    pub packed_width: u32,
-    pub packed_height: u32,
-    pub offset_x: i32,
-    pub offset_y: i32,
-    pub original_width: u32,
-    pub original_height: u32,
-    pub names: Vec<String>,
-    pub values: Vec<f32>,
-    pub u: f32,
-    pub v: f32,
-    pub u2: f32,
-    pub v2: f32,
-    pub region_width: u32,
-    pub region_height: u32,
+    name: String,
+    page: usize,
+    index: i32,
+    rotate: bool,
+    degrees: i32,
+    x: u32,
+    y: u32,
+    packed_width: u32,
+    packed_height: u32,
+    offset_x: f32,
+    offset_y: f32,
+    original_width: u32,
+    original_height: u32,
+    splits: Vec<i32>,
+    pads: Vec<i32>,
+    names: Vec<String>,
+    values: Vec<f32>,
+    u: f32,
+    v: f32,
+    u2: f32,
+    v2: f32,
+    region_width: u32,
+    region_height: u32,
+}
+
+impl AtlasRegion {
+    pub fn get_page(&self) -> usize {
+        self.page
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn get_index(&self) -> i32 {
+        self.index
+    }
+
+    pub fn get_x(&self) -> u32 {
+        self.x
+    }
+
+    pub fn get_y(&self) -> u32 {
+        self.y
+    }
+
+    pub fn get_offset_x(&self) -> f32 {
+        self.offset_x
+    }
+
+    pub fn get_offset_y(&self) -> f32 {
+        self.offset_y
+    }
+
+    pub fn get_packed_width(&self) -> u32 {
+        self.packed_width
+    }
+
+    pub fn get_packed_height(&self) -> u32 {
+        self.packed_height
+    }
+
+    pub fn get_original_width(&self) -> u32 {
+        self.original_width
+    }
+
+    pub fn get_original_height(&self) -> u32 {
+        self.original_height
+    }
+
+    pub fn get_rotate(&self) -> bool {
+        self.rotate
+    }
+
+    pub fn get_degrees(&self) -> i32 {
+        self.degrees
+    }
+
+    pub fn get_splits(&self) -> &[i32] {
+        &self.splits
+    }
+
+    pub fn get_pads(&self) -> &[i32] {
+        &self.pads
+    }
+
+    pub fn get_names(&self) -> &[String] {
+        &self.names
+    }
+
+    pub fn get_values(&self) -> &[f32] {
+        &self.values
+    }
+
+    pub fn get_u(&self) -> f32 {
+        self.u
+    }
+
+    pub fn get_v(&self) -> f32 {
+        self.v
+    }
+
+    pub fn get_u2(&self) -> f32 {
+        self.u2
+    }
+
+    pub fn get_v2(&self) -> f32 {
+        self.v2
+    }
+
+    pub fn get_region_width(&self) -> u32 {
+        self.region_width
+    }
+
+    pub fn get_region_height(&self) -> u32 {
+        self.region_height
+    }
 }
 
 impl FromStr for Atlas {
@@ -121,8 +215,8 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
 
     fn finalize_region(mut region: AtlasRegion, page: &AtlasPage) -> AtlasRegion {
         if region.original_width == 0 && region.original_height == 0 {
-            region.original_width = region.width;
-            region.original_height = region.height;
+            region.original_width = region.packed_width;
+            region.original_height = region.packed_height;
         }
         let page_width = page.width.max(1) as f32;
         let page_height = page.height.max(1) as f32;
@@ -130,18 +224,17 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
         region.u = region.x as f32 / page_width;
         region.v = region.y as f32 / page_height;
         if region.degrees == 90 {
-            region.u2 = (region.x + region.height) as f32 / page_width;
-            region.v2 = (region.y + region.width) as f32 / page_height;
-            region.packed_width = region.height;
-            region.packed_height = region.width;
+            region.u2 = (region.x + region.packed_height) as f32 / page_width;
+            region.v2 = (region.y + region.packed_width) as f32 / page_height;
         } else {
-            region.u2 = (region.x + region.width) as f32 / page_width;
-            region.v2 = (region.y + region.height) as f32 / page_height;
-            region.packed_width = region.width;
-            region.packed_height = region.height;
+            region.u2 = (region.x + region.packed_width) as f32 / page_width;
+            region.v2 = (region.y + region.packed_height) as f32 / page_height;
         }
         region.region_width = ((region.u2 - region.u) * page_width).abs() as u32;
         region.region_height = ((region.v2 - region.v) * page_height).abs() as u32;
+        if region.degrees == 90 {
+            std::mem::swap(&mut region.packed_width, &mut region.packed_height);
+        }
         region
     }
 
@@ -243,14 +336,14 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
                 degrees: 0,
                 x: 0,
                 y: 0,
-                width: 0,
-                height: 0,
                 packed_width: 0,
                 packed_height: 0,
-                offset_x: 0,
-                offset_y: 0,
+                offset_x: 0.0,
+                offset_y: 0.0,
                 original_width: 0,
                 original_height: 0,
+                splits: Vec::new(),
+                pads: Vec::new(),
                 names: Vec::new(),
                 values: Vec::new(),
                 u: 0.0,
@@ -280,8 +373,8 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
                             })?;
                         region.x = x;
                         region.y = y;
-                        region.width = w;
-                        region.height = h;
+                        region.packed_width = w;
+                        region.packed_height = h;
                     }
                     "xy" => {
                         let (x, y) = parse_pair_u32(value).ok_or_else(|| Error::AtlasParse {
@@ -294,8 +387,8 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
                         let (w, h) = parse_pair_u32(value).ok_or_else(|| Error::AtlasParse {
                             message: format!("invalid region size: {value}"),
                         })?;
-                        region.width = w;
-                        region.height = h;
+                        region.packed_width = w;
+                        region.packed_height = h;
                     }
                     "orig" => {
                         let (w, h) = parse_pair_u32(value).ok_or_else(|| Error::AtlasParse {
@@ -308,16 +401,16 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
                         let (x, y) = parse_pair_i32(value).ok_or_else(|| Error::AtlasParse {
                             message: format!("invalid region offset: {value}"),
                         })?;
-                        region.offset_x = x;
-                        region.offset_y = y;
+                        region.offset_x = x as f32;
+                        region.offset_y = y as f32;
                     }
                     "offsets" => {
                         let (x, y, w, h) =
                             parse_quad_i32_u32(value).ok_or_else(|| Error::AtlasParse {
                                 message: format!("invalid region offsets: {value}"),
                             })?;
-                        region.offset_x = x;
-                        region.offset_y = y;
+                        region.offset_x = x as f32;
+                        region.offset_y = y as f32;
                         region.original_width = w;
                         region.original_height = h;
                     }
@@ -483,12 +576,12 @@ head
         assert_eq!(atlas.get_pages()[0].wrap_v, AtlasWrap::ClampToEdge);
 
         let region = atlas.find_region("head").unwrap();
-        assert_eq!(region.page, 0);
-        assert_eq!(region.degrees, 0);
-        assert_eq!(region.x, 0);
-        assert_eq!(region.y, 0);
-        assert_eq!(region.width, 16);
-        assert_eq!(region.height, 8);
+        assert_eq!(region.get_page(), 0);
+        assert_eq!(region.get_degrees(), 0);
+        assert_eq!(region.get_x(), 0);
+        assert_eq!(region.get_y(), 0);
+        assert_eq!(region.get_packed_width(), 16);
+        assert_eq!(region.get_packed_height(), 8);
     }
 
     #[test]
@@ -518,12 +611,12 @@ r1
 
         let r0 = atlas.find_region("r0").unwrap();
         let r1 = atlas.find_region("r1").unwrap();
-        assert_eq!(r0.page, 0);
-        assert_eq!(r1.page, 1);
-        assert_eq!(r1.x, 2);
-        assert_eq!(r1.y, 3);
-        assert_eq!(r1.width, 4);
-        assert_eq!(r1.height, 5);
+        assert_eq!(r0.get_page(), 0);
+        assert_eq!(r1.get_page(), 1);
+        assert_eq!(r1.get_x(), 2);
+        assert_eq!(r1.get_y(), 3);
+        assert_eq!(r1.get_packed_width(), 4);
+        assert_eq!(r1.get_packed_height(), 5);
     }
 
     #[test]
@@ -548,20 +641,22 @@ alpha
             atlas
                 .get_regions()
                 .iter()
-                .map(|region| region.name.as_str())
+                .map(AtlasRegion::get_name)
                 .collect::<Vec<_>>(),
             vec!["beta", "alpha"]
         );
 
         let beta = atlas.find_region("beta").unwrap();
-        assert_eq!(beta.index, 3);
-        assert_eq!(beta.names, vec!["split"]);
-        assert_eq!(beta.values, vec![1.0, 2.0, 3.0, 4.0]);
+        assert_eq!(beta.get_index(), 3);
+        assert!(beta.get_splits().is_empty());
+        assert_eq!(beta.get_names(), ["split".to_string()]);
+        assert_eq!(beta.get_values(), [1.0, 2.0, 3.0, 4.0]);
 
         let alpha = atlas.find_region("alpha").unwrap();
-        assert_eq!(alpha.index, -1);
-        assert_eq!(alpha.names, vec!["pad"]);
-        assert_eq!(alpha.values, vec![5.0, 6.0, 7.0, 8.0]);
+        assert_eq!(alpha.get_index(), -1);
+        assert!(alpha.get_pads().is_empty());
+        assert_eq!(alpha.get_names(), ["pad".to_string()]);
+        assert_eq!(alpha.get_values(), [5.0, 6.0, 7.0, 8.0]);
     }
 
     #[test]
@@ -579,19 +674,19 @@ head
         .unwrap();
 
         let region = atlas.find_region("head").unwrap();
-        assert_eq!(region.region_width, 8);
-        assert_eq!(region.region_height, 16);
-        assert_eq!(region.packed_width, 8);
-        assert_eq!(region.packed_height, 16);
-        assert!((region.u - 16.0 / 64.0).abs() <= 1.0e-6);
-        assert!((region.v - 32.0 / 64.0).abs() <= 1.0e-6);
-        assert!((region.u2 - 24.0 / 64.0).abs() <= 1.0e-6);
-        assert!((region.v2 - 48.0 / 64.0).abs() <= 1.0e-6);
+        assert_eq!(region.get_region_width(), 8);
+        assert_eq!(region.get_region_height(), 16);
+        assert_eq!(region.get_packed_width(), 8);
+        assert_eq!(region.get_packed_height(), 16);
+        assert!((region.get_u() - 16.0 / 64.0).abs() <= 1.0e-6);
+        assert!((region.get_v() - 32.0 / 64.0).abs() <= 1.0e-6);
+        assert!((region.get_u2() - 24.0 / 64.0).abs() <= 1.0e-6);
+        assert!((region.get_v2() - 48.0 / 64.0).abs() <= 1.0e-6);
 
         atlas.flip_v();
         let region = atlas.find_region("head").unwrap();
-        assert!((region.v - (1.0 - 32.0 / 64.0)).abs() <= 1.0e-6);
-        assert!((region.v2 - (1.0 - 48.0 / 64.0)).abs() <= 1.0e-6);
+        assert!((region.get_v() - (1.0 - 32.0 / 64.0)).abs() <= 1.0e-6);
+        assert!((region.get_v2() - (1.0 - 48.0 / 64.0)).abs() <= 1.0e-6);
     }
 
     #[test]
@@ -607,12 +702,12 @@ head
         .unwrap();
 
         let region = atlas.find_region("head").unwrap();
-        assert_eq!(region.x, 16);
-        assert_eq!(region.y, 32);
-        assert_eq!(region.width, 8);
-        assert_eq!(region.height, 4);
-        assert_eq!(region.original_width, 8);
-        assert_eq!(region.original_height, 4);
+        assert_eq!(region.get_x(), 16);
+        assert_eq!(region.get_y(), 32);
+        assert_eq!(region.get_packed_width(), 8);
+        assert_eq!(region.get_packed_height(), 4);
+        assert_eq!(region.get_original_width(), 8);
+        assert_eq!(region.get_original_height(), 4);
     }
 
     #[test]
@@ -671,12 +766,12 @@ head
         .unwrap();
 
         let region = atlas.find_region("head").unwrap();
-        assert_eq!(region.width, 10);
-        assert_eq!(region.height, 11);
-        assert_eq!(region.original_width, 20);
-        assert_eq!(region.original_height, 21);
-        assert_eq!(region.offset_x, 3);
-        assert_eq!(region.offset_y, 4);
+        assert_eq!(region.get_packed_width(), 10);
+        assert_eq!(region.get_packed_height(), 11);
+        assert_eq!(region.get_original_width(), 20);
+        assert_eq!(region.get_original_height(), 21);
+        assert_eq!(region.get_offset_x(), 3.0);
+        assert_eq!(region.get_offset_y(), 4.0);
     }
 
     #[test]
@@ -693,14 +788,14 @@ head
         .unwrap();
 
         let region = atlas.find_region("head").unwrap();
-        assert_eq!(region.x, 1);
-        assert_eq!(region.y, 2);
-        assert_eq!(region.width, 3);
-        assert_eq!(region.height, 4);
-        assert_eq!(region.offset_x, 5);
-        assert_eq!(region.offset_y, 6);
-        assert_eq!(region.original_width, 7);
-        assert_eq!(region.original_height, 8);
+        assert_eq!(region.get_x(), 1);
+        assert_eq!(region.get_y(), 2);
+        assert_eq!(region.get_packed_width(), 3);
+        assert_eq!(region.get_packed_height(), 4);
+        assert_eq!(region.get_offset_x(), 5.0);
+        assert_eq!(region.get_offset_y(), 6.0);
+        assert_eq!(region.get_original_width(), 7);
+        assert_eq!(region.get_original_height(), 8);
     }
 
     #[test]
@@ -725,12 +820,12 @@ r270
         )
         .unwrap();
 
-        assert_eq!(atlas.find_region("r0").unwrap().degrees, 0);
-        assert_eq!(atlas.find_region("r90").unwrap().degrees, 90);
-        assert!(atlas.find_region("r90").unwrap().rotate);
-        assert_eq!(atlas.find_region("r180").unwrap().degrees, 180);
-        assert!(!atlas.find_region("r180").unwrap().rotate);
-        assert_eq!(atlas.find_region("r270").unwrap().degrees, 270);
-        assert!(!atlas.find_region("r270").unwrap().rotate);
+        assert_eq!(atlas.find_region("r0").unwrap().get_degrees(), 0);
+        assert_eq!(atlas.find_region("r90").unwrap().get_degrees(), 90);
+        assert!(atlas.find_region("r90").unwrap().get_rotate());
+        assert_eq!(atlas.find_region("r180").unwrap().get_degrees(), 180);
+        assert!(!atlas.find_region("r180").unwrap().get_rotate());
+        assert_eq!(atlas.find_region("r270").unwrap().get_degrees(), 270);
+        assert!(!atlas.find_region("r270").unwrap().get_rotate());
     }
 }

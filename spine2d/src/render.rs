@@ -154,7 +154,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                         .map_or(BlendMode::Normal, |data| data.blend);
                     let (texture_path, uvs, premultiplied_alpha) = if let Some(atlas) = atlas {
                         if let Some(atlas_region) = atlas_region_opt {
-                            let page = atlas.get_pages().get(atlas_region.page);
+                            let page = atlas.get_pages().get(atlas_region.get_page());
                             if let Some(page) = page {
                                 if page.width > 0 && page.height > 0 {
                                     let uvs = atlas_region_uvs_for_region_attachment(atlas_region);
@@ -338,7 +338,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                         if let Some(atlas) = atlas {
                             if let Some(atlas_region) = atlas.find_region(attachment_path.as_ref())
                             {
-                                if let Some(page) = atlas.get_pages().get(atlas_region.page) {
+                                if let Some(page) = atlas.get_pages().get(atlas_region.get_page()) {
                                     if page.width > 0 && page.height > 0 {
                                         (
                                             page.texture_path.clone(),
@@ -584,22 +584,22 @@ fn region_local_vertices_with_atlas_region(
     // the 4 local vertices (after attachment rotation) in the same order as `spine-cpp`
     // `RegionAttachment.computeWorldVertices`: BR, BL, UL, UR.
     let (region_scale_x, region_scale_y) = if let Some(r) = atlas_region {
-        let ow = r.original_width.max(1) as f32;
-        let oh = r.original_height.max(1) as f32;
+        let ow = r.get_original_width().max(1) as f32;
+        let oh = r.get_original_height().max(1) as f32;
         (width / ow * scale_x, height / oh * scale_y)
     } else {
         (scale_x, scale_y)
     };
 
     let (local_x, local_y, local_x2, local_y2) = if let Some(r) = atlas_region {
-        let ox = r.offset_x as f32;
-        let oy = r.offset_y as f32;
+        let ox = r.get_offset_x();
+        let oy = r.get_offset_y();
         let local_x = -width * 0.5 * scale_x + ox * region_scale_x;
         let local_y = -height * 0.5 * scale_y + oy * region_scale_y;
-        let (packed_x, packed_y) = if r.degrees == 90 {
-            (r.packed_height, r.packed_width)
+        let (packed_x, packed_y) = if r.get_degrees() == 90 {
+            (r.get_packed_height(), r.get_packed_width())
         } else {
-            (r.packed_width, r.packed_height)
+            (r.get_packed_width(), r.get_packed_height())
         };
         let local_x2 = local_x + packed_x as f32 * region_scale_x;
         let local_y2 = local_y + packed_y as f32 * region_scale_y;
@@ -638,14 +638,14 @@ fn region_local_vertices_with_atlas_region(
 }
 
 fn atlas_region_uvs_for_region_attachment(region: &crate::AtlasRegion) -> [[f32; 2]; 4] {
-    let u = region.u;
-    let v = region.v;
-    let u2 = region.u2;
-    let v2 = region.v2;
+    let u = region.get_u();
+    let v = region.get_v();
+    let u2 = region.get_u2();
+    let v2 = region.get_v2();
 
     // Mirror the upstream `RegionAttachment.updateRegion()` UV assignment, expressed in the same
     // vertex order as `region_local_vertices_with_atlas_region`: BR, BL, UL, UR.
-    if region.degrees == 90 {
+    if region.get_degrees() == 90 {
         [[u2, v], [u2, v2], [u, v2], [u, v]]
     } else {
         [[u2, v2], [u, v2], [u, v], [u2, v]]
@@ -661,19 +661,19 @@ fn map_mesh_uv_to_page(
     let tex_w = page.width.max(1) as f32;
     let tex_h = page.height.max(1) as f32;
 
-    let mut u = region.u;
-    let mut v = region.v;
+    let mut u = region.get_u();
+    let mut v = region.get_v();
 
-    let ow = region.original_width.max(1) as f32;
-    let oh = region.original_height.max(1) as f32;
-    let ox = region.offset_x as f32;
-    let oy = region.offset_y as f32;
-    let pw = region.packed_width as f32;
-    let ph = region.packed_height as f32;
+    let ow = region.get_original_width().max(1) as f32;
+    let oh = region.get_original_height().max(1) as f32;
+    let ox = region.get_offset_x();
+    let oy = region.get_offset_y();
+    let pw = region.get_packed_width() as f32;
+    let ph = region.get_packed_height() as f32;
 
     let width;
     let height;
-    match region.degrees {
+    match region.get_degrees() {
         90 => {
             u -= (oh - oy - pw) / tex_w;
             v -= (ow - ox - ph) / tex_h;
