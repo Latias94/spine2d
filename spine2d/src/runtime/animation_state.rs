@@ -796,6 +796,12 @@ impl TrackEntryHandle {
         });
     }
 
+    pub fn clear_listener(&self, state: &mut AnimationState) {
+        self.with_entry_mut(state, |entry| {
+            entry.listener = None;
+        });
+    }
+
     pub fn set_track_end(&self, state: &mut AnimationState, track_end: f32) {
         self.with_entry_mut(state, |entry| {
             entry.track_end = track_end;
@@ -1035,6 +1041,10 @@ impl AnimationState {
 
     pub fn set_listener<L: AnimationStateListener + 'static>(&mut self, listener: L) {
         self.listener = Some(Box::new(listener));
+    }
+
+    pub fn clear_listener(&mut self) {
+        self.listener = None;
     }
 
     pub fn disable_queue(&mut self) {

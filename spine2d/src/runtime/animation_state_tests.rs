@@ -4089,6 +4089,69 @@ fn set_animation_same_unapplied_animation_replaces_without_mixing_like_cpp() {
 }
 
 #[test]
+fn animation_state_clear_listener_restores_noop_listener_like_cpp() {
+    struct Counter {
+        events: Rc<Cell<usize>>,
+    }
+
+    impl AnimationStateListener for Counter {
+        fn on_event(
+            &mut self,
+            _state: &mut AnimationState,
+            _entry: TrackEntryHandle,
+            _event: &AnimationStateEvent,
+        ) {
+            self.events.set(self.events.get() + 1);
+        }
+    }
+
+    let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
+    let mut state = AnimationState::new(AnimationStateData::new(data));
+    let events = Rc::new(Cell::new(0));
+
+    state.set_listener(Counter {
+        events: events.clone(),
+    });
+    state.clear_listener();
+    state.set_animation(0, "events0", false);
+
+    assert_eq!(events.get(), 0);
+}
+
+#[test]
+fn track_entry_clear_listener_restores_noop_listener_like_cpp() {
+    struct Counter {
+        events: Rc<Cell<usize>>,
+    }
+
+    impl TrackEntryListener for Counter {
+        fn on_event(
+            &mut self,
+            _state: &mut AnimationState,
+            _entry: TrackEntryHandle,
+            _event: &AnimationStateEvent,
+        ) {
+            self.events.set(self.events.get() + 1);
+        }
+    }
+
+    let (mut state, _skeleton, _recording) = setup();
+    let events = Rc::new(Cell::new(0));
+
+    let entry = state.set_animation(0, "events0", false);
+    entry.set_listener(
+        &mut state,
+        Counter {
+            events: events.clone(),
+        },
+    );
+    entry.clear_listener(&mut state);
+    state.clear_track(0);
+
+    assert_eq!(events.get(), 0);
+}
+
+#[test]
 fn track_entry_listener() {
     #[derive(Clone)]
     struct Bits {
