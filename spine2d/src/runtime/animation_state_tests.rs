@@ -160,19 +160,19 @@ fn animation_state_data_default_mix_is_directly_stored_and_used_as_fallback() {
     let to = data.find_animation("events1").unwrap();
     let mut state_data = AnimationStateData::new(data.clone());
 
-    assert_eq!(state_data.default_mix(), 0.0);
-    assert_eq!(state_data.get_mix_animation(from, to), 0.0);
+    assert_eq!(state_data.get_default_mix(), 0.0);
+    assert_eq!(state_data.get_mix(from, to), 0.0);
 
     state_data.set_default_mix(0.25);
 
-    assert_eq!(state_data.default_mix(), 0.25);
-    assert_eq!(state_data.get_mix_animation(from, to), 0.25);
+    assert_eq!(state_data.get_default_mix(), 0.25);
+    assert_eq!(state_data.get_mix(from, to), 0.25);
     state_data.set_default_mix(-0.1);
-    assert_eq!(state_data.default_mix(), -0.1);
+    assert_eq!(state_data.get_default_mix(), -0.1);
     state_data.set_default_mix(f32::NAN);
-    assert!(state_data.default_mix().is_nan());
+    assert!(state_data.get_default_mix().is_nan());
     state_data.set_default_mix(f32::INFINITY);
-    assert!(state_data.default_mix().is_infinite());
+    assert!(state_data.get_default_mix().is_infinite());
 }
 
 #[test]
@@ -185,12 +185,12 @@ fn animation_state_data_named_mix_overrides_default_mix() {
     state_data.set_default_mix(0.25);
     state_data.set_mix("events0", "events1", 0.5);
 
-    assert_eq!(state_data.get_mix_animation(from, to), 0.5);
-    assert_eq!(state_data.get_mix_animation(to, from), 0.25);
+    assert_eq!(state_data.get_mix(from, to), 0.5);
+    assert_eq!(state_data.get_mix(to, from), 0.25);
 
     state_data.set_mix("events0", "events1", 0.75);
 
-    assert_eq!(state_data.get_mix_animation(from, to), 0.75);
+    assert_eq!(state_data.get_mix(from, to), 0.75);
 }
 
 #[test]
@@ -201,11 +201,11 @@ fn animation_state_data_animation_mix_accessors_match_name_mix_storage() {
     let mut state_data = AnimationStateData::new(data.clone());
 
     state_data.set_default_mix(0.25);
-    assert_eq!(state_data.get_mix_animation(from, to), 0.25);
+    assert_eq!(state_data.get_mix(from, to), 0.25);
 
     state_data.set_mix_animation(from, to, 0.5);
 
-    assert_eq!(state_data.get_mix_animation(from, to), 0.5);
+    assert_eq!(state_data.get_mix(from, to), 0.5);
 }
 
 #[test]
@@ -220,18 +220,18 @@ fn animation_state_data_clear_resets_default_and_animation_mixes() {
 
     state_data.clear();
 
-    assert_eq!(state_data.default_mix(), 0.0);
-    assert_eq!(state_data.get_mix_animation(from, to), 0.0);
+    assert_eq!(state_data.get_default_mix(), 0.0);
+    assert_eq!(state_data.get_mix(from, to), 0.0);
 }
 
 #[test]
 fn animation_state_data_accessor_matches_mutable_data() {
     let (mut state, _skeleton, _recording) = setup();
 
-    assert_eq!(state.get_data().default_mix(), 0.0);
+    assert_eq!(state.get_data().get_default_mix(), 0.0);
     state.get_data_mut().set_default_mix(0.3);
 
-    assert_eq!(state.get_data().default_mix(), 0.3);
+    assert_eq!(state.get_data().get_default_mix(), 0.3);
 }
 
 #[test]
@@ -241,12 +241,12 @@ fn animation_state_data_skeleton_data_accessor_exposes_bound_skeleton() {
     let state_data = AnimationStateData::new(data);
 
     assert_eq!(
-        state_data.skeleton_data() as *const crate::SkeletonData,
+        state_data.get_skeleton_data() as *const crate::SkeletonData,
         data_ptr
     );
     assert!(
         state_data
-            .skeleton_data()
+            .get_skeleton_data()
             .find_animation("events0")
             .is_some()
     );
@@ -328,9 +328,9 @@ fn animation_state_data_name_mix_panics_on_unknown_animations() {
     );
     state_data.set_mix("events0", "events1", -0.1);
     state_data.set_mix("events0", "events1", f32::NAN);
-    assert!(state_data.get_mix_animation(from, to).is_nan());
+    assert!(state_data.get_mix(from, to).is_nan());
     state_data.set_mix("events0", "events1", f32::INFINITY);
-    assert!(state_data.get_mix_animation(from, to).is_infinite());
+    assert!(state_data.get_mix(from, to).is_infinite());
 }
 
 #[test]
@@ -344,9 +344,9 @@ fn animation_state_data_animation_mix_accepts_animation_references() {
     to.name = "to-reference".to_string();
     state_data.set_default_mix(0.25);
 
-    assert_eq!(state_data.get_mix_animation(&from, &to), 0.25);
+    assert_eq!(state_data.get_mix(&from, &to), 0.25);
     state_data.set_mix_animation(&from, &to, 0.5);
-    assert_eq!(state_data.get_mix_animation(&from, &to), 0.5);
+    assert_eq!(state_data.get_mix(&from, &to), 0.5);
 }
 
 const EMPTY_DELAY_JSON: &str = r#"
@@ -581,7 +581,7 @@ fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
     entry.set_delay(&mut state, 0.375);
     let replacement = state
         .get_data()
-        .skeleton_data()
+        .get_skeleton_data()
         .find_animation("events1")
         .unwrap()
         .clone();
@@ -607,7 +607,7 @@ fn track_entry_set_animation_preserves_animation_references() {
     let entry = state.set_animation(0, "events0", false);
     let mut unknown = state
         .get_data()
-        .skeleton_data()
+        .get_skeleton_data()
         .find_animation("events1")
         .unwrap()
         .clone();

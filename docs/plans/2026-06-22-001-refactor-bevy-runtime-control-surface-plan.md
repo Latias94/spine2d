@@ -143,7 +143,7 @@ flowchart LR
 
 **Approach:** Expose default mix and official mix setters/getters without Rust-only validation or removal APIs. Name-based setters assert on missing animation names like the latest C++ name overloads; animation-reference accessors return direct values and mix storage follows official animation-name pair equality.
 
-**Patterns to follow:** Current `AnimationStateData::set_mix`, `set_mix_animation`, `get_mix_animation`, and `clear` behavior plus the `TrackEntryHandle` public API style in `spine2d/src/runtime/animation_state.rs`.
+**Patterns to follow:** Current `AnimationStateData::set_mix`, `set_mix_animation`, `get_mix`, and `clear` behavior plus the `TrackEntryHandle` public API style in `spine2d/src/runtime/animation_state.rs`.
 
 **Test scenarios:**
 

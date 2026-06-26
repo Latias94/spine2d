@@ -404,11 +404,11 @@ impl AnimationStateData {
         }
     }
 
-    pub fn skeleton_data(&self) -> &SkeletonData {
+    pub fn get_skeleton_data(&self) -> &SkeletonData {
         self.skeleton_data.as_ref()
     }
 
-    pub fn default_mix(&self) -> f32 {
+    pub fn get_default_mix(&self) -> f32 {
         self.default_mix
     }
 
@@ -434,7 +434,7 @@ impl AnimationStateData {
             .insert((from.name.clone(), to.name.clone()), duration);
     }
 
-    pub fn get_mix_animation(&self, from: &Animation, to: &Animation) -> f32 {
+    pub fn get_mix(&self, from: &Animation, to: &Animation) -> f32 {
         self.mix_duration(&from.name, &to.name)
     }
 
@@ -1275,7 +1275,7 @@ impl AnimationState {
         let animation_name = animation_name.as_ref();
         let animation = self
             .data
-            .skeleton_data()
+            .get_skeleton_data()
             .find_animation(animation_name)
             .unwrap_or_else(|| panic!("unknown animation: {}", animation_name));
         (animation_identity(animation), animation.clone())

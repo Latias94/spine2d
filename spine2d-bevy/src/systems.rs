@@ -890,7 +890,7 @@ mod tests {
             .unwrap()
             .animation_state
             .get_data_mut()
-            .default_mix()
+            .get_default_mix()
     }
 
     #[test]
