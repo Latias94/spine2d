@@ -822,6 +822,22 @@ impl SkinData {
             .and_then(|slot_map| slot_map.get(attachment_name))
     }
 
+    pub fn find_names_for_slot(&self, slot_index: usize, names: &mut Vec<String>) {
+        if let Some(slot_map) = self.attachments.get(slot_index) {
+            names.extend(slot_map.keys().cloned());
+        }
+    }
+
+    pub fn find_attachments_for_slot<'a>(
+        &'a self,
+        slot_index: usize,
+        attachments: &mut Vec<&'a AttachmentData>,
+    ) {
+        if let Some(slot_map) = self.attachments.get(slot_index) {
+            attachments.extend(slot_map.values());
+        }
+    }
+
     /// Removes an attachment from the skin. Missing slots or names are no-ops, matching C++.
     pub fn remove_attachment(&mut self, slot_index: usize, attachment_name: &str) {
         if let Some(slot_map) = self.attachments.get_mut(slot_index) {

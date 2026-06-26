@@ -547,6 +547,40 @@ fn skin_attachment_iteration_preserves_insertion_order() {
 }
 
 #[test]
+fn skin_find_slot_queries_append_like_cpp() {
+    let mut skin = SkinData::new("ordered");
+    skin.set_attachment(0, "first", region_attachment("first"));
+    skin.set_attachment(0, "second", region_attachment("second"));
+    skin.set_attachment(2, "other-slot", region_attachment("other-slot"));
+
+    let mut names = vec!["sentinel".to_string()];
+    skin.find_names_for_slot(0, &mut names);
+    assert_eq!(names, vec!["sentinel", "first", "second"]);
+
+    skin.find_names_for_slot(1, &mut names);
+    assert_eq!(names, vec!["sentinel", "first", "second"]);
+
+    let mut attachments = Vec::new();
+    skin.find_attachments_for_slot(0, &mut attachments);
+    assert_eq!(
+        attachments
+            .iter()
+            .map(|attachment| attachment.name())
+            .collect::<Vec<_>>(),
+        vec!["first", "second"]
+    );
+
+    skin.find_attachments_for_slot(1, &mut attachments);
+    assert_eq!(
+        attachments
+            .iter()
+            .map(|attachment| attachment.name())
+            .collect::<Vec<_>>(),
+        vec!["first", "second"]
+    );
+}
+
+#[test]
 fn skin_set_attachment_grows_slot_storage_and_remove_is_noop_on_missing_entries() {
     let mut skin = SkinData::new("growing");
     skin.set_attachment(
