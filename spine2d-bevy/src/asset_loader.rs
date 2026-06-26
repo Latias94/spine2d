@@ -15,7 +15,7 @@ impl SpineSkeletonAsset {
             .data
             .get_animations()
             .iter()
-            .map(|animation| animation.name.as_str())
+            .map(|animation| animation.get_name())
             .collect::<Vec<_>>();
         let mut skins = self
             .data
@@ -45,7 +45,7 @@ impl SpineSkeletonAsset {
         self.data
             .get_animations()
             .iter()
-            .map(|animation| animation.name.as_str())
+            .map(|animation| animation.get_name())
     }
 
     pub fn skins(&self) -> impl Iterator<Item = &str> {

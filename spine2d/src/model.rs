@@ -1433,33 +1433,81 @@ pub enum TimelineRef<'a> {
 
 #[derive(Clone, Debug)]
 pub struct Animation {
-    pub name: String,
-    pub duration: f32,
-    pub color: [f32; 4],
-    pub event_timeline: Option<EventTimeline>,
-    pub bone_timelines: Vec<BoneTimeline>,
-    pub deform_timelines: Vec<DeformTimeline>,
-    pub sequence_timelines: Vec<SequenceTimeline>,
-    pub slot_attachment_timelines: Vec<AttachmentTimeline>,
-    pub slot_color_timelines: Vec<ColorTimeline>,
-    pub slot_rgb_timelines: Vec<RgbTimeline>,
-    pub slot_alpha_timelines: Vec<AlphaTimeline>,
-    pub slot_rgba2_timelines: Vec<Rgba2Timeline>,
-    pub slot_rgb2_timelines: Vec<Rgb2Timeline>,
-    pub ik_constraint_timelines: Vec<IkConstraintTimeline>,
-    pub transform_constraint_timelines: Vec<TransformConstraintTimeline>,
-    pub path_constraint_timelines: Vec<PathConstraintTimeline>,
-    pub physics_constraint_timelines: Vec<PhysicsConstraintTimeline>,
-    pub physics_reset_timelines: Vec<PhysicsConstraintResetTimeline>,
-    pub slider_time_timelines: Vec<SliderConstraintTimeline>,
-    pub slider_mix_timelines: Vec<SliderConstraintTimeline>,
-    pub draw_order_timeline: Option<DrawOrderTimeline>,
-    pub draw_order_folder_timelines: Vec<DrawOrderFolderTimeline>,
+    pub(crate) name: String,
+    pub(crate) duration: f32,
+    pub(crate) color: [f32; 4],
+    pub(crate) event_timeline: Option<EventTimeline>,
+    pub(crate) bone_timelines: Vec<BoneTimeline>,
+    pub(crate) deform_timelines: Vec<DeformTimeline>,
+    pub(crate) sequence_timelines: Vec<SequenceTimeline>,
+    pub(crate) slot_attachment_timelines: Vec<AttachmentTimeline>,
+    pub(crate) slot_color_timelines: Vec<ColorTimeline>,
+    pub(crate) slot_rgb_timelines: Vec<RgbTimeline>,
+    pub(crate) slot_alpha_timelines: Vec<AlphaTimeline>,
+    pub(crate) slot_rgba2_timelines: Vec<Rgba2Timeline>,
+    pub(crate) slot_rgb2_timelines: Vec<Rgb2Timeline>,
+    pub(crate) ik_constraint_timelines: Vec<IkConstraintTimeline>,
+    pub(crate) transform_constraint_timelines: Vec<TransformConstraintTimeline>,
+    pub(crate) path_constraint_timelines: Vec<PathConstraintTimeline>,
+    pub(crate) physics_constraint_timelines: Vec<PhysicsConstraintTimeline>,
+    pub(crate) physics_reset_timelines: Vec<PhysicsConstraintResetTimeline>,
+    pub(crate) slider_time_timelines: Vec<SliderConstraintTimeline>,
+    pub(crate) slider_mix_timelines: Vec<SliderConstraintTimeline>,
+    pub(crate) draw_order_timeline: Option<DrawOrderTimeline>,
+    pub(crate) draw_order_folder_timelines: Vec<DrawOrderFolderTimeline>,
     pub(crate) timeline_order: Vec<TimelineKind>,
 }
 
 impl Animation {
     pub const DEFAULT_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            duration: 0.0,
+            color: Self::DEFAULT_COLOR,
+            event_timeline: None,
+            bone_timelines: Vec::new(),
+            deform_timelines: Vec::new(),
+            sequence_timelines: Vec::new(),
+            slot_attachment_timelines: Vec::new(),
+            slot_color_timelines: Vec::new(),
+            slot_rgb_timelines: Vec::new(),
+            slot_alpha_timelines: Vec::new(),
+            slot_rgba2_timelines: Vec::new(),
+            slot_rgb2_timelines: Vec::new(),
+            ik_constraint_timelines: Vec::new(),
+            transform_constraint_timelines: Vec::new(),
+            path_constraint_timelines: Vec::new(),
+            physics_constraint_timelines: Vec::new(),
+            physics_reset_timelines: Vec::new(),
+            slider_time_timelines: Vec::new(),
+            slider_mix_timelines: Vec::new(),
+            draw_order_timeline: None,
+            draw_order_folder_timelines: Vec::new(),
+            timeline_order: Vec::new(),
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_duration(&self) -> f32 {
+        self.duration
+    }
+
+    pub fn set_duration(&mut self, duration: f32) {
+        self.duration = duration;
+    }
+
+    pub fn get_color(&self) -> [f32; 4] {
+        self.color
+    }
+
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
+    }
 
     /// Returns the `Skeleton::get_bones()` indices affected by this animation.
     ///

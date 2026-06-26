@@ -263,6 +263,23 @@ fn bone_and_slot_data_accessors_match_cpp_surface() {
 }
 
 #[test]
+fn animation_getters_and_duration_setter_match_cpp_surface() {
+    let mut animation = Animation::new("walk");
+
+    assert_eq!(animation.get_name(), "walk");
+    assert_eq!(animation.get_duration(), 0.0);
+    assert_eq!(animation.get_color(), Animation::DEFAULT_COLOR);
+    assert!(animation.get_timelines().next().is_none());
+    assert!(animation.get_bones().is_empty());
+
+    animation.set_duration(1.25);
+    animation.get_color_mut()[2] = 0.5;
+
+    assert_eq!(animation.get_duration(), 1.25);
+    assert_eq!(animation.get_color(), [1.0, 1.0, 0.5, 1.0]);
+}
+
+#[test]
 fn animation_bones_reports_unique_affected_bone_indices_like_cpp() {
     let mut animation = empty_animation("bones");
     animation

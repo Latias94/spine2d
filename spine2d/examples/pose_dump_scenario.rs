@@ -338,13 +338,16 @@ fn dump_animation_data(data: &SkeletonData, name: &str) {
         .get_animations()
         .iter()
         .enumerate()
-        .find(|(_, animation)| animation.name == name)
+        .find(|(_, animation)| animation.get_name() == name)
     else {
         panic!("missing animation: {name}");
     };
     let ik_timelines: Vec<_> = animation
-        .ik_constraint_timelines
-        .iter()
+        .get_timelines()
+        .filter_map(|timeline| match timeline {
+            TimelineRef::IkConstraint { timeline, .. } => Some(timeline),
+            _ => None,
+        })
         .map(|timeline| {
             let constraint_name = data
                 .get_ik_constraints()
@@ -377,15 +380,17 @@ fn dump_animation_data(data: &SkeletonData, name: &str) {
         })
         .collect();
     let bone_timelines: Vec<_> = animation
-        .bone_timelines
-        .iter()
-        .enumerate()
-        .map(|(i, timeline)| bone_timeline_info(data, i, timeline))
+        .get_timelines()
+        .filter_map(|timeline| match timeline {
+            TimelineRef::Bone { index, timeline } => Some((index, timeline)),
+            _ => None,
+        })
+        .map(|(index, timeline)| bone_timeline_info(data, index, timeline))
         .collect();
     let out = json!({
         "index": index,
-        "name": animation.name,
-        "duration": animation.duration,
+        "name": animation.get_name(),
+        "duration": animation.get_duration(),
         "timelineOrder": animation
             .get_timelines()
             .map(timeline_label)

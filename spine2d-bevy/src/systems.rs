@@ -569,7 +569,7 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
             .filter_map(|track| {
                 track?.entry(animation_state).map(|entry| SpineTrackState {
                     track_index: entry.get_track_index(),
-                    animation_name: entry.get_animation().name.clone(),
+                    animation_name: entry.get_animation().get_name().to_string(),
                     track_time: entry.get_track_time(),
                     animation_time: entry.get_animation_time(),
                     loop_animation: entry.get_loop(),
@@ -1591,7 +1591,7 @@ mod tests {
         app.update();
 
         current_track_entry(&app, entity, 0, |entry| {
-            assert_eq!(entry.get_animation().name, "first");
+            assert_eq!(entry.get_animation().get_name(), "first");
             assert_eq!(entry.get_alpha(), 0.5);
             assert!(!entry.get_loop());
             assert!(entry.get_additive());
@@ -1633,7 +1633,7 @@ mod tests {
         app.update();
 
         queued_track_entry(&app, entity, 0, 0, |entry| {
-            assert_eq!(entry.get_animation().name, "second");
+            assert_eq!(entry.get_animation().get_name(), "second");
             assert_eq!(entry.get_delay(), 0.3);
             assert_eq!(entry.get_track_end(), 0.8);
             assert_eq!(entry.get_mix_duration(), 0.4);
@@ -1654,8 +1654,9 @@ mod tests {
             .id();
         app.update();
 
-        let previous_duration =
-            current_track_entry(&app, entity, 0, |entry| entry.get_animation().duration);
+        let previous_duration = current_track_entry(&app, entity, 0, |entry| {
+            entry.get_animation().get_duration()
+        });
         let mix_duration = previous_duration * 0.25;
         let expected_delay = previous_duration - mix_duration;
 
@@ -1701,7 +1702,7 @@ mod tests {
         app.update();
 
         current_track_entry(&app, entity, 0, |entry| {
-            assert_eq!(entry.get_animation().name, "<empty>");
+            assert_eq!(entry.get_animation().get_name(), "<empty>");
             assert_eq!(entry.get_mix_duration(), 0.5);
             assert_eq!(entry.get_track_end(), 0.7);
             assert_eq!(entry.get_alpha_attachment_threshold(), 0.2);
@@ -1733,7 +1734,7 @@ mod tests {
         assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| app.update())).is_err());
 
         current_track_entry(&app, entity, 0, |entry| {
-            assert_eq!(entry.get_animation().name, "first");
+            assert_eq!(entry.get_animation().get_name(), "first");
             assert_eq!(entry.get_alpha(), 1.0);
             assert!(!entry.get_additive());
         });
