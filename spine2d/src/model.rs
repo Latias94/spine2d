@@ -1282,10 +1282,10 @@ impl Animation {
     ///
     /// This matches C++ `Animation::getBones()` for callers such as Slider constraints. The
     /// returned indices preserve the first-seen bone timeline order.
-    pub fn bones(&self) -> Vec<usize> {
+    pub fn get_bones(&self) -> Vec<usize> {
         let mut bones = Vec::new();
         for timeline in &self.bone_timelines {
-            let bone_index = timeline.bone_index();
+            let bone_index = timeline.get_bone_index();
             if !bones.contains(&bone_index) {
                 bones.push(bone_index);
             }
@@ -1293,7 +1293,7 @@ impl Animation {
         bones
     }
 
-    pub fn timelines(&self) -> impl Iterator<Item = TimelineRef<'_>> + '_ {
+    pub fn get_timelines(&self) -> impl Iterator<Item = TimelineRef<'_>> + '_ {
         self.timeline_order
             .iter()
             .filter_map(|kind| self.timeline_ref(*kind))
@@ -1388,7 +1388,7 @@ impl Animation {
 
 impl BoneTimeline {
     /// Returns the `Skeleton::bones()` index changed by this timeline.
-    pub fn bone_index(&self) -> usize {
+    pub fn get_bone_index(&self) -> usize {
         match self {
             BoneTimeline::Rotate(timeline) => timeline.bone_index,
             BoneTimeline::Translate(timeline) => timeline.bone_index,

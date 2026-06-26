@@ -284,7 +284,7 @@ fn animation_bones_reports_unique_affected_bone_indices_like_cpp() {
             frames: Vec::new(),
         }));
 
-    assert_eq!(animation.bones(), vec![2, 0]);
+    assert_eq!(animation.get_bones(), vec![2, 0]);
 }
 
 #[test]

@@ -171,7 +171,7 @@ flowchart TB
 
 **Files:** `spine2d/src/runtime/animation.rs`, `spine2d/src/runtime/animation_state.rs`, `spine2d/src/model.rs`, `spine2d/src/runtime/animation_tests.rs`, `spine2d/src/runtime/animation_state_mixing_semantics_tests.rs`, `spine2d/src/runtime/oracle_scenario_parity_tests.rs`, `spine2d/src/json_timeline_order_tests.rs`, `spine2d/examples/pose_dump_scenario.rs`.
 
-**Approach:** Introduce a small internal timeline iteration/apply boundary that owns the `TimelineKind` match and accepts context-specific policy for plain apply, current-entry apply, and mixing-from apply. Preserve parse-time order behind a crate-internal order field, expose a read-only unified `Animation::timelines()` view for C++-style inspection, and move the large match away from call sites.
+**Approach:** Introduce a small internal timeline iteration/apply boundary that owns the `TimelineKind` match and accepts context-specific policy for plain apply, current-entry apply, and mixing-from apply. Preserve parse-time order behind a crate-internal order field, expose a read-only unified `Animation::get_timelines()` view for C++-style inspection, and move the large match away from call sites.
 
 **Patterns to follow:** Existing `animation_timeline_order`, `apply_entry_pose`, and `apply_mixing_from_pose` behavior; `spine-cpp/src/spine/AnimationState.cpp` for mode and threshold branching.
 
@@ -181,7 +181,7 @@ flowchart TB
 - Integration path: current-entry apply preserves property gating across multi-track overlay scenarios.
 - Integration path: mixing-from apply preserves attachment, draw-order, HoldMix, additive, reverse, and shortest-rotation oracle scenarios.
 - Edge path: animations with empty `timeline_order` still finalize to deterministic fallback order in tests that construct `Animation` manually.
-- Integration path: `Animation::timelines()` exposes the same unified timeline order that C++ keeps in `Animation::getTimelines()`, with event timelines reported last when present.
+- Integration path: `Animation::get_timelines()` exposes the same unified timeline order that C++ keeps in `Animation::getTimelines()`, with event timelines reported last when present.
 - Regression path: diagnostics that render timeline order from the public iterator no longer need the raw order field.
 
 **Verification:** Focused animation and animation-state tests pass before the full oracle scenario suite is used as the final gate for this unit.
@@ -347,7 +347,7 @@ flowchart TB
 
 **Recent update:** `SkeletonData::get_constraints()` now covers the C++ `SkeletonData::getConstraints()` unified data view. Rust still stores constraint data in typed vectors, but returns `ConstraintDataRef` entries in parser-assigned unified order with `get_name` / `get_order` / `get_skin_required` helpers, and JSON mixed-type constraint parsing now has focused coverage.
 
-**Recent update:** `Animation` now exposes `bones()` as the Rust equivalent of C++ `Animation::getBones()`, and `BoneTimeline::bone_index()` exposes each concrete bone timeline target. The implementation derives unique affected bone indices from stored bone timelines rather than adding a separate parser-maintained cache. Slider runtime initialization now uses this helper instead of its previous local sorted/deduped collector.
+**Recent update:** `Animation` now exposes `get_bones()` as the Rust equivalent of C++ `Animation::getBones()`, and `BoneTimeline::get_bone_index()` exposes each concrete bone timeline target. The implementation derives unique affected bone indices from stored bone timelines rather than adding a separate parser-maintained cache. Slider runtime initialization now uses this helper instead of its previous local sorted/deduped collector.
 
 **Recent update:** `Animation::color` now covers the C++ `Animation::getColor()` field. JSON animation objects preserve the optional color string, binary animations preserve the trailing nonessential RGBA block, and the model defaults to white when the field is absent.
 

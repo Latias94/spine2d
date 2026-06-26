@@ -128,7 +128,7 @@ fn animation_timelines_exposes_unified_cpp_order() {
     };
 
     let labels = animation
-        .timelines()
+        .get_timelines()
         .map(|timeline| match timeline {
             TimelineRef::SlotAttachment { index, .. } => format!("SlotAttachment({index})"),
             TimelineRef::DrawOrder { .. } => "DrawOrder".to_string(),

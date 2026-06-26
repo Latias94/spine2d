@@ -421,7 +421,7 @@ impl Skeleton {
                 let animation_bones = c
                     .animation
                     .and_then(|idx| data.animations.get(idx))
-                    .map(|animation| animation.bones())
+                    .map(|animation| animation.get_bones())
                     .unwrap_or_default();
                 SliderConstraint {
                     data_index,

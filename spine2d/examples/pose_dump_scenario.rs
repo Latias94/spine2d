@@ -387,7 +387,7 @@ fn dump_animation_data(data: &SkeletonData, name: &str) {
         "name": animation.name,
         "duration": animation.duration,
         "timelineOrder": animation
-            .timelines()
+            .get_timelines()
             .map(timeline_label)
             .collect::<Vec<_>>(),
         "ikTimelines": ik_timelines,
