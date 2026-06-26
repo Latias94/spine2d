@@ -1365,12 +1365,80 @@ pub struct RegionAttachmentData {
 }
 
 impl RegionAttachmentData {
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_path(&self) -> &str {
+        self.path.as_str()
+    }
+
+    pub fn set_path(&mut self, path: impl Into<String>) {
+        self.path = path.into();
+    }
+
     pub fn get_color(&self) -> [f32; 4] {
         self.color
     }
 
     pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
         &mut self.color
+    }
+
+    pub fn get_x(&self) -> f32 {
+        self.x
+    }
+
+    pub fn set_x(&mut self, x: f32) {
+        self.x = x;
+    }
+
+    pub fn get_y(&self) -> f32 {
+        self.y
+    }
+
+    pub fn set_y(&mut self, y: f32) {
+        self.y = y;
+    }
+
+    pub fn get_scale_x(&self) -> f32 {
+        self.scale_x
+    }
+
+    pub fn set_scale_x(&mut self, scale_x: f32) {
+        self.scale_x = scale_x;
+    }
+
+    pub fn get_scale_y(&self) -> f32 {
+        self.scale_y
+    }
+
+    pub fn set_scale_y(&mut self, scale_y: f32) {
+        self.scale_y = scale_y;
+    }
+
+    pub fn get_rotation(&self) -> f32 {
+        self.rotation
+    }
+
+    pub fn set_rotation(&mut self, rotation: f32) {
+        self.rotation = rotation;
+    }
+
+    pub fn get_width(&self) -> f32 {
+        self.width
+    }
+
+    pub fn set_width(&mut self, width: f32) {
+        self.width = width;
+    }
+
+    pub fn get_height(&self) -> f32 {
+        self.height
+    }
+
+    pub fn set_height(&mut self, height: f32) {
+        self.height = height;
     }
 }
 
@@ -1405,12 +1473,72 @@ pub struct MeshAttachmentData {
 }
 
 impl MeshAttachmentData {
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_region_uvs(&self) -> &[[f32; 2]] {
+        &self.uvs
+    }
+
+    pub fn get_region_uvs_mut(&mut self) -> &mut Vec<[f32; 2]> {
+        &mut self.uvs
+    }
+
+    pub fn get_triangles(&self) -> &[u32] {
+        &self.triangles
+    }
+
+    pub fn get_triangles_mut(&mut self) -> &mut Vec<u32> {
+        &mut self.triangles
+    }
+
+    pub fn get_hull_length(&self) -> usize {
+        self.hull_length
+    }
+
+    pub fn set_hull_length(&mut self, hull_length: usize) {
+        self.hull_length = hull_length;
+    }
+
+    pub fn get_path(&self) -> &str {
+        self.path.as_str()
+    }
+
+    pub fn set_path(&mut self, path: impl Into<String>) {
+        self.path = path.into();
+    }
+
     pub fn get_color(&self) -> [f32; 4] {
         self.color
     }
 
     pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
         &mut self.color
+    }
+
+    pub fn get_edges(&self) -> &[u32] {
+        &self.edges
+    }
+
+    pub fn get_edges_mut(&mut self) -> &mut Vec<u32> {
+        &mut self.edges
+    }
+
+    pub fn get_width(&self) -> f32 {
+        self.width
+    }
+
+    pub fn set_width(&mut self, width: f32) {
+        self.width = width;
+    }
+
+    pub fn get_height(&self) -> f32 {
+        self.height
+    }
+
+    pub fn set_height(&mut self, height: f32) {
+        self.height = height;
     }
 }
 
@@ -1463,6 +1591,34 @@ pub struct PointAttachmentData {
 impl PointAttachmentData {
     pub const DEFAULT_COLOR: [f32; 4] = [0.9451, 0.9451, 0.0, 1.0];
 
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_x(&self) -> f32 {
+        self.x
+    }
+
+    pub fn set_x(&mut self, x: f32) {
+        self.x = x;
+    }
+
+    pub fn get_y(&self) -> f32 {
+        self.y
+    }
+
+    pub fn set_y(&mut self, y: f32) {
+        self.y = y;
+    }
+
+    pub fn get_rotation(&self) -> f32 {
+        self.rotation
+    }
+
+    pub fn set_rotation(&mut self, rotation: f32) {
+        self.rotation = rotation;
+    }
+
     pub fn get_color(&self) -> [f32; 4] {
         self.color
     }
@@ -1486,6 +1642,34 @@ pub struct PathAttachmentData {
 impl PathAttachmentData {
     pub const DEFAULT_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
 
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_lengths(&self) -> &[f32] {
+        &self.lengths
+    }
+
+    pub fn get_lengths_mut(&mut self) -> &mut Vec<f32> {
+        &mut self.lengths
+    }
+
+    pub fn get_closed(&self) -> bool {
+        self.closed
+    }
+
+    pub fn set_closed(&mut self, closed: bool) {
+        self.closed = closed;
+    }
+
+    pub fn get_constant_speed(&self) -> bool {
+        self.constant_speed
+    }
+
+    pub fn set_constant_speed(&mut self, constant_speed: bool) {
+        self.constant_speed = constant_speed;
+    }
+
     pub fn get_color(&self) -> [f32; 4] {
         self.color
     }
@@ -1505,6 +1689,10 @@ pub struct BoundingBoxAttachmentData {
 
 impl BoundingBoxAttachmentData {
     pub const DEFAULT_COLOR: [f32; 4] = [0.38, 0.94, 0.0, 1.0];
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
 
     pub fn get_color(&self) -> [f32; 4] {
         self.color
@@ -1528,6 +1716,34 @@ pub struct ClippingAttachmentData {
 
 impl ClippingAttachmentData {
     pub const DEFAULT_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_end_slot(&self) -> Option<usize> {
+        self.end_slot
+    }
+
+    pub fn set_end_slot(&mut self, end_slot: Option<usize>) {
+        self.end_slot = end_slot;
+    }
+
+    pub fn get_convex(&self) -> bool {
+        self.convex
+    }
+
+    pub fn set_convex(&mut self, convex: bool) {
+        self.convex = convex;
+    }
+
+    pub fn get_inverse(&self) -> bool {
+        self.inverse
+    }
+
+    pub fn set_inverse(&mut self, inverse: bool) {
+        self.inverse = inverse;
+    }
 
     pub fn get_color(&self) -> [f32; 4] {
         self.color
