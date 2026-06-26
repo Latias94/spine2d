@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct BoneData {
@@ -862,30 +863,212 @@ impl SkinData {
 
 #[derive(Clone, Debug)]
 pub struct EventData {
-    pub name: String,
-    pub int_value: i32,
-    pub float_value: f32,
-    pub string: String,
-    pub audio_path: String,
-    pub volume: f32,
-    pub balance: f32,
+    name: String,
+    audio_path: String,
+    setup_pose: EventSetupPose,
+}
+
+impl EventData {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            audio_path: String::new(),
+            setup_pose: EventSetupPose::default(),
+        }
+    }
+
+    pub(crate) fn with_setup_pose(
+        name: impl Into<String>,
+        int_value: i32,
+        float_value: f32,
+        string: impl Into<String>,
+        audio_path: impl Into<String>,
+        volume: f32,
+        balance: f32,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            audio_path: audio_path.into(),
+            setup_pose: EventSetupPose {
+                int_value,
+                float_value,
+                string: string.into(),
+                volume,
+                balance,
+            },
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_setup_pose(&self) -> &EventSetupPose {
+        &self.setup_pose
+    }
+
+    pub fn get_setup_pose_mut(&mut self) -> &mut EventSetupPose {
+        &mut self.setup_pose
+    }
+
+    pub fn get_audio_path(&self) -> &str {
+        self.audio_path.as_str()
+    }
+
+    pub fn set_audio_path(&mut self, audio_path: impl Into<String>) {
+        self.audio_path = audio_path.into();
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct EventSetupPose {
+    int_value: i32,
+    float_value: f32,
+    string: String,
+    volume: f32,
+    balance: f32,
+}
+
+impl EventSetupPose {
+    pub fn get_int(&self) -> i32 {
+        self.int_value
+    }
+
+    pub fn set_int(&mut self, int_value: i32) {
+        self.int_value = int_value;
+    }
+
+    pub fn get_float(&self) -> f32 {
+        self.float_value
+    }
+
+    pub fn set_float(&mut self, float_value: f32) {
+        self.float_value = float_value;
+    }
+
+    pub fn get_string(&self) -> &str {
+        self.string.as_str()
+    }
+
+    pub fn set_string(&mut self, string: impl Into<String>) {
+        self.string = string.into();
+    }
+
+    pub fn get_volume(&self) -> f32 {
+        self.volume
+    }
+
+    pub fn set_volume(&mut self, volume: f32) {
+        self.volume = volume;
+    }
+
+    pub fn get_balance(&self) -> f32 {
+        self.balance
+    }
+
+    pub fn set_balance(&mut self, balance: f32) {
+        self.balance = balance;
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct Event {
-    pub time: f32,
-    pub name: String,
-    pub int_value: i32,
-    pub float_value: f32,
-    pub string: String,
-    pub audio_path: String,
-    pub volume: f32,
-    pub balance: f32,
+    data: Arc<EventData>,
+    time: f32,
+    int_value: i32,
+    float_value: f32,
+    string: String,
+    volume: f32,
+    balance: f32,
+}
+
+impl Event {
+    pub fn new(time: f32, data: Arc<EventData>) -> Self {
+        Self {
+            data,
+            time,
+            int_value: 0,
+            float_value: 0.0,
+            string: String::new(),
+            volume: 0.0,
+            balance: 0.0,
+        }
+    }
+
+    pub fn get_data(&self) -> &EventData {
+        &self.data
+    }
+
+    pub fn get_time(&self) -> f32 {
+        self.time
+    }
+
+    pub fn get_int(&self) -> i32 {
+        self.int_value
+    }
+
+    pub fn set_int(&mut self, int_value: i32) {
+        self.int_value = int_value;
+    }
+
+    pub fn get_float(&self) -> f32 {
+        self.float_value
+    }
+
+    pub fn set_float(&mut self, float_value: f32) {
+        self.float_value = float_value;
+    }
+
+    pub fn get_string(&self) -> &str {
+        self.string.as_str()
+    }
+
+    pub fn set_string(&mut self, string: impl Into<String>) {
+        self.string = string.into();
+    }
+
+    pub fn get_volume(&self) -> f32 {
+        self.volume
+    }
+
+    pub fn set_volume(&mut self, volume: f32) {
+        self.volume = volume;
+    }
+
+    pub fn get_balance(&self) -> f32 {
+        self.balance
+    }
+
+    pub fn set_balance(&mut self, balance: f32) {
+        self.balance = balance;
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct EventTimeline {
-    pub events: Vec<Event>,
+    events: Vec<Event>,
+}
+
+impl EventTimeline {
+    pub fn from_events(events: Vec<Event>) -> Self {
+        Self { events }
+    }
+
+    pub fn get_frame_count(&self) -> usize {
+        self.events.len()
+    }
+
+    pub fn get_events(&self) -> &[Event] {
+        &self.events
+    }
+
+    pub fn set_frame(&mut self, frame: usize, event: Event) {
+        if frame == self.events.len() {
+            self.events.push(event);
+        } else {
+            self.events[frame] = event;
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -1536,7 +1719,7 @@ impl SkeletonData {
     }
 
     pub fn find_event(&self, name: &str) -> Option<&EventData> {
-        self.events.iter().find(|data| data.name == name)
+        self.events.iter().find(|data| data.get_name() == name)
     }
 
     pub fn find_ik_constraint(&self, name: &str) -> Option<&IkConstraintData> {

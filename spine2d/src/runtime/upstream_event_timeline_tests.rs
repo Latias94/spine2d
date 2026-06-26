@@ -1,5 +1,6 @@
 use super::animation_state::collect_events;
-use crate::{Event, EventTimeline};
+use crate::{Event, EventData, EventTimeline};
+use std::sync::Arc;
 
 #[derive(Debug)]
 struct Fail(String);
@@ -7,21 +8,15 @@ struct Fail(String);
 fn make_timeline(frames: &[f32]) -> (EventTimeline, Vec<char>) {
     let mut names = Vec::with_capacity(frames.len());
     let mut events = Vec::with_capacity(frames.len());
+    let data = Arc::new(EventData::new("event"));
     for (i, &time) in frames.iter().enumerate() {
         let ch = (b'a' + (i as u8)) as char;
         names.push(ch);
-        events.push(Event {
-            time,
-            name: "event".to_string(),
-            int_value: 0,
-            float_value: 0.0,
-            string: ch.to_string(),
-            audio_path: String::new(),
-            volume: 1.0,
-            balance: 0.0,
-        });
+        let mut event = Event::new(time, Arc::clone(&data));
+        event.set_string(ch.to_string());
+        events.push(event);
     }
-    (EventTimeline { events }, names)
+    (EventTimeline::from_events(events), names)
 }
 
 fn distinct_count(frames: &[f32]) -> usize {
@@ -93,7 +88,7 @@ fn fire(
 
         for event in fired {
             let fired = event
-                .string
+                .get_string()
                 .chars()
                 .next()
                 .ok_or_else(|| Fail("Event string was empty.".to_string()))?;

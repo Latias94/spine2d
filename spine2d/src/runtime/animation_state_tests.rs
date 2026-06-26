@@ -97,7 +97,7 @@ impl AnimationStateListener for RecordingListener {
             AnimationStateEvent::End => "end".to_string(),
             AnimationStateEvent::Dispose => "dispose".to_string(),
             AnimationStateEvent::Complete => "complete".to_string(),
-            AnimationStateEvent::Event(ev) => format!("event {}", ev.string),
+            AnimationStateEvent::Event(ev) => format!("event {}", ev.get_string()),
         };
 
         let Some(entry) = entry.entry(state) else {

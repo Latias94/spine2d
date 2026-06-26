@@ -24,15 +24,9 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
         ..SlotData::default()
     });
     data.skins.push(SkinData::new("skin"));
-    data.events.push(EventData {
-        name: "event".to_string(),
-        int_value: 1,
-        float_value: 2.0,
-        string: "payload".to_string(),
-        audio_path: String::new(),
-        volume: 1.0,
-        balance: 0.0,
-    });
+    data.events.push(EventData::with_setup_pose(
+        "event", 1, 2.0, "payload", "", 1.0, 0.0,
+    ));
     data.animations.push(Animation {
         name: "animation".to_string(),
         duration: 0.0,
@@ -162,7 +156,13 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
         "child"
     );
     assert_eq!(data.find_skin("skin").unwrap().get_name(), "skin");
-    assert_eq!(data.find_event("event").unwrap().string, "payload");
+    assert_eq!(
+        data.find_event("event")
+            .unwrap()
+            .get_setup_pose()
+            .get_string(),
+        "payload"
+    );
     assert_eq!(data.find_animation("animation").unwrap().name, "animation");
     assert_eq!(data.find_ik_constraint("ik").unwrap().target, 0);
     assert_eq!(
@@ -294,15 +294,9 @@ fn skeleton_data_skins_and_events_preserve_cpp_array_order() {
         data.skins.push(SkinData::new(skin_name));
     }
     for event_name in ["event-b", "event-a"] {
-        data.events.push(EventData {
-            name: event_name.to_string(),
-            int_value: 0,
-            float_value: 0.0,
-            string: String::new(),
-            audio_path: String::new(),
-            volume: 1.0,
-            balance: 0.0,
-        });
+        data.events.push(EventData::with_setup_pose(
+            event_name, 0, 0.0, "", "", 1.0, 0.0,
+        ));
     }
 
     assert_eq!(
@@ -315,7 +309,7 @@ fn skeleton_data_skins_and_events_preserve_cpp_array_order() {
     assert_eq!(
         data.events
             .iter()
-            .map(|event| event.name.as_str())
+            .map(|event| event.get_name())
             .collect::<Vec<_>>(),
         vec!["event-b", "event-a"]
     );
@@ -404,7 +398,7 @@ fn skeleton_data_skins_and_events_follow_cpp_order_after_json_parse() {
     assert_eq!(
         data.events
             .iter()
-            .map(|event| event.name.as_str())
+            .map(|event| event.get_name())
             .collect::<Vec<_>>(),
         vec!["event-b", "event-a"]
     );

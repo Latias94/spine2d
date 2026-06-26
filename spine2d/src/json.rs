@@ -1679,18 +1679,16 @@ impl SkeletonData {
                 } else {
                     (0.0, 0.0)
                 };
-                (
+                let data = EventData::with_setup_pose(
                     name.clone(),
-                    EventData {
-                        name,
-                        int_value: def.int_value,
-                        float_value: def.float_value,
-                        string: def.string_value,
-                        audio_path: def.audio_path,
-                        volume,
-                        balance,
-                    },
-                )
+                    def.int_value,
+                    def.float_value,
+                    def.string_value,
+                    def.audio_path,
+                    volume,
+                    balance,
+                );
+                (name, Arc::new(data))
             })
             .collect::<IndexMap<_, _>>();
 
@@ -2219,35 +2217,29 @@ impl SkeletonData {
                                 animation: name.clone(),
                                 event: k.name.clone(),
                             })?;
-                    let has_audio = !event_data.audio_path.is_empty();
+                    let setup = event_data.get_setup_pose();
+                    let has_audio = !event_data.get_audio_path().is_empty();
                     let time = k.time.unwrap_or(0.0);
                     duration = duration.max(time);
-                    event_frames.push((
-                        source_index,
-                        Event {
-                            time,
-                            name: k.name,
-                            int_value: k.int_value.unwrap_or(event_data.int_value),
-                            float_value: k.float_value.unwrap_or(event_data.float_value),
-                            string: k.string_value.unwrap_or_else(|| event_data.string.clone()),
-                            audio_path: event_data.audio_path.clone(),
-                            volume: if has_audio {
-                                k.volume.unwrap_or(event_data.volume)
-                            } else {
-                                0.0
-                            },
-                            balance: if has_audio {
-                                k.balance.unwrap_or(event_data.balance)
-                            } else {
-                                0.0
-                            },
-                        },
-                    ));
+                    let mut event = Event::new(time, Arc::clone(event_data));
+                    event.set_int(k.int_value.unwrap_or(setup.get_int()));
+                    event.set_float(k.float_value.unwrap_or(setup.get_float()));
+                    event.set_string(
+                        k.string_value
+                            .unwrap_or_else(|| setup.get_string().to_string()),
+                    );
+                    if has_audio {
+                        event.set_volume(k.volume.unwrap_or(setup.get_volume()));
+                        event.set_balance(k.balance.unwrap_or(setup.get_balance()));
+                    }
+                    event_frames.push((source_index, event));
                 }
-                event_frames.sort_by(|(ia, a), (ib, b)| a.time.total_cmp(&b.time).then(ia.cmp(ib)));
-                Some(EventTimeline {
-                    events: event_frames.into_iter().map(|(_, e)| e).collect(),
-                })
+                event_frames.sort_by(|(ia, a), (ib, b)| {
+                    a.get_time().total_cmp(&b.get_time()).then(ia.cmp(ib))
+                });
+                Some(EventTimeline::from_events(
+                    event_frames.into_iter().map(|(_, e)| e).collect(),
+                ))
             } else {
                 None
             };
@@ -3385,7 +3377,10 @@ impl SkeletonData {
             bones,
             slots,
             skins: skins.into_values().collect(),
-            events: events.into_values().collect(),
+            events: events
+                .into_values()
+                .map(|event| Arc::unwrap_or_clone(event))
+                .collect(),
             animations,
             ik_constraints,
             transform_constraints,

@@ -27,7 +27,7 @@ impl SpineSkeletonAsset {
             .data
             .get_events()
             .iter()
-            .map(|event| event.name.as_str())
+            .map(|event| event.get_name())
             .collect::<Vec<_>>();
 
         animations.sort_unstable();
@@ -53,10 +53,7 @@ impl SpineSkeletonAsset {
     }
 
     pub fn events(&self) -> impl Iterator<Item = &str> {
-        self.data
-            .get_events()
-            .iter()
-            .map(|event| event.name.as_str())
+        self.data.get_events().iter().map(|event| event.get_name())
     }
 
     pub fn has_animation(&self, name: &str) -> bool {

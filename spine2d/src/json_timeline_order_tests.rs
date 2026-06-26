@@ -1,7 +1,8 @@
 use crate::{
-    Animation, AttachmentTimeline, DrawOrderTimeline, Event, EventTimeline, SkeletonData,
-    TimelineKind, TimelineRef,
+    Animation, AttachmentTimeline, DrawOrderTimeline, Event, EventData, EventTimeline,
+    SkeletonData, TimelineKind, TimelineRef,
 };
+use std::sync::Arc;
 
 #[test]
 fn json_animation_preserves_object_order_in_timeline_order() {
@@ -91,18 +92,10 @@ fn animation_timelines_exposes_unified_cpp_order() {
         name: "mix".to_string(),
         duration: 0.0,
         color: crate::Animation::DEFAULT_COLOR,
-        event_timeline: Some(EventTimeline {
-            events: vec![Event {
-                time: 0.0,
-                name: "hit".to_string(),
-                int_value: 0,
-                float_value: 0.0,
-                string: String::new(),
-                audio_path: String::new(),
-                volume: 1.0,
-                balance: 0.0,
-            }],
-        }),
+        event_timeline: Some(EventTimeline::from_events(vec![Event::new(
+            0.0,
+            Arc::new(EventData::new("hit")),
+        )])),
         bone_timelines: Vec::new(),
         deform_timelines: Vec::new(),
         sequence_timelines: Vec::new(),

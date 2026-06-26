@@ -2379,11 +2379,12 @@ impl AnimationState {
         }
         let mut split_index = events.len();
         for (i, ev) in events.iter().enumerate() {
-            if (ev.time < split) != reverse {
+            let event_time = ev.get_time();
+            if (event_time < split) != reverse {
                 split_index = i;
                 break;
             }
-            if ev.time >= animation_start && ev.time <= animation_end {
+            if event_time >= animation_start && event_time <= animation_end {
                 push_event(out, entry_id, AnimationStateEvent::Event(ev.clone()));
             }
         }
@@ -2391,7 +2392,8 @@ impl AnimationState {
             push_event(out, entry_id, AnimationStateEvent::Complete);
         }
         for ev in &events[split_index..] {
-            if ev.time >= animation_start && ev.time <= animation_end {
+            let event_time = ev.get_time();
+            if event_time >= animation_start && event_time <= animation_end {
                 push_event(out, entry_id, AnimationStateEvent::Event(ev.clone()));
             }
         }
@@ -2540,14 +2542,14 @@ pub(super) fn collect_events(
     time: f32,
     out: &mut Vec<Event>,
 ) {
-    if timeline.events.is_empty() {
+    if timeline.get_events().is_empty() {
         return;
     }
 
     let mut emit_range = |from: f32, to: f32| {
-        for ev in &timeline.events {
+        for ev in timeline.get_events() {
             // Match upstream EventTimeline::apply: events fire for frames > lastTime and <= time.
-            if ev.time > from && ev.time <= to {
+            if ev.get_time() > from && ev.get_time() <= to {
                 out.push(ev.clone());
             }
         }
@@ -2567,7 +2569,7 @@ pub(super) fn collect_events_reverse(
     animation_time: f32,
     out: &mut Vec<Event>,
 ) {
-    if timeline.events.is_empty() {
+    if timeline.get_events().is_empty() {
         return;
     }
 
@@ -2575,28 +2577,29 @@ pub(super) fn collect_events_reverse(
     let to = duration - animation_time;
 
     if from >= to {
-        for ev in &timeline.events {
-            if ev.time < to {
+        for ev in timeline.get_events() {
+            if ev.get_time() < to {
                 continue;
             }
-            if ev.time >= from {
+            if ev.get_time() >= from {
                 break;
             }
             out.push(ev.clone());
         }
     } else {
-        for ev in &timeline.events {
-            if ev.time >= from {
+        for ev in timeline.get_events() {
+            if ev.get_time() >= from {
                 break;
             }
             out.push(ev.clone());
         }
 
         let mut index = 0usize;
-        while index < timeline.events.len() && timeline.events[index].time < to {
+        let events = timeline.get_events();
+        while index < events.len() && events[index].get_time() < to {
             index += 1;
         }
-        for ev in &timeline.events[index..] {
+        for ev in &events[index..] {
             out.push(ev.clone());
         }
     }

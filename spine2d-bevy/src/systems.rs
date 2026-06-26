@@ -1355,9 +1355,9 @@ mod tests {
                 && matches!(
                     &event.kind,
                     SpineAnimationEventKind::Event(spine_event)
-                        if spine_event.name == "hit"
-                            && spine_event.int_value == 7
-                            && spine_event.string == "impact"
+                        if spine_event.get_data().get_name() == "hit"
+                            && spine_event.get_int() == 7
+                            && spine_event.get_string() == "impact"
                 )
         }));
     }

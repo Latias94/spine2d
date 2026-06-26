@@ -1820,8 +1820,8 @@ impl crate::SkeletonData {
 
         // Events
         let events_count = input.read_varint(true)? as usize;
-        let mut events = IndexMap::<String, crate::EventData>::new();
-        let mut event_defs = Vec::<crate::EventData>::with_capacity(events_count);
+        let mut events = IndexMap::<String, Arc<crate::EventData>>::new();
+        let mut event_defs = Vec::<Arc<crate::EventData>>::with_capacity(events_count);
         for _ in 0..events_count {
             let name = input.read_string()?.unwrap_or_default();
             let int_value = input.read_varint(false)?; // intValue
@@ -1837,16 +1837,16 @@ impl crate::SkeletonData {
                 Some(audio_path) => (audio_path, 0.0, 0.0),
                 None => ("".to_string(), 0.0, 0.0),
             };
-            let data = crate::EventData {
-                name: name.clone(),
+            let data = Arc::new(crate::EventData::with_setup_pose(
+                name.clone(),
                 int_value,
                 float_value,
-                string: string_value,
+                string_value,
                 audio_path,
                 volume,
                 balance,
-            };
-            event_defs.push(data.clone());
+            ));
+            event_defs.push(Arc::clone(&data));
             events.insert(name.clone(), data);
         }
 
@@ -1909,7 +1909,10 @@ impl crate::SkeletonData {
             bones,
             slots,
             skins: skins_map.into_values().collect(),
-            events: events.into_values().collect(),
+            events: events
+                .into_values()
+                .map(|event| Arc::unwrap_or_clone(event))
+                .collect(),
             animations,
             ik_constraints,
             transform_constraints,
@@ -1930,7 +1933,7 @@ fn read_animation(
     slots: &[SlotData],
     constraint_refs: &[ConstraintRef],
     path_constraints: &[PathConstraintData],
-    event_defs: &[crate::EventData],
+    event_defs: &[Arc<crate::EventData>],
     scale: f32,
     nonessential: bool,
 ) -> Result<Animation, Error> {
@@ -3139,7 +3142,7 @@ fn read_animation(
 
 fn read_event_timeline(
     input: &mut BinaryInput<'_>,
-    event_defs: &[crate::EventData],
+    event_defs: &[Arc<crate::EventData>],
     duration: &mut f32,
     trace_anim: bool,
     animation_name: &str,
@@ -3174,27 +3177,25 @@ fn read_event_timeline(
         let int_value = input.read_varint(false)?; // intValue
         let float_value = input.read_f32_be()?; // floatValue
         // Match upstream runtimes: when the key's stringValue is null, fall back to EventData.stringValue.
+        let setup = event_data.get_setup_pose();
         let string_value = input
             .read_string()?
-            .unwrap_or_else(|| event_data.string.clone());
-        let has_audio = !event_data.audio_path.is_empty();
+            .unwrap_or_else(|| setup.get_string().to_string());
+        let has_audio = !event_data.get_audio_path().is_empty();
         let (volume, balance) = if has_audio {
             (input.read_f32_be()?, input.read_f32_be()?)
         } else {
             (0.0, 0.0)
         };
-        events.push(Event {
-            time,
-            name: event_data.name.clone(),
-            int_value,
-            float_value,
-            string: string_value,
-            audio_path: event_data.audio_path.clone(),
-            volume,
-            balance,
-        });
+        let mut event = Event::new(time, Arc::clone(event_data));
+        event.set_int(int_value);
+        event.set_float(float_value);
+        event.set_string(string_value);
+        event.set_volume(volume);
+        event.set_balance(balance);
+        events.push(event);
     }
-    Ok(Some(EventTimeline { events }))
+    Ok(Some(EventTimeline::from_events(events)))
 }
 
 fn read_draw_order_offsets(
@@ -3279,6 +3280,7 @@ fn read_rotate_timeline(
 mod tests {
     use super::{BinaryInput, read_event_timeline};
     use crate::{EventData, EventTimeline};
+    use std::sync::Arc;
 
     fn push_varint(out: &mut Vec<u8>, mut value: u32) {
         loop {
@@ -3310,7 +3312,10 @@ mod tests {
         }
     }
 
-    fn read_only_event_timeline(bytes: &[u8], event_defs: &[EventData]) -> Option<EventTimeline> {
+    fn read_only_event_timeline(
+        bytes: &[u8],
+        event_defs: &[Arc<EventData>],
+    ) -> Option<EventTimeline> {
         let mut input = BinaryInput::new(bytes);
         let mut duration = 0.0f32;
         read_event_timeline(&mut input, event_defs, &mut duration, false, "<test>")
@@ -3355,16 +3360,11 @@ mod tests {
 
     #[test]
     fn binary_event_timeline_null_string_and_no_audio_defaults_match_cpp() {
-        let event_defs = vec![EventData {
-            name: "evt".to_string(),
-            int_value: 0,
-            float_value: 0.0,
-            string: "DEFAULT".to_string(),
-            audio_path: String::new(),
+        let event_defs = vec![Arc::new(EventData::with_setup_pose(
+            "evt", 0, 0.0, "DEFAULT", "",
             // Sentinel values: no-audio binary event keys keep Event constructor defaults.
-            volume: 0.75,
-            balance: -0.25,
-        }];
+            0.75, -0.25,
+        ))];
 
         let mut bytes = Vec::new();
 
@@ -3386,12 +3386,13 @@ mod tests {
         push_string(&mut bytes, Some("OVERRIDE"));
 
         let timeline = read_only_event_timeline(&bytes, &event_defs).expect("timeline");
-        assert_eq!(timeline.events.len(), 2);
-        assert_eq!(timeline.events[0].string, "DEFAULT");
-        assert_eq!(timeline.events[1].string, "OVERRIDE");
-        for event in &timeline.events {
-            assert!((event.volume - 0.0).abs() < 1e-6);
-            assert!((event.balance - 0.0).abs() < 1e-6);
+        let events = timeline.get_events();
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].get_string(), "DEFAULT");
+        assert_eq!(events[1].get_string(), "OVERRIDE");
+        for event in events {
+            assert!((event.get_volume() - 0.0).abs() < 1e-6);
+            assert!((event.get_balance() - 0.0).abs() < 1e-6);
         }
     }
 }
