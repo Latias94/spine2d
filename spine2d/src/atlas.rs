@@ -3,8 +3,8 @@ use std::str::FromStr;
 
 #[derive(Clone, Debug)]
 pub struct Atlas {
-    pub pages: Vec<AtlasPage>,
-    pub regions: Vec<AtlasRegion>,
+    pages: Vec<AtlasPage>,
+    regions: Vec<AtlasRegion>,
 }
 
 impl Atlas {
@@ -21,6 +21,14 @@ impl Atlas {
 
     pub fn find_region(&self, name: &str) -> Option<&AtlasRegion> {
         self.regions.iter().find(|region| region.name == name)
+    }
+
+    pub fn get_pages(&self) -> &[AtlasPage] {
+        &self.pages
+    }
+
+    pub fn get_regions(&self) -> &[AtlasRegion] {
+        &self.regions
     }
 }
 
@@ -462,17 +470,17 @@ head
         )
         .unwrap();
 
-        assert_eq!(atlas.pages.len(), 1);
-        assert_eq!(atlas.pages[0].name, "page.png");
-        assert_eq!(atlas.pages[0].texture_path, "page.png");
-        assert_eq!(atlas.pages[0].format, AtlasFormat::RGBA8888);
-        assert_eq!(atlas.pages[0].width, 64);
-        assert_eq!(atlas.pages[0].height, 64);
-        assert!(atlas.pages[0].pma);
-        assert_eq!(atlas.pages[0].min_filter, AtlasFilter::Linear);
-        assert_eq!(atlas.pages[0].mag_filter, AtlasFilter::Linear);
-        assert_eq!(atlas.pages[0].wrap_u, AtlasWrap::ClampToEdge);
-        assert_eq!(atlas.pages[0].wrap_v, AtlasWrap::ClampToEdge);
+        assert_eq!(atlas.get_pages().len(), 1);
+        assert_eq!(atlas.get_pages()[0].name, "page.png");
+        assert_eq!(atlas.get_pages()[0].texture_path, "page.png");
+        assert_eq!(atlas.get_pages()[0].format, AtlasFormat::RGBA8888);
+        assert_eq!(atlas.get_pages()[0].width, 64);
+        assert_eq!(atlas.get_pages()[0].height, 64);
+        assert!(atlas.get_pages()[0].pma);
+        assert_eq!(atlas.get_pages()[0].min_filter, AtlasFilter::Linear);
+        assert_eq!(atlas.get_pages()[0].mag_filter, AtlasFilter::Linear);
+        assert_eq!(atlas.get_pages()[0].wrap_u, AtlasWrap::ClampToEdge);
+        assert_eq!(atlas.get_pages()[0].wrap_v, AtlasWrap::ClampToEdge);
 
         let region = atlas.find_region("head").unwrap();
         assert_eq!(region.page, 0);
@@ -500,13 +508,13 @@ r1
         )
         .unwrap();
 
-        assert_eq!(atlas.pages.len(), 2);
-        assert_eq!(atlas.pages[0].name, "page0.png");
-        assert_eq!(atlas.pages[0].texture_path, "page0.png");
-        assert_eq!(atlas.pages[0].index, 0);
-        assert_eq!(atlas.pages[1].name, "page1.png");
-        assert_eq!(atlas.pages[1].texture_path, "page1.png");
-        assert_eq!(atlas.pages[1].index, 1);
+        assert_eq!(atlas.get_pages().len(), 2);
+        assert_eq!(atlas.get_pages()[0].name, "page0.png");
+        assert_eq!(atlas.get_pages()[0].texture_path, "page0.png");
+        assert_eq!(atlas.get_pages()[0].index, 0);
+        assert_eq!(atlas.get_pages()[1].name, "page1.png");
+        assert_eq!(atlas.get_pages()[1].texture_path, "page1.png");
+        assert_eq!(atlas.get_pages()[1].index, 1);
 
         let r0 = atlas.find_region("r0").unwrap();
         let r1 = atlas.find_region("r1").unwrap();
@@ -538,7 +546,7 @@ alpha
 
         assert_eq!(
             atlas
-                .regions
+                .get_regions()
                 .iter()
                 .map(|region| region.name.as_str())
                 .collect::<Vec<_>>(),
@@ -622,7 +630,7 @@ head
         )
         .unwrap();
 
-        let page = &atlas.pages[0];
+        let page = &atlas.get_pages()[0];
         assert_eq!(page.format, AtlasFormat::RGB888);
         assert_eq!(page.min_filter, AtlasFilter::Nearest);
         assert_eq!(page.mag_filter, AtlasFilter::Linear);
@@ -642,7 +650,7 @@ head
         )
         .unwrap();
 
-        let page = &atlas.pages[0];
+        let page = &atlas.get_pages()[0];
         assert_eq!(page.min_filter, AtlasFilter::Unknown);
         assert_eq!(page.mag_filter, AtlasFilter::Linear);
     }

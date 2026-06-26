@@ -154,7 +154,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                         .map_or(BlendMode::Normal, |data| data.blend);
                     let (texture_path, uvs, premultiplied_alpha) = if let Some(atlas) = atlas {
                         if let Some(atlas_region) = atlas_region_opt {
-                            let page = atlas.pages.get(atlas_region.page);
+                            let page = atlas.get_pages().get(atlas_region.page);
                             if let Some(page) = page {
                                 if page.width > 0 && page.height > 0 {
                                     let uvs = atlas_region_uvs_for_region_attachment(atlas_region);
@@ -338,7 +338,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                         if let Some(atlas) = atlas {
                             if let Some(atlas_region) = atlas.find_region(attachment_path.as_ref())
                             {
-                                if let Some(page) = atlas.pages.get(atlas_region.page) {
+                                if let Some(page) = atlas.get_pages().get(atlas_region.page) {
                                     if page.width > 0 && page.height > 0 {
                                         (
                                             page.texture_path.clone(),

@@ -413,7 +413,7 @@ mod web {
             .unwrap_or_default();
 
         let mut page_images = Vec::new();
-        for page in &atlas.pages {
+        for page in atlas.get_pages() {
             let url = format!("{atlas_dir}{}", page.name);
             match fetch_bytes(&url).await {
                 Ok(bytes) => page_images.push((page.name.clone(), bytes)),
@@ -445,7 +445,7 @@ mod web {
             bind_groups: std::collections::HashMap::new(),
         };
 
-        for page in &atlas.pages {
+        for page in atlas.get_pages() {
             let Some(image_bytes) = by_name.remove(&page.name) else {
                 log::warn!("missing page image bytes for {}", page.name);
                 continue;
@@ -516,12 +516,12 @@ mod web {
             }
         }
         let page_name = atlas
-            .pages
+            .get_pages()
             .first()
             .map(|p| p.name.as_str())
             .unwrap_or("page.png");
         let sampler = atlas
-            .pages
+            .get_pages()
             .first()
             .map(|p| create_sampler_for_atlas_page(device, p))
             .unwrap_or_else(|| device.create_sampler(&wgpu::SamplerDescriptor::default()));

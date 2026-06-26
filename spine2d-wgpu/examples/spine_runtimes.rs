@@ -619,7 +619,7 @@ impl App {
         let mut textures = HashMapTextureProvider {
             bind_groups: HashMap::new(),
         };
-        for page in &atlas.pages {
+        for page in atlas.get_pages() {
             let image_path = atlas_dir.join(&page.name);
             let (w, h, pixels) = match load_png_rgba8(&image_path) {
                 Ok(v) => v,
@@ -899,7 +899,7 @@ impl ApplicationHandler for App {
         let mut textures = HashMapTextureProvider {
             bind_groups: HashMap::new(),
         };
-        for page in &atlas.pages {
+        for page in atlas.get_pages() {
             let image_path = atlas_dir.join(&page.name);
             let (w, h, pixels) = match load_png_rgba8(&image_path) {
                 Ok(v) => v,

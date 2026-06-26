@@ -812,7 +812,7 @@ fn triangles_from_rust(skeleton: &Skeleton, atlas: &Atlas) -> Vec<Triangle> {
     let draw_list = crate::build_draw_list_with_atlas(skeleton, atlas);
 
     let mut page_index_by_name: HashMap<&str, i32> = HashMap::new();
-    for (i, page) in atlas.pages.iter().enumerate() {
+    for (i, page) in atlas.get_pages().iter().enumerate() {
         page_index_by_name.insert(page.name.as_str(), i as i32);
     }
 

@@ -117,7 +117,7 @@ impl ApplicationHandler for App {
         renderer.update_globals_ortho_centered(&queue, config.width as f32, config.height as f32);
 
         let atlas = Atlas::parse(ATLAS).unwrap();
-        let sampler = create_sampler_for_atlas_page(&device, &atlas.pages[0]);
+        let sampler = create_sampler_for_atlas_page(&device, &atlas.get_pages()[0]);
 
         // Simple procedural RGBA texture (64x64): a UV gradient to make UV mistakes obvious.
         let w = 64u32;

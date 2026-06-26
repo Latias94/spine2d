@@ -121,7 +121,7 @@ fn pack_aarrggbb(rgba: [f32; 4]) -> u32 {
 }
 
 fn atlas_uses_pma(atlas: &Atlas) -> bool {
-    atlas.pages.iter().any(|page| page.pma)
+    atlas.get_pages().iter().any(|page| page.pma)
 }
 
 fn main() {
@@ -314,7 +314,7 @@ fn main() {
     let draw_list = spine2d::build_draw_list_with_atlas(&skeleton, &atlas);
 
     let mut page_index_by_name: HashMap<&str, usize> = HashMap::new();
-    for (i, page) in atlas.pages.iter().enumerate() {
+    for (i, page) in atlas.get_pages().iter().enumerate() {
         page_index_by_name.insert(page.name.as_str(), i);
     }
 
