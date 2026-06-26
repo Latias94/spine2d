@@ -4,8 +4,8 @@ use crate::{
     DrawOrderTimeline, IkConstraint, IkConstraintData, Inherit, MeshAttachmentData, MeshVertices,
     PathConstraint, PathConstraintData, PhysicsConstraint, PhysicsConstraintData, PositionMode,
     RegionAttachmentData, RotateMode, ScaleYMode, Skeleton, SkeletonData, SkinData,
-    SliderConstraintData, SlotData, SpacingMode, TransformConstraint, TransformConstraintData,
-    UpdateCacheItem,
+    SliderConstraint, SliderConstraintData, SlotData, SpacingMode, TransformConstraint,
+    TransformConstraintData, UpdateCacheItem,
 };
 use std::sync::Arc;
 
@@ -409,11 +409,13 @@ fn constraint_lookup_skeleton_data() -> Arc<SkeletonData> {
             looped: false,
             bone: Some(0),
             property: None,
-            property_from: 0.0,
-            to: 0.0,
+            property_offset: 0.0,
+            offset: 0.0,
+            max: 0.0,
             scale: 1.0,
             local: false,
             animation: None,
+            animation_name: None,
         }],
     })
 }
@@ -499,11 +501,13 @@ fn slider_draw_order_skeleton_data() -> Arc<SkeletonData> {
             looped: false,
             bone: None,
             property: None,
-            property_from: 0.0,
-            to: 0.0,
+            property_offset: 0.0,
+            offset: 0.0,
+            max: 0.0,
             scale: 1.0,
             local: false,
             animation: Some(0),
+            animation_name: Some("slider-animation".to_string()),
         }],
     })
 }
@@ -632,11 +636,13 @@ fn slider_slot_pose_skeleton_data() -> Arc<SkeletonData> {
             looped: false,
             bone: None,
             property: None,
-            property_from: 0.0,
-            to: 0.0,
+            property_offset: 0.0,
+            offset: 0.0,
+            max: 0.0,
             scale: 1.0,
             local: false,
             animation: Some(0),
+            animation_name: Some("slider-animation".to_string()),
         }],
     })
 }
@@ -762,11 +768,13 @@ fn setup_pose_split_skeleton_data() -> Arc<SkeletonData> {
             looped: false,
             bone: Some(0),
             property: None,
-            property_from: 0.0,
-            to: 0.0,
+            property_offset: 0.0,
+            offset: 0.0,
+            max: 0.0,
             scale: 1.0,
             local: false,
             animation: None,
+            animation_name: None,
         }],
     })
 }
@@ -1186,13 +1194,19 @@ fn skeleton_finders_match_setup_order() {
 fn skeleton_constraint_finders_match_data_names() {
     let mut skeleton = Skeleton::new(constraint_lookup_skeleton_data());
 
-    assert_eq!(skeleton.find_ik_constraint("ik").unwrap().data_index, 0);
+    assert_eq!(
+        skeleton
+            .find_constraint::<IkConstraint>("ik")
+            .unwrap()
+            .data_index,
+        0
+    );
     skeleton.get_ik_constraints_mut()[0].set_mix(0.25);
     assert_eq!(skeleton.get_ik_constraints()[0].get_mix(), 0.25);
 
     assert_eq!(
         skeleton
-            .find_transform_constraint("transform")
+            .find_constraint::<TransformConstraint>("transform")
             .unwrap()
             .data_index,
         0
@@ -1200,13 +1214,19 @@ fn skeleton_constraint_finders_match_data_names() {
     skeleton.get_transform_constraints_mut()[0].set_mix_x(0.5);
     assert_eq!(skeleton.get_transform_constraints()[0].get_mix_x(), 0.5);
 
-    assert_eq!(skeleton.find_path_constraint("path").unwrap().data_index, 0);
+    assert_eq!(
+        skeleton
+            .find_constraint::<PathConstraint>("path")
+            .unwrap()
+            .data_index,
+        0
+    );
     skeleton.get_path_constraints_mut()[0].set_position(2.0);
     assert_eq!(skeleton.get_path_constraints()[0].get_position(), 2.0);
 
     assert_eq!(
         skeleton
-            .find_physics_constraint("physics")
+            .find_constraint::<PhysicsConstraint>("physics")
             .unwrap()
             .data_index,
         0
@@ -1216,7 +1236,7 @@ fn skeleton_constraint_finders_match_data_names() {
 
     assert_eq!(
         skeleton
-            .find_slider_constraint("slider")
+            .find_constraint::<SliderConstraint>("slider")
             .unwrap()
             .data_index,
         0
@@ -1224,11 +1244,19 @@ fn skeleton_constraint_finders_match_data_names() {
     skeleton.get_slider_constraints_mut()[0].set_time(3.0);
     assert_eq!(skeleton.get_slider_constraints()[0].get_time(), 3.0);
 
-    assert!(skeleton.find_ik_constraint("").is_none());
-    assert!(skeleton.find_transform_constraint("missing").is_none());
-    assert!(skeleton.find_path_constraint("").is_none());
-    assert!(skeleton.find_physics_constraint("missing").is_none());
-    assert!(skeleton.find_slider_constraint("").is_none());
+    assert!(skeleton.find_constraint::<IkConstraint>("").is_none());
+    assert!(
+        skeleton
+            .find_constraint::<TransformConstraint>("missing")
+            .is_none()
+    );
+    assert!(skeleton.find_constraint::<PathConstraint>("").is_none());
+    assert!(
+        skeleton
+            .find_constraint::<PhysicsConstraint>("missing")
+            .is_none()
+    );
+    assert!(skeleton.find_constraint::<SliderConstraint>("").is_none());
 }
 
 #[test]
@@ -1254,6 +1282,59 @@ fn skeleton_constraints_expose_ordered_typed_constraint_refs() {
         }
         other => panic!("unexpected constraint order: {other:?}"),
     }
+}
+
+#[test]
+fn slider_invalid_bone_index_does_not_activate_constraint() {
+    let data = Arc::new(SkeletonData {
+        spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
+        reference_scale: 100.0,
+        bones: vec![BoneData {
+            name: "root".to_string(),
+            parent: None,
+            length: 0.0,
+            skin_required: false,
+            ..Default::default()
+        }],
+        slots: Vec::new(),
+        skins: Vec::new(),
+        events: Vec::new(),
+        animations: Vec::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: vec![SliderConstraintData {
+            name: "slider".to_string(),
+            order: 0,
+            skin_required: false,
+            setup_time: 0.0,
+            setup_mix: 1.0,
+            additive: false,
+            looped: false,
+            bone: Some(99),
+            property: None,
+            property_offset: 0.0,
+            offset: 0.0,
+            max: 0.0,
+            scale: 1.0,
+            local: false,
+            animation: None,
+            animation_name: None,
+        }],
+    });
+
+    let skeleton = Skeleton::new(data);
+    assert!(!skeleton.get_slider_constraints()[0].is_active());
 }
 
 #[test]
@@ -1940,6 +2021,72 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
 
 #[test]
 fn constraint_accessors_expose_pose_state() {
+    let skeleton = Skeleton::new(Arc::new(SkeletonData {
+        spine_version: None,
+        name: String::new(),
+        hash: String::new(),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        fps: crate::SkeletonData::DEFAULT_FPS,
+        images_path: String::new(),
+        audio_path: String::new(),
+        reference_scale: 100.0,
+        bones: vec![
+            BoneData {
+                name: "root".to_string(),
+                parent: None,
+                length: 0.0,
+                skin_required: false,
+                ..Default::default()
+            },
+            BoneData {
+                name: "bone-1".to_string(),
+                parent: Some(0),
+                ..Default::default()
+            },
+            BoneData {
+                name: "bone-2".to_string(),
+                parent: Some(1),
+                ..Default::default()
+            },
+            BoneData {
+                name: "bone-3".to_string(),
+                parent: Some(2),
+                ..Default::default()
+            },
+        ],
+        slots: vec![
+            SlotData {
+                name: "slot-0".to_string(),
+                bone: 0,
+                attachment: None,
+                ..Default::default()
+            },
+            SlotData {
+                name: "slot-1".to_string(),
+                bone: 1,
+                attachment: None,
+                ..Default::default()
+            },
+            SlotData {
+                name: "slot-2".to_string(),
+                bone: 2,
+                attachment: None,
+                ..Default::default()
+            },
+        ],
+        skins: Vec::new(),
+        events: Vec::new(),
+        animations: Vec::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    }));
+
     let mut ik = IkConstraint {
         data_index: 1,
         bones: vec![0],
@@ -1954,7 +2101,7 @@ fn constraint_accessors_expose_pose_state() {
     };
     assert_eq!(ik.data_index, 1);
     ik.get_bones_mut().push(1);
-    ik.set_target(3);
+    ik.set_target(&skeleton.bones[3]);
     ik.set_scale_y_mode(ScaleYMode::Volume);
     ik.set_mix(0.5);
     ik.set_softness(2.0);
@@ -1963,7 +2110,7 @@ fn constraint_accessors_expose_pose_state() {
     ik.set_bend_direction(-1);
     ik.set_active(false);
     assert_eq!(ik.get_bones(), &[0, 1]);
-    assert_eq!(ik.get_target(), 3);
+    assert_eq!(ik.get_target(&skeleton).data_index, 3);
     assert_eq!(ik.get_scale_y_mode(), ScaleYMode::Volume);
     assert_eq!(ik.get_mix(), 0.5);
     assert_eq!(ik.get_softness(), 2.0);
@@ -1985,7 +2132,7 @@ fn constraint_accessors_expose_pose_state() {
         active: true,
     };
     transform.get_bones_mut().push(2);
-    transform.set_source(3);
+    transform.set_source(&skeleton.bones[3]);
     transform.set_mix_rotate(1.1);
     transform.set_mix_x(1.2);
     transform.set_mix_y(1.3);
@@ -1995,7 +2142,7 @@ fn constraint_accessors_expose_pose_state() {
     transform.set_active(false);
     assert_eq!(transform.data_index, 2);
     assert_eq!(transform.get_bones(), &[1, 2]);
-    assert_eq!(transform.get_source(), 3);
+    assert_eq!(transform.get_source(&skeleton).data_index, 3);
     assert_eq!(transform.get_mix_rotate(), 1.1);
     assert_eq!(transform.get_mix_x(), 1.2);
     assert_eq!(transform.get_mix_y(), 1.3);
@@ -2016,7 +2163,7 @@ fn constraint_accessors_expose_pose_state() {
         active: true,
     };
     path.get_bones_mut().push(1);
-    path.set_target_slot(2);
+    path.set_slot(&skeleton.slots[2]);
     path.set_position(7.0);
     path.set_spacing(8.0);
     path.set_mix_rotate(9.0);
@@ -2025,7 +2172,7 @@ fn constraint_accessors_expose_pose_state() {
     path.set_active(false);
     assert_eq!(path.data_index, 3);
     assert_eq!(path.get_bones(), &[0, 1]);
-    assert_eq!(path.get_target_slot(), 2);
+    assert_eq!(path.get_slot(&skeleton).data_index, 2);
     assert_eq!(path.get_position(), 7.0);
     assert_eq!(path.get_spacing(), 8.0);
     assert_eq!(path.get_mix_rotate(), 9.0);
@@ -2142,22 +2289,36 @@ fn constraint_accessors_expose_pose_state() {
             looped: false,
             bone: None,
             property: None,
-            property_from: 0.0,
-            to: 0.0,
+            property_offset: 0.0,
+            offset: 0.0,
+            max: 0.0,
             scale: 1.0,
             local: false,
             animation: None,
+            animation_name: None,
         }],
     });
     let mut skeleton = Skeleton::new(data);
-    let slider = &mut skeleton.get_slider_constraints_mut()[0];
-    slider.set_time(2.5);
-    slider.set_mix(0.75);
-    slider.set_active(false);
-    assert_eq!(slider.data_index, 0);
-    assert_eq!(slider.get_time(), 2.5);
-    assert_eq!(slider.get_mix(), 0.75);
-    assert!(!slider.is_active());
+    {
+        let bone = skeleton.bones[0].clone();
+        let slider = &mut skeleton.get_slider_constraints_mut()[0];
+        slider.set_bone(Some(&bone));
+        slider.set_time(2.5);
+        slider.set_mix(0.75);
+        slider.set_active(false);
+        assert_eq!(slider.bone, Some(0));
+        assert_eq!(slider.data_index, 0);
+        assert_eq!(slider.get_time(), 2.5);
+        assert_eq!(slider.get_mix(), 0.75);
+        assert!(!slider.is_active());
+    }
+    assert_eq!(skeleton.get_slider_constraints()[0].bone, Some(0));
+    assert_eq!(
+        skeleton.get_slider_constraints()[0]
+            .get_bone(&skeleton)
+            .map(|bone| bone.data_index),
+        Some(0)
+    );
 }
 
 #[test]

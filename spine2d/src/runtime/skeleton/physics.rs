@@ -1,4 +1,4 @@
-use super::Skeleton;
+use super::{Bone, Skeleton};
 
 /// Determines how physics and other non-deterministic updates are applied.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -53,6 +53,14 @@ pub struct PhysicsConstraint {
 }
 
 impl PhysicsConstraint {
+    pub fn get_bone<'a>(&self, skeleton: &'a Skeleton) -> &'a Bone {
+        &skeleton.bones[self.bone]
+    }
+
+    pub fn set_bone(&mut self, bone: &Bone) {
+        self.bone = bone.data_index;
+    }
+
     pub fn get_inertia(&self) -> f32 {
         self.inertia
     }

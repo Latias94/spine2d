@@ -373,6 +373,8 @@ struct SliderConstraintDef {
     time: f32,
     #[serde(default = "default_one")]
     mix: f32,
+    #[serde(default)]
+    max: f32,
 
     #[serde(default)]
     animation: Option<String>,
@@ -2095,14 +2097,44 @@ impl SkeletonData {
                 })?),
             };
 
-            let property = c
-                .property
-                .as_deref()
-                .and_then(crate::TransformProperty::from_json_name);
-            let property_scale = match property {
-                Some(crate::TransformProperty::X | crate::TransformProperty::Y) => scale,
-                _ => 1.0,
-            };
+            let (setup_time, property, property_offset, offset, max, slider_scale, local) =
+                match bone {
+                    Some(_) => {
+                        let property = c
+                            .property
+                            .as_deref()
+                            .and_then(crate::TransformProperty::from_json_name);
+                        let property_scale = match property {
+                            Some(crate::TransformProperty::X | crate::TransformProperty::Y) => {
+                                scale
+                            }
+                            _ => 1.0,
+                        };
+                        let property_offset = if property.is_some() {
+                            c.from * property_scale
+                        } else {
+                            0.0
+                        };
+                        let offset = if property.is_some() { c.to } else { 0.0 };
+                        let max = if property.is_some() { c.max } else { 0.0 };
+                        let slider_scale = if property.is_some() {
+                            c.scale / property_scale
+                        } else {
+                            0.0
+                        };
+                        let local = if property.is_some() { c.local } else { false };
+                        (
+                            0.0,
+                            property,
+                            property_offset,
+                            offset,
+                            max,
+                            slider_scale,
+                            local,
+                        )
+                    }
+                    None => (c.time, None, 0.0, 0.0, 0.0, 0.0, false),
+                };
 
             let idx = slider_constraints.len();
             if let Some(animation_name) = c.animation.as_deref() {
@@ -2112,17 +2144,19 @@ impl SkeletonData {
                 name: c.name,
                 order: c.order,
                 skin_required: c.skin_required,
-                setup_time: c.time,
+                setup_time,
                 setup_mix: c.mix,
                 additive: c.additive,
                 looped: c.looped,
                 bone,
                 property,
-                property_from: c.from * property_scale,
-                to: c.to,
-                scale: c.scale / property_scale,
-                local: c.local,
+                property_offset,
+                offset,
+                max,
+                scale: slider_scale,
+                local,
                 animation: None,
+                animation_name: None,
             });
         }
         let slider_constraint_index = slider_constraints
@@ -3359,6 +3393,7 @@ impl SkeletonData {
             };
             if let Some(c) = slider_constraints.get_mut(constraint_index) {
                 c.animation = Some(anim_index);
+                c.animation_name = Some(animation_name);
             }
         }
 

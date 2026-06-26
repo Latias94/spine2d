@@ -1,14 +1,24 @@
 use crate::runtime::MixBlend;
 use crate::{Skeleton, SkeletonData, apply_animation};
+use std::sync::Arc;
 
 const SKELETON_WITH_SLIDER_TIMELINES: &str = r#"
 {
   "skeleton": { "spine": "4.3.00" },
   "bones": [ { "name": "root" } ],
+  "slots": [
+    { "name": "slot0", "bone": "root", "attachment": "a" },
+    { "name": "slot1", "bone": "root", "attachment": "b" }
+  ],
+  "skins": {
+    "default": {
+      "slot0": { "a": { "type": "region", "path": "a.png", "width": 10, "height": 10 } },
+      "slot1": { "b": { "type": "region", "path": "b.png", "width": 10, "height": 10 } }
+    }
+  },
   "slider": [
     {
       "name": "slider",
-      "bone": "root",
       "time": 1.0,
       "mix": 0.5,
       "animation": "anim"
@@ -17,6 +27,9 @@ const SKELETON_WITH_SLIDER_TIMELINES: &str = r#"
   "animations": {
     "idle": {},
     "anim": {
+      "drawOrder": [
+        { "time": 0.0, "offsets": [ { "slot": "slot1", "offset": -1 } ] }
+      ],
       "slider": {
         "slider": {
           "time": [
@@ -79,4 +92,24 @@ fn skeleton_data_find_slider_animations_appends_like_cpp() {
     assert_eq!(returned_len, 2);
     assert_eq!(animations[0].name, "idle");
     assert_eq!(animations[1].name, "anim");
+}
+
+#[test]
+fn slider_animation_name_only_binding_still_drives_runtime() {
+    let mut data = SkeletonData::from_json_str(SKELETON_WITH_SLIDER_TIMELINES).unwrap();
+    {
+        let data = Arc::make_mut(&mut data);
+        let slider = data
+            .slider_constraints
+            .get_mut(0)
+            .expect("slider constraint exists");
+        slider.animation = None;
+        slider.animation_name = Some("anim".to_string());
+    }
+
+    let mut skeleton = Skeleton::new(Arc::clone(&data));
+    assert_eq!(data.find_slider_animations(&mut Vec::new()).len(), 1);
+    skeleton.setup_pose();
+    skeleton.update_world_transform_with_physics(crate::Physics::None);
+    assert_eq!(skeleton.get_draw_order(), &[1, 0]);
 }

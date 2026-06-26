@@ -1,4 +1,4 @@
-use super::{Skeleton, vertices::compute_attachment_world_vertices, wrap_pi};
+use super::{Skeleton, Slot, vertices::compute_attachment_world_vertices, wrap_pi};
 use crate::SkeletonData;
 
 #[derive(Clone, Debug)]
@@ -23,12 +23,12 @@ impl PathConstraint {
         &mut self.bones
     }
 
-    pub fn get_target_slot(&self) -> usize {
-        self.target
+    pub fn get_slot<'a>(&self, skeleton: &'a Skeleton) -> &'a Slot {
+        &skeleton.slots[self.target]
     }
 
-    pub fn set_target_slot(&mut self, target: usize) {
-        self.target = target;
+    pub fn set_slot(&mut self, slot: &Slot) {
+        self.target = slot.data_index;
     }
 
     pub fn get_position(&self) -> f32 {

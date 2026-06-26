@@ -278,12 +278,12 @@ impl IkConstraintData {
         &mut self.bones
     }
 
-    pub fn get_target(&self) -> usize {
-        self.target
+    pub fn get_target<'a>(&self, skeleton_data: &'a SkeletonData) -> &'a BoneData {
+        &skeleton_data.bones[self.target]
     }
 
-    pub fn set_target(&mut self, target: usize) {
-        self.target = target;
+    pub fn set_target(&mut self, target: &BoneData) {
+        self.target = target.index;
     }
 
     pub fn get_scale_y_mode(&self) -> ScaleYMode {
@@ -501,12 +501,12 @@ impl TransformConstraintData {
         &mut self.bones
     }
 
-    pub fn get_source(&self) -> usize {
-        self.source
+    pub fn get_source<'a>(&self, skeleton_data: &'a SkeletonData) -> &'a BoneData {
+        &skeleton_data.bones[self.source]
     }
 
-    pub fn set_source(&mut self, source: usize) {
-        self.source = source;
+    pub fn set_source(&mut self, source: &BoneData) {
+        self.source = source.index;
     }
 
     pub fn get_offset_rotation(&self) -> f32 {
@@ -725,12 +725,12 @@ impl PathConstraintData {
         &mut self.bones
     }
 
-    pub fn get_slot(&self) -> usize {
-        self.target
+    pub fn get_slot<'a>(&self, skeleton_data: &'a SkeletonData) -> &'a SlotData {
+        &skeleton_data.slots[self.target]
     }
 
-    pub fn set_slot(&mut self, slot: usize) {
-        self.target = slot;
+    pub fn set_slot(&mut self, slot: &SlotData) {
+        self.target = slot.index;
     }
 
     pub fn get_position_mode(&self) -> PositionMode {
@@ -883,12 +883,12 @@ impl PhysicsConstraintData {
         self.skin_required = skin_required;
     }
 
-    pub fn get_bone(&self) -> usize {
-        self.bone
+    pub fn get_bone<'a>(&self, skeleton_data: &'a SkeletonData) -> &'a BoneData {
+        &skeleton_data.bones[self.bone]
     }
 
-    pub fn set_bone(&mut self, bone: usize) {
-        self.bone = bone;
+    pub fn set_bone(&mut self, bone: &BoneData) {
+        self.bone = bone.index;
     }
 
     pub fn get_step(&self) -> f32 {
@@ -1082,12 +1082,14 @@ pub struct SliderConstraintData {
 
     pub(crate) bone: Option<usize>,
     pub(crate) property: Option<TransformProperty>,
-    pub(crate) property_from: f32,
-    pub(crate) to: f32,
+    pub(crate) property_offset: f32,
+    pub(crate) offset: f32,
+    pub(crate) max: f32,
     pub(crate) scale: f32,
     pub(crate) local: bool,
 
     pub(crate) animation: Option<usize>,
+    pub(crate) animation_name: Option<String>,
 }
 
 impl SliderConstraintData {
@@ -1102,11 +1104,13 @@ impl SliderConstraintData {
             looped: false,
             bone: None,
             property: None,
-            property_from: 0.0,
-            to: 0.0,
+            property_offset: 0.0,
+            offset: 0.0,
+            max: 0.0,
             scale: 0.0,
             local: false,
             animation: None,
+            animation_name: None,
         }
     }
 
@@ -1122,15 +1126,19 @@ impl SliderConstraintData {
         self.skin_required = skin_required;
     }
 
-    pub fn get_animation(&self) -> Option<usize> {
+    /// Returns the animation the slider applies, resolved through `skeleton_data`.
+    pub fn get_animation<'a>(&self, skeleton_data: &'a SkeletonData) -> Option<&'a Animation> {
         self.animation
+            .and_then(|index| skeleton_data.animations.get(index))
+            .or_else(|| {
+                self.animation_name
+                    .as_deref()
+                    .and_then(|name| skeleton_data.find_animation(name))
+            })
     }
 
-    pub fn set_animation(&mut self, animation: usize) {
-        self.animation = Some(animation);
-    }
-
-    pub fn clear_animation(&mut self) {
+    pub fn set_animation(&mut self, animation: &Animation) {
+        self.animation_name = Some(animation.get_name().to_string());
         self.animation = None;
     }
 
@@ -1150,12 +1158,12 @@ impl SliderConstraintData {
         self.looped = looped;
     }
 
-    pub fn get_bone(&self) -> Option<usize> {
-        self.bone
+    pub fn get_bone<'a>(&self, skeleton_data: &'a SkeletonData) -> Option<&'a BoneData> {
+        self.bone.and_then(|index| skeleton_data.bones.get(index))
     }
 
-    pub fn set_bone(&mut self, bone: Option<usize>) {
-        self.bone = bone;
+    pub fn set_bone(&mut self, bone: Option<&BoneData>) {
+        self.bone = bone.map(BoneData::get_index);
     }
 
     pub fn get_property(&self) -> Option<TransformProperty> {
@@ -1167,11 +1175,19 @@ impl SliderConstraintData {
     }
 
     pub fn get_offset(&self) -> f32 {
-        self.property_from
+        self.offset
     }
 
     pub fn set_offset(&mut self, offset: f32) {
-        self.property_from = offset;
+        self.offset = offset;
+    }
+
+    pub fn get_property_offset(&self) -> f32 {
+        self.property_offset
+    }
+
+    pub fn set_property_offset(&mut self, property_offset: f32) {
+        self.property_offset = property_offset;
     }
 
     pub fn get_scale(&self) -> f32 {
@@ -1183,11 +1199,11 @@ impl SliderConstraintData {
     }
 
     pub fn get_max(&self) -> f32 {
-        self.to
+        self.max
     }
 
     pub fn set_max(&mut self, max: f32) {
-        self.to = max;
+        self.max = max;
     }
 
     pub fn get_local(&self) -> bool {
@@ -1255,6 +1271,32 @@ impl ConstraintDataRef<'_> {
         }
     }
 }
+
+#[doc(hidden)]
+pub trait SkeletonDataConstraintLookup: Sized {
+    fn find_in<'a>(data: &'a SkeletonData, name: &str) -> Option<&'a Self>;
+}
+
+macro_rules! impl_skeleton_data_constraint_lookup {
+    ($ty:ty, $field:ident) => {
+        impl SkeletonDataConstraintLookup for $ty {
+            fn find_in<'a>(data: &'a SkeletonData, name: &str) -> Option<&'a Self> {
+                if name.is_empty() {
+                    return None;
+                }
+                data.$field
+                    .iter()
+                    .find(|constraint| constraint.name == name)
+            }
+        }
+    };
+}
+
+impl_skeleton_data_constraint_lookup!(IkConstraintData, ik_constraints);
+impl_skeleton_data_constraint_lookup!(TransformConstraintData, transform_constraints);
+impl_skeleton_data_constraint_lookup!(PathConstraintData, path_constraints);
+impl_skeleton_data_constraint_lookup!(PhysicsConstraintData, physics_constraints);
+impl_skeleton_data_constraint_lookup!(SliderConstraintData, slider_constraints);
 
 #[derive(Clone, Debug)]
 pub struct IkFrame {
@@ -1735,12 +1777,14 @@ impl ClippingAttachmentData {
         self.name.as_str()
     }
 
-    pub fn get_end_slot(&self) -> Option<usize> {
+    /// Returns the clipping end slot resolved through `skeleton_data`.
+    pub fn get_end_slot<'a>(&self, skeleton_data: &'a SkeletonData) -> Option<&'a SlotData> {
         self.end_slot
+            .and_then(|index| skeleton_data.slots.get(index))
     }
 
-    pub fn set_end_slot(&mut self, end_slot: Option<usize>) {
-        self.end_slot = end_slot;
+    pub fn set_end_slot(&mut self, end_slot: Option<&SlotData>) {
+        self.end_slot = end_slot.map(SlotData::get_index);
     }
 
     pub fn get_convex(&self) -> bool {
@@ -2816,30 +2860,8 @@ impl SkeletonData {
         self.events.iter().find(|data| data.get_name() == name)
     }
 
-    pub fn find_ik_constraint(&self, name: &str) -> Option<&IkConstraintData> {
-        self.ik_constraints.iter().find(|data| data.name == name)
-    }
-
-    pub fn find_transform_constraint(&self, name: &str) -> Option<&TransformConstraintData> {
-        self.transform_constraints
-            .iter()
-            .find(|data| data.name == name)
-    }
-
-    pub fn find_path_constraint(&self, name: &str) -> Option<&PathConstraintData> {
-        self.path_constraints.iter().find(|data| data.name == name)
-    }
-
-    pub fn find_physics_constraint(&self, name: &str) -> Option<&PhysicsConstraintData> {
-        self.physics_constraints
-            .iter()
-            .find(|data| data.name == name)
-    }
-
-    pub fn find_slider_constraint(&self, name: &str) -> Option<&SliderConstraintData> {
-        self.slider_constraints
-            .iter()
-            .find(|data| data.name == name)
+    pub fn find_constraint<T: SkeletonDataConstraintLookup>(&self, name: &str) -> Option<&T> {
+        T::find_in(self, name)
     }
 
     /// Returns the C++-style unified constraint data view in update order.
@@ -2893,11 +2915,11 @@ impl SkeletonData {
         &'data self,
         animations: &'out mut Vec<&'data Animation>,
     ) -> &'out mut Vec<&'data Animation> {
-        animations.extend(self.slider_constraints.iter().filter_map(|constraint| {
-            constraint
-                .animation
-                .and_then(|index| self.animations.get(index))
-        }));
+        animations.extend(
+            self.slider_constraints
+                .iter()
+                .filter_map(|constraint| constraint.get_animation(self)),
+        );
         animations
     }
 }

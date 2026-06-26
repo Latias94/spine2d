@@ -837,7 +837,7 @@ fn main() {
                 let source_name = skeleton
                     .get_data()
                     .get_bones()
-                    .get(c.get_source())
+                    .get(c.get_source(skeleton.get_data()).get_index())
                     .map(|b| b.get_name())
                     .unwrap_or("<unknown>");
                 json!({

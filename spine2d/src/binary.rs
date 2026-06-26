@@ -1472,10 +1472,15 @@ impl crate::SkeletonData {
                     let looped = (flags & 2) != 0;
                     let additive = (flags & 4) != 0;
 
-                    let setup_time = if (flags & 8) != 0 {
-                        input.read_f32_be()?
+                    let (setup_time, max) = if (flags & 8) != 0 {
+                        let value = input.read_f32_be()?;
+                        if nonessential && (flags & 64) != 0 {
+                            (0.0, value)
+                        } else {
+                            (value, 0.0)
+                        }
                     } else {
-                        0.0
+                        (0.0, 0.0)
                     };
                     let setup_mix = if (flags & 16) != 0 {
                         if (flags & 32) != 0 {
@@ -1486,8 +1491,7 @@ impl crate::SkeletonData {
                     } else {
                         1.0
                     };
-
-                    let (bone, property, property_from, to, slider_scale, local) = if (flags & 64)
+                    let (bone, property, property_offset, offset, scale, local) = if (flags & 64)
                         != 0
                     {
                         let local = (flags & 128) != 0;
@@ -1502,14 +1506,14 @@ impl crate::SkeletonData {
                             }
                             _ => 1.0,
                         };
-                        let property_from = if property.is_some() {
+                        let property_offset = if property.is_some() {
                             from * property_scale
                         } else {
                             0.0
                         };
-                        let to = input.read_f32_be()?;
-                        let slider_scale = input.read_f32_be()? / property_scale;
-                        (Some(bone), property, property_from, to, slider_scale, local)
+                        let offset = input.read_f32_be()?;
+                        let scale = input.read_f32_be()? / property_scale;
+                        (Some(bone), property, property_offset, offset, scale, local)
                     } else {
                         (None, None, 0.0, 0.0, 0.0, false)
                     };
@@ -1525,11 +1529,13 @@ impl crate::SkeletonData {
                         looped,
                         bone,
                         property,
-                        property_from,
-                        to,
-                        scale: slider_scale,
+                        property_offset,
+                        offset,
+                        max,
+                        scale,
                         local,
                         animation: None,
+                        animation_name: None,
                     });
                     constraint_refs.push(ConstraintRef::Slider(idx));
                 }
@@ -1890,6 +1896,7 @@ impl crate::SkeletonData {
                 let animation = input.read_varint(true)? as usize;
                 if let Some(c) = slider_constraints.get_mut(idx) {
                     c.animation = Some(animation);
+                    c.animation_name = animations.get(animation).map(|anim| anim.name.clone());
                 }
             }
         }

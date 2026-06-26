@@ -236,7 +236,7 @@ pub(super) fn rebuild_update_cache(skeleton: &Skeleton) -> Vec<UpdateCacheItem> 
                 let Some(data) = skeleton.data.slider_constraints.get(c.data_index) else {
                     continue;
                 };
-                if let (Some(bone), false) = (data.bone, data.local) {
+                if let (Some(bone), false) = (c.bone, data.local) {
                     sort_bone(skeleton, bone, &mut sorted, &mut out);
                 }
                 out.push(UpdateCacheItem::Slider(item.index));

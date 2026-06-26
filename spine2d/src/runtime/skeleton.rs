@@ -73,6 +73,35 @@ impl ConstraintRef<'_> {
     }
 }
 
+#[doc(hidden)]
+pub trait SkeletonConstraintLookup: Sized {
+    fn find_in<'a>(skeleton: &'a Skeleton, name: &str) -> Option<&'a Self>;
+}
+
+macro_rules! impl_skeleton_constraint_lookup {
+    ($ty:ty, $field:ident) => {
+        impl SkeletonConstraintLookup for $ty {
+            fn find_in<'a>(skeleton: &'a Skeleton, name: &str) -> Option<&'a Self> {
+                if name.is_empty() {
+                    return None;
+                }
+                skeleton
+                    .data
+                    .$field
+                    .iter()
+                    .position(|constraint| constraint.name == name)
+                    .and_then(|index| skeleton.$field.get(index))
+            }
+        }
+    };
+}
+
+impl_skeleton_constraint_lookup!(IkConstraint, ik_constraints);
+impl_skeleton_constraint_lookup!(TransformConstraint, transform_constraints);
+impl_skeleton_constraint_lookup!(PathConstraint, path_constraints);
+impl_skeleton_constraint_lookup!(PhysicsConstraint, physics_constraints);
+impl_skeleton_constraint_lookup!(SliderConstraint, slider_constraints);
+
 fn atan2_degrees(y: f32, x: f32) -> f32 {
     atan2_radians(y, x) * (180.0f32 / std::f32::consts::PI)
 }
@@ -419,12 +448,12 @@ impl Skeleton {
             .enumerate()
             .map(|(data_index, c)| {
                 let animation_bones = c
-                    .animation
-                    .and_then(|idx| data.animations.get(idx))
+                    .get_animation(&data)
                     .map(|animation| animation.get_bones())
                     .unwrap_or_default();
                 SliderConstraint {
                     data_index,
+                    bone: c.bone,
                     time: c.setup_time,
                     mix: c.setup_mix,
                     active: true,
@@ -645,42 +674,12 @@ impl Skeleton {
         &mut self.ik_constraints
     }
 
-    fn ik_constraint_index_by_name(&self, constraint_name: &str) -> Option<usize> {
-        if constraint_name.is_empty() {
-            return None;
-        }
-        self.data
-            .ik_constraints
-            .iter()
-            .position(|constraint| constraint.name == constraint_name)
-    }
-
-    pub fn find_ik_constraint(&self, constraint_name: &str) -> Option<&IkConstraint> {
-        let index = self.ik_constraint_index_by_name(constraint_name)?;
-        self.ik_constraints.get(index)
-    }
-
     pub fn get_transform_constraints(&self) -> &[TransformConstraint] {
         &self.transform_constraints
     }
 
     pub fn get_transform_constraints_mut(&mut self) -> &mut [TransformConstraint] {
         &mut self.transform_constraints
-    }
-
-    fn transform_constraint_index_by_name(&self, constraint_name: &str) -> Option<usize> {
-        if constraint_name.is_empty() {
-            return None;
-        }
-        self.data
-            .transform_constraints
-            .iter()
-            .position(|constraint| constraint.name == constraint_name)
-    }
-
-    pub fn find_transform_constraint(&self, constraint_name: &str) -> Option<&TransformConstraint> {
-        let index = self.transform_constraint_index_by_name(constraint_name)?;
-        self.transform_constraints.get(index)
     }
 
     pub fn get_path_constraints(&self) -> &[PathConstraint] {
@@ -691,42 +690,12 @@ impl Skeleton {
         &mut self.path_constraints
     }
 
-    fn path_constraint_index_by_name(&self, constraint_name: &str) -> Option<usize> {
-        if constraint_name.is_empty() {
-            return None;
-        }
-        self.data
-            .path_constraints
-            .iter()
-            .position(|constraint| constraint.name == constraint_name)
-    }
-
-    pub fn find_path_constraint(&self, constraint_name: &str) -> Option<&PathConstraint> {
-        let index = self.path_constraint_index_by_name(constraint_name)?;
-        self.path_constraints.get(index)
-    }
-
     pub fn get_physics_constraints(&self) -> &[PhysicsConstraint] {
         &self.physics_constraints
     }
 
     pub fn get_physics_constraints_mut(&mut self) -> &mut [PhysicsConstraint] {
         &mut self.physics_constraints
-    }
-
-    fn physics_constraint_index_by_name(&self, constraint_name: &str) -> Option<usize> {
-        if constraint_name.is_empty() {
-            return None;
-        }
-        self.data
-            .physics_constraints
-            .iter()
-            .position(|constraint| constraint.name == constraint_name)
-    }
-
-    pub fn find_physics_constraint(&self, constraint_name: &str) -> Option<&PhysicsConstraint> {
-        let index = self.physics_constraint_index_by_name(constraint_name)?;
-        self.physics_constraints.get(index)
     }
 
     pub fn get_slider_constraints(&self) -> &[SliderConstraint] {
@@ -737,19 +706,8 @@ impl Skeleton {
         &mut self.slider_constraints
     }
 
-    fn slider_constraint_index_by_name(&self, constraint_name: &str) -> Option<usize> {
-        if constraint_name.is_empty() {
-            return None;
-        }
-        self.data
-            .slider_constraints
-            .iter()
-            .position(|constraint| constraint.name == constraint_name)
-    }
-
-    pub fn find_slider_constraint(&self, constraint_name: &str) -> Option<&SliderConstraint> {
-        let index = self.slider_constraint_index_by_name(constraint_name)?;
-        self.slider_constraints.get(index)
+    pub fn find_constraint<T: SkeletonConstraintLookup>(&self, name: &str) -> Option<&T> {
+        T::find_in(self, name)
     }
 
     pub fn get_x(&self) -> f32 {
@@ -934,11 +892,10 @@ impl Skeleton {
             let in_skin = skin
                 .map(|s| s.slider_constraints.contains(&c.data_index))
                 .unwrap_or(false);
-            let source_active = data
-                .and_then(|d| d.bone)
-                .and_then(|i| self.bones.get(i))
-                .map(|b| b.active)
-                .unwrap_or(true);
+            let source_active = match c.bone {
+                None => true,
+                Some(i) => self.bones.get(i).map(|b| b.active).unwrap_or(false),
+            };
             c.active = source_active && (!skin_required || in_skin);
         }
 
@@ -962,8 +919,7 @@ impl Skeleton {
             self.data
                 .slider_constraints
                 .get(slider.data_index)
-                .and_then(|data| data.animation)
-                .and_then(|animation_index| self.data.animations.get(animation_index))
+                .and_then(|data| data.get_animation(&self.data))
                 .is_some_and(|animation| {
                     animation.draw_order_timeline.is_some()
                         || !animation.draw_order_folder_timelines.is_empty()
@@ -987,10 +943,7 @@ impl Skeleton {
             let Some(data) = self.data.slider_constraints.get(slider.data_index) else {
                 continue;
             };
-            let Some(animation_index) = data.animation else {
-                continue;
-            };
-            let Some(animation) = self.data.animations.get(animation_index) else {
+            let Some(animation) = data.get_animation(&self.data) else {
                 continue;
             };
 
@@ -1206,11 +1159,9 @@ impl Skeleton {
             }
         }
 
+        let data = Arc::clone(&self.data);
         for c in &mut self.slider_constraints {
-            if let Some(data) = self.data.slider_constraints.get(c.data_index) {
-                c.time = data.setup_time;
-                c.mix = data.setup_mix;
-            }
+            c.setup_pose(data.as_ref());
         }
     }
 

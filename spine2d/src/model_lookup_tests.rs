@@ -1,8 +1,8 @@
 use crate::{
-    Animation, BoneData, BoneTimeline, ConstraintDataRef, EventData, IkConstraintData,
-    PathConstraintData, PhysicsConstraintData, PositionMode, RotateMode, RotateTimeline,
-    ScaleXTimeline, ScaleYMode, SkeletonData, SkinData, SliderConstraintData, SlotData,
-    SpacingMode, TransformConstraintData, TransformFromProperty, TransformProperty,
+    Animation, BoneData, BoneTimeline, ClippingAttachmentData, ConstraintDataRef, EventData,
+    IkConstraintData, PathConstraintData, PhysicsConstraintData, PositionMode, RotateMode,
+    RotateTimeline, ScaleXTimeline, ScaleYMode, SkeletonData, SkinData, SliderConstraintData,
+    SlotData, SpacingMode, TransformConstraintData, TransformFromProperty, TransformProperty,
     TransformToProperty,
 };
 
@@ -139,11 +139,13 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
         looped: false,
         bone: Some(0),
         property: None,
-        property_from: 0.0,
-        to: 0.0,
+        property_offset: 0.0,
+        offset: 0.0,
+        max: 0.0,
         scale: 0.0,
         local: false,
         animation: None,
+        animation_name: None,
     });
 
     let mut color_bone = BoneData::default();
@@ -176,21 +178,41 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
         data.find_animation("animation").unwrap().get_name(),
         "animation"
     );
-    assert_eq!(data.find_ik_constraint("ik").unwrap().get_target(), 0);
     assert_eq!(
-        data.find_transform_constraint("transform")
+        data.find_constraint::<IkConstraintData>("ik")
             .unwrap()
-            .get_source(),
-        0
-    );
-    assert_eq!(data.find_path_constraint("path").unwrap().get_slot(), 0);
-    assert_eq!(
-        data.find_physics_constraint("physics").unwrap().get_bone(),
-        0
+            .get_target(&data)
+            .get_name(),
+        "root"
     );
     assert_eq!(
-        data.find_slider_constraint("slider").unwrap().get_bone(),
-        Some(0)
+        data.find_constraint::<TransformConstraintData>("transform")
+            .unwrap()
+            .get_source(&data)
+            .get_name(),
+        "root"
+    );
+    assert_eq!(
+        data.find_constraint::<PathConstraintData>("path")
+            .unwrap()
+            .get_slot(&data)
+            .get_name(),
+        "slot"
+    );
+    assert_eq!(
+        data.find_constraint::<PhysicsConstraintData>("physics")
+            .unwrap()
+            .get_bone(&data)
+            .get_name(),
+        "root"
+    );
+    assert_eq!(
+        data.find_constraint::<SliderConstraintData>("slider")
+            .unwrap()
+            .get_bone(&data)
+            .unwrap()
+            .get_name(),
+        "root"
     );
 
     let constraints = data.get_constraints();
@@ -217,11 +239,14 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     assert!(data.find_skin("").is_none());
     assert!(data.find_event("").is_none());
     assert!(data.find_animation("").is_none());
-    assert!(data.find_ik_constraint("").is_none());
-    assert!(data.find_transform_constraint("").is_none());
-    assert!(data.find_path_constraint("").is_none());
-    assert!(data.find_physics_constraint("").is_none());
-    assert!(data.find_slider_constraint("").is_none());
+    assert!(data.find_constraint::<IkConstraintData>("").is_none());
+    assert!(
+        data.find_constraint::<TransformConstraintData>("")
+            .is_none()
+    );
+    assert!(data.find_constraint::<PathConstraintData>("").is_none());
+    assert!(data.find_constraint::<PhysicsConstraintData>("").is_none());
+    assert!(data.find_constraint::<SliderConstraintData>("").is_none());
 }
 
 #[test]
@@ -230,7 +255,30 @@ fn constraint_data_accessors_match_cpp_surface() {
     assert_eq!(ik.get_name(), "ik");
     assert!(!ik.get_skin_required());
     assert!(ik.get_bones().is_empty());
-    assert_eq!(ik.get_target(), 0);
+    let mut relation_data = SkeletonData::default();
+    relation_data.bones.push(BoneData {
+        index: 0,
+        name: "root".to_string(),
+        ..BoneData::default()
+    });
+    relation_data.bones.push(BoneData {
+        index: 1,
+        name: "child".to_string(),
+        parent: Some(0),
+        ..BoneData::default()
+    });
+    relation_data.slots.push(SlotData {
+        index: 0,
+        name: "slot".to_string(),
+        bone: 0,
+        setup_pose: crate::SlotSetupPose::default(),
+        ..SlotData::default()
+    });
+    relation_data
+        .animations
+        .push(Animation::new("slider-animation"));
+
+    assert_eq!(ik.get_target(&relation_data).get_name(), "root");
     assert_eq!(ik.get_scale_y_mode(), ScaleYMode::None);
     assert_eq!(ik.get_mix(), 0.0);
     assert_eq!(ik.get_softness(), 0.0);
@@ -240,7 +288,7 @@ fn constraint_data_accessors_match_cpp_surface() {
 
     ik.set_skin_required(true);
     ik.get_bones_mut().extend([1, 2]);
-    ik.set_target(3);
+    ik.set_target(&relation_data.bones[1]);
     ik.set_scale_y_mode(ScaleYMode::Volume);
     ik.set_mix(0.75);
     ik.set_softness(4.5);
@@ -250,7 +298,18 @@ fn constraint_data_accessors_match_cpp_surface() {
 
     assert!(ik.get_skin_required());
     assert_eq!(ik.get_bones(), [1, 2]);
-    assert_eq!(ik.get_target(), 3);
+    relation_data.bones.push(BoneData {
+        index: 2,
+        name: "target".to_string(),
+        ..BoneData::default()
+    });
+    relation_data.bones.push(BoneData {
+        index: 3,
+        name: "new-target".to_string(),
+        ..BoneData::default()
+    });
+    ik.set_target(&relation_data.bones[3]);
+    assert_eq!(ik.get_target(&relation_data).get_name(), "new-target");
     assert_eq!(ik.get_scale_y_mode(), ScaleYMode::Volume);
     assert_eq!(ik.get_mix(), 0.75);
     assert_eq!(ik.get_softness(), 4.5);
@@ -262,7 +321,7 @@ fn constraint_data_accessors_match_cpp_surface() {
     assert_eq!(transform.get_name(), "transform");
     assert!(!transform.get_skin_required());
     assert!(transform.get_bones().is_empty());
-    assert_eq!(transform.get_source(), 0);
+    assert_eq!(transform.get_source(&relation_data).get_name(), "root");
     assert_eq!(TransformConstraintData::ROTATION, 0);
     assert_eq!(TransformConstraintData::X, 1);
     assert_eq!(TransformConstraintData::Y, 2);
@@ -289,7 +348,13 @@ fn constraint_data_accessors_match_cpp_surface() {
 
     transform.set_skin_required(true);
     transform.get_bones_mut().extend([4, 5]);
-    transform.set_source(6);
+    let transform_base = relation_data.bones.len();
+    relation_data.bones.extend((0..5).map(|index| BoneData {
+        index: transform_base + index,
+        name: format!("transform-{index}"),
+        ..BoneData::default()
+    }));
+    transform.set_source(&relation_data.bones[6]);
     transform.set_offset_rotation(10.0);
     transform.set_offset_x(11.0);
     transform.set_offset_y(12.0);
@@ -319,7 +384,16 @@ fn constraint_data_accessors_match_cpp_surface() {
 
     assert!(transform.get_skin_required());
     assert_eq!(transform.get_bones(), [4, 5]);
-    assert_eq!(transform.get_source(), 6);
+    let extra_base = relation_data.bones.len();
+    relation_data.bones.extend((0..3).map(|index| BoneData {
+        index: extra_base + index,
+        name: format!("extra-{index}"),
+        ..BoneData::default()
+    }));
+    assert_eq!(
+        transform.get_source(&relation_data).get_name(),
+        "transform-2"
+    );
     assert_eq!(transform.get_offset_rotation(), 10.0);
     assert_eq!(transform.get_offset_x(), 11.0);
     assert_eq!(transform.get_offset_y(), 12.0);
@@ -350,7 +424,7 @@ fn constraint_data_accessors_match_cpp_surface() {
     assert_eq!(path.get_name(), "path");
     assert!(!path.get_skin_required());
     assert!(path.get_bones().is_empty());
-    assert_eq!(path.get_slot(), 0);
+    assert_eq!(path.get_slot(&relation_data).get_name(), "slot");
     assert_eq!(path.get_position_mode(), PositionMode::Fixed);
     assert_eq!(path.get_spacing_mode(), SpacingMode::Length);
     assert_eq!(path.get_rotate_mode(), RotateMode::Tangent);
@@ -363,7 +437,15 @@ fn constraint_data_accessors_match_cpp_surface() {
 
     path.set_skin_required(true);
     path.get_bones_mut().extend([7, 8]);
-    path.set_slot(9);
+    let slot_base = relation_data.slots.len();
+    relation_data.slots.extend((0..10).map(|index| SlotData {
+        index: slot_base + index,
+        name: format!("slot-{index}"),
+        bone: 0,
+        setup_pose: crate::SlotSetupPose::default(),
+        ..SlotData::default()
+    }));
+    path.set_slot(&relation_data.slots[10]);
     path.set_position_mode(PositionMode::Percent);
     path.set_spacing_mode(SpacingMode::Proportional);
     path.set_rotate_mode(RotateMode::ChainScale);
@@ -376,7 +458,7 @@ fn constraint_data_accessors_match_cpp_surface() {
 
     assert!(path.get_skin_required());
     assert_eq!(path.get_bones(), [7, 8]);
-    assert_eq!(path.get_slot(), 9);
+    assert_eq!(path.get_slot(&relation_data).get_name(), "slot-9");
     assert_eq!(path.get_position_mode(), PositionMode::Percent);
     assert_eq!(path.get_spacing_mode(), SpacingMode::Proportional);
     assert_eq!(path.get_rotate_mode(), RotateMode::ChainScale);
@@ -390,7 +472,7 @@ fn constraint_data_accessors_match_cpp_surface() {
     let mut physics = PhysicsConstraintData::new("physics");
     assert_eq!(physics.get_name(), "physics");
     assert!(!physics.get_skin_required());
-    assert_eq!(physics.get_bone(), 0);
+    assert_eq!(physics.get_bone(&relation_data).get_name(), "root");
     assert_eq!(physics.get_step(), 0.0);
     assert_eq!(physics.get_x(), 0.0);
     assert_eq!(physics.get_y(), 0.0);
@@ -415,7 +497,13 @@ fn constraint_data_accessors_match_cpp_surface() {
     assert!(!physics.get_mix_global());
 
     physics.set_skin_required(true);
-    physics.set_bone(10);
+    let physics_base = relation_data.bones.len();
+    relation_data.bones.extend((0..11).map(|index| BoneData {
+        index: physics_base + index,
+        name: format!("physics-{index}"),
+        ..BoneData::default()
+    }));
+    physics.set_bone(&relation_data.bones[15]);
     physics.set_step(1.0 / 30.0);
     physics.set_x(0.11);
     physics.set_y(0.12);
@@ -440,7 +528,7 @@ fn constraint_data_accessors_match_cpp_surface() {
     physics.set_mix_global(true);
 
     assert!(physics.get_skin_required());
-    assert_eq!(physics.get_bone(), 10);
+    assert_eq!(physics.get_bone(&relation_data).get_name(), "physics-3");
     assert_eq!(physics.get_step(), 1.0 / 30.0);
     assert_eq!(physics.get_x(), 0.11);
     assert_eq!(physics.get_y(), 0.12);
@@ -467,12 +555,13 @@ fn constraint_data_accessors_match_cpp_surface() {
     let mut slider = SliderConstraintData::new("slider");
     assert_eq!(slider.get_name(), "slider");
     assert!(!slider.get_skin_required());
-    assert_eq!(slider.get_animation(), None);
+    assert!(slider.get_animation(&relation_data).is_none());
     assert!(!slider.get_additive());
     assert!(!slider.get_loop());
-    assert_eq!(slider.get_bone(), None);
+    assert!(slider.get_bone(&relation_data).is_none());
     assert_eq!(slider.get_property(), None);
     assert_eq!(slider.get_offset(), 0.0);
+    assert_eq!(slider.get_property_offset(), 0.0);
     assert_eq!(slider.get_scale(), 0.0);
     assert_eq!(slider.get_max(), 0.0);
     assert!(!slider.get_local());
@@ -480,24 +569,40 @@ fn constraint_data_accessors_match_cpp_surface() {
     assert_eq!(slider.get_mix(), 0.0);
 
     slider.set_skin_required(true);
-    slider.set_animation(11);
     slider.set_additive(true);
     slider.set_loop(true);
-    slider.set_bone(Some(12));
+    let slider_base = relation_data.bones.len();
+    relation_data.bones.extend((0..13).map(|index| BoneData {
+        index: slider_base + index,
+        name: format!("slider-{index}"),
+        ..BoneData::default()
+    }));
+    slider.set_bone(Some(&relation_data.bones[24]));
     slider.set_property(Some(TransformProperty::ShearY));
+    slider.set_property_offset(7.0);
     slider.set_offset(31.0);
     slider.set_scale(32.0);
     slider.set_max(33.0);
     slider.set_local(true);
     slider.set_time(34.0);
     slider.set_mix(0.35);
+    slider.set_animation(&relation_data.animations[0]);
 
     assert!(slider.get_skin_required());
-    assert_eq!(slider.get_animation(), Some(11));
+    assert_eq!(
+        slider
+            .get_animation(&relation_data)
+            .map(Animation::get_name),
+        Some("slider-animation")
+    );
     assert!(slider.get_additive());
     assert!(slider.get_loop());
-    assert_eq!(slider.get_bone(), Some(12));
+    assert_eq!(
+        slider.get_bone(&relation_data).map(BoneData::get_name),
+        Some("slider-1")
+    );
     assert_eq!(slider.get_property(), Some(TransformProperty::ShearY));
+    assert_eq!(slider.get_property_offset(), 7.0);
     assert_eq!(slider.get_offset(), 31.0);
     assert_eq!(slider.get_scale(), 32.0);
     assert_eq!(slider.get_max(), 33.0);
@@ -505,12 +610,48 @@ fn constraint_data_accessors_match_cpp_surface() {
     assert_eq!(slider.get_time(), 34.0);
     assert_eq!(slider.get_mix(), 0.35);
 
-    slider.clear_animation();
+    slider.animation = None;
+    slider.animation_name = None;
     slider.set_bone(None);
     slider.set_property(None);
-    assert_eq!(slider.get_animation(), None);
-    assert_eq!(slider.get_bone(), None);
+    assert!(slider.get_animation(&relation_data).is_none());
+    assert!(slider.get_bone(&relation_data).is_none());
     assert_eq!(slider.get_property(), None);
+
+    let mut clip_data = SkeletonData::default();
+    clip_data.slots.push(SlotData {
+        index: 0,
+        name: "clip-start".to_string(),
+        ..SlotData::default()
+    });
+    clip_data.slots.push(SlotData {
+        index: 1,
+        name: "clip-end".to_string(),
+        ..SlotData::default()
+    });
+    let clip = ClippingAttachmentData {
+        vertex_id: 0,
+        name: "clip".to_string(),
+        color: ClippingAttachmentData::DEFAULT_COLOR,
+        vertices: crate::MeshVertices::Unweighted(Vec::new()),
+        end_slot: Some(1),
+        convex: true,
+        inverse: false,
+    };
+
+    let mut clip_with_end = clip.clone();
+    clip_with_end.set_end_slot(Some(&clip_data.slots[1]));
+
+    assert_eq!(
+        clip.get_end_slot(&clip_data).map(SlotData::get_name),
+        Some("clip-end")
+    );
+    assert_eq!(
+        clip_with_end
+            .get_end_slot(&clip_data)
+            .map(SlotData::get_name),
+        Some("clip-end")
+    );
 }
 
 #[test]

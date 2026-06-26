@@ -1,4 +1,4 @@
-use super::{Skeleton, atan2_degrees};
+use super::{Bone, Skeleton, atan2_degrees};
 
 #[derive(Clone, Debug)]
 pub struct TransformConstraint {
@@ -23,12 +23,12 @@ impl TransformConstraint {
         &mut self.bones
     }
 
-    pub fn get_source(&self) -> usize {
-        self.source
+    pub fn get_source<'a>(&self, skeleton: &'a Skeleton) -> &'a Bone {
+        &skeleton.bones[self.source]
     }
 
-    pub fn set_source(&mut self, source: usize) {
-        self.source = source;
+    pub fn set_source(&mut self, source: &Bone) {
+        self.source = source.data_index;
     }
 
     pub fn get_mix_rotate(&self) -> f32 {

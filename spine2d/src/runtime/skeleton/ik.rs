@@ -1,4 +1,4 @@
-use super::{Skeleton, acos_f32, atan2_degrees, atan2_radians, cos_f32, sin_f32, sqrt_f32};
+use super::{Bone, Skeleton, acos_f32, atan2_degrees, atan2_radians, cos_f32, sin_f32, sqrt_f32};
 
 #[derive(Clone, Debug)]
 pub struct IkConstraint {
@@ -23,12 +23,12 @@ impl IkConstraint {
         &mut self.bones
     }
 
-    pub fn get_target(&self) -> usize {
-        self.target
+    pub fn get_target<'a>(&self, skeleton: &'a Skeleton) -> &'a Bone {
+        &skeleton.bones[self.target]
     }
 
-    pub fn set_target(&mut self, target: usize) {
-        self.target = target;
+    pub fn set_target(&mut self, target: &Bone) {
+        self.target = target.data_index;
     }
 
     pub fn get_scale_y_mode(&self) -> crate::ScaleYMode {

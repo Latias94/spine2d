@@ -1,8 +1,9 @@
-use super::{Skeleton, atan2_degrees};
+use super::{Bone, Skeleton, atan2_degrees};
 
 #[derive(Clone, Debug)]
 pub struct SliderConstraint {
     pub(crate) data_index: usize,
+    pub(crate) bone: Option<usize>,
     pub(crate) time: f32,
     pub(crate) mix: f32,
     pub(crate) active: bool,
@@ -10,6 +11,14 @@ pub struct SliderConstraint {
 }
 
 impl SliderConstraint {
+    pub fn get_bone<'a>(&self, skeleton: &'a Skeleton) -> Option<&'a Bone> {
+        self.bone.and_then(|index| skeleton.bones.get(index))
+    }
+
+    pub fn set_bone(&mut self, bone: Option<&Bone>) {
+        self.bone = bone.map(|bone| bone.data_index);
+    }
+
     pub fn get_time(&self) -> f32 {
         self.time
     }
@@ -26,12 +35,26 @@ impl SliderConstraint {
         self.mix = mix;
     }
 
+    pub fn get_animation_bones(&self) -> &[usize] {
+        &self.animation_bones
+    }
+
     pub fn is_active(&self) -> bool {
         self.active
     }
 
     pub fn set_active(&mut self, active: bool) {
         self.active = active;
+    }
+
+    pub(crate) fn setup_pose(&mut self, data: &crate::SkeletonData) {
+        let Some(data) = data.slider_constraints.get(self.data_index) else {
+            self.time = 0.0;
+            self.mix = 0.0;
+            return;
+        };
+        self.time = data.setup_time;
+        self.mix = data.setup_mix;
     }
 }
 
@@ -40,38 +63,32 @@ pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {
         return false;
     }
 
-    let (data_index, mix, pose_time) = {
+    let (data_index, bone, mix, pose_time) = {
         let c = &skeleton.slider_constraints[constraint_index];
-        (c.data_index, c.mix, c.time)
+        (c.data_index, c.bone, c.mix, c.time)
     };
     if mix == 0.0 {
         return false;
     }
 
-    let (looped, additive, local, bone, property, property_from, to, scale, animation_index) = {
-        let Some(data) = skeleton.data.slider_constraints.get(data_index) else {
+    let skeleton_data = std::sync::Arc::clone(&skeleton.data);
+    let (looped, additive, local, property, property_offset, offset, scale, animation) = {
+        let Some(data) = skeleton_data.slider_constraints.get(data_index) else {
             return false;
         };
-        let Some(animation_index) = data.animation else {
+        let Some(animation) = data.get_animation(skeleton_data.as_ref()) else {
             return false;
         };
         (
             data.looped,
             data.additive,
             data.local,
-            data.bone,
             data.property,
-            data.property_from,
-            data.to,
+            data.property_offset,
+            data.offset,
             data.scale,
-            animation_index,
+            animation,
         )
-    };
-
-    // Avoid borrowing `skeleton.data` across `&mut skeleton` calls during constraint evaluation.
-    let data = std::sync::Arc::clone(&skeleton.data);
-    let Some(animation) = data.animations.get(animation_index) else {
-        return false;
     };
     let animation_duration = animation.duration;
 
@@ -188,7 +205,7 @@ pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {
             }
         };
 
-        time_to_apply = to + (property_value - property_from) * scale;
+        time_to_apply = offset + (property_value - property_offset) * scale;
         if looped {
             if animation_duration > 0.0 {
                 time_to_apply = animation_duration + time_to_apply.rem_euclid(animation_duration);
