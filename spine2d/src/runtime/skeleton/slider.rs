@@ -10,7 +10,7 @@ pub struct SliderConstraint {
 }
 
 impl SliderConstraint {
-    pub fn time(&self) -> f32 {
+    pub fn get_time(&self) -> f32 {
         self.time
     }
 
@@ -18,7 +18,7 @@ impl SliderConstraint {
         self.time = time;
     }
 
-    pub fn mix(&self) -> f32 {
+    pub fn get_mix(&self) -> f32 {
         self.mix
     }
 

@@ -23,7 +23,7 @@ impl PathConstraint {
         &mut self.bones
     }
 
-    pub fn target_slot(&self) -> usize {
+    pub fn get_target_slot(&self) -> usize {
         self.target
     }
 
@@ -31,7 +31,7 @@ impl PathConstraint {
         self.target = target;
     }
 
-    pub fn position(&self) -> f32 {
+    pub fn get_position(&self) -> f32 {
         self.position
     }
 
@@ -39,7 +39,7 @@ impl PathConstraint {
         self.position = position;
     }
 
-    pub fn spacing(&self) -> f32 {
+    pub fn get_spacing(&self) -> f32 {
         self.spacing
     }
 
@@ -47,7 +47,7 @@ impl PathConstraint {
         self.spacing = spacing;
     }
 
-    pub fn mix_rotate(&self) -> f32 {
+    pub fn get_mix_rotate(&self) -> f32 {
         self.mix_rotate
     }
 
@@ -55,7 +55,7 @@ impl PathConstraint {
         self.mix_rotate = mix_rotate;
     }
 
-    pub fn mix_x(&self) -> f32 {
+    pub fn get_mix_x(&self) -> f32 {
         self.mix_x
     }
 
@@ -63,7 +63,7 @@ impl PathConstraint {
         self.mix_x = mix_x;
     }
 
-    pub fn mix_y(&self) -> f32 {
+    pub fn get_mix_y(&self) -> f32 {
         self.mix_y
     }
 

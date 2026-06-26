@@ -53,7 +53,7 @@ pub struct PhysicsConstraint {
 }
 
 impl PhysicsConstraint {
-    pub fn inertia(&self) -> f32 {
+    pub fn get_inertia(&self) -> f32 {
         self.inertia
     }
 
@@ -61,7 +61,7 @@ impl PhysicsConstraint {
         self.inertia = inertia;
     }
 
-    pub fn strength(&self) -> f32 {
+    pub fn get_strength(&self) -> f32 {
         self.strength
     }
 
@@ -69,7 +69,7 @@ impl PhysicsConstraint {
         self.strength = strength;
     }
 
-    pub fn damping(&self) -> f32 {
+    pub fn get_damping(&self) -> f32 {
         self.damping
     }
 
@@ -77,7 +77,7 @@ impl PhysicsConstraint {
         self.damping = damping;
     }
 
-    pub fn mass_inverse(&self) -> f32 {
+    pub fn get_mass_inverse(&self) -> f32 {
         self.mass_inverse
     }
 
@@ -85,7 +85,7 @@ impl PhysicsConstraint {
         self.mass_inverse = mass_inverse;
     }
 
-    pub fn wind(&self) -> f32 {
+    pub fn get_wind(&self) -> f32 {
         self.wind
     }
 
@@ -93,7 +93,7 @@ impl PhysicsConstraint {
         self.wind = wind;
     }
 
-    pub fn gravity(&self) -> f32 {
+    pub fn get_gravity(&self) -> f32 {
         self.gravity
     }
 
@@ -101,7 +101,7 @@ impl PhysicsConstraint {
         self.gravity = gravity;
     }
 
-    pub fn mix(&self) -> f32 {
+    pub fn get_mix(&self) -> f32 {
         self.mix
     }
 
@@ -109,7 +109,7 @@ impl PhysicsConstraint {
         self.mix = mix;
     }
 
-    pub fn scale_y_mode(&self) -> crate::ScaleYMode {
+    pub fn get_scale_y_mode(&self) -> crate::ScaleYMode {
         self.scale_y_mode
     }
 

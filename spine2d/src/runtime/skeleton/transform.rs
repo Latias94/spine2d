@@ -23,7 +23,7 @@ impl TransformConstraint {
         &mut self.bones
     }
 
-    pub fn source(&self) -> usize {
+    pub fn get_source(&self) -> usize {
         self.source
     }
 
@@ -31,7 +31,7 @@ impl TransformConstraint {
         self.source = source;
     }
 
-    pub fn mix_rotate(&self) -> f32 {
+    pub fn get_mix_rotate(&self) -> f32 {
         self.mix_rotate
     }
 
@@ -39,7 +39,7 @@ impl TransformConstraint {
         self.mix_rotate = mix_rotate;
     }
 
-    pub fn mix_x(&self) -> f32 {
+    pub fn get_mix_x(&self) -> f32 {
         self.mix_x
     }
 
@@ -47,7 +47,7 @@ impl TransformConstraint {
         self.mix_x = mix_x;
     }
 
-    pub fn mix_y(&self) -> f32 {
+    pub fn get_mix_y(&self) -> f32 {
         self.mix_y
     }
 
@@ -55,7 +55,7 @@ impl TransformConstraint {
         self.mix_y = mix_y;
     }
 
-    pub fn mix_scale_x(&self) -> f32 {
+    pub fn get_mix_scale_x(&self) -> f32 {
         self.mix_scale_x
     }
 
@@ -63,7 +63,7 @@ impl TransformConstraint {
         self.mix_scale_x = mix_scale_x;
     }
 
-    pub fn mix_scale_y(&self) -> f32 {
+    pub fn get_mix_scale_y(&self) -> f32 {
         self.mix_scale_y
     }
 
@@ -71,7 +71,7 @@ impl TransformConstraint {
         self.mix_scale_y = mix_scale_y;
     }
 
-    pub fn mix_shear_y(&self) -> f32 {
+    pub fn get_mix_shear_y(&self) -> f32 {
         self.mix_shear_y
     }
 

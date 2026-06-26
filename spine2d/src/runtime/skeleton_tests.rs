@@ -962,12 +962,12 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
         ),
         (1.0, 2.0)
     );
-    assert_eq!(skeleton.get_ik_constraints()[0].mix(), 0.8);
-    assert_eq!(skeleton.get_ik_constraints()[0].bend_direction(), -1);
-    assert_eq!(skeleton.get_transform_constraints()[0].mix_x(), 0.12);
-    assert_eq!(skeleton.get_path_constraints()[0].position(), 1.1);
-    assert_eq!(skeleton.get_physics_constraints()[0].gravity(), 0.6);
-    assert_eq!(skeleton.get_slider_constraints()[0].time(), 2.1);
+    assert_eq!(skeleton.get_ik_constraints()[0].get_mix(), 0.8);
+    assert_eq!(skeleton.get_ik_constraints()[0].get_bend_direction(), -1);
+    assert_eq!(skeleton.get_transform_constraints()[0].get_mix_x(), 0.12);
+    assert_eq!(skeleton.get_path_constraints()[0].get_position(), 1.1);
+    assert_eq!(skeleton.get_physics_constraints()[0].get_gravity(), 0.6);
+    assert_eq!(skeleton.get_slider_constraints()[0].get_time(), 2.1);
     assert_eq!(skeleton.get_slots()[0].color(), [0.9, 0.8, 0.7, 0.6]);
     assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("manual"));
     assert_eq!(skeleton.get_slots()[0].sequence_index(), 7);
@@ -982,7 +982,7 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
         (skeleton.get_bones()[0].x(), skeleton.get_bones()[0].y()),
         (40.0, 50.0)
     );
-    assert_eq!(skeleton.get_ik_constraints()[0].mix(), 0.33);
+    assert_eq!(skeleton.get_ik_constraints()[0].get_mix(), 0.33);
     assert_eq!(skeleton.get_slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
     assert!(skeleton.get_slots()[0].has_dark_color());
     assert_eq!(skeleton.get_slots()[0].dark_color(), [0.5, 0.6, 0.7]);
@@ -1003,7 +1003,7 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
         (skeleton.get_bones()[0].x(), skeleton.get_bones()[0].y()),
         (1.0, 2.0)
     );
-    assert_eq!(skeleton.get_ik_constraints()[0].mix(), 0.8);
+    assert_eq!(skeleton.get_ik_constraints()[0].get_mix(), 0.8);
     assert_eq!(skeleton.get_slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
     assert_eq!(skeleton.get_slots()[0].sequence_index(), 0);
     assert_eq!(skeleton.get_draw_order(), &[0, 1]);
@@ -1176,7 +1176,7 @@ fn skeleton_constraint_finders_match_data_names() {
 
     assert_eq!(skeleton.find_ik_constraint("ik").unwrap().data_index, 0);
     skeleton.get_ik_constraints_mut()[0].set_mix(0.25);
-    assert_eq!(skeleton.get_ik_constraints()[0].mix(), 0.25);
+    assert_eq!(skeleton.get_ik_constraints()[0].get_mix(), 0.25);
 
     assert_eq!(
         skeleton
@@ -1186,11 +1186,11 @@ fn skeleton_constraint_finders_match_data_names() {
         0
     );
     skeleton.get_transform_constraints_mut()[0].set_mix_x(0.5);
-    assert_eq!(skeleton.get_transform_constraints()[0].mix_x(), 0.5);
+    assert_eq!(skeleton.get_transform_constraints()[0].get_mix_x(), 0.5);
 
     assert_eq!(skeleton.find_path_constraint("path").unwrap().data_index, 0);
     skeleton.get_path_constraints_mut()[0].set_position(2.0);
-    assert_eq!(skeleton.get_path_constraints()[0].position(), 2.0);
+    assert_eq!(skeleton.get_path_constraints()[0].get_position(), 2.0);
 
     assert_eq!(
         skeleton
@@ -1200,7 +1200,7 @@ fn skeleton_constraint_finders_match_data_names() {
         0
     );
     skeleton.get_physics_constraints_mut()[0].set_mix(0.75);
-    assert_eq!(skeleton.get_physics_constraints()[0].mix(), 0.75);
+    assert_eq!(skeleton.get_physics_constraints()[0].get_mix(), 0.75);
 
     assert_eq!(
         skeleton
@@ -1210,7 +1210,7 @@ fn skeleton_constraint_finders_match_data_names() {
         0
     );
     skeleton.get_slider_constraints_mut()[0].set_time(3.0);
-    assert_eq!(skeleton.get_slider_constraints()[0].time(), 3.0);
+    assert_eq!(skeleton.get_slider_constraints()[0].get_time(), 3.0);
 
     assert!(skeleton.find_ik_constraint("").is_none());
     assert!(skeleton.find_transform_constraint("missing").is_none());
@@ -1942,13 +1942,13 @@ fn constraint_accessors_expose_pose_state() {
     ik.set_bend_direction(-1);
     ik.set_active(false);
     assert_eq!(ik.get_bones(), &[0, 1]);
-    assert_eq!(ik.target(), 3);
-    assert_eq!(ik.scale_y_mode(), ScaleYMode::Volume);
-    assert_eq!(ik.mix(), 0.5);
-    assert_eq!(ik.softness(), 2.0);
-    assert!(ik.compress());
-    assert!(!ik.stretch());
-    assert_eq!(ik.bend_direction(), -1);
+    assert_eq!(ik.get_target(), 3);
+    assert_eq!(ik.get_scale_y_mode(), ScaleYMode::Volume);
+    assert_eq!(ik.get_mix(), 0.5);
+    assert_eq!(ik.get_softness(), 2.0);
+    assert!(ik.get_compress());
+    assert!(!ik.get_stretch());
+    assert_eq!(ik.get_bend_direction(), -1);
     assert!(!ik.is_active());
 
     let mut transform = TransformConstraint {
@@ -1974,13 +1974,13 @@ fn constraint_accessors_expose_pose_state() {
     transform.set_active(false);
     assert_eq!(transform.data_index, 2);
     assert_eq!(transform.get_bones(), &[1, 2]);
-    assert_eq!(transform.source(), 3);
-    assert_eq!(transform.mix_rotate(), 1.1);
-    assert_eq!(transform.mix_x(), 1.2);
-    assert_eq!(transform.mix_y(), 1.3);
-    assert_eq!(transform.mix_scale_x(), 1.4);
-    assert_eq!(transform.mix_scale_y(), 1.5);
-    assert_eq!(transform.mix_shear_y(), 1.6);
+    assert_eq!(transform.get_source(), 3);
+    assert_eq!(transform.get_mix_rotate(), 1.1);
+    assert_eq!(transform.get_mix_x(), 1.2);
+    assert_eq!(transform.get_mix_y(), 1.3);
+    assert_eq!(transform.get_mix_scale_x(), 1.4);
+    assert_eq!(transform.get_mix_scale_y(), 1.5);
+    assert_eq!(transform.get_mix_shear_y(), 1.6);
     assert!(!transform.is_active());
 
     let mut path = PathConstraint {
@@ -2004,12 +2004,12 @@ fn constraint_accessors_expose_pose_state() {
     path.set_active(false);
     assert_eq!(path.data_index, 3);
     assert_eq!(path.get_bones(), &[0, 1]);
-    assert_eq!(path.target_slot(), 2);
-    assert_eq!(path.position(), 7.0);
-    assert_eq!(path.spacing(), 8.0);
-    assert_eq!(path.mix_rotate(), 9.0);
-    assert_eq!(path.mix_x(), 10.0);
-    assert_eq!(path.mix_y(), 11.0);
+    assert_eq!(path.get_target_slot(), 2);
+    assert_eq!(path.get_position(), 7.0);
+    assert_eq!(path.get_spacing(), 8.0);
+    assert_eq!(path.get_mix_rotate(), 9.0);
+    assert_eq!(path.get_mix_x(), 10.0);
+    assert_eq!(path.get_mix_y(), 11.0);
     assert!(!path.is_active());
 
     let mut physics = PhysicsConstraint {
@@ -2058,14 +2058,14 @@ fn constraint_accessors_expose_pose_state() {
     physics.set_active(false);
     assert_eq!(physics.data_index, 4);
     assert_eq!(physics.bone, 2);
-    assert_eq!(physics.inertia(), 1.1);
-    assert_eq!(physics.strength(), 1.2);
-    assert_eq!(physics.damping(), 1.3);
-    assert_eq!(physics.mass_inverse(), 1.4);
-    assert_eq!(physics.wind(), 1.5);
-    assert_eq!(physics.gravity(), 1.6);
-    assert_eq!(physics.mix(), 1.7);
-    assert_eq!(physics.scale_y_mode(), ScaleYMode::Uniform);
+    assert_eq!(physics.get_inertia(), 1.1);
+    assert_eq!(physics.get_strength(), 1.2);
+    assert_eq!(physics.get_damping(), 1.3);
+    assert_eq!(physics.get_mass_inverse(), 1.4);
+    assert_eq!(physics.get_wind(), 1.5);
+    assert_eq!(physics.get_gravity(), 1.6);
+    assert_eq!(physics.get_mix(), 1.7);
+    assert_eq!(physics.get_scale_y_mode(), ScaleYMode::Uniform);
     assert!(!physics.is_active());
 
     physics.translate(3.0, -2.0);
@@ -2134,8 +2134,8 @@ fn constraint_accessors_expose_pose_state() {
     slider.set_mix(0.75);
     slider.set_active(false);
     assert_eq!(slider.data_index, 0);
-    assert_eq!(slider.time(), 2.5);
-    assert_eq!(slider.mix(), 0.75);
+    assert_eq!(slider.get_time(), 2.5);
+    assert_eq!(slider.get_mix(), 0.75);
     assert!(!slider.is_active());
 }
 

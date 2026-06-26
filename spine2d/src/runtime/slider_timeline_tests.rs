@@ -51,8 +51,8 @@ fn slider_timelines_update_runtime_values() {
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.5, false, 1.0, MixBlend::Replace);
 
-    assert_approx(skeleton.slider_constraints[0].time(), 3.0);
-    assert_approx(skeleton.slider_constraints[0].mix(), 0.9);
+    assert_approx(skeleton.slider_constraints[0].get_time(), 3.0);
+    assert_approx(skeleton.slider_constraints[0].get_mix(), 0.9);
 }
 
 #[test]
@@ -64,8 +64,8 @@ fn slider_timelines_apply_negative_alpha_like_cpp() {
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.5, false, -0.5, MixBlend::Replace);
 
-    assert_approx(skeleton.slider_constraints[0].time(), 0.0);
-    assert_approx(skeleton.slider_constraints[0].mix(), 0.3);
+    assert_approx(skeleton.slider_constraints[0].get_time(), 0.0);
+    assert_approx(skeleton.slider_constraints[0].get_mix(), 0.3);
 }
 
 #[test]

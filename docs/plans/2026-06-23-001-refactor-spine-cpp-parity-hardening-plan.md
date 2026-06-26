@@ -280,6 +280,8 @@ flowchart TB
 
 **Recent update:** `Skeleton` runtime collection accessors and runtime constraint bone-list helpers now use latest-tag C++ getter spelling. The Rust API exposes `get_data`, `get_bones`, `get_slots`, `get_draw_order`, `get_draw_order_pose`, typed `get_*_constraints`, and `_mut` variants for mutable-borrow views; the old Rust-style `data`, `bones`, `slots`, `draw_order`, and typed constraint list helper names were removed.
 
+**Recent update:** Runtime constraint pose getters now use latest-tag C++ getter spelling across IK, transform, path, physics, and slider constraints. The old Rust-style value reads (`mix`, `softness`, `bend_direction`, `source`, `mix_rotate`, `target_slot`, `position`, `inertia`, `time`, and related helpers) were removed in favor of `get_*` names while setters and solver behavior stayed unchanged.
+
 **Recent update:** Commit `9147966` split applied slot pose from the unconstrained slot pose and routed slider-driven slot, attachment, sequence, and deform timelines through the applied buffer, matching C++ `Slot`/`SlotPose` applied-pose semantics more closely without exposing raw `PosedGeneric` internals.
 
 **Recent update:** Commit `068263d` removed the Rust-only `Slot::set_attachment_name` public helper. Bare name mutation cannot match C++ `SlotPose::setAttachment(Attachment*)` because it lacks attachment object identity and timeline-attachment comparison; runtime name changes now use `Skeleton::set_attachment`.

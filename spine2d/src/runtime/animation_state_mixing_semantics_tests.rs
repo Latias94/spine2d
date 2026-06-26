@@ -670,8 +670,8 @@ fn physics_constraint_timeline_applies_negative_alpha_like_cpp() {
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.5, false, -0.5, MixBlend::Replace);
 
-    assert_approx(skeleton.physics_constraints[0].wind(), -2.5);
-    assert_approx(skeleton.physics_constraints[1].inertia(), 0.1);
+    assert_approx(skeleton.physics_constraints[0].get_wind(), -2.5);
+    assert_approx(skeleton.physics_constraints[1].get_inertia(), 0.1);
 }
 
 #[test]

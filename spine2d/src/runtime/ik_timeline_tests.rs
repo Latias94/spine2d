@@ -93,6 +93,6 @@ fn ik_timeline_applies_negative_alpha_like_cpp() {
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.5, false, -0.5, MixBlend::Replace);
 
-    assert_approx(skeleton.ik_constraints[0].mix(), 1.25);
-    assert_approx(skeleton.ik_constraints[0].softness(), -2.5);
+    assert_approx(skeleton.ik_constraints[0].get_mix(), 1.25);
+    assert_approx(skeleton.ik_constraints[0].get_softness(), -2.5);
 }

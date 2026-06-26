@@ -756,9 +756,9 @@ fn main() {
             json!({
                 "i": i,
                 "name": name,
-                "mix": c.mix(),
-                "softness": c.softness(),
-                "bendDirection": c.bend_direction(),
+                "mix": c.get_mix(),
+                "softness": c.get_softness(),
+                "bendDirection": c.get_bend_direction(),
                 "active": if c.is_active() { 1 } else { 0 },
             })
         })
@@ -778,12 +778,12 @@ fn main() {
             json!({
                 "i": i,
                 "name": name,
-                "mixRotate": c.mix_rotate(),
-                "mixX": c.mix_x(),
-                "mixY": c.mix_y(),
-                "mixScaleX": c.mix_scale_x(),
-                "mixScaleY": c.mix_scale_y(),
-                "mixShearY": c.mix_shear_y(),
+                "mixRotate": c.get_mix_rotate(),
+                "mixX": c.get_mix_x(),
+                "mixY": c.get_mix_y(),
+                "mixScaleX": c.get_mix_scale_x(),
+                "mixScaleY": c.get_mix_scale_y(),
+                "mixShearY": c.get_mix_shear_y(),
                 "active": if c.is_active() { 1 } else { 0 },
             })
         })
@@ -803,11 +803,11 @@ fn main() {
             json!({
                 "i": i,
                 "name": name,
-                "position": c.position(),
-                "spacing": c.spacing(),
-                "mixRotate": c.mix_rotate(),
-                "mixX": c.mix_x(),
-                "mixY": c.mix_y(),
+                "position": c.get_position(),
+                "spacing": c.get_spacing(),
+                "mixRotate": c.get_mix_rotate(),
+                "mixX": c.get_mix_x(),
+                "mixY": c.get_mix_y(),
                 "active": if c.is_active() { 1 } else { 0 },
             })
         })

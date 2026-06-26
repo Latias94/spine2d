@@ -90,5 +90,5 @@ fn transform_timeline_applies_negative_alpha_like_cpp() {
     skeleton.setup_pose();
     apply_animation(anim, &mut skeleton, 0.5, false, -0.5, MixBlend::Replace);
 
-    assert_angle_approx(skeleton.transform_constraints[0].mix_rotate(), -0.25);
+    assert_angle_approx(skeleton.transform_constraints[0].get_mix_rotate(), -0.25);
 }

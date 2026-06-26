@@ -23,7 +23,7 @@ impl IkConstraint {
         &mut self.bones
     }
 
-    pub fn target(&self) -> usize {
+    pub fn get_target(&self) -> usize {
         self.target
     }
 
@@ -31,7 +31,7 @@ impl IkConstraint {
         self.target = target;
     }
 
-    pub fn scale_y_mode(&self) -> crate::ScaleYMode {
+    pub fn get_scale_y_mode(&self) -> crate::ScaleYMode {
         self.scale_y_mode
     }
 
@@ -39,7 +39,7 @@ impl IkConstraint {
         self.scale_y_mode = scale_y_mode;
     }
 
-    pub fn mix(&self) -> f32 {
+    pub fn get_mix(&self) -> f32 {
         self.mix
     }
 
@@ -47,7 +47,7 @@ impl IkConstraint {
         self.mix = mix;
     }
 
-    pub fn softness(&self) -> f32 {
+    pub fn get_softness(&self) -> f32 {
         self.softness
     }
 
@@ -55,7 +55,7 @@ impl IkConstraint {
         self.softness = softness;
     }
 
-    pub fn compress(&self) -> bool {
+    pub fn get_compress(&self) -> bool {
         self.compress
     }
 
@@ -63,7 +63,7 @@ impl IkConstraint {
         self.compress = compress;
     }
 
-    pub fn stretch(&self) -> bool {
+    pub fn get_stretch(&self) -> bool {
         self.stretch
     }
 
@@ -71,7 +71,7 @@ impl IkConstraint {
         self.stretch = stretch;
     }
 
-    pub fn bend_direction(&self) -> i32 {
+    pub fn get_bend_direction(&self) -> i32 {
         self.bend_direction
     }
 
