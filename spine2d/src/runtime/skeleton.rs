@@ -752,7 +752,7 @@ impl Skeleton {
         self.slider_constraints.get(index)
     }
 
-    pub fn x(&self) -> f32 {
+    pub fn get_x(&self) -> f32 {
         self.x
     }
 
@@ -760,7 +760,7 @@ impl Skeleton {
         self.x = x;
     }
 
-    pub fn y(&self) -> f32 {
+    pub fn get_y(&self) -> f32 {
         self.y
     }
 
@@ -773,7 +773,7 @@ impl Skeleton {
         self.y = y;
     }
 
-    pub fn scale_x(&self) -> f32 {
+    pub fn get_scale_x(&self) -> f32 {
         self.scale_x
     }
 
@@ -781,7 +781,7 @@ impl Skeleton {
         self.scale_x = scale_x;
     }
 
-    pub fn scale_y(&self) -> f32 {
+    pub fn get_scale_y(&self) -> f32 {
         self.effective_scale_y()
     }
 
@@ -802,7 +802,7 @@ impl Skeleton {
         self.time
     }
 
-    pub fn wind_x(&self) -> f32 {
+    pub fn get_wind_x(&self) -> f32 {
         self.wind_x
     }
 
@@ -810,7 +810,7 @@ impl Skeleton {
         self.wind_x = wind_x;
     }
 
-    pub fn wind_y(&self) -> f32 {
+    pub fn get_wind_y(&self) -> f32 {
         self.wind_y
     }
 
@@ -818,7 +818,7 @@ impl Skeleton {
         self.wind_y = wind_y;
     }
 
-    pub fn gravity_x(&self) -> f32 {
+    pub fn get_gravity_x(&self) -> f32 {
         self.gravity_x
     }
 
@@ -826,7 +826,7 @@ impl Skeleton {
         self.gravity_x = gravity_x;
     }
 
-    pub fn gravity_y(&self) -> f32 {
+    pub fn get_gravity_y(&self) -> f32 {
         self.gravity_y
     }
 

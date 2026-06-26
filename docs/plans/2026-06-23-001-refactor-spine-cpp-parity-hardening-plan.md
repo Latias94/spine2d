@@ -268,7 +268,9 @@ flowchart TB
 
 **Recent update:** Commit `e3e96c0` aligned the public local-transform update wrappers with C++ `BonePose::updateLocalTransform` by keeping the world epoch current after rebuilding applied local state.
 
-**Recent update:** Commit `d374ddf` added the C++-style `Bone::is_y_down/set_y_down` global control and routed `Skeleton::scale_y()` plus BonePose transform math through the effective scaleY while preserving the repo's default Y-up baseline.
+**Recent update:** Commit `d374ddf` added the C++-style `Bone::is_y_down/set_y_down` global control and routed `Skeleton::get_scale_y()` plus BonePose transform math through the effective scaleY while preserving the repo's default Y-up baseline.
+
+**Recent update:** `Skeleton` scalar state accessors now use latest-tag C++ getter spelling: `get_x`, `get_y`, `get_scale_x`, `get_scale_y`, `get_wind_x`, `get_wind_y`, `get_gravity_x`, and `get_gravity_y` replace the old Rust-style zero-argument helper names, while setters keep their existing `set_*` shape.
 
 **Recent update:** Commit `71ddc60` removed the Rust-only hidden `Skeleton::debug_update_cache` helper; debug callers now format the typed `update_cache_items()` view locally.
 

@@ -880,12 +880,15 @@ fn clipping_bounds_skeleton_data() -> Arc<SkeletonData> {
 fn skeleton_world_controls_follow_cpp_direct_assignment() {
     let mut skeleton = Skeleton::new(empty_skeleton_data());
 
-    assert_eq!((skeleton.wind_x(), skeleton.wind_y()), (1.0, 0.0));
-    assert_eq!(skeleton.wind_x(), 1.0);
-    assert_eq!(skeleton.wind_y(), 0.0);
-    assert_eq!((skeleton.gravity_x(), skeleton.gravity_y()), (0.0, 1.0));
-    assert_eq!(skeleton.gravity_x(), 0.0);
-    assert_eq!(skeleton.gravity_y(), 1.0);
+    assert_eq!((skeleton.get_wind_x(), skeleton.get_wind_y()), (1.0, 0.0));
+    assert_eq!(skeleton.get_wind_x(), 1.0);
+    assert_eq!(skeleton.get_wind_y(), 0.0);
+    assert_eq!(
+        (skeleton.get_gravity_x(), skeleton.get_gravity_y()),
+        (0.0, 1.0)
+    );
+    assert_eq!(skeleton.get_gravity_x(), 0.0);
+    assert_eq!(skeleton.get_gravity_y(), 1.0);
     assert_eq!(skeleton.get_time(), 0.0);
 
     skeleton.set_wind_x(2.0);
@@ -894,12 +897,15 @@ fn skeleton_world_controls_follow_cpp_direct_assignment() {
     skeleton.set_gravity_y(5.0);
     skeleton.set_time(1.5);
 
-    assert_eq!((skeleton.wind_x(), skeleton.wind_y()), (2.0, 3.0));
-    assert_eq!(skeleton.wind_x(), 2.0);
-    assert_eq!(skeleton.wind_y(), 3.0);
-    assert_eq!((skeleton.gravity_x(), skeleton.gravity_y()), (4.0, 5.0));
-    assert_eq!(skeleton.gravity_x(), 4.0);
-    assert_eq!(skeleton.gravity_y(), 5.0);
+    assert_eq!((skeleton.get_wind_x(), skeleton.get_wind_y()), (2.0, 3.0));
+    assert_eq!(skeleton.get_wind_x(), 2.0);
+    assert_eq!(skeleton.get_wind_y(), 3.0);
+    assert_eq!(
+        (skeleton.get_gravity_x(), skeleton.get_gravity_y()),
+        (4.0, 5.0)
+    );
+    assert_eq!(skeleton.get_gravity_x(), 4.0);
+    assert_eq!(skeleton.get_gravity_y(), 5.0);
     assert_eq!(skeleton.get_time(), 1.5);
 
     skeleton.set_wind_x(-2.0);
@@ -909,8 +915,11 @@ fn skeleton_world_controls_follow_cpp_direct_assignment() {
     skeleton.set_time(0.5);
     skeleton.update(-1.0);
 
-    assert_eq!((skeleton.wind_x(), skeleton.wind_y()), (-2.0, 6.0));
-    assert_eq!((skeleton.gravity_x(), skeleton.gravity_y()), (7.0, -5.0));
+    assert_eq!((skeleton.get_wind_x(), skeleton.get_wind_y()), (-2.0, 6.0));
+    assert_eq!(
+        (skeleton.get_gravity_x(), skeleton.get_gravity_y()),
+        (7.0, -5.0)
+    );
     assert_eq!(skeleton.get_time(), -0.5);
 
     skeleton.update(0.25);
@@ -1095,25 +1104,28 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
     skeleton.set_color([0.25, 0.5, 0.75, 0.875]);
     assert_eq!(skeleton.get_color(), [0.25, 0.5, 0.75, 0.875]);
 
-    assert_eq!((skeleton.x(), skeleton.y()), (0.0, 0.0));
+    assert_eq!((skeleton.get_x(), skeleton.get_y()), (0.0, 0.0));
     skeleton.set_position(10.0, -2.0);
-    assert_eq!((skeleton.x(), skeleton.y()), (10.0, -2.0));
-    assert_eq!(skeleton.x(), 10.0);
-    assert_eq!(skeleton.y(), -2.0);
+    assert_eq!((skeleton.get_x(), skeleton.get_y()), (10.0, -2.0));
+    assert_eq!(skeleton.get_x(), 10.0);
+    assert_eq!(skeleton.get_y(), -2.0);
 
     skeleton.set_x(3.0);
     skeleton.set_y(4.0);
-    assert_eq!((skeleton.x(), skeleton.y()), (3.0, 4.0));
+    assert_eq!((skeleton.get_x(), skeleton.get_y()), (3.0, 4.0));
 
-    assert_eq!((skeleton.scale_x(), skeleton.scale_y()), (1.0, 1.0));
+    assert_eq!((skeleton.get_scale_x(), skeleton.get_scale_y()), (1.0, 1.0));
     skeleton.set_scale(2.0, -3.0);
-    assert_eq!((skeleton.scale_x(), skeleton.scale_y()), (2.0, -3.0));
-    assert_eq!(skeleton.scale_x(), 2.0);
-    assert_eq!(skeleton.scale_y(), -3.0);
+    assert_eq!(
+        (skeleton.get_scale_x(), skeleton.get_scale_y()),
+        (2.0, -3.0)
+    );
+    assert_eq!(skeleton.get_scale_x(), 2.0);
+    assert_eq!(skeleton.get_scale_y(), -3.0);
 
     skeleton.set_scale_x(5.0);
     skeleton.set_scale_y(6.0);
-    assert_eq!((skeleton.scale_x(), skeleton.scale_y()), (5.0, 6.0));
+    assert_eq!((skeleton.get_scale_x(), skeleton.get_scale_y()), (5.0, 6.0));
 }
 
 #[test]
@@ -1666,8 +1678,8 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
     skeleton.set_scale(2.0, 3.0);
     skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert!(!Bone::is_y_down());
-    assert_eq!((skeleton.scale_x(), skeleton.scale_y()), (2.0, 3.0));
-    assert_eq!(skeleton.scale_y(), 3.0);
+    assert_eq!((skeleton.get_scale_x(), skeleton.get_scale_y()), (2.0, 3.0));
+    assert_eq!(skeleton.get_scale_y(), 3.0);
     assert_approx_pair(
         (
             skeleton.get_bones()[0].world_x(),
@@ -1683,8 +1695,11 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
     skeleton.set_scale(2.0, 3.0);
     skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert!(Bone::is_y_down());
-    assert_eq!((skeleton.scale_x(), skeleton.scale_y()), (2.0, -3.0));
-    assert_eq!(skeleton.scale_y(), -3.0);
+    assert_eq!(
+        (skeleton.get_scale_x(), skeleton.get_scale_y()),
+        (2.0, -3.0)
+    );
+    assert_eq!(skeleton.get_scale_y(), -3.0);
     assert_approx_pair(
         (
             skeleton.get_bones()[0].world_x(),
