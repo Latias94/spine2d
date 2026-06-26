@@ -11,6 +11,10 @@ pub struct SliderConstraint {
 }
 
 impl SliderConstraint {
+    pub fn get_data<'a>(&self, skeleton: &'a Skeleton) -> &'a crate::SliderConstraintData {
+        &skeleton.data.slider_constraints[self.data_index]
+    }
+
     pub fn get_bone<'a>(&self, skeleton: &'a Skeleton) -> Option<&'a Bone> {
         self.bone.and_then(|index| skeleton.bones.get(index))
     }
@@ -33,10 +37,6 @@ impl SliderConstraint {
 
     pub fn set_mix(&mut self, mix: f32) {
         self.mix = mix;
-    }
-
-    pub fn get_animation_bones(&self) -> &[usize] {
-        &self.animation_bones
     }
 
     pub fn is_active(&self) -> bool {

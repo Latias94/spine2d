@@ -15,6 +15,10 @@ pub struct IkConstraint {
 }
 
 impl IkConstraint {
+    pub fn get_data<'a>(&self, skeleton: &'a Skeleton) -> &'a crate::IkConstraintData {
+        &skeleton.data.ik_constraints[self.data_index]
+    }
+
     pub fn get_bones(&self) -> &[usize] {
         &self.bones
     }

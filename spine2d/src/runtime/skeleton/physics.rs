@@ -53,6 +53,10 @@ pub struct PhysicsConstraint {
 }
 
 impl PhysicsConstraint {
+    pub fn get_data<'a>(&self, skeleton: &'a Skeleton) -> &'a crate::PhysicsConstraintData {
+        &skeleton.data.physics_constraints[self.data_index]
+    }
+
     pub fn get_bone<'a>(&self, skeleton: &'a Skeleton) -> &'a Bone {
         &skeleton.bones[self.bone]
     }

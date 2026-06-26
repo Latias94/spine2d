@@ -15,6 +15,10 @@ pub struct PathConstraint {
 }
 
 impl PathConstraint {
+    pub fn get_data<'a>(&self, skeleton: &'a Skeleton) -> &'a crate::PathConstraintData {
+        &skeleton.data.path_constraints[self.data_index]
+    }
+
     pub fn get_bones(&self) -> &[usize] {
         &self.bones
     }

@@ -1,7 +1,8 @@
 use serde_json::json;
 use spine2d::{
-    AnimationState, AnimationStateData, Curve, MixInterpolation, Physics, Skeleton, SkeletonData,
-    TimelineRef, TrackEntryHandle, UpdateCacheItem,
+    AnimationState, AnimationStateData, ConstraintDataRef, ConstraintRef, Curve, IkConstraintData,
+    MixInterpolation, Physics, Skeleton, SkeletonData, TimelineRef, TrackEntryHandle,
+    UpdateCacheItem,
 };
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -52,6 +53,35 @@ fn parse_mix_interpolation(s: &str) -> Option<MixInterpolation> {
     }
 }
 
+fn ik_constraint_data(data: &SkeletonData, data_index: usize) -> Option<&IkConstraintData> {
+    data.get_constraints()
+        .into_iter()
+        .find_map(|constraint| match constraint {
+            ConstraintDataRef::Ik(index, item) if index == data_index => Some(item),
+            _ => None,
+        })
+}
+
+fn ik_constraint_name(data: &SkeletonData, data_index: usize) -> String {
+    ik_constraint_data(data, data_index)
+        .map(|constraint| constraint.get_name().to_string())
+        .unwrap_or_else(|| "<unknown>".to_string())
+}
+
+fn runtime_constraint_name(
+    skeleton: &Skeleton,
+    prefix: &str,
+    matches: impl Fn(ConstraintRef<'_>) -> bool,
+) -> String {
+    let name = skeleton
+        .get_constraints()
+        .into_iter()
+        .find(|constraint| matches(*constraint))
+        .map(|constraint| constraint.get_data(skeleton).get_name().to_string())
+        .unwrap_or_else(|| "<unknown>".to_string());
+    format!("{prefix} {name}")
+}
+
 fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
     fn bone_name(skeleton: &Skeleton, index: usize) -> &str {
         skeleton
@@ -67,50 +97,34 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
         .iter()
         .map(|item| match *item {
             UpdateCacheItem::Bone(index) => format!("bone {}", bone_name(skeleton, index)),
-            UpdateCacheItem::Ik(index) => {
-                let name = skeleton
-                    .get_data()
-                    .get_ik_constraints()
-                    .get(index)
-                    .map(|d| d.get_name())
-                    .unwrap_or("<unknown>");
-                format!("ik {}", name)
-            }
+            UpdateCacheItem::Ik(index) => runtime_constraint_name(skeleton, "ik", |constraint| {
+                matches!(constraint, ConstraintRef::Ik(_)
+                        if constraint.get_data(skeleton).get_index() == index)
+            }),
             UpdateCacheItem::Transform(index) => {
-                let name = skeleton
-                    .get_data()
-                    .get_transform_constraints()
-                    .get(index)
-                    .map(|d| d.get_name())
-                    .unwrap_or("<unknown>");
-                format!("transform {}", name)
+                runtime_constraint_name(skeleton, "transform", |constraint| match constraint {
+                    ConstraintRef::Transform(_) => {
+                        constraint.get_data(skeleton).get_index() == index
+                    }
+                    _ => false,
+                })
             }
             UpdateCacheItem::Path(index) => {
-                let name = skeleton
-                    .get_data()
-                    .get_path_constraints()
-                    .get(index)
-                    .map(|d| d.get_name())
-                    .unwrap_or("<unknown>");
-                format!("path {}", name)
+                runtime_constraint_name(skeleton, "path", |constraint| {
+                    matches!(constraint, ConstraintRef::Path(_)
+                        if constraint.get_data(skeleton).get_index() == index)
+                })
             }
-            UpdateCacheItem::Physics(index) => {
-                let name = skeleton
-                    .get_data()
-                    .get_physics_constraints()
-                    .get(index)
-                    .map(|d| d.get_name())
-                    .unwrap_or("<unknown>");
-                format!("physics {}", name)
-            }
+            UpdateCacheItem::Physics(index) => skeleton
+                .get_physics_constraints()
+                .get(index)
+                .map(|constraint| format!("physics {}", constraint.get_data(skeleton).get_name()))
+                .unwrap_or_else(|| "physics <unknown>".to_string()),
             UpdateCacheItem::Slider(index) => {
-                let name = skeleton
-                    .get_data()
-                    .get_slider_constraints()
-                    .get(index)
-                    .map(|d| d.get_name())
-                    .unwrap_or("<unknown>");
-                format!("slider {}", name)
+                runtime_constraint_name(skeleton, "slider", |constraint| match constraint {
+                    ConstraintRef::Slider(_) => constraint.get_data(skeleton).get_index() == index,
+                    _ => false,
+                })
             }
         })
         .collect()
@@ -349,11 +363,7 @@ fn dump_animation_data(data: &SkeletonData, name: &str) {
             _ => None,
         })
         .map(|timeline| {
-            let constraint_name = data
-                .get_ik_constraints()
-                .get(timeline.constraint_index)
-                .map(|c| c.get_name())
-                .unwrap_or("<unknown>");
+            let constraint_name = ik_constraint_name(data, timeline.constraint_index);
             let frames: Vec<_> = timeline
                 .frames
                 .iter()
@@ -748,19 +758,17 @@ fn main() {
         .collect();
 
     let ik_constraints: Vec<_> = skeleton
-        .get_ik_constraints()
-        .iter()
+        .get_constraints()
+        .into_iter()
+        .filter_map(|constraint| match constraint {
+            ConstraintRef::Ik(constraint) => Some(constraint),
+            _ => None,
+        })
         .enumerate()
         .map(|(i, c)| {
-            let name = skeleton
-                .get_data()
-                .get_ik_constraints()
-                .get(i)
-                .map(|d| d.get_name())
-                .unwrap_or("<unknown>");
             json!({
                 "i": i,
-                "name": name,
+                "name": c.get_data(&skeleton).get_name(),
                 "mix": c.get_mix(),
                 "softness": c.get_softness(),
                 "bendDirection": c.get_bend_direction(),
@@ -770,19 +778,17 @@ fn main() {
         .collect();
 
     let transform_constraints: Vec<_> = skeleton
-        .get_transform_constraints()
-        .iter()
+        .get_constraints()
+        .into_iter()
+        .filter_map(|constraint| match constraint {
+            ConstraintRef::Transform(constraint) => Some(constraint),
+            _ => None,
+        })
         .enumerate()
         .map(|(i, c)| {
-            let name = skeleton
-                .get_data()
-                .get_transform_constraints()
-                .get(i)
-                .map(|d| d.get_name())
-                .unwrap_or("<unknown>");
             json!({
                 "i": i,
-                "name": name,
+                "name": c.get_data(&skeleton).get_name(),
                 "mixRotate": c.get_mix_rotate(),
                 "mixX": c.get_mix_x(),
                 "mixY": c.get_mix_y(),
@@ -795,19 +801,17 @@ fn main() {
         .collect();
 
     let path_constraints: Vec<_> = skeleton
-        .get_path_constraints()
-        .iter()
+        .get_constraints()
+        .into_iter()
+        .filter_map(|constraint| match constraint {
+            ConstraintRef::Path(constraint) => Some(constraint),
+            _ => None,
+        })
         .enumerate()
         .map(|(i, c)| {
-            let name = skeleton
-                .get_data()
-                .get_path_constraints()
-                .get(i)
-                .map(|d| d.get_name())
-                .unwrap_or("<unknown>");
             json!({
                 "i": i,
-                "name": name,
+                "name": c.get_data(&skeleton).get_name(),
                 "position": c.get_position(),
                 "spacing": c.get_spacing(),
                 "mixRotate": c.get_mix_rotate(),
@@ -825,21 +829,20 @@ fn main() {
             json!(update_cache_debug_labels(&skeleton)),
         );
         let transform_constraint_data: Vec<_> = skeleton
-            .get_data()
-            .get_transform_constraints()
-            .iter()
+            .get_constraints()
+            .into_iter()
+            .filter_map(|constraint| match constraint {
+                ConstraintRef::Transform(constraint) => Some(constraint),
+                _ => None,
+            })
             .map(|c| {
+                let c = c.get_data(&skeleton);
                 let bone_names: Vec<_> = c
                     .get_bones()
                     .iter()
                     .filter_map(|&i| skeleton.get_data().get_bones().get(i).map(|b| b.get_name()))
                     .collect();
-                let source_name = skeleton
-                    .get_data()
-                    .get_bones()
-                    .get(c.get_source(skeleton.get_data()).get_index())
-                    .map(|b| b.get_name())
-                    .unwrap_or("<unknown>");
+                let source_name = c.get_source(skeleton.get_data()).get_name();
                 json!({
                     "name": c.get_name(),
                     "bones": c.get_bones().len(),

@@ -17,7 +17,7 @@ pub use slider::SliderConstraint;
 pub use slot::Slot;
 pub use transform::TransformConstraint;
 
-use crate::{SkeletonData, geometry::SkeletonClipper};
+use crate::{ConstraintDataRef, SkeletonData, geometry::SkeletonClipper};
 use path::{PathConstraintScratch, estimate_path_attachment_scratch_capacities};
 use slot::SlotPose;
 use std::sync::Arc;
@@ -32,6 +32,26 @@ pub enum ConstraintRef<'a> {
 }
 
 impl ConstraintRef<'_> {
+    pub fn get_data<'a>(&self, skeleton: &'a Skeleton) -> ConstraintDataRef<'a> {
+        match self {
+            ConstraintRef::Ik(constraint) => {
+                ConstraintDataRef::Ik(constraint.data_index, constraint.get_data(skeleton))
+            }
+            ConstraintRef::Transform(constraint) => {
+                ConstraintDataRef::Transform(constraint.data_index, constraint.get_data(skeleton))
+            }
+            ConstraintRef::Path(constraint) => {
+                ConstraintDataRef::Path(constraint.data_index, constraint.get_data(skeleton))
+            }
+            ConstraintRef::Physics(constraint) => {
+                ConstraintDataRef::Physics(constraint.data_index, constraint.get_data(skeleton))
+            }
+            ConstraintRef::Slider(constraint) => {
+                ConstraintDataRef::Slider(constraint.data_index, constraint.get_data(skeleton))
+            }
+        }
+    }
+
     fn order(&self, data: &SkeletonData) -> i32 {
         match self {
             ConstraintRef::Ik(constraint) => data
@@ -73,9 +93,59 @@ impl ConstraintRef<'_> {
     }
 }
 
+#[derive(Debug)]
+pub enum ConstraintRefMut<'a> {
+    Ik(&'a mut IkConstraint, &'a crate::IkConstraintData),
+    Transform(
+        &'a mut TransformConstraint,
+        &'a crate::TransformConstraintData,
+    ),
+    Path(&'a mut PathConstraint, &'a crate::PathConstraintData),
+    Physics(&'a mut PhysicsConstraint, &'a crate::PhysicsConstraintData),
+    Slider(&'a mut SliderConstraint, &'a crate::SliderConstraintData),
+}
+
+impl ConstraintRefMut<'_> {
+    pub fn get_data(&self) -> ConstraintDataRef<'_> {
+        match self {
+            ConstraintRefMut::Ik(constraint, data) => {
+                ConstraintDataRef::Ik(constraint.data_index, *data)
+            }
+            ConstraintRefMut::Transform(constraint, data) => {
+                ConstraintDataRef::Transform(constraint.data_index, *data)
+            }
+            ConstraintRefMut::Path(constraint, data) => {
+                ConstraintDataRef::Path(constraint.data_index, *data)
+            }
+            ConstraintRefMut::Physics(constraint, data) => {
+                ConstraintDataRef::Physics(constraint.data_index, *data)
+            }
+            ConstraintRefMut::Slider(constraint, data) => {
+                ConstraintDataRef::Slider(constraint.data_index, *data)
+            }
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        match self {
+            ConstraintRefMut::Ik(constraint, _) => constraint.is_active(),
+            ConstraintRefMut::Transform(constraint, _) => constraint.is_active(),
+            ConstraintRefMut::Path(constraint, _) => constraint.is_active(),
+            ConstraintRefMut::Physics(constraint, _) => constraint.is_active(),
+            ConstraintRefMut::Slider(constraint, _) => constraint.is_active(),
+        }
+    }
+}
+
+struct OrderedConstraintRefMut<'a> {
+    order: i32,
+    constraint: ConstraintRefMut<'a>,
+}
+
 #[doc(hidden)]
 pub trait SkeletonConstraintLookup: Sized {
     fn find_in<'a>(skeleton: &'a Skeleton, name: &str) -> Option<&'a Self>;
+    fn find_in_mut<'a>(skeleton: &'a mut Skeleton, name: &str) -> Option<&'a mut Self>;
 }
 
 macro_rules! impl_skeleton_constraint_lookup {
@@ -91,6 +161,18 @@ macro_rules! impl_skeleton_constraint_lookup {
                     .iter()
                     .position(|constraint| constraint.name == name)
                     .and_then(|index| skeleton.$field.get(index))
+            }
+
+            fn find_in_mut<'a>(skeleton: &'a mut Skeleton, name: &str) -> Option<&'a mut Self> {
+                if name.is_empty() {
+                    return None;
+                }
+                let index = skeleton
+                    .data
+                    .$field
+                    .iter()
+                    .position(|constraint| constraint.name == name)?;
+                skeleton.$field.get_mut(index)
             }
         }
     };
@@ -645,10 +727,6 @@ impl Skeleton {
         self.color = color;
     }
 
-    pub fn get_ik_constraints(&self) -> &[IkConstraint] {
-        &self.ik_constraints
-    }
-
     pub fn get_constraints(&self) -> Vec<ConstraintRef<'_>> {
         let mut constraints = Vec::with_capacity(
             self.ik_constraints.len()
@@ -670,24 +748,55 @@ impl Skeleton {
         constraints
     }
 
-    pub fn get_ik_constraints_mut(&mut self) -> &mut [IkConstraint] {
-        &mut self.ik_constraints
-    }
-
-    pub fn get_transform_constraints(&self) -> &[TransformConstraint] {
-        &self.transform_constraints
-    }
-
-    pub fn get_transform_constraints_mut(&mut self) -> &mut [TransformConstraint] {
-        &mut self.transform_constraints
-    }
-
-    pub fn get_path_constraints(&self) -> &[PathConstraint] {
-        &self.path_constraints
-    }
-
-    pub fn get_path_constraints_mut(&mut self) -> &mut [PathConstraint] {
-        &mut self.path_constraints
+    pub fn get_constraints_mut(&mut self) -> Vec<ConstraintRefMut<'_>> {
+        let data = self.data.as_ref();
+        let mut constraints = Vec::with_capacity(
+            self.ik_constraints.len()
+                + self.transform_constraints.len()
+                + self.path_constraints.len()
+                + self.physics_constraints.len()
+                + self.slider_constraints.len(),
+        );
+        constraints.extend(self.ik_constraints.iter_mut().map(|constraint| {
+            let constraint_data = &data.ik_constraints[constraint.data_index];
+            OrderedConstraintRefMut {
+                order: constraint_data.order,
+                constraint: ConstraintRefMut::Ik(constraint, constraint_data),
+            }
+        }));
+        constraints.extend(self.transform_constraints.iter_mut().map(|constraint| {
+            let constraint_data = &data.transform_constraints[constraint.data_index];
+            OrderedConstraintRefMut {
+                order: constraint_data.order,
+                constraint: ConstraintRefMut::Transform(constraint, constraint_data),
+            }
+        }));
+        constraints.extend(self.path_constraints.iter_mut().map(|constraint| {
+            let constraint_data = &data.path_constraints[constraint.data_index];
+            OrderedConstraintRefMut {
+                order: constraint_data.order,
+                constraint: ConstraintRefMut::Path(constraint, constraint_data),
+            }
+        }));
+        constraints.extend(self.physics_constraints.iter_mut().map(|constraint| {
+            let constraint_data = &data.physics_constraints[constraint.data_index];
+            OrderedConstraintRefMut {
+                order: constraint_data.order,
+                constraint: ConstraintRefMut::Physics(constraint, constraint_data),
+            }
+        }));
+        constraints.extend(self.slider_constraints.iter_mut().map(|constraint| {
+            let constraint_data = &data.slider_constraints[constraint.data_index];
+            OrderedConstraintRefMut {
+                order: constraint_data.order,
+                constraint: ConstraintRefMut::Slider(constraint, constraint_data),
+            }
+        }));
+        constraints.sort_by_key(|entry| entry.order);
+        constraints
+            .into_iter()
+            .map(|entry| entry.constraint)
+            .collect()
     }
 
     pub fn get_physics_constraints(&self) -> &[PhysicsConstraint] {
@@ -698,16 +807,15 @@ impl Skeleton {
         &mut self.physics_constraints
     }
 
-    pub fn get_slider_constraints(&self) -> &[SliderConstraint] {
-        &self.slider_constraints
-    }
-
-    pub fn get_slider_constraints_mut(&mut self) -> &mut [SliderConstraint] {
-        &mut self.slider_constraints
-    }
-
     pub fn find_constraint<T: SkeletonConstraintLookup>(&self, name: &str) -> Option<&T> {
         T::find_in(self, name)
+    }
+
+    pub fn find_constraint_mut<T: SkeletonConstraintLookup>(
+        &mut self,
+        name: &str,
+    ) -> Option<&mut T> {
+        T::find_in_mut(self, name)
     }
 
     pub fn get_x(&self) -> f32 {

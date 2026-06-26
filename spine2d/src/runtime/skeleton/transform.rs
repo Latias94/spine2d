@@ -15,6 +15,10 @@ pub struct TransformConstraint {
 }
 
 impl TransformConstraint {
+    pub fn get_data<'a>(&self, skeleton: &'a Skeleton) -> &'a crate::TransformConstraintData {
+        &skeleton.data.transform_constraints[self.data_index]
+    }
+
     pub fn get_bones(&self) -> &[usize] {
         &self.bones
     }

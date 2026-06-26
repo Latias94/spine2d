@@ -1233,41 +1233,51 @@ impl SliderConstraintData {
 
 #[derive(Copy, Clone, Debug)]
 pub enum ConstraintDataRef<'a> {
-    Ik(&'a IkConstraintData),
-    Transform(&'a TransformConstraintData),
-    Path(&'a PathConstraintData),
-    Physics(&'a PhysicsConstraintData),
-    Slider(&'a SliderConstraintData),
+    Ik(usize, &'a IkConstraintData),
+    Transform(usize, &'a TransformConstraintData),
+    Path(usize, &'a PathConstraintData),
+    Physics(usize, &'a PhysicsConstraintData),
+    Slider(usize, &'a SliderConstraintData),
 }
 
 impl ConstraintDataRef<'_> {
+    pub fn get_index(&self) -> usize {
+        match self {
+            ConstraintDataRef::Ik(index, _) => *index,
+            ConstraintDataRef::Transform(index, _) => *index,
+            ConstraintDataRef::Path(index, _) => *index,
+            ConstraintDataRef::Physics(index, _) => *index,
+            ConstraintDataRef::Slider(index, _) => *index,
+        }
+    }
+
     pub fn get_name(&self) -> &str {
         match self {
-            ConstraintDataRef::Ik(data) => data.name.as_str(),
-            ConstraintDataRef::Transform(data) => data.name.as_str(),
-            ConstraintDataRef::Path(data) => data.name.as_str(),
-            ConstraintDataRef::Physics(data) => data.name.as_str(),
-            ConstraintDataRef::Slider(data) => data.name.as_str(),
+            ConstraintDataRef::Ik(_, data) => data.name.as_str(),
+            ConstraintDataRef::Transform(_, data) => data.name.as_str(),
+            ConstraintDataRef::Path(_, data) => data.name.as_str(),
+            ConstraintDataRef::Physics(_, data) => data.name.as_str(),
+            ConstraintDataRef::Slider(_, data) => data.name.as_str(),
         }
     }
 
     pub fn get_skin_required(&self) -> bool {
         match self {
-            ConstraintDataRef::Ik(data) => data.skin_required,
-            ConstraintDataRef::Transform(data) => data.skin_required,
-            ConstraintDataRef::Path(data) => data.skin_required,
-            ConstraintDataRef::Physics(data) => data.skin_required,
-            ConstraintDataRef::Slider(data) => data.skin_required,
+            ConstraintDataRef::Ik(_, data) => data.skin_required,
+            ConstraintDataRef::Transform(_, data) => data.skin_required,
+            ConstraintDataRef::Path(_, data) => data.skin_required,
+            ConstraintDataRef::Physics(_, data) => data.skin_required,
+            ConstraintDataRef::Slider(_, data) => data.skin_required,
         }
     }
 
     pub fn get_order(&self) -> i32 {
         match self {
-            ConstraintDataRef::Ik(data) => data.order,
-            ConstraintDataRef::Transform(data) => data.order,
-            ConstraintDataRef::Path(data) => data.order,
-            ConstraintDataRef::Physics(data) => data.order,
-            ConstraintDataRef::Slider(data) => data.order,
+            ConstraintDataRef::Ik(_, data) => data.order,
+            ConstraintDataRef::Transform(_, data) => data.order,
+            ConstraintDataRef::Path(_, data) => data.order,
+            ConstraintDataRef::Physics(_, data) => data.order,
+            ConstraintDataRef::Slider(_, data) => data.order,
         }
     }
 }
@@ -2820,26 +2830,6 @@ impl SkeletonData {
         &self.animations
     }
 
-    pub fn get_ik_constraints(&self) -> &[IkConstraintData] {
-        &self.ik_constraints
-    }
-
-    pub fn get_transform_constraints(&self) -> &[TransformConstraintData] {
-        &self.transform_constraints
-    }
-
-    pub fn get_path_constraints(&self) -> &[PathConstraintData] {
-        &self.path_constraints
-    }
-
-    pub fn get_physics_constraints(&self) -> &[PhysicsConstraintData] {
-        &self.physics_constraints
-    }
-
-    pub fn get_slider_constraints(&self) -> &[SliderConstraintData] {
-        &self.slider_constraints
-    }
-
     pub fn find_bone(&self, name: &str) -> Option<&BoneData> {
         self.bones.iter().find(|data| data.name == name)
     }
@@ -2877,31 +2867,31 @@ impl SkeletonData {
             self.ik_constraints
                 .iter()
                 .enumerate()
-                .map(|(_, data)| ConstraintDataRef::Ik(data)),
+                .map(|(index, data)| ConstraintDataRef::Ik(index, data)),
         );
         constraints.extend(
             self.transform_constraints
                 .iter()
                 .enumerate()
-                .map(|(_, data)| ConstraintDataRef::Transform(data)),
+                .map(|(index, data)| ConstraintDataRef::Transform(index, data)),
         );
         constraints.extend(
             self.path_constraints
                 .iter()
                 .enumerate()
-                .map(|(_, data)| ConstraintDataRef::Path(data)),
+                .map(|(index, data)| ConstraintDataRef::Path(index, data)),
         );
         constraints.extend(
             self.physics_constraints
                 .iter()
                 .enumerate()
-                .map(|(_, data)| ConstraintDataRef::Physics(data)),
+                .map(|(index, data)| ConstraintDataRef::Physics(index, data)),
         );
         constraints.extend(
             self.slider_constraints
                 .iter()
                 .enumerate()
-                .map(|(_, data)| ConstraintDataRef::Slider(data)),
+                .map(|(index, data)| ConstraintDataRef::Slider(index, data)),
         );
         constraints.sort_by_key(ConstraintDataRef::get_order);
         constraints

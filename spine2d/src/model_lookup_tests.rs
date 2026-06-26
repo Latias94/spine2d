@@ -231,7 +231,7 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     );
     assert!(matches!(
         constraints[0],
-        ConstraintDataRef::Slider(data) if data.get_name() == "slider"
+        ConstraintDataRef::Slider(_, data) if data.get_name() == "slider"
     ));
 
     assert!(data.find_bone("").is_none());
