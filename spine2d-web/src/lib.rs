@@ -329,7 +329,7 @@ mod web {
         // Fallback: pick the skin with the most attachments so "content-heavy" examples render by
         // default (e.g. mix-and-match).
         let mut best: Option<(&str, usize)> = None;
-        for (name, skin) in data.get_skins() {
+        for skin in data.get_skins() {
             let count = skin
                 .get_attachments()
                 .iter()
@@ -339,8 +339,10 @@ mod web {
                 continue;
             }
             match best {
-                None => best = Some((name.as_str(), count)),
-                Some((_, best_count)) if count > best_count => best = Some((name.as_str(), count)),
+                None => best = Some((skin.get_name(), count)),
+                Some((_, best_count)) if count > best_count => {
+                    best = Some((skin.get_name(), count));
+                }
                 _ => {}
             }
         }
@@ -665,7 +667,12 @@ mod web {
 
         {
             let st = state.borrow();
-            let mut skin_names = st.data.get_skins().keys().cloned().collect::<Vec<_>>();
+            let mut skin_names = st
+                .data
+                .get_skins()
+                .iter()
+                .map(|skin| skin.get_name().to_string())
+                .collect::<Vec<_>>();
             skin_names.sort();
             populate_skin_select(
                 document,
@@ -818,7 +825,12 @@ mod web {
                         .iter()
                         .map(|a| a.name.clone())
                         .collect::<Vec<_>>();
-                    let mut skin_names = st.data.get_skins().keys().cloned().collect::<Vec<_>>();
+                    let mut skin_names = st
+                        .data
+                        .get_skins()
+                        .iter()
+                        .map(|skin| skin.get_name().to_string())
+                        .collect::<Vec<_>>();
                     skin_names.sort();
                     if let Err(e) = populate_select_options(
                         &document,

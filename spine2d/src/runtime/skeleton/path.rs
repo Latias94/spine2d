@@ -96,7 +96,7 @@ pub(super) fn estimate_path_attachment_scratch_capacities(
     let mut max_world_floats = 8usize;
     let mut max_curves = 0usize;
 
-    for skin in data.skins.values() {
+    for skin in &data.skins {
         let Some(slot_map) = skin.attachments.get(target_slot_index) else {
             continue;
         };

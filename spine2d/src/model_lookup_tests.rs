@@ -23,20 +23,16 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
         setup_pose: crate::SlotSetupPose::default(),
         ..SlotData::default()
     });
-    data.skins
-        .insert("skin-key".to_string(), SkinData::new("skin"));
-    data.events.insert(
-        "event-key".to_string(),
-        EventData {
-            name: "event".to_string(),
-            int_value: 1,
-            float_value: 2.0,
-            string: "payload".to_string(),
-            audio_path: String::new(),
-            volume: 1.0,
-            balance: 0.0,
-        },
-    );
+    data.skins.push(SkinData::new("skin"));
+    data.events.push(EventData {
+        name: "event".to_string(),
+        int_value: 1,
+        float_value: 2.0,
+        string: "payload".to_string(),
+        audio_path: String::new(),
+        volume: 1.0,
+        balance: 0.0,
+    });
     data.animations.push(Animation {
         name: "animation".to_string(),
         duration: 0.0,
@@ -276,34 +272,30 @@ fn animation_bones_reports_unique_affected_bone_indices_like_cpp() {
 fn skeleton_data_skins_and_events_preserve_cpp_array_order() {
     let mut data = SkeletonData::default();
     for skin_name in ["skin-b", "default", "skin-a"] {
-        data.skins
-            .insert(skin_name.to_string(), SkinData::new(skin_name));
+        data.skins.push(SkinData::new(skin_name));
     }
     for event_name in ["event-b", "event-a"] {
-        data.events.insert(
-            event_name.to_string(),
-            EventData {
-                name: event_name.to_string(),
-                int_value: 0,
-                float_value: 0.0,
-                string: String::new(),
-                audio_path: String::new(),
-                volume: 1.0,
-                balance: 0.0,
-            },
-        );
+        data.events.push(EventData {
+            name: event_name.to_string(),
+            int_value: 0,
+            float_value: 0.0,
+            string: String::new(),
+            audio_path: String::new(),
+            volume: 1.0,
+            balance: 0.0,
+        });
     }
 
     assert_eq!(
         data.skins
-            .values()
+            .iter()
             .map(|skin| skin.name.as_str())
             .collect::<Vec<_>>(),
         vec!["skin-b", "default", "skin-a"]
     );
     assert_eq!(
         data.events
-            .values()
+            .iter()
             .map(|event| event.name.as_str())
             .collect::<Vec<_>>(),
         vec!["event-b", "event-a"]
@@ -394,14 +386,14 @@ fn skeleton_data_skins_and_events_follow_cpp_order_after_json_parse() {
 
     assert_eq!(
         data.skins
-            .values()
+            .iter()
             .map(|skin| skin.name.as_str())
             .collect::<Vec<_>>(),
         vec!["skin-b", "default", "skin-a"]
     );
     assert_eq!(
         data.events
-            .values()
+            .iter()
             .map(|event| event.name.as_str())
             .collect::<Vec<_>>(),
         vec!["event-b", "event-a"]

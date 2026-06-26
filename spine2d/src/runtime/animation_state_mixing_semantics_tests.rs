@@ -45,8 +45,8 @@ fn base_skeleton_data() -> SkeletonData {
             ..Default::default()
         }],
         slots: Vec::new(),
-        skins: indexmap::IndexMap::new(),
-        events: indexmap::IndexMap::new(),
+        skins: Vec::new(),
+        events: Vec::new(),
         animations: Vec::new(),
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),
@@ -810,20 +810,17 @@ fn mixing_thresholds_gate_attachment_and_draw_order_from_mixing_from() {
             height: 1.0,
         }),
     );
-    data.skins.insert(
-        "default".to_string(),
-        SkinData {
-            name: "default".to_string(),
-            color: SkinData::DEFAULT_COLOR,
-            attachments,
-            bones: Vec::new(),
-            ik_constraints: Vec::new(),
-            transform_constraints: Vec::new(),
-            path_constraints: Vec::new(),
-            physics_constraints: Vec::new(),
-            slider_constraints: Vec::new(),
-        },
-    );
+    data.skins.push(SkinData {
+        name: "default".to_string(),
+        color: SkinData::DEFAULT_COLOR,
+        attachments,
+        bones: Vec::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    });
 
     data.animations = vec![anim_a, anim_b];
     let data = Arc::new(data);
@@ -1038,20 +1035,17 @@ fn draw_order_folder_applies_after_draw_order_timeline() {
         );
     }
 
-    data.skins.insert(
-        "default".to_string(),
-        SkinData {
-            name: "default".to_string(),
-            color: SkinData::DEFAULT_COLOR,
-            attachments,
-            bones: Vec::new(),
-            ik_constraints: Vec::new(),
-            transform_constraints: Vec::new(),
-            path_constraints: Vec::new(),
-            physics_constraints: Vec::new(),
-            slider_constraints: Vec::new(),
-        },
-    );
+    data.skins.push(SkinData {
+        name: "default".to_string(),
+        color: SkinData::DEFAULT_COLOR,
+        attachments,
+        bones: Vec::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    });
     data.animations = vec![anim_a];
     let data = Arc::new(data);
 
@@ -1177,20 +1171,17 @@ fn track0_additive_does_not_override_alpha_attachment_threshold_for_attachments(
             height: 1.0,
         }),
     );
-    data.skins.insert(
-        "default".to_string(),
-        SkinData {
-            name: "default".to_string(),
-            color: SkinData::DEFAULT_COLOR,
-            attachments,
-            bones: Vec::new(),
-            ik_constraints: Vec::new(),
-            transform_constraints: Vec::new(),
-            path_constraints: Vec::new(),
-            physics_constraints: Vec::new(),
-            slider_constraints: Vec::new(),
-        },
-    );
+    data.skins.push(SkinData {
+        name: "default".to_string(),
+        color: SkinData::DEFAULT_COLOR,
+        attachments,
+        bones: Vec::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    });
     data.animations = vec![anim_a, anim_b];
     let data = Arc::new(data);
 

@@ -1051,7 +1051,7 @@ impl Skeleton {
                 self.skin = None;
             }
             Some(name) => {
-                if !self.data.skins.contains_key(name) {
+                if self.data.find_skin(name).is_none() {
                     return;
                 }
                 if old_skin.as_deref() == Some(name) {

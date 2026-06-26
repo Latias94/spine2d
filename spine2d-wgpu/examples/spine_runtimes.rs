@@ -430,7 +430,12 @@ impl App {
                         let skins = self
                             .data
                             .as_ref()
-                            .map(|d| d.get_skins().keys().cloned().collect::<Vec<_>>())
+                            .map(|d| {
+                                d.get_skins()
+                                    .iter()
+                                    .map(|skin| skin.get_name().to_string())
+                                    .collect::<Vec<_>>()
+                            })
                             .unwrap_or_default();
                         let mut skins = skins;
                         skins.sort();
@@ -742,7 +747,7 @@ fn choose_default_skin(example: &str, data: &SkeletonData) -> Option<String> {
 
     // Fallback: pick the skin with the most attachments.
     let mut best: Option<(&str, usize)> = None;
-    for (name, skin) in data.get_skins() {
+    for skin in data.get_skins() {
         let count = skin
             .get_attachments()
             .iter()
@@ -752,8 +757,10 @@ fn choose_default_skin(example: &str, data: &SkeletonData) -> Option<String> {
             continue;
         }
         match best {
-            None => best = Some((name.as_str(), count)),
-            Some((_, best_count)) if count > best_count => best = Some((name.as_str(), count)),
+            None => best = Some((skin.get_name(), count)),
+            Some((_, best_count)) if count > best_count => {
+                best = Some((skin.get_name(), count));
+            }
             _ => {}
         }
     }

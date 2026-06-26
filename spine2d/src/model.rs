@@ -1410,8 +1410,8 @@ pub struct SkeletonData {
     pub(crate) audio_path: String,
     pub(crate) bones: Vec<BoneData>,
     pub(crate) slots: Vec<SlotData>,
-    pub(crate) skins: IndexMap<String, SkinData>,
-    pub(crate) events: IndexMap<String, EventData>,
+    pub(crate) skins: Vec<SkinData>,
+    pub(crate) events: Vec<EventData>,
     pub(crate) animations: Vec<Animation>,
     pub(crate) ik_constraints: Vec<IkConstraintData>,
     pub(crate) transform_constraints: Vec<TransformConstraintData>,
@@ -1477,11 +1477,11 @@ impl SkeletonData {
         &self.slots
     }
 
-    pub fn get_skins(&self) -> &IndexMap<String, SkinData> {
+    pub fn get_skins(&self) -> &[SkinData] {
         &self.skins
     }
 
-    pub fn get_events(&self) -> &IndexMap<String, EventData> {
+    pub fn get_events(&self) -> &[EventData] {
         &self.events
     }
 
@@ -1522,11 +1522,11 @@ impl SkeletonData {
     }
 
     pub fn find_skin(&self, name: &str) -> Option<&SkinData> {
-        self.skins.values().find(|data| data.name == name)
+        self.skins.iter().find(|data| data.name == name)
     }
 
     pub fn find_event(&self, name: &str) -> Option<&EventData> {
-        self.events.values().find(|data| data.name == name)
+        self.events.iter().find(|data| data.name == name)
     }
 
     pub fn find_ik_constraint(&self, name: &str) -> Option<&IkConstraintData> {
@@ -1637,8 +1637,8 @@ impl Default for SkeletonData {
             audio_path: String::new(),
             bones: Vec::new(),
             slots: Vec::new(),
-            skins: IndexMap::new(),
-            events: IndexMap::new(),
+            skins: Vec::new(),
+            events: Vec::new(),
             animations: Vec::new(),
             ik_constraints: Vec::new(),
             transform_constraints: Vec::new(),

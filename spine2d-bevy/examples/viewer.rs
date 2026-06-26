@@ -486,13 +486,13 @@ fn auto_skin<'a>(example: &ExampleEntry, asset: &'a SpineSkeletonAsset) -> Optio
                 .data
                 .get_skins()
                 .iter()
-                .filter_map(|(name, skin)| {
+                .filter_map(|skin| {
                     let attachment_count = skin
                         .get_attachments()
                         .iter()
                         .map(|attachment| attachment.len())
                         .sum::<usize>();
-                    (attachment_count > 0).then_some((name.as_str(), attachment_count))
+                    (attachment_count > 0).then_some((skin.get_name(), attachment_count))
                 })
                 .max_by_key(|(_, attachment_count)| *attachment_count)
                 .map(|(name, _)| name)

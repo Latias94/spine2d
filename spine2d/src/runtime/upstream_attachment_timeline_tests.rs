@@ -88,21 +88,17 @@ fn build_data() -> Arc<SkeletonData> {
             }),
         );
     }
-    let mut skins = indexmap::IndexMap::new();
-    skins.insert(
-        "default".to_string(),
-        SkinData {
-            name: "default".to_string(),
-            color: SkinData::DEFAULT_COLOR,
-            attachments,
-            bones: Vec::new(),
-            ik_constraints: Vec::new(),
-            transform_constraints: Vec::new(),
-            path_constraints: Vec::new(),
-            physics_constraints: Vec::new(),
-            slider_constraints: Vec::new(),
-        },
-    );
+    let skins = vec![SkinData {
+        name: "default".to_string(),
+        color: SkinData::DEFAULT_COLOR,
+        attachments,
+        bones: Vec::new(),
+        ik_constraints: Vec::new(),
+        transform_constraints: Vec::new(),
+        path_constraints: Vec::new(),
+        physics_constraints: Vec::new(),
+        slider_constraints: Vec::new(),
+    }];
 
     Arc::new(SkeletonData {
         spine_version: None,
@@ -119,7 +115,7 @@ fn build_data() -> Arc<SkeletonData> {
         bones,
         slots,
         skins,
-        events: indexmap::IndexMap::new(),
+        events: Vec::new(),
         animations: vec![animation],
         ik_constraints: Vec::new(),
         transform_constraints: Vec::new(),

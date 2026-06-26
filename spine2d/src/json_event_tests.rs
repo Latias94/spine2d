@@ -24,7 +24,7 @@ fn json_events_parse_defaults_and_key_overrides() {
 
     let data = SkeletonData::from_json_str(json).expect("parse");
 
-    let e = data.events.get("e").expect("event data e");
+    let e = data.find_event("e").expect("event data e");
     assert_eq!(e.int_value, 7);
     assert!((e.float_value - 1.5).abs() < 1e-6);
     assert_eq!(e.string, "setup");
@@ -33,7 +33,7 @@ fn json_events_parse_defaults_and_key_overrides() {
     assert!((e.balance + 0.5).abs() < 1e-6);
 
     // Match spine-cpp SkeletonJson: volume/balance are only parsed when audioPath is present.
-    let silent = data.events.get("silent").expect("event data silent");
+    let silent = data.find_event("silent").expect("event data silent");
     assert_eq!(silent.audio_path, "");
     assert!((silent.volume - 1.0).abs() < 1e-6);
     assert!((silent.balance - 0.0).abs() < 1e-6);

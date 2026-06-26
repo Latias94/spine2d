@@ -20,14 +20,14 @@ impl SpineSkeletonAsset {
         let mut skins = self
             .data
             .get_skins()
-            .keys()
-            .map(String::as_str)
+            .iter()
+            .map(|skin| skin.get_name())
             .collect::<Vec<_>>();
         let mut events = self
             .data
             .get_events()
-            .keys()
-            .map(String::as_str)
+            .iter()
+            .map(|event| event.name.as_str())
             .collect::<Vec<_>>();
 
         animations.sort_unstable();
@@ -49,11 +49,14 @@ impl SpineSkeletonAsset {
     }
 
     pub fn skins(&self) -> impl Iterator<Item = &str> {
-        self.data.get_skins().keys().map(String::as_str)
+        self.data.get_skins().iter().map(|skin| skin.get_name())
     }
 
     pub fn events(&self) -> impl Iterator<Item = &str> {
-        self.data.get_events().keys().map(String::as_str)
+        self.data
+            .get_events()
+            .iter()
+            .map(|event| event.name.as_str())
     }
 
     pub fn has_animation(&self, name: &str) -> bool {
@@ -65,7 +68,7 @@ impl SpineSkeletonAsset {
     }
 
     pub fn has_event(&self, name: &str) -> bool {
-        self.data.get_events().contains_key(name)
+        self.data.find_event(name).is_some()
     }
 }
 

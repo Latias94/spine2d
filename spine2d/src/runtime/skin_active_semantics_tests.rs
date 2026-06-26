@@ -273,7 +273,7 @@ fn mix_and_match_add_skin_composition_matches_upstream_demo_semantics() {
 
     // Also verify `Skeleton::set_skin` correctly activates bones and applies setup attachments
     // from the runtime-composed skin.
-    data.skins.insert(custom.name.clone(), custom.clone());
+    data.skins.push(custom.clone());
     let data = std::sync::Arc::new(data);
     let mut skeleton = Skeleton::new(data.clone());
     skeleton.setup_pose();

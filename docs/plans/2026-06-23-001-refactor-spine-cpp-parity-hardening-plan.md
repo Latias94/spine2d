@@ -343,7 +343,7 @@ flowchart TB
 
 **Recent update:** `SkeletonData` now has the remaining named data lookup helpers from the C++ data surface: bone, slot, event, and typed constraint lookups. Rust keeps separate typed constraint vectors rather than a C++ pointer array, but the public helpers now cover the same use cases as `findBone`, `findSlot`, `findEvent`, and `findConstraint<T>`. Name-based lookups now scan stored object names like C++ `findWithName`; the public `SkeletonData.animation_index` field was removed, and parser-local animation lookup tables stay internal to the loaders.
 
-**Recent update:** `SkeletonData.skins` and `SkeletonData.events` now use ordered `IndexMap` storage, intentionally breaking the old `HashMap` field type to match C++ `getSkins()` / `getEvents()` array-order semantics. JSON and binary parser outputs now preserve the observable skin/event order without a separate side table, and focused regressions cover manual plus JSON order preservation.
+**Recent update:** `SkeletonData.skins` and `SkeletonData.events` were first moved from `HashMap` to ordered `IndexMap` to preserve C++ `getSkins()` / `getEvents()` order, then superseded on 2026-06-26 by C++-style ordered `Vec` storage plus slice getters. JSON and binary parser outputs still preserve observable skin/event order, while parser-local maps are now just temporary lookup aids.
 
 **Recent update:** `SkeletonData::constraints()` now covers the C++ `SkeletonData::getConstraints()` unified data view. Rust still stores constraint data in typed vectors, but returns `ConstraintDataRef` entries in parser-assigned unified order with name/order/skin-required/data-index helpers, and JSON mixed-type constraint parsing now has focused coverage.
 
