@@ -72,10 +72,10 @@ fn round_tracks(state: &mut AnimationState) {
         let delay = current.entry(state).map(|entry| entry.get_delay()).unwrap();
         current.set_track_time(state, round_decimals(track_time, 6));
         current.set_delay(state, round_decimals(delay, 3));
-        let mut from = current.mixing_from(state);
+        let mut from = current.get_mixing_from(state);
         while let Some(id) = from {
             let track_time = id.entry(state).map(|entry| entry.get_track_time()).unwrap();
-            from = id.mixing_from(state);
+            from = id.get_mixing_from(state);
             id.set_track_time(state, round_decimals(track_time, 6));
         }
     }
@@ -146,9 +146,9 @@ fn with_queued_track_entry<R>(
     queue_index: usize,
     f: impl FnOnce(&TrackEntry) -> R,
 ) -> Option<R> {
-    let mut handle = state.get_current(track_index)?.next(state)?;
+    let mut handle = state.get_current(track_index)?.get_next(state)?;
     for _ in 0..queue_index {
-        handle = handle.next(state)?;
+        handle = handle.get_next(state)?;
     }
     handle.entry(state).map(f)
 }
@@ -261,8 +261,8 @@ fn track_entry_handles_are_bound_to_their_animation_state() {
     let first_entry = first_state.set_animation(0, "events0", false);
     let second_entry = second_state.set_animation(0, "events1", false);
 
-    assert!(first_entry.animation_state(&first_state).is_some());
-    assert!(first_entry.animation_state(&second_state).is_none());
+    assert!(first_entry.get_animation_state(&first_state).is_some());
+    assert!(first_entry.get_animation_state(&second_state).is_none());
     assert!(first_entry.entry(&first_state).is_some());
     assert!(first_entry.entry(&second_state).is_none());
 
@@ -486,7 +486,7 @@ fn add_empty_animation_delay_is_adjusted_to_end_with_previous_entry() {
     state.add_empty_animation(0, 0.5, 0.0);
     let delay = state
         .get_current(0)
-        .and_then(|entry| entry.next(&state))
+        .and_then(|entry| entry.get_next(&state))
         .and_then(|entry| entry.entry(&state).map(|entry| entry.get_delay()))
         .expect("queued empty animation");
     assert_eq!(round3(delay), 0.5);
@@ -803,14 +803,14 @@ fn manual_disposal_disposes_a_single_entry_without_chain_cleanup() {
 
     state.dispose_track_entry(second);
     assert!(second.entry(&state).is_none());
-    assert_eq!(second.previous(&state), None);
-    assert_eq!(second.next(&state), None);
-    assert_eq!(third.previous(&state), None);
+    assert_eq!(second.get_previous(&state), None);
+    assert_eq!(second.get_next(&state), None);
+    assert_eq!(third.get_previous(&state), None);
 
     state.dispose_track_entry(third);
     assert!(third.entry(&state).is_none());
-    assert_eq!(third.previous(&state), None);
-    assert_eq!(third.next(&state), None);
+    assert_eq!(third.get_previous(&state), None);
+    assert_eq!(third.get_next(&state), None);
 
     assert!(first.entry(&state).is_some());
 }
@@ -827,7 +827,7 @@ fn track_entry_set_mix_duration_with_delay_adjusts_queued_delay() {
 
     let delay = state
         .get_current(0)
-        .and_then(|entry| entry.next(&state))
+        .and_then(|entry| entry.get_next(&state))
         .and_then(|entry| entry.entry(&state).map(|entry| entry.get_delay()))
         .expect("queued animation");
     assert_eq!(round3(delay), 0.6);
@@ -3985,12 +3985,12 @@ fn track_entry_queue_neighbors_follow_cpp_previous_next_chain() {
     second.set_mix_duration(&mut state, 0.5);
     let third = state.add_animation(0, "events2", false, 0.0);
 
-    assert_eq!(first.previous(&state), None);
-    assert_eq!(first.next(&state), Some(second));
-    assert_eq!(second.previous(&state), Some(first));
-    assert_eq!(second.next(&state), Some(third));
-    assert_eq!(third.previous(&state), Some(second));
-    assert_eq!(third.next(&state), None);
+    assert_eq!(first.get_previous(&state), None);
+    assert_eq!(first.get_next(&state), Some(second));
+    assert_eq!(second.get_previous(&state), Some(first));
+    assert_eq!(second.get_next(&state), Some(third));
+    assert_eq!(third.get_previous(&state), Some(second));
+    assert_eq!(third.get_next(&state), None);
     assert!(!first.is_next_ready(&state));
 
     state.apply(&mut skeleton);
@@ -4001,12 +4001,12 @@ fn track_entry_queue_neighbors_follow_cpp_previous_next_chain() {
     assert!(first.is_next_ready(&state));
 
     state.update(0.0);
-    assert_eq!(first.next(&state), None);
-    assert_eq!(second.previous(&state), None);
-    assert_eq!(second.next(&state), Some(third));
-    assert_eq!(third.previous(&state), Some(second));
-    assert_eq!(second.mixing_from(&state), Some(first));
-    assert_eq!(first.mixing_to(&state), Some(second));
+    assert_eq!(first.get_next(&state), None);
+    assert_eq!(second.get_previous(&state), None);
+    assert_eq!(second.get_next(&state), Some(third));
+    assert_eq!(third.get_previous(&state), Some(second));
+    assert_eq!(second.get_mixing_from(&state), Some(first));
+    assert_eq!(first.get_mixing_to(&state), Some(second));
 }
 
 #[test]
@@ -4019,7 +4019,7 @@ fn set_empty_animations_sets_empty_entries_for_active_tracks() {
 
     state.set_empty_animations(0.4);
 
-    assert!(state.get_current(0).unwrap().next(&state).is_none());
+    assert!(state.get_current(0).unwrap().get_next(&state).is_none());
     with_track_entry(&state, 0, |entry| {
         assert_eq!(entry.get_animation().name, "<empty>");
         assert_eq!(entry.get_mix_duration(), 0.4);
@@ -4073,8 +4073,8 @@ fn set_animation_same_animation_with_negative_track_time_still_mixes_from_applie
 
     let second = state.set_animation(0, "events0", false);
 
-    assert_eq!(second.mixing_from(&state), Some(first));
-    assert!(first.next(&state).is_none());
+    assert_eq!(second.get_mixing_from(&state), Some(first));
+    assert!(first.get_next(&state).is_none());
 }
 
 #[test]
@@ -4089,7 +4089,7 @@ fn set_animation_same_unapplied_animation_replaces_without_mixing_like_cpp() {
 
     let second = state.set_animation(0, "events0", false);
 
-    assert_eq!(second.mixing_from(&state), None);
+    assert_eq!(second.get_mixing_from(&state), None);
     assert!(first.entry(&state).is_none());
     let rows = recording.rows.borrow();
     let events = rows.iter().map(|row| row.name.as_str()).collect::<Vec<_>>();

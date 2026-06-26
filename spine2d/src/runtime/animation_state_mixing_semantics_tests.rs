@@ -414,15 +414,15 @@ fn completed_hold_mix_chain_detaches_current_mixing_from() {
     state.update(0.25);
     skeleton.setup_pose();
     state.apply(&mut skeleton);
-    assert!(to.mixing_from(&state).is_some());
+    assert!(to.get_mixing_from(&state).is_some());
 
     state.update(0.25);
     skeleton.setup_pose();
     state.apply(&mut skeleton);
-    assert!(to.mixing_from(&state).is_some());
+    assert!(to.get_mixing_from(&state).is_some());
 
     state.update(0.0);
-    assert_eq!(to.mixing_from(&state), None);
+    assert_eq!(to.get_mixing_from(&state), None);
 }
 
 #[test]
@@ -455,7 +455,7 @@ fn completed_hold_mix_chain_with_negative_track_time_still_detaches() {
     skeleton.setup_pose();
     state.apply(&mut skeleton);
 
-    assert_eq!(to.mixing_from(&state), None);
+    assert_eq!(to.get_mixing_from(&state), None);
 }
 
 #[test]
@@ -922,15 +922,15 @@ fn draw_order_current_mix_out_does_not_keep_mixing_from_alive() {
     state.update(0.25);
     skeleton.setup_pose();
     state.apply(&mut skeleton);
-    assert!(empty.mixing_from(&state).is_some());
+    assert!(empty.get_mixing_from(&state).is_some());
 
     state.update(0.25);
     skeleton.setup_pose();
     state.apply(&mut skeleton);
-    assert!(empty.mixing_from(&state).is_some());
+    assert!(empty.get_mixing_from(&state).is_some());
 
     state.update(0.0);
-    assert_eq!(empty.mixing_from(&state), None);
+    assert_eq!(empty.get_mixing_from(&state), None);
 }
 
 #[test]

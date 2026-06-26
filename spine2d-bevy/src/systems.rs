@@ -865,9 +865,13 @@ mod tests {
         let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
         let spine_world = app.world().non_send::<SpineWorld>();
         let state = &spine_world.get(key.0).unwrap().animation_state;
-        let mut handle = state.get_current(track_index).unwrap().next(state).unwrap();
+        let mut handle = state
+            .get_current(track_index)
+            .unwrap()
+            .get_next(state)
+            .unwrap();
         for _ in 0..queue_index {
-            handle = handle.next(state).unwrap();
+            handle = handle.get_next(state).unwrap();
         }
         handle.entry(state).map(f).unwrap()
     }

@@ -722,7 +722,7 @@ pub struct TrackEntryHandle {
 }
 
 impl TrackEntryHandle {
-    pub fn animation_state<'a>(&self, state: &'a AnimationState) -> Option<&'a AnimationState> {
+    pub fn get_animation_state<'a>(&self, state: &'a AnimationState) -> Option<&'a AnimationState> {
         state.entry_for_handle(*self)?;
         Some(state)
     }
@@ -731,7 +731,7 @@ impl TrackEntryHandle {
         state.entry_for_handle(*self)
     }
 
-    pub fn mixing_from(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
+    pub fn get_mixing_from(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
             .entry_for_handle(*self)
             .and_then(|entry| entry.mixing_from)
@@ -739,7 +739,7 @@ impl TrackEntryHandle {
             .map(|id| state.handle(id))
     }
 
-    pub fn mixing_to(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
+    pub fn get_mixing_to(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
             .entry_for_handle(*self)
             .and_then(|entry| entry.mixing_to)
@@ -747,7 +747,7 @@ impl TrackEntryHandle {
             .map(|id| state.handle(id))
     }
 
-    pub fn previous(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
+    pub fn get_previous(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
             .entry_for_handle(*self)
             .and_then(|entry| entry.previous)
@@ -755,7 +755,7 @@ impl TrackEntryHandle {
             .map(|id| state.handle(id))
     }
 
-    pub fn next(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
+    pub fn get_next(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
         state
             .entry_for_handle(*self)
             .and_then(|entry| entry.next)
@@ -768,7 +768,7 @@ impl TrackEntryHandle {
             return false;
         };
         let Some(next) = self
-            .next(state)
+            .get_next(state)
             .and_then(|handle| state.entry_for_handle(handle))
         else {
             return false;
