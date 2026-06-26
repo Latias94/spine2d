@@ -1375,7 +1375,7 @@ impl RegionAttachmentData {
 }
 
 #[derive(Clone, Debug)]
-pub struct SequenceDef {
+pub(crate) struct SequenceDef {
     pub(crate) id: u32,
     pub(crate) count: usize,
     pub(crate) start: i32,
@@ -1415,7 +1415,7 @@ impl MeshAttachmentData {
 }
 
 #[derive(Clone, Debug)]
-pub struct VertexWeight {
+pub(crate) struct VertexWeight {
     pub(crate) bone: usize,
     pub(crate) x: f32,
     pub(crate) y: f32,
@@ -1423,7 +1423,7 @@ pub struct VertexWeight {
 }
 
 #[derive(Clone, Debug)]
-pub enum MeshVertices {
+pub(crate) enum MeshVertices {
     Unweighted(Vec<[f32; 2]>),
     Weighted(Vec<Vec<VertexWeight>>),
 }
@@ -2148,7 +2148,7 @@ pub enum BoneTimeline {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TimelineKind {
+pub(crate) enum TimelineKind {
     SlotAttachment(usize),
     Deform(usize),
     Sequence(usize),
