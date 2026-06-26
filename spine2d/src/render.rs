@@ -91,7 +91,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
     let mut clipper = SkeletonClipper::default();
     let mut clip_end_slot: Option<usize> = None;
 
-    for &slot_index in skeleton.draw_order() {
+    for &slot_index in skeleton.get_draw_order() {
         // Match spine runtimes' clipping semantics:
         // - `clipEnd(slot)` is called for null attachments and for early-outs on region/mesh.
         // - `clipEnd(slot)` is NOT called for clipping attachments (they `continue` after `clipStart`).

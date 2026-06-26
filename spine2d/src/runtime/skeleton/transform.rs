@@ -15,11 +15,11 @@ pub struct TransformConstraint {
 }
 
 impl TransformConstraint {
-    pub fn bones(&self) -> &[usize] {
+    pub fn get_bones(&self) -> &[usize] {
         &self.bones
     }
 
-    pub fn bones_mut(&mut self) -> &mut Vec<usize> {
+    pub fn get_bones_mut(&mut self) -> &mut Vec<usize> {
         &mut self.bones
     }
 

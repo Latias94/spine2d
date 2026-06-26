@@ -37,7 +37,7 @@ fn parse_slots_and_default_skin_region_attachment() {
     assert_eq!(skeleton.slots[0].attachment.as_deref(), Some("head"));
     assert!(std::ptr::eq(
         skeleton.slots[0].get_bone(&skeleton),
-        &skeleton.bones()[0]
+        &skeleton.get_bones()[0]
     ));
     assert_eq!(skeleton.skin.as_deref(), None);
 

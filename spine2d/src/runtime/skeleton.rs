@@ -488,15 +488,15 @@ impl Skeleton {
         out
     }
 
-    pub fn data(&self) -> &SkeletonData {
+    pub fn get_data(&self) -> &SkeletonData {
         self.data.as_ref()
     }
 
-    pub fn bones(&self) -> &[Bone] {
+    pub fn get_bones(&self) -> &[Bone] {
         &self.bones
     }
 
-    pub fn bones_mut(&mut self) -> &mut [Bone] {
+    pub fn get_bones_mut(&mut self) -> &mut [Bone] {
         &mut self.bones
     }
 
@@ -519,11 +519,11 @@ impl Skeleton {
         self.bones.get(index)
     }
 
-    pub fn slots(&self) -> &[Slot] {
+    pub fn get_slots(&self) -> &[Slot] {
         &self.slots
     }
 
-    pub fn slots_mut(&mut self) -> &mut [Slot] {
+    pub fn get_slots_mut(&mut self) -> &mut [Slot] {
         &mut self.slots
     }
 
@@ -553,7 +553,7 @@ impl Skeleton {
     /// This matches C++ `DrawOrder::getAppliedPose()`: it is normally the same as
     /// `draw_order_pose`, but slider constraints with draw-order timelines may modify this
     /// applied order during world transform updates.
-    pub fn draw_order(&self) -> &[usize] {
+    pub fn get_draw_order(&self) -> &[usize] {
         if self.draw_order_constrained {
             &self.applied_draw_order
         } else {
@@ -562,12 +562,12 @@ impl Skeleton {
     }
 
     /// The unconstrained draw order pose set by animations or application code.
-    pub fn draw_order_pose(&self) -> &[usize] {
+    pub fn get_draw_order_pose(&self) -> &[usize] {
         &self.draw_order
     }
 
     /// Mutates the unconstrained draw order pose.
-    pub fn draw_order_mut(&mut self) -> &mut [usize] {
+    pub fn get_draw_order_mut(&mut self) -> &mut [usize] {
         &mut self.draw_order
     }
 
@@ -616,7 +616,7 @@ impl Skeleton {
         self.color = color;
     }
 
-    pub fn ik_constraints(&self) -> &[IkConstraint] {
+    pub fn get_ik_constraints(&self) -> &[IkConstraint] {
         &self.ik_constraints
     }
 
@@ -641,7 +641,7 @@ impl Skeleton {
         constraints
     }
 
-    pub fn ik_constraints_mut(&mut self) -> &mut [IkConstraint] {
+    pub fn get_ik_constraints_mut(&mut self) -> &mut [IkConstraint] {
         &mut self.ik_constraints
     }
 
@@ -660,11 +660,11 @@ impl Skeleton {
         self.ik_constraints.get(index)
     }
 
-    pub fn transform_constraints(&self) -> &[TransformConstraint] {
+    pub fn get_transform_constraints(&self) -> &[TransformConstraint] {
         &self.transform_constraints
     }
 
-    pub fn transform_constraints_mut(&mut self) -> &mut [TransformConstraint] {
+    pub fn get_transform_constraints_mut(&mut self) -> &mut [TransformConstraint] {
         &mut self.transform_constraints
     }
 
@@ -683,11 +683,11 @@ impl Skeleton {
         self.transform_constraints.get(index)
     }
 
-    pub fn path_constraints(&self) -> &[PathConstraint] {
+    pub fn get_path_constraints(&self) -> &[PathConstraint] {
         &self.path_constraints
     }
 
-    pub fn path_constraints_mut(&mut self) -> &mut [PathConstraint] {
+    pub fn get_path_constraints_mut(&mut self) -> &mut [PathConstraint] {
         &mut self.path_constraints
     }
 
@@ -706,11 +706,11 @@ impl Skeleton {
         self.path_constraints.get(index)
     }
 
-    pub fn physics_constraints(&self) -> &[PhysicsConstraint] {
+    pub fn get_physics_constraints(&self) -> &[PhysicsConstraint] {
         &self.physics_constraints
     }
 
-    pub fn physics_constraints_mut(&mut self) -> &mut [PhysicsConstraint] {
+    pub fn get_physics_constraints_mut(&mut self) -> &mut [PhysicsConstraint] {
         &mut self.physics_constraints
     }
 
@@ -729,11 +729,11 @@ impl Skeleton {
         self.physics_constraints.get(index)
     }
 
-    pub fn slider_constraints(&self) -> &[SliderConstraint] {
+    pub fn get_slider_constraints(&self) -> &[SliderConstraint] {
         &self.slider_constraints
     }
 
-    pub fn slider_constraints_mut(&mut self) -> &mut [SliderConstraint] {
+    pub fn get_slider_constraints_mut(&mut self) -> &mut [SliderConstraint] {
         &mut self.slider_constraints
     }
 
@@ -1385,7 +1385,7 @@ impl Skeleton {
         let mut max_y = f32::NEG_INFINITY;
         let mut has_vertices = false;
 
-        for &slot_index in self.draw_order() {
+        for &slot_index in self.get_draw_order() {
             let Some(slot) = self.slots.get(slot_index) else {
                 continue;
             };
@@ -1444,7 +1444,7 @@ impl Skeleton {
         let mut clipper = SkeletonClipper::default();
         let mut clip_end_slot = None;
 
-        for &slot_index in self.draw_order() {
+        for &slot_index in self.get_draw_order() {
             let Some(slot) = self.slots.get(slot_index) else {
                 continue;
             };

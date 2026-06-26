@@ -921,156 +921,174 @@ fn skeleton_world_controls_follow_cpp_direct_assignment() {
 fn skeleton_setup_pose_methods_match_cpp_split() {
     let mut skeleton = Skeleton::new(setup_pose_split_skeleton_data());
 
-    skeleton.bones_mut()[0].set_position(10.0, 20.0);
-    skeleton.bones_mut()[0].set_rotation(30.0);
-    skeleton.ik_constraints_mut()[0].set_mix(0.25);
-    skeleton.ik_constraints_mut()[0].set_bend_direction(1);
-    skeleton.transform_constraints_mut()[0].set_mix_x(0.35);
-    skeleton.path_constraints_mut()[0].set_position(0.45);
-    skeleton.physics_constraints_mut()[0].set_gravity(0.55);
-    skeleton.slider_constraints_mut()[0].set_time(0.65);
-    skeleton.slots_mut()[0].set_color([0.9, 0.8, 0.7, 0.6]);
+    skeleton.get_bones_mut()[0].set_position(10.0, 20.0);
+    skeleton.get_bones_mut()[0].set_rotation(30.0);
+    skeleton.get_ik_constraints_mut()[0].set_mix(0.25);
+    skeleton.get_ik_constraints_mut()[0].set_bend_direction(1);
+    skeleton.get_transform_constraints_mut()[0].set_mix_x(0.35);
+    skeleton.get_path_constraints_mut()[0].set_position(0.45);
+    skeleton.get_physics_constraints_mut()[0].set_gravity(0.55);
+    skeleton.get_slider_constraints_mut()[0].set_time(0.65);
+    skeleton.get_slots_mut()[0].set_color([0.9, 0.8, 0.7, 0.6]);
     {
-        let slot = &mut skeleton.slots_mut()[0];
+        let slot = &mut skeleton.get_slots_mut()[0];
         slot.attachment = Some("manual".to_string());
         slot.attachment_skin = None;
         slot.sequence_index = 7;
         slot.deform.extend_from_slice(&[1.0, 2.0]);
     }
-    skeleton.draw_order_mut().swap(0, 1);
+    skeleton.get_draw_order_mut().swap(0, 1);
 
     skeleton.setup_pose_bones();
 
     assert_eq!(
-        (skeleton.bones()[0].x(), skeleton.bones()[0].y()),
+        (skeleton.get_bones()[0].x(), skeleton.get_bones()[0].y()),
         (1.0, 2.0)
     );
-    assert_eq!(skeleton.bones()[0].rotation(), 3.0);
+    assert_eq!(skeleton.get_bones()[0].rotation(), 3.0);
     assert_eq!(
         (
-            skeleton.bones()[0].applied_x(),
-            skeleton.bones()[0].applied_y()
+            skeleton.get_bones()[0].applied_x(),
+            skeleton.get_bones()[0].applied_y()
         ),
         (1.0, 2.0)
     );
-    assert_eq!(skeleton.ik_constraints()[0].mix(), 0.8);
-    assert_eq!(skeleton.ik_constraints()[0].bend_direction(), -1);
-    assert_eq!(skeleton.transform_constraints()[0].mix_x(), 0.12);
-    assert_eq!(skeleton.path_constraints()[0].position(), 1.1);
-    assert_eq!(skeleton.physics_constraints()[0].gravity(), 0.6);
-    assert_eq!(skeleton.slider_constraints()[0].time(), 2.1);
-    assert_eq!(skeleton.slots()[0].color(), [0.9, 0.8, 0.7, 0.6]);
-    assert_eq!(skeleton.slots()[0].attachment_name(), Some("manual"));
-    assert_eq!(skeleton.slots()[0].sequence_index(), 7);
-    assert_eq!(skeleton.draw_order(), &[1, 0]);
+    assert_eq!(skeleton.get_ik_constraints()[0].mix(), 0.8);
+    assert_eq!(skeleton.get_ik_constraints()[0].bend_direction(), -1);
+    assert_eq!(skeleton.get_transform_constraints()[0].mix_x(), 0.12);
+    assert_eq!(skeleton.get_path_constraints()[0].position(), 1.1);
+    assert_eq!(skeleton.get_physics_constraints()[0].gravity(), 0.6);
+    assert_eq!(skeleton.get_slider_constraints()[0].time(), 2.1);
+    assert_eq!(skeleton.get_slots()[0].color(), [0.9, 0.8, 0.7, 0.6]);
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("manual"));
+    assert_eq!(skeleton.get_slots()[0].sequence_index(), 7);
+    assert_eq!(skeleton.get_draw_order(), &[1, 0]);
 
-    skeleton.bones_mut()[0].set_position(40.0, 50.0);
-    skeleton.ik_constraints_mut()[0].set_mix(0.33);
+    skeleton.get_bones_mut()[0].set_position(40.0, 50.0);
+    skeleton.get_ik_constraints_mut()[0].set_mix(0.33);
 
     skeleton.setup_pose_slots();
 
     assert_eq!(
-        (skeleton.bones()[0].x(), skeleton.bones()[0].y()),
+        (skeleton.get_bones()[0].x(), skeleton.get_bones()[0].y()),
         (40.0, 50.0)
     );
-    assert_eq!(skeleton.ik_constraints()[0].mix(), 0.33);
-    assert_eq!(skeleton.slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
-    assert!(skeleton.slots()[0].has_dark_color());
-    assert_eq!(skeleton.slots()[0].dark_color(), [0.5, 0.6, 0.7]);
-    assert_eq!(skeleton.data().slots[0].blend, BlendMode::Additive);
-    assert_eq!(skeleton.slots()[0].attachment_name(), None);
-    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
-    assert!(skeleton.slots()[0].deform().is_empty());
-    assert_eq!(skeleton.draw_order(), &[0, 1]);
+    assert_eq!(skeleton.get_ik_constraints()[0].mix(), 0.33);
+    assert_eq!(skeleton.get_slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
+    assert!(skeleton.get_slots()[0].has_dark_color());
+    assert_eq!(skeleton.get_slots()[0].dark_color(), [0.5, 0.6, 0.7]);
+    assert_eq!(skeleton.get_data().slots[0].blend, BlendMode::Additive);
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), None);
+    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
+    assert!(skeleton.get_slots()[0].deform().is_empty());
+    assert_eq!(skeleton.get_draw_order(), &[0, 1]);
 
-    skeleton.bones_mut()[0].set_position(70.0, 80.0);
-    skeleton.ik_constraints_mut()[0].set_mix(0.44);
-    skeleton.slots_mut()[0].set_color([0.2, 0.3, 0.4, 0.5]);
-    skeleton.draw_order_mut().swap(0, 1);
+    skeleton.get_bones_mut()[0].set_position(70.0, 80.0);
+    skeleton.get_ik_constraints_mut()[0].set_mix(0.44);
+    skeleton.get_slots_mut()[0].set_color([0.2, 0.3, 0.4, 0.5]);
+    skeleton.get_draw_order_mut().swap(0, 1);
 
     skeleton.setup_pose();
 
     assert_eq!(
-        (skeleton.bones()[0].x(), skeleton.bones()[0].y()),
+        (skeleton.get_bones()[0].x(), skeleton.get_bones()[0].y()),
         (1.0, 2.0)
     );
-    assert_eq!(skeleton.ik_constraints()[0].mix(), 0.8);
-    assert_eq!(skeleton.slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
-    assert_eq!(skeleton.slots()[0].sequence_index(), 0);
-    assert_eq!(skeleton.draw_order(), &[0, 1]);
+    assert_eq!(skeleton.get_ik_constraints()[0].mix(), 0.8);
+    assert_eq!(skeleton.get_slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(skeleton.get_slots()[0].sequence_index(), 0);
+    assert_eq!(skeleton.get_draw_order(), &[0, 1]);
 }
 
 #[test]
 fn slider_draw_order_uses_applied_buffer_without_mutating_pose() {
     let mut skeleton = Skeleton::new(slider_draw_order_skeleton_data());
 
-    assert_eq!(skeleton.draw_order_pose(), &[0, 1]);
-    assert_eq!(skeleton.draw_order(), &[0, 1]);
+    assert_eq!(skeleton.get_draw_order_pose(), &[0, 1]);
+    assert_eq!(skeleton.get_draw_order(), &[0, 1]);
 
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    assert_eq!(skeleton.draw_order_pose(), &[0, 1]);
-    assert_eq!(skeleton.draw_order(), &[1, 0]);
+    assert_eq!(skeleton.get_draw_order_pose(), &[0, 1]);
+    assert_eq!(skeleton.get_draw_order(), &[1, 0]);
 
-    skeleton.slider_constraints_mut()[0].set_mix(0.0);
+    skeleton.get_slider_constraints_mut()[0].set_mix(0.0);
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    assert_eq!(skeleton.draw_order_pose(), &[0, 1]);
-    assert_eq!(skeleton.draw_order(), &[0, 1]);
+    assert_eq!(skeleton.get_draw_order_pose(), &[0, 1]);
+    assert_eq!(skeleton.get_draw_order(), &[0, 1]);
 }
 
 #[test]
 fn slider_slot_pose_uses_applied_buffer_without_mutating_pose() {
     let mut skeleton = Skeleton::new(slider_slot_pose_skeleton_data());
 
-    assert_eq!(skeleton.slots()[0].attachment_name(), Some("base"));
-    assert_eq!(skeleton.slots()[0].applied_attachment_name(), Some("base"));
-    assert_eq!(skeleton.slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
-    assert_eq!(skeleton.slots()[0].applied_color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("base"));
+    assert_eq!(
+        skeleton.get_slots()[0].applied_attachment_name(),
+        Some("base")
+    );
+    assert_eq!(skeleton.get_slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(
+        skeleton.get_slots()[0].applied_color(),
+        [0.1, 0.2, 0.3, 0.4]
+    );
 
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    assert_eq!(skeleton.slots()[0].attachment_name(), Some("base"));
-    assert_eq!(skeleton.slots()[0].applied_attachment_name(), Some("alt"));
-    assert_eq!(skeleton.slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
-    assert_eq!(skeleton.slots()[0].applied_color(), [0.2, 0.3, 0.4, 0.5]);
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("base"));
     assert_eq!(
-        skeleton.slots()[0]
+        skeleton.get_slots()[0].applied_attachment_name(),
+        Some("alt")
+    );
+    assert_eq!(skeleton.get_slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(
+        skeleton.get_slots()[0].applied_color(),
+        [0.2, 0.3, 0.4, 0.5]
+    );
+    assert_eq!(
+        skeleton.get_slots()[0]
             .get_applied_attachment(&skeleton)
             .map(AttachmentData::get_name),
         Some("alt")
     );
 
-    skeleton.slider_constraints_mut()[0].set_mix(0.0);
+    skeleton.get_slider_constraints_mut()[0].set_mix(0.0);
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    assert_eq!(skeleton.slots()[0].attachment_name(), Some("base"));
-    assert_eq!(skeleton.slots()[0].applied_attachment_name(), Some("base"));
-    assert_eq!(skeleton.slots()[0].applied_color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("base"));
+    assert_eq!(
+        skeleton.get_slots()[0].applied_attachment_name(),
+        Some("base")
+    );
+    assert_eq!(
+        skeleton.get_slots()[0].applied_color(),
+        [0.1, 0.2, 0.3, 0.4]
+    );
 }
 
 #[test]
 fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
     let mut skeleton = Skeleton::new(empty_skeleton_data());
 
-    assert_eq!(skeleton.data().bones.len(), 0);
-    assert_eq!(skeleton.bones().len(), 0);
-    assert_eq!(skeleton.bones_mut().len(), 0);
-    assert_eq!(skeleton.slots().len(), 0);
-    assert_eq!(skeleton.slots_mut().len(), 0);
-    assert!(skeleton.draw_order().is_empty());
-    assert!(skeleton.draw_order_mut().is_empty());
+    assert_eq!(skeleton.get_data().bones.len(), 0);
+    assert_eq!(skeleton.get_bones().len(), 0);
+    assert_eq!(skeleton.get_bones_mut().len(), 0);
+    assert_eq!(skeleton.get_slots().len(), 0);
+    assert_eq!(skeleton.get_slots_mut().len(), 0);
+    assert!(skeleton.get_draw_order().is_empty());
+    assert!(skeleton.get_draw_order_mut().is_empty());
     assert!(skeleton.get_skin().is_none());
-    assert_eq!(skeleton.ik_constraints().len(), 0);
-    assert_eq!(skeleton.ik_constraints_mut().len(), 0);
-    assert_eq!(skeleton.transform_constraints().len(), 0);
-    assert_eq!(skeleton.transform_constraints_mut().len(), 0);
-    assert_eq!(skeleton.path_constraints().len(), 0);
-    assert_eq!(skeleton.path_constraints_mut().len(), 0);
-    assert_eq!(skeleton.physics_constraints().len(), 0);
-    assert_eq!(skeleton.physics_constraints_mut().len(), 0);
-    assert_eq!(skeleton.slider_constraints().len(), 0);
-    assert_eq!(skeleton.slider_constraints_mut().len(), 0);
+    assert_eq!(skeleton.get_ik_constraints().len(), 0);
+    assert_eq!(skeleton.get_ik_constraints_mut().len(), 0);
+    assert_eq!(skeleton.get_transform_constraints().len(), 0);
+    assert_eq!(skeleton.get_transform_constraints_mut().len(), 0);
+    assert_eq!(skeleton.get_path_constraints().len(), 0);
+    assert_eq!(skeleton.get_path_constraints_mut().len(), 0);
+    assert_eq!(skeleton.get_physics_constraints().len(), 0);
+    assert_eq!(skeleton.get_physics_constraints_mut().len(), 0);
+    assert_eq!(skeleton.get_slider_constraints().len(), 0);
+    assert_eq!(skeleton.get_slider_constraints_mut().len(), 0);
     assert!(skeleton.update_cache_items().is_empty());
 
     assert_eq!(skeleton.get_color(), [1.0, 1.0, 1.0, 1.0]);
@@ -1121,23 +1139,23 @@ fn skeleton_finders_match_setup_order() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
 
     assert_eq!(skeleton.get_root_bone().unwrap().data_index, 0);
-    assert_eq!(skeleton.bones_mut().first_mut().unwrap().data_index, 0);
+    assert_eq!(skeleton.get_bones_mut().first_mut().unwrap().data_index, 0);
     assert_eq!(skeleton.find_bone("root").unwrap().data_index, 0);
     assert_eq!(skeleton.find_bone("child").unwrap().data_index, 1);
     assert!(skeleton.find_bone("").is_none());
     assert!(skeleton.find_slot("").is_none());
     assert_eq!(skeleton.find_bone("child").unwrap().parent, Some(0));
 
-    skeleton.bones_mut().first_mut().unwrap().set_y(3.0);
-    assert_eq!(skeleton.bones()[0].y(), 3.0);
+    skeleton.get_bones_mut().first_mut().unwrap().set_y(3.0);
+    assert_eq!(skeleton.get_bones()[0].y(), 3.0);
 
-    skeleton.bones_mut()[1].set_x(7.0);
-    assert_eq!(skeleton.bones()[1].x(), 7.0);
+    skeleton.get_bones_mut()[1].set_x(7.0);
+    assert_eq!(skeleton.get_bones()[1].x(), 7.0);
 
     assert_eq!(skeleton.find_slot("slot1").unwrap().data_index, 1);
     assert_eq!(skeleton.find_slot("slot0").unwrap().bone, 0);
-    skeleton.slots_mut()[1].set_color([0.2, 0.3, 0.4, 0.5]);
-    assert_eq!(skeleton.slots()[1].color(), [0.2, 0.3, 0.4, 0.5]);
+    skeleton.get_slots_mut()[1].set_color([0.2, 0.3, 0.4, 0.5]);
+    assert_eq!(skeleton.get_slots()[1].color(), [0.2, 0.3, 0.4, 0.5]);
 }
 
 #[test]
@@ -1145,8 +1163,8 @@ fn skeleton_constraint_finders_match_data_names() {
     let mut skeleton = Skeleton::new(constraint_lookup_skeleton_data());
 
     assert_eq!(skeleton.find_ik_constraint("ik").unwrap().data_index, 0);
-    skeleton.ik_constraints_mut()[0].set_mix(0.25);
-    assert_eq!(skeleton.ik_constraints()[0].mix(), 0.25);
+    skeleton.get_ik_constraints_mut()[0].set_mix(0.25);
+    assert_eq!(skeleton.get_ik_constraints()[0].mix(), 0.25);
 
     assert_eq!(
         skeleton
@@ -1155,12 +1173,12 @@ fn skeleton_constraint_finders_match_data_names() {
             .data_index,
         0
     );
-    skeleton.transform_constraints_mut()[0].set_mix_x(0.5);
-    assert_eq!(skeleton.transform_constraints()[0].mix_x(), 0.5);
+    skeleton.get_transform_constraints_mut()[0].set_mix_x(0.5);
+    assert_eq!(skeleton.get_transform_constraints()[0].mix_x(), 0.5);
 
     assert_eq!(skeleton.find_path_constraint("path").unwrap().data_index, 0);
-    skeleton.path_constraints_mut()[0].set_position(2.0);
-    assert_eq!(skeleton.path_constraints()[0].position(), 2.0);
+    skeleton.get_path_constraints_mut()[0].set_position(2.0);
+    assert_eq!(skeleton.get_path_constraints()[0].position(), 2.0);
 
     assert_eq!(
         skeleton
@@ -1169,8 +1187,8 @@ fn skeleton_constraint_finders_match_data_names() {
             .data_index,
         0
     );
-    skeleton.physics_constraints_mut()[0].set_mix(0.75);
-    assert_eq!(skeleton.physics_constraints()[0].mix(), 0.75);
+    skeleton.get_physics_constraints_mut()[0].set_mix(0.75);
+    assert_eq!(skeleton.get_physics_constraints()[0].mix(), 0.75);
 
     assert_eq!(
         skeleton
@@ -1179,8 +1197,8 @@ fn skeleton_constraint_finders_match_data_names() {
             .data_index,
         0
     );
-    skeleton.slider_constraints_mut()[0].set_time(3.0);
-    assert_eq!(skeleton.slider_constraints()[0].time(), 3.0);
+    skeleton.get_slider_constraints_mut()[0].set_time(3.0);
+    assert_eq!(skeleton.get_slider_constraints()[0].time(), 3.0);
 
     assert!(skeleton.find_ik_constraint("").is_none());
     assert!(skeleton.find_transform_constraint("missing").is_none());
@@ -1255,16 +1273,16 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
 
     skeleton.set_skin(Some("custom"));
     let before = (
-        skeleton.slots()[0].attachment.clone(),
-        skeleton.slots()[0].attachment_skin.clone(),
-        skeleton.slots()[0].sequence_index(),
+        skeleton.get_slots()[0].attachment.clone(),
+        skeleton.get_slots()[0].attachment_skin.clone(),
+        skeleton.get_slots()[0].sequence_index(),
     );
     skeleton.set_skin(Some("custom"));
     assert_eq!(
         (
-            skeleton.slots()[0].attachment.clone(),
-            skeleton.slots()[0].attachment_skin.clone(),
-            skeleton.slots()[0].sequence_index(),
+            skeleton.get_slots()[0].attachment.clone(),
+            skeleton.get_slots()[0].attachment_skin.clone(),
+            skeleton.get_slots()[0].sequence_index(),
         ),
         before
     );
@@ -1276,49 +1294,49 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
 
     skeleton.set_skin(Some("custom"));
     assert_eq!(
-        skeleton.slots()[0].attachment_skin.as_deref(),
+        skeleton.get_slots()[0].attachment_skin.as_deref(),
         Some("custom")
     );
 
     {
-        let slot = &mut skeleton.slots_mut()[0];
+        let slot = &mut skeleton.get_slots_mut()[0];
         slot.deform_mut().extend_from_slice(&[1.0, 2.0]);
         slot.set_sequence_index(7);
     }
 
     skeleton.set_skin(None);
     skeleton.set_attachment("slot0", "shared");
-    assert_eq!(skeleton.slots()[0].attachment_name(), Some("shared"));
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("shared"));
     assert_eq!(
-        skeleton.slots()[0].attachment_skin.as_deref(),
+        skeleton.get_slots()[0].attachment_skin.as_deref(),
         Some("default")
     );
-    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
-    assert!(skeleton.slots()[0].deform().is_empty());
+    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
+    assert!(skeleton.get_slots()[0].deform().is_empty());
 
     {
-        let slot = &mut skeleton.slots_mut()[0];
+        let slot = &mut skeleton.get_slots_mut()[0];
         slot.deform_mut().extend_from_slice(&[3.0]);
         slot.set_sequence_index(9);
     }
 
     skeleton.set_attachment("slot0", "shared");
     assert_eq!(
-        skeleton.slots()[0].attachment_skin.as_deref(),
+        skeleton.get_slots()[0].attachment_skin.as_deref(),
         Some("default")
     );
-    assert_eq!(skeleton.slots()[0].sequence_index(), 9);
-    assert_eq!(skeleton.slots()[0].deform(), &[3.0]);
+    assert_eq!(skeleton.get_slots()[0].sequence_index(), 9);
+    assert_eq!(skeleton.get_slots()[0].deform(), &[3.0]);
 
     skeleton.set_attachment("slot0", "");
-    assert_eq!(skeleton.slots()[0].attachment_name(), None);
-    assert_eq!(skeleton.slots()[0].attachment_skin, None);
-    assert!(skeleton.slots()[0].deform().is_empty());
-    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), None);
+    assert_eq!(skeleton.get_slots()[0].attachment_skin, None);
+    assert!(skeleton.get_slots()[0].deform().is_empty());
+    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
     skeleton.set_attachment("missing", "shared");
     skeleton.set_attachment("", "shared");
-    assert_eq!(skeleton.slots()[0].attachment_name(), None);
-    assert_eq!(skeleton.slots()[0].attachment_skin, None);
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), None);
+    assert_eq!(skeleton.get_slots()[0].attachment_skin, None);
 }
 
 #[test]
@@ -1326,21 +1344,21 @@ fn skeleton_set_attachment_preserves_deform_for_matching_timeline_attachment() {
     let mut skeleton = Skeleton::new(linked_mesh_attachment_skeleton_data());
 
     {
-        let slot = &mut skeleton.slots_mut()[0];
+        let slot = &mut skeleton.get_slots_mut()[0];
         slot.deform_mut().extend_from_slice(&[1.0, 2.0, 3.0, 4.0]);
         slot.set_sequence_index(7);
     }
 
     skeleton.set_attachment("slot0", "child");
-    assert_eq!(skeleton.slots()[0].attachment_name(), Some("child"));
-    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
-    assert_eq!(skeleton.slots()[0].deform(), &[1.0, 2.0, 3.0, 4.0]);
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("child"));
+    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
+    assert_eq!(skeleton.get_slots()[0].deform(), &[1.0, 2.0, 3.0, 4.0]);
 
-    skeleton.slots_mut()[0].set_sequence_index(9);
+    skeleton.get_slots_mut()[0].set_sequence_index(9);
     skeleton.set_attachment("slot0", "other");
-    assert_eq!(skeleton.slots()[0].attachment_name(), Some("other"));
-    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
-    assert!(skeleton.slots()[0].deform().is_empty());
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("other"));
+    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
+    assert!(skeleton.get_slots()[0].deform().is_empty());
 }
 
 #[test]
@@ -1348,11 +1366,14 @@ fn skeleton_set_skin_preserves_deform_for_matching_timeline_attachment() {
     let mut skeleton = Skeleton::new(skin_switch_linked_mesh_skeleton_data());
 
     skeleton.set_skin(Some("old"));
-    assert_eq!(skeleton.slots()[0].attachment_name(), Some("mesh"));
-    assert_eq!(skeleton.slots()[0].attachment_skin.as_deref(), Some("old"));
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("mesh"));
+    assert_eq!(
+        skeleton.get_slots()[0].attachment_skin.as_deref(),
+        Some("old")
+    );
 
     {
-        let slot = &mut skeleton.slots_mut()[0];
+        let slot = &mut skeleton.get_slots_mut()[0];
         slot.deform_mut().extend_from_slice(&[5.0, 6.0]);
         slot.set_sequence_index(4);
     }
@@ -1362,9 +1383,12 @@ fn skeleton_set_skin_preserves_deform_for_matching_timeline_attachment() {
         skeleton.get_skin().map(|skin| skin.name.as_str()),
         Some("new")
     );
-    assert_eq!(skeleton.slots()[0].attachment_skin.as_deref(), Some("new"));
-    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
-    assert_eq!(skeleton.slots()[0].deform(), &[5.0, 6.0]);
+    assert_eq!(
+        skeleton.get_slots()[0].attachment_skin.as_deref(),
+        Some("new")
+    );
+    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
+    assert_eq!(skeleton.get_slots()[0].deform(), &[5.0, 6.0]);
 }
 
 #[test]
@@ -1372,14 +1396,14 @@ fn skeleton_set_skin_from_default_preserves_deform_for_matching_timeline_attachm
     let mut skeleton = Skeleton::new(skin_switch_linked_mesh_skeleton_data());
 
     assert!(skeleton.get_skin().is_none());
-    assert_eq!(skeleton.slots()[0].attachment_name(), Some("mesh"));
+    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("mesh"));
     assert_eq!(
-        skeleton.slots()[0].attachment_skin.as_deref(),
+        skeleton.get_slots()[0].attachment_skin.as_deref(),
         Some("default")
     );
 
     {
-        let slot = &mut skeleton.slots_mut()[0];
+        let slot = &mut skeleton.get_slots_mut()[0];
         slot.deform_mut().extend_from_slice(&[7.0, 8.0]);
         slot.set_sequence_index(6);
     }
@@ -1389,9 +1413,12 @@ fn skeleton_set_skin_from_default_preserves_deform_for_matching_timeline_attachm
         skeleton.get_skin().map(|skin| skin.name.as_str()),
         Some("new")
     );
-    assert_eq!(skeleton.slots()[0].attachment_skin.as_deref(), Some("new"));
-    assert_eq!(skeleton.slots()[0].sequence_index(), -1);
-    assert_eq!(skeleton.slots()[0].deform(), &[7.0, 8.0]);
+    assert_eq!(
+        skeleton.get_slots()[0].attachment_skin.as_deref(),
+        Some("new")
+    );
+    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
+    assert_eq!(skeleton.get_slots()[0].deform(), &[7.0, 8.0]);
 }
 
 #[test]
@@ -1536,7 +1563,7 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
     });
 
     let mut skeleton = Skeleton::new(data);
-    let bone = &mut skeleton.bones_mut()[0];
+    let bone = &mut skeleton.get_bones_mut()[0];
 
     assert!(bone.is_active());
     bone.set_active(false);
@@ -1642,10 +1669,13 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
     assert_eq!((skeleton.scale_x(), skeleton.scale_y()), (2.0, 3.0));
     assert_eq!(skeleton.scale_y(), 3.0);
     assert_approx_pair(
-        (skeleton.bones()[0].world_x(), skeleton.bones()[0].world_y()),
+        (
+            skeleton.get_bones()[0].world_x(),
+            skeleton.get_bones()[0].world_y(),
+        ),
         (2.0, 6.0),
     );
-    assert_approx(skeleton.bones()[0].d(), 3.0);
+    assert_approx(skeleton.get_bones()[0].d(), 3.0);
 
     Bone::set_y_down(true);
 
@@ -1656,19 +1686,22 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
     assert_eq!((skeleton.scale_x(), skeleton.scale_y()), (2.0, -3.0));
     assert_eq!(skeleton.scale_y(), -3.0);
     assert_approx_pair(
-        (skeleton.bones()[0].world_x(), skeleton.bones()[0].world_y()),
+        (
+            skeleton.get_bones()[0].world_x(),
+            skeleton.get_bones()[0].world_y(),
+        ),
         (2.0, -6.0),
     );
-    assert_approx(skeleton.bones()[0].d(), -3.0);
+    assert_approx(skeleton.get_bones()[0].d(), -3.0);
 }
 
 #[test]
 fn bone_parent_and_children_expose_skeleton_hierarchy() {
     let skeleton = Skeleton::new(named_attachment_skeleton_data());
 
-    assert!(skeleton.bones()[0].get_parent(&skeleton).is_none());
+    assert!(skeleton.get_bones()[0].get_parent(&skeleton).is_none());
     assert_eq!(
-        skeleton.bones()[0]
+        skeleton.get_bones()[0]
             .get_children(&skeleton)
             .iter()
             .map(|bone| bone.data_index)
@@ -1676,19 +1709,19 @@ fn bone_parent_and_children_expose_skeleton_hierarchy() {
         vec![1]
     );
     assert_eq!(
-        skeleton.bones()[1]
+        skeleton.get_bones()[1]
             .get_parent(&skeleton)
             .map(|bone| bone.data_index),
         Some(0)
     );
-    assert!(skeleton.bones()[1].get_children(&skeleton).is_empty());
+    assert!(skeleton.get_bones()[1].get_children(&skeleton).is_empty());
 }
 
 #[test]
 fn bone_parent_space_helpers_follow_parent_world_transform() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
     {
-        let root = &mut skeleton.bones_mut()[0];
+        let root = &mut skeleton.get_bones_mut()[0];
         root.set_a(2.0);
         root.set_b(0.25);
         root.set_c(0.5);
@@ -1697,8 +1730,8 @@ fn bone_parent_space_helpers_follow_parent_world_transform() {
         root.set_world_y(20.0);
     }
 
-    let root = &skeleton.bones()[0];
-    let child = &skeleton.bones()[1];
+    let root = &skeleton.get_bones()[0];
+    let child = &skeleton.get_bones()[1];
 
     assert_approx_pair(root.world_to_parent(&skeleton, 17.0, 29.0), (17.0, 29.0));
     assert_approx_pair(root.parent_to_world(&skeleton, 7.0, 9.0), (7.0, 9.0));
@@ -1712,7 +1745,7 @@ fn bone_parent_space_helpers_follow_parent_world_transform() {
 #[test]
 fn bone_rotation_helpers_match_bone_pose_formulas() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
-    let bone = &mut skeleton.bones_mut()[0];
+    let bone = &mut skeleton.get_bones_mut()[0];
 
     bone.set_a(0.0);
     bone.set_b(-1.0);
@@ -1741,13 +1774,13 @@ fn skeleton_bone_world_transform_helper_recomputes_modified_local_pose() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    skeleton.bones_mut()[0].set_applied_x(12.0);
-    skeleton.bones_mut()[0].set_applied_y(34.0);
-    skeleton.bones_mut()[0].set_applied_rotation(90.0);
+    skeleton.get_bones_mut()[0].set_applied_x(12.0);
+    skeleton.get_bones_mut()[0].set_applied_y(34.0);
+    skeleton.get_bones_mut()[0].set_applied_rotation(90.0);
     skeleton.modify_bone_local(0);
     skeleton.update_bone_world_transform(0);
 
-    let bone = &skeleton.bones()[0];
+    let bone = &skeleton.get_bones()[0];
     assert_approx_pair((bone.world_x(), bone.world_y()), (12.0, 34.0));
     assert_approx(bone.world_rotation_x(), 90.0);
 }
@@ -1759,7 +1792,7 @@ fn skeleton_bone_local_transform_helper_rebuilds_applied_pose_from_world() {
     skeleton.update_world_transform_with_physics(crate::Physics::None);
     skeleton.modify_bone_local(0);
 
-    let bone = &mut skeleton.bones_mut()[0];
+    let bone = &mut skeleton.get_bones_mut()[0];
     bone.set_world_x(12.0);
     bone.set_world_y(18.0);
     bone.set_a(0.0);
@@ -1769,17 +1802,20 @@ fn skeleton_bone_local_transform_helper_rebuilds_applied_pose_from_world() {
 
     skeleton.update_bone_local_transform(0);
 
-    let bone = &skeleton.bones()[0];
+    let bone = &skeleton.get_bones()[0];
     assert_approx_pair((bone.applied_x(), bone.applied_y()), (10.0, 15.0));
     assert_approx(bone.applied_rotation(), 90.0);
     assert_approx_pair((bone.applied_scale_x(), bone.applied_scale_y()), (1.0, 1.0));
     assert_approx_pair((bone.applied_shear_x(), bone.applied_shear_y()), (0.0, 0.0));
 
-    skeleton.bones_mut()[0].set_applied_x(99.0);
-    skeleton.bones_mut()[0].set_applied_y(99.0);
+    skeleton.get_bones_mut()[0].set_applied_x(99.0);
+    skeleton.get_bones_mut()[0].set_applied_y(99.0);
     skeleton.update_bone_world_transform(0);
     assert_approx_pair(
-        (skeleton.bones()[0].world_x(), skeleton.bones()[0].world_y()),
+        (
+            skeleton.get_bones()[0].world_x(),
+            skeleton.get_bones()[0].world_y(),
+        ),
         (12.0, 18.0),
     );
 }
@@ -1789,13 +1825,13 @@ fn skeleton_validate_bone_local_transform_uses_world_modified_marker() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    skeleton.bones_mut()[0].set_world_x(21.0);
-    skeleton.bones_mut()[0].set_world_y(22.0);
+    skeleton.get_bones_mut()[0].set_world_x(21.0);
+    skeleton.get_bones_mut()[0].set_world_y(22.0);
     skeleton.validate_bone_local_transform(0);
     assert_approx_pair(
         (
-            skeleton.bones()[0].applied_x(),
-            skeleton.bones()[0].applied_y(),
+            skeleton.get_bones()[0].applied_x(),
+            skeleton.get_bones()[0].applied_y(),
         ),
         (0.0, 0.0),
     );
@@ -1804,8 +1840,8 @@ fn skeleton_validate_bone_local_transform_uses_world_modified_marker() {
     skeleton.validate_bone_local_transform(0);
     assert_approx_pair(
         (
-            skeleton.bones()[0].applied_x(),
-            skeleton.bones()[0].applied_y(),
+            skeleton.get_bones()[0].applied_x(),
+            skeleton.get_bones()[0].applied_y(),
         ),
         (21.0, 22.0),
     );
@@ -1849,7 +1885,7 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
     });
 
     let mut skeleton = Skeleton::new(data);
-    let slot = &mut skeleton.slots_mut()[0];
+    let slot = &mut skeleton.get_slots_mut()[0];
 
     assert_eq!(slot.bone, 0);
 
@@ -1881,7 +1917,7 @@ fn constraint_accessors_expose_pose_state() {
         active: true,
     };
     assert_eq!(ik.data_index, 1);
-    ik.bones_mut().push(1);
+    ik.get_bones_mut().push(1);
     ik.set_target(3);
     ik.set_scale_y_mode(ScaleYMode::Volume);
     ik.set_mix(0.5);
@@ -1890,7 +1926,7 @@ fn constraint_accessors_expose_pose_state() {
     ik.set_stretch(false);
     ik.set_bend_direction(-1);
     ik.set_active(false);
-    assert_eq!(ik.bones(), &[0, 1]);
+    assert_eq!(ik.get_bones(), &[0, 1]);
     assert_eq!(ik.target(), 3);
     assert_eq!(ik.scale_y_mode(), ScaleYMode::Volume);
     assert_eq!(ik.mix(), 0.5);
@@ -1912,7 +1948,7 @@ fn constraint_accessors_expose_pose_state() {
         mix_shear_y: 0.6,
         active: true,
     };
-    transform.bones_mut().push(2);
+    transform.get_bones_mut().push(2);
     transform.set_source(3);
     transform.set_mix_rotate(1.1);
     transform.set_mix_x(1.2);
@@ -1922,7 +1958,7 @@ fn constraint_accessors_expose_pose_state() {
     transform.set_mix_shear_y(1.6);
     transform.set_active(false);
     assert_eq!(transform.data_index, 2);
-    assert_eq!(transform.bones(), &[1, 2]);
+    assert_eq!(transform.get_bones(), &[1, 2]);
     assert_eq!(transform.source(), 3);
     assert_eq!(transform.mix_rotate(), 1.1);
     assert_eq!(transform.mix_x(), 1.2);
@@ -1943,7 +1979,7 @@ fn constraint_accessors_expose_pose_state() {
         mix_y: 6.0,
         active: true,
     };
-    path.bones_mut().push(1);
+    path.get_bones_mut().push(1);
     path.set_target_slot(2);
     path.set_position(7.0);
     path.set_spacing(8.0);
@@ -1952,7 +1988,7 @@ fn constraint_accessors_expose_pose_state() {
     path.set_mix_y(11.0);
     path.set_active(false);
     assert_eq!(path.data_index, 3);
-    assert_eq!(path.bones(), &[0, 1]);
+    assert_eq!(path.get_bones(), &[0, 1]);
     assert_eq!(path.target_slot(), 2);
     assert_eq!(path.position(), 7.0);
     assert_eq!(path.spacing(), 8.0);
@@ -2078,7 +2114,7 @@ fn constraint_accessors_expose_pose_state() {
         }],
     });
     let mut skeleton = Skeleton::new(data);
-    let slider = &mut skeleton.slider_constraints_mut()[0];
+    let slider = &mut skeleton.get_slider_constraints_mut()[0];
     slider.set_time(2.5);
     slider.set_mix(0.75);
     slider.set_active(false);
@@ -2125,7 +2161,7 @@ fn skeleton_physics_controls_broadcast_to_all_constraints() {
 
     let mut skeleton = Skeleton::new(data);
     {
-        let constraints = skeleton.physics_constraints_mut();
+        let constraints = skeleton.get_physics_constraints_mut();
         constraints[0].ux = 10.0;
         constraints[0].uy = 20.0;
         constraints[0].cx = 30.0;
@@ -2139,25 +2175,25 @@ fn skeleton_physics_controls_broadcast_to_all_constraints() {
     skeleton.physics_translate(3.0, -2.0);
     assert_eq!(
         (
-            skeleton.physics_constraints()[0].ux,
-            skeleton.physics_constraints()[0].uy,
-            skeleton.physics_constraints()[0].cx,
-            skeleton.physics_constraints()[0].cy,
+            skeleton.get_physics_constraints()[0].ux,
+            skeleton.get_physics_constraints()[0].uy,
+            skeleton.get_physics_constraints()[0].cx,
+            skeleton.get_physics_constraints()[0].cy,
         ),
         (7.0, 22.0, 27.0, 42.0)
     );
     assert_eq!(
         (
-            skeleton.physics_constraints()[1].ux,
-            skeleton.physics_constraints()[1].uy,
-            skeleton.physics_constraints()[1].cx,
-            skeleton.physics_constraints()[1].cy,
+            skeleton.get_physics_constraints()[1].ux,
+            skeleton.get_physics_constraints()[1].uy,
+            skeleton.get_physics_constraints()[1].cx,
+            skeleton.get_physics_constraints()[1].cy,
         ),
         (-8.0, -4.0, -10.0, -6.0)
     );
 
     {
-        let constraints = skeleton.physics_constraints_mut();
+        let constraints = skeleton.get_physics_constraints_mut();
         constraints[0].ux = 0.0;
         constraints[0].uy = 0.0;
         constraints[0].cx = 1.0;
@@ -2169,14 +2205,14 @@ fn skeleton_physics_controls_broadcast_to_all_constraints() {
     }
 
     skeleton.physics_rotate(0.0, 0.0, 90.0);
-    assert_approx(skeleton.physics_constraints()[0].ux, 1.0);
-    assert_approx(skeleton.physics_constraints()[0].uy, -1.0);
-    assert_approx(skeleton.physics_constraints()[0].cx, 2.0);
-    assert_approx(skeleton.physics_constraints()[0].cy, -1.0);
-    assert_approx(skeleton.physics_constraints()[1].ux, 3.0);
-    assert_approx(skeleton.physics_constraints()[1].uy, 2.0);
-    assert_approx(skeleton.physics_constraints()[1].cx, 2.0);
-    assert_approx(skeleton.physics_constraints()[1].cy, -1.0);
+    assert_approx(skeleton.get_physics_constraints()[0].ux, 1.0);
+    assert_approx(skeleton.get_physics_constraints()[0].uy, -1.0);
+    assert_approx(skeleton.get_physics_constraints()[0].cx, 2.0);
+    assert_approx(skeleton.get_physics_constraints()[0].cy, -1.0);
+    assert_approx(skeleton.get_physics_constraints()[1].ux, 3.0);
+    assert_approx(skeleton.get_physics_constraints()[1].uy, 2.0);
+    assert_approx(skeleton.get_physics_constraints()[1].cx, 2.0);
+    assert_approx(skeleton.get_physics_constraints()[1].cy, -1.0);
 }
 
 #[test]

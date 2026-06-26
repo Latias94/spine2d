@@ -123,7 +123,7 @@ fn ik_one_bone_negative_mix_rotates_away_from_target() {
     let data = SkeletonData::from_json_str(SKELETON_IK_ONE_BONE).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.ik_constraints_mut()[0].set_mix(-1.0);
+    skeleton.get_ik_constraints_mut()[0].set_mix(-1.0);
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert!(skeleton.bones[1].arotation < 0.0);
@@ -134,7 +134,7 @@ fn ik_one_bone_nan_mix_propagates_nan_rotation() {
     let data = SkeletonData::from_json_str(SKELETON_IK_ONE_BONE).unwrap();
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
-    skeleton.ik_constraints_mut()[0].set_mix(f32::NAN);
+    skeleton.get_ik_constraints_mut()[0].set_mix(f32::NAN);
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
     assert!(skeleton.bones[1].arotation.is_nan());

@@ -55,7 +55,7 @@ fn parse_mix_interpolation(s: &str) -> Option<MixInterpolation> {
 fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
     fn bone_name(skeleton: &Skeleton, index: usize) -> &str {
         skeleton
-            .data()
+            .get_data()
             .get_bones()
             .get(index)
             .map(|b| b.get_name())
@@ -69,7 +69,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
             UpdateCacheItem::Bone(index) => format!("bone {}", bone_name(skeleton, index)),
             UpdateCacheItem::Ik(index) => {
                 let name = skeleton
-                    .data()
+                    .get_data()
                     .get_ik_constraints()
                     .get(index)
                     .map(|d| d.name.as_str())
@@ -78,7 +78,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
             }
             UpdateCacheItem::Transform(index) => {
                 let name = skeleton
-                    .data()
+                    .get_data()
                     .get_transform_constraints()
                     .get(index)
                     .map(|d| d.name.as_str())
@@ -87,7 +87,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
             }
             UpdateCacheItem::Path(index) => {
                 let name = skeleton
-                    .data()
+                    .get_data()
                     .get_path_constraints()
                     .get(index)
                     .map(|d| d.name.as_str())
@@ -96,7 +96,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
             }
             UpdateCacheItem::Physics(index) => {
                 let name = skeleton
-                    .data()
+                    .get_data()
                     .get_physics_constraints()
                     .get(index)
                     .map(|d| d.name.as_str())
@@ -105,7 +105,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
             }
             UpdateCacheItem::Slider(index) => {
                 let name = skeleton
-                    .data()
+                    .get_data()
                     .get_slider_constraints()
                     .get(index)
                     .map(|d| d.name.as_str())
@@ -438,9 +438,9 @@ fn debug_dump_bones(label: &str, skeleton: &Skeleton, total_time: f32) {
 
     eprintln!("[DEBUG-runwalk] {label} t={total_time:.6}");
     for name in names {
-        let Some((i, bone)) = skeleton.bones().iter().enumerate().find(|(i, _)| {
+        let Some((i, bone)) = skeleton.get_bones().iter().enumerate().find(|(i, _)| {
             skeleton
-                .data()
+                .get_data()
                 .get_bones()
                 .get(*i)
                 .is_some_and(|b| b.get_name() == name)
@@ -683,12 +683,12 @@ fn main() {
     }
 
     let bones: Vec<_> = skeleton
-        .bones()
+        .get_bones()
         .iter()
         .enumerate()
         .map(|(i, bone)| {
             let name = skeleton
-                .data()
+                .get_data()
                 .get_bones()
                 .get(i)
                 .map(|b| b.get_name())
@@ -704,12 +704,12 @@ fn main() {
         .collect();
 
     let slots: Vec<_> = skeleton
-        .slots()
+        .get_slots()
         .iter()
         .enumerate()
         .map(|(i, slot)| {
             let name = skeleton
-                .data()
+                .get_data()
                 .get_slots()
                 .get(i)
                 .map(|s| s.get_name())
@@ -736,19 +736,19 @@ fn main() {
         .collect();
 
     let draw_order: Vec<_> = skeleton
-        .draw_order()
+        .get_draw_order()
         .iter()
         .copied()
         .map(|slot_index| slot_index as i32)
         .collect();
 
     let ik_constraints: Vec<_> = skeleton
-        .ik_constraints()
+        .get_ik_constraints()
         .iter()
         .enumerate()
         .map(|(i, c)| {
             let name = skeleton
-                .data()
+                .get_data()
                 .get_ik_constraints()
                 .get(i)
                 .map(|d| d.name.as_str())
@@ -765,12 +765,12 @@ fn main() {
         .collect();
 
     let transform_constraints: Vec<_> = skeleton
-        .transform_constraints()
+        .get_transform_constraints()
         .iter()
         .enumerate()
         .map(|(i, c)| {
             let name = skeleton
-                .data()
+                .get_data()
                 .get_transform_constraints()
                 .get(i)
                 .map(|d| d.name.as_str())
@@ -790,12 +790,12 @@ fn main() {
         .collect();
 
     let path_constraints: Vec<_> = skeleton
-        .path_constraints()
+        .get_path_constraints()
         .iter()
         .enumerate()
         .map(|(i, c)| {
             let name = skeleton
-                .data()
+                .get_data()
                 .get_path_constraints()
                 .get(i)
                 .map(|d| d.name.as_str())
@@ -820,17 +820,17 @@ fn main() {
             json!(update_cache_debug_labels(&skeleton)),
         );
         let transform_constraint_data: Vec<_> = skeleton
-            .data()
+            .get_data()
             .get_transform_constraints()
             .iter()
             .map(|c| {
                 let bone_names: Vec<_> = c
                     .bones
                     .iter()
-                    .filter_map(|&i| skeleton.data().get_bones().get(i).map(|b| b.get_name()))
+                    .filter_map(|&i| skeleton.get_data().get_bones().get(i).map(|b| b.get_name()))
                     .collect();
                 let source_name = skeleton
-                    .data()
+                    .get_data()
                     .get_bones()
                     .get(c.source)
                     .map(|b| b.get_name())
@@ -857,12 +857,12 @@ fn main() {
     }
     if let Some(slot_name) = dump_slot_vertices.as_deref()
         && let Some(slot_index) = skeleton
-            .data()
+            .get_data()
             .get_slots()
             .iter()
             .position(|s| s.get_name() == slot_name)
     {
-        let slot = &skeleton.slots()[slot_index];
+        let slot = &skeleton.get_slots()[slot_index];
         if let Some(world_vertices) = slot
             .get_applied_attachment(&skeleton)
             .and_then(|attachment| attachment.compute_world_vertices(&skeleton, slot_index))

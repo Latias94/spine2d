@@ -1278,7 +1278,7 @@ pub struct Animation {
 impl Animation {
     pub const DEFAULT_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
-    /// Returns the `Skeleton::bones()` indices affected by this animation.
+    /// Returns the `Skeleton::get_bones()` indices affected by this animation.
     ///
     /// This matches C++ `Animation::getBones()` for callers such as Slider constraints. The
     /// returned indices preserve the first-seen bone timeline order.
@@ -1387,7 +1387,7 @@ impl Animation {
 }
 
 impl BoneTimeline {
-    /// Returns the `Skeleton::bones()` index changed by this timeline.
+    /// Returns the `Skeleton::get_bones()` index changed by this timeline.
     pub fn get_bone_index(&self) -> usize {
         match self {
             BoneTimeline::Rotate(timeline) => timeline.bone_index,
