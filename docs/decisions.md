@@ -74,7 +74,7 @@ Spine is licensed by Esoteric Software. Even though this is a pure Rust implemen
   - JSON `AttachmentDef.name` is treated as the attachment’s internal name (used in dumps and for default `path` when `path` is omitted).
 - Events carry full payload:
   - `EventData` supports `int/float/string/audioPath/volume/balance`.
-  - JSON `animations.events` keys default `int/float/string` from `EventData`; for audio events, `volume/balance` default to `1/0` (matching `spine-cpp` loader behavior).
+  - JSON `animations.events` keys default `int/float/string/volume/balance` from `EventData` setup values when an audio path exists; no-audio events keep C++ `Event` constructor defaults for volume/balance (`0/0`).
 - Rotation mixing follows the upstream `spine-cpp` semantics:
   - Uses shortest-path angle normalization (`wrapDegrees`) for direct blends.
   - When mixing with `alpha != 1`, uses a per-TrackEntry rotation accumulator (cross detection) to avoid flip/jitter across successive applies.

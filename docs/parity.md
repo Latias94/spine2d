@@ -156,7 +156,7 @@ Oracle status:
 ## AnimationState / Mixing
 
 - ✅ Time update semantics + event queue baseline (ported tests exist in `spine2d`)
-- ✅ Event payload parity: `EventData`/`Event` include `int/float/string/audioPath/volume/balance`; JSON defaults match upstream and binary `stringValue==null → EventData.stringValue` fallback is covered by a dedicated unit test (broader binary event coverage can be added as we hit real deltas).
+- ✅ Event payload parity: `EventData`/`Event` include `int/float/string/audioPath/volume/balance`; JSON audio event keys inherit setup `volume/balance`, no-audio events keep `0/0`, and binary `stringValue==null → EventData.stringValue` fallback plus no-audio defaults are covered by dedicated unit tests (broader binary event coverage can be added as we hit real deltas).
 - ✅ Upstream test suites ported:
   - `spine-csharp` `AnimationStateTests`
   - `spine-libgdx` `AnimationStateTests` (including `#28`/`#29`)

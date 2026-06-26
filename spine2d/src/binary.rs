@@ -1834,8 +1834,8 @@ impl crate::SkeletonData {
                     let balance = input.read_f32_be()?;
                     (audio_path, volume, balance)
                 }
-                Some(audio_path) => (audio_path, 1.0, 0.0),
-                None => ("".to_string(), 1.0, 0.0),
+                Some(audio_path) => (audio_path, 0.0, 0.0),
+                None => ("".to_string(), 0.0, 0.0),
             };
             let data = crate::EventData {
                 name: name.clone(),
@@ -3181,7 +3181,7 @@ fn read_event_timeline(
         let (volume, balance) = if has_audio {
             (input.read_f32_be()?, input.read_f32_be()?)
         } else {
-            (1.0, 0.0)
+            (0.0, 0.0)
         };
         events.push(Event {
             time,
@@ -3354,15 +3354,16 @@ mod tests {
     }
 
     #[test]
-    fn binary_event_timeline_null_string_falls_back_to_event_data() {
+    fn binary_event_timeline_null_string_and_no_audio_defaults_match_cpp() {
         let event_defs = vec![EventData {
             name: "evt".to_string(),
             int_value: 0,
             float_value: 0.0,
             string: "DEFAULT".to_string(),
             audio_path: String::new(),
-            volume: 1.0,
-            balance: 0.0,
+            // Sentinel values: no-audio binary event keys keep Event constructor defaults.
+            volume: 0.75,
+            balance: -0.25,
         }];
 
         let mut bytes = Vec::new();
@@ -3388,5 +3389,9 @@ mod tests {
         assert_eq!(timeline.events.len(), 2);
         assert_eq!(timeline.events[0].string, "DEFAULT");
         assert_eq!(timeline.events[1].string, "OVERRIDE");
+        for event in &timeline.events {
+            assert!((event.volume - 0.0).abs() < 1e-6);
+            assert!((event.balance - 0.0).abs() < 1e-6);
+        }
     }
 }

@@ -1677,7 +1677,7 @@ impl SkeletonData {
                 let (volume, balance) = if has_audio {
                     (def.volume, def.balance)
                 } else {
-                    (1.0, 0.0)
+                    (0.0, 0.0)
                 };
                 (
                     name.clone(),
@@ -2232,12 +2232,12 @@ impl SkeletonData {
                             string: k.string_value.unwrap_or_else(|| event_data.string.clone()),
                             audio_path: event_data.audio_path.clone(),
                             volume: if has_audio {
-                                k.volume.unwrap_or(1.0)
+                                k.volume.unwrap_or(event_data.volume)
                             } else {
-                                1.0
+                                0.0
                             },
                             balance: if has_audio {
-                                k.balance.unwrap_or(0.0)
+                                k.balance.unwrap_or(event_data.balance)
                             } else {
                                 0.0
                             },
