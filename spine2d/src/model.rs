@@ -214,17 +214,111 @@ pub enum BlendMode {
 
 #[derive(Clone, Debug)]
 pub struct IkConstraintData {
-    pub name: String,
-    pub order: i32,
-    pub skin_required: bool,
-    pub bones: Vec<usize>,
-    pub target: usize,
-    pub scale_y_mode: ScaleYMode,
-    pub mix: f32,
-    pub softness: f32,
-    pub compress: bool,
-    pub stretch: bool,
-    pub bend_direction: i32,
+    pub(crate) name: String,
+    pub(crate) order: i32,
+    pub(crate) skin_required: bool,
+    pub(crate) bones: Vec<usize>,
+    pub(crate) target: usize,
+    pub(crate) scale_y_mode: ScaleYMode,
+    pub(crate) mix: f32,
+    pub(crate) softness: f32,
+    pub(crate) compress: bool,
+    pub(crate) stretch: bool,
+    pub(crate) bend_direction: i32,
+}
+
+impl IkConstraintData {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            order: 0,
+            skin_required: false,
+            bones: Vec::new(),
+            target: 0,
+            scale_y_mode: ScaleYMode::None,
+            mix: 0.0,
+            softness: 0.0,
+            compress: false,
+            stretch: false,
+            bend_direction: 0,
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_skin_required(&self) -> bool {
+        self.skin_required
+    }
+
+    pub fn set_skin_required(&mut self, skin_required: bool) {
+        self.skin_required = skin_required;
+    }
+
+    pub fn get_bones(&self) -> &[usize] {
+        &self.bones
+    }
+
+    pub fn get_bones_mut(&mut self) -> &mut Vec<usize> {
+        &mut self.bones
+    }
+
+    pub fn get_target(&self) -> usize {
+        self.target
+    }
+
+    pub fn set_target(&mut self, target: usize) {
+        self.target = target;
+    }
+
+    pub fn get_scale_y_mode(&self) -> ScaleYMode {
+        self.scale_y_mode
+    }
+
+    pub fn set_scale_y_mode(&mut self, scale_y_mode: ScaleYMode) {
+        self.scale_y_mode = scale_y_mode;
+    }
+
+    pub fn get_mix(&self) -> f32 {
+        self.mix
+    }
+
+    pub fn set_mix(&mut self, mix: f32) {
+        self.mix = mix;
+    }
+
+    pub fn get_softness(&self) -> f32 {
+        self.softness
+    }
+
+    pub fn set_softness(&mut self, softness: f32) {
+        self.softness = softness;
+    }
+
+    pub fn get_bend_direction(&self) -> i32 {
+        self.bend_direction
+    }
+
+    pub fn set_bend_direction(&mut self, bend_direction: i32) {
+        self.bend_direction = bend_direction;
+    }
+
+    pub fn get_compress(&self) -> bool {
+        self.compress
+    }
+
+    pub fn set_compress(&mut self, compress: bool) {
+        self.compress = compress;
+    }
+
+    pub fn get_stretch(&self) -> bool {
+        self.stretch
+    }
+
+    pub fn set_stretch(&mut self, stretch: bool) {
+        self.stretch = stretch;
+    }
 }
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
@@ -321,26 +415,221 @@ pub struct TransformFromProperty {
 
 #[derive(Clone, Debug)]
 pub struct TransformConstraintData {
-    pub name: String,
-    pub order: i32,
-    pub skin_required: bool,
-    pub bones: Vec<usize>,
-    pub source: usize,
-    pub local_source: bool,
-    pub local_target: bool,
-    pub additive: bool,
-    pub clamp: bool,
+    pub(crate) name: String,
+    pub(crate) order: i32,
+    pub(crate) skin_required: bool,
+    pub(crate) bones: Vec<usize>,
+    pub(crate) source: usize,
+    pub(crate) local_source: bool,
+    pub(crate) local_target: bool,
+    pub(crate) additive: bool,
+    pub(crate) clamp: bool,
 
     /// [rotate, x, y, scaleX, scaleY, shearY]
-    pub offsets: [f32; 6],
-    pub properties: Vec<TransformFromProperty>,
+    pub(crate) offsets: [f32; 6],
+    pub(crate) properties: Vec<TransformFromProperty>,
 
-    pub mix_rotate: f32,
-    pub mix_x: f32,
-    pub mix_y: f32,
-    pub mix_scale_x: f32,
-    pub mix_scale_y: f32,
-    pub mix_shear_y: f32,
+    pub(crate) mix_rotate: f32,
+    pub(crate) mix_x: f32,
+    pub(crate) mix_y: f32,
+    pub(crate) mix_scale_x: f32,
+    pub(crate) mix_scale_y: f32,
+    pub(crate) mix_shear_y: f32,
+}
+
+impl TransformConstraintData {
+    pub const ROTATION: usize = 0;
+    pub const X: usize = 1;
+    pub const Y: usize = 2;
+    pub const SCALE_X: usize = 3;
+    pub const SCALE_Y: usize = 4;
+    pub const SHEAR_Y: usize = 5;
+
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            order: 0,
+            skin_required: false,
+            bones: Vec::new(),
+            source: 0,
+            local_source: false,
+            local_target: false,
+            additive: false,
+            clamp: false,
+            offsets: [0.0; 6],
+            properties: Vec::new(),
+            mix_rotate: 0.0,
+            mix_x: 0.0,
+            mix_y: 0.0,
+            mix_scale_x: 0.0,
+            mix_scale_y: 0.0,
+            mix_shear_y: 0.0,
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_skin_required(&self) -> bool {
+        self.skin_required
+    }
+
+    pub fn set_skin_required(&mut self, skin_required: bool) {
+        self.skin_required = skin_required;
+    }
+
+    pub fn get_bones(&self) -> &[usize] {
+        &self.bones
+    }
+
+    pub fn get_bones_mut(&mut self) -> &mut Vec<usize> {
+        &mut self.bones
+    }
+
+    pub fn get_source(&self) -> usize {
+        self.source
+    }
+
+    pub fn set_source(&mut self, source: usize) {
+        self.source = source;
+    }
+
+    pub fn get_offset_rotation(&self) -> f32 {
+        self.offsets[Self::ROTATION]
+    }
+
+    pub fn set_offset_rotation(&mut self, offset_rotation: f32) {
+        self.offsets[Self::ROTATION] = offset_rotation;
+    }
+
+    pub fn get_offset_x(&self) -> f32 {
+        self.offsets[Self::X]
+    }
+
+    pub fn set_offset_x(&mut self, offset_x: f32) {
+        self.offsets[Self::X] = offset_x;
+    }
+
+    pub fn get_offset_y(&self) -> f32 {
+        self.offsets[Self::Y]
+    }
+
+    pub fn set_offset_y(&mut self, offset_y: f32) {
+        self.offsets[Self::Y] = offset_y;
+    }
+
+    pub fn get_offset_scale_x(&self) -> f32 {
+        self.offsets[Self::SCALE_X]
+    }
+
+    pub fn set_offset_scale_x(&mut self, offset_scale_x: f32) {
+        self.offsets[Self::SCALE_X] = offset_scale_x;
+    }
+
+    pub fn get_offset_scale_y(&self) -> f32 {
+        self.offsets[Self::SCALE_Y]
+    }
+
+    pub fn set_offset_scale_y(&mut self, offset_scale_y: f32) {
+        self.offsets[Self::SCALE_Y] = offset_scale_y;
+    }
+
+    pub fn get_offset_shear_y(&self) -> f32 {
+        self.offsets[Self::SHEAR_Y]
+    }
+
+    pub fn set_offset_shear_y(&mut self, offset_shear_y: f32) {
+        self.offsets[Self::SHEAR_Y] = offset_shear_y;
+    }
+
+    pub fn get_local_source(&self) -> bool {
+        self.local_source
+    }
+
+    pub fn set_local_source(&mut self, local_source: bool) {
+        self.local_source = local_source;
+    }
+
+    pub fn get_local_target(&self) -> bool {
+        self.local_target
+    }
+
+    pub fn set_local_target(&mut self, local_target: bool) {
+        self.local_target = local_target;
+    }
+
+    pub fn get_additive(&self) -> bool {
+        self.additive
+    }
+
+    pub fn set_additive(&mut self, additive: bool) {
+        self.additive = additive;
+    }
+
+    pub fn get_clamp(&self) -> bool {
+        self.clamp
+    }
+
+    pub fn set_clamp(&mut self, clamp: bool) {
+        self.clamp = clamp;
+    }
+
+    pub fn get_properties(&self) -> &[TransformFromProperty] {
+        &self.properties
+    }
+
+    pub fn get_properties_mut(&mut self) -> &mut Vec<TransformFromProperty> {
+        &mut self.properties
+    }
+
+    pub fn get_mix_rotate(&self) -> f32 {
+        self.mix_rotate
+    }
+
+    pub fn set_mix_rotate(&mut self, mix_rotate: f32) {
+        self.mix_rotate = mix_rotate;
+    }
+
+    pub fn get_mix_x(&self) -> f32 {
+        self.mix_x
+    }
+
+    pub fn set_mix_x(&mut self, mix_x: f32) {
+        self.mix_x = mix_x;
+    }
+
+    pub fn get_mix_y(&self) -> f32 {
+        self.mix_y
+    }
+
+    pub fn set_mix_y(&mut self, mix_y: f32) {
+        self.mix_y = mix_y;
+    }
+
+    pub fn get_mix_scale_x(&self) -> f32 {
+        self.mix_scale_x
+    }
+
+    pub fn set_mix_scale_x(&mut self, mix_scale_x: f32) {
+        self.mix_scale_x = mix_scale_x;
+    }
+
+    pub fn get_mix_scale_y(&self) -> f32 {
+        self.mix_scale_y
+    }
+
+    pub fn set_mix_scale_y(&mut self, mix_scale_y: f32) {
+        self.mix_scale_y = mix_scale_y;
+    }
+
+    pub fn get_mix_shear_y(&self) -> f32 {
+        self.mix_shear_y
+    }
+
+    pub fn set_mix_shear_y(&mut self, mix_shear_y: f32) {
+        self.mix_shear_y = mix_shear_y;
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -366,75 +655,550 @@ pub enum RotateMode {
 
 #[derive(Clone, Debug)]
 pub struct PathConstraintData {
-    pub name: String,
-    pub order: i32,
-    pub bones: Vec<usize>,
-    pub target: usize,
-    pub position_mode: PositionMode,
-    pub spacing_mode: SpacingMode,
-    pub rotate_mode: RotateMode,
-    pub offset_rotation: f32,
-    pub position: f32,
-    pub spacing: f32,
-    pub mix_rotate: f32,
-    pub mix_x: f32,
-    pub mix_y: f32,
-    pub skin_required: bool,
+    pub(crate) name: String,
+    pub(crate) order: i32,
+    pub(crate) bones: Vec<usize>,
+    pub(crate) target: usize,
+    pub(crate) position_mode: PositionMode,
+    pub(crate) spacing_mode: SpacingMode,
+    pub(crate) rotate_mode: RotateMode,
+    pub(crate) offset_rotation: f32,
+    pub(crate) position: f32,
+    pub(crate) spacing: f32,
+    pub(crate) mix_rotate: f32,
+    pub(crate) mix_x: f32,
+    pub(crate) mix_y: f32,
+    pub(crate) skin_required: bool,
+}
+
+impl PathConstraintData {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            order: 0,
+            bones: Vec::new(),
+            target: 0,
+            position_mode: PositionMode::Fixed,
+            spacing_mode: SpacingMode::Length,
+            rotate_mode: RotateMode::Tangent,
+            offset_rotation: 0.0,
+            position: 0.0,
+            spacing: 0.0,
+            mix_rotate: 0.0,
+            mix_x: 0.0,
+            mix_y: 0.0,
+            skin_required: false,
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_skin_required(&self) -> bool {
+        self.skin_required
+    }
+
+    pub fn set_skin_required(&mut self, skin_required: bool) {
+        self.skin_required = skin_required;
+    }
+
+    pub fn get_bones(&self) -> &[usize] {
+        &self.bones
+    }
+
+    pub fn get_bones_mut(&mut self) -> &mut Vec<usize> {
+        &mut self.bones
+    }
+
+    pub fn get_slot(&self) -> usize {
+        self.target
+    }
+
+    pub fn set_slot(&mut self, slot: usize) {
+        self.target = slot;
+    }
+
+    pub fn get_position_mode(&self) -> PositionMode {
+        self.position_mode
+    }
+
+    pub fn set_position_mode(&mut self, position_mode: PositionMode) {
+        self.position_mode = position_mode;
+    }
+
+    pub fn get_spacing_mode(&self) -> SpacingMode {
+        self.spacing_mode
+    }
+
+    pub fn set_spacing_mode(&mut self, spacing_mode: SpacingMode) {
+        self.spacing_mode = spacing_mode;
+    }
+
+    pub fn get_rotate_mode(&self) -> RotateMode {
+        self.rotate_mode
+    }
+
+    pub fn set_rotate_mode(&mut self, rotate_mode: RotateMode) {
+        self.rotate_mode = rotate_mode;
+    }
+
+    pub fn get_offset_rotation(&self) -> f32 {
+        self.offset_rotation
+    }
+
+    pub fn set_offset_rotation(&mut self, offset_rotation: f32) {
+        self.offset_rotation = offset_rotation;
+    }
+
+    pub fn get_position(&self) -> f32 {
+        self.position
+    }
+
+    pub fn set_position(&mut self, position: f32) {
+        self.position = position;
+    }
+
+    pub fn get_spacing(&self) -> f32 {
+        self.spacing
+    }
+
+    pub fn set_spacing(&mut self, spacing: f32) {
+        self.spacing = spacing;
+    }
+
+    pub fn get_mix_rotate(&self) -> f32 {
+        self.mix_rotate
+    }
+
+    pub fn set_mix_rotate(&mut self, mix_rotate: f32) {
+        self.mix_rotate = mix_rotate;
+    }
+
+    pub fn get_mix_x(&self) -> f32 {
+        self.mix_x
+    }
+
+    pub fn set_mix_x(&mut self, mix_x: f32) {
+        self.mix_x = mix_x;
+    }
+
+    pub fn get_mix_y(&self) -> f32 {
+        self.mix_y
+    }
+
+    pub fn set_mix_y(&mut self, mix_y: f32) {
+        self.mix_y = mix_y;
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct PhysicsConstraintData {
-    pub name: String,
-    pub order: i32,
-    pub skin_required: bool,
-    pub bone: usize,
+    pub(crate) name: String,
+    pub(crate) order: i32,
+    pub(crate) skin_required: bool,
+    pub(crate) bone: usize,
 
-    pub x: f32,
-    pub y: f32,
-    pub rotate: f32,
-    pub scale_x: f32,
-    pub scale_y_mode: ScaleYMode,
-    pub shear_x: f32,
-    pub limit: f32,
-    pub step: f32,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) rotate: f32,
+    pub(crate) scale_x: f32,
+    pub(crate) scale_y_mode: ScaleYMode,
+    pub(crate) shear_x: f32,
+    pub(crate) limit: f32,
+    pub(crate) step: f32,
 
-    pub inertia: f32,
-    pub strength: f32,
-    pub damping: f32,
-    pub mass_inverse: f32,
-    pub wind: f32,
-    pub gravity: f32,
-    pub mix: f32,
+    pub(crate) inertia: f32,
+    pub(crate) strength: f32,
+    pub(crate) damping: f32,
+    pub(crate) mass_inverse: f32,
+    pub(crate) wind: f32,
+    pub(crate) gravity: f32,
+    pub(crate) mix: f32,
 
-    pub inertia_global: bool,
-    pub strength_global: bool,
-    pub damping_global: bool,
-    pub mass_global: bool,
-    pub wind_global: bool,
-    pub gravity_global: bool,
-    pub mix_global: bool,
+    pub(crate) inertia_global: bool,
+    pub(crate) strength_global: bool,
+    pub(crate) damping_global: bool,
+    pub(crate) mass_global: bool,
+    pub(crate) wind_global: bool,
+    pub(crate) gravity_global: bool,
+    pub(crate) mix_global: bool,
+}
+
+impl PhysicsConstraintData {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            order: 0,
+            skin_required: false,
+            bone: 0,
+            x: 0.0,
+            y: 0.0,
+            rotate: 0.0,
+            scale_x: 0.0,
+            scale_y_mode: ScaleYMode::None,
+            shear_x: 0.0,
+            limit: 0.0,
+            step: 0.0,
+            inertia: 0.0,
+            strength: 0.0,
+            damping: 0.0,
+            mass_inverse: 0.0,
+            wind: 0.0,
+            gravity: 0.0,
+            mix: 0.0,
+            inertia_global: false,
+            strength_global: false,
+            damping_global: false,
+            mass_global: false,
+            wind_global: false,
+            gravity_global: false,
+            mix_global: false,
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_skin_required(&self) -> bool {
+        self.skin_required
+    }
+
+    pub fn set_skin_required(&mut self, skin_required: bool) {
+        self.skin_required = skin_required;
+    }
+
+    pub fn get_bone(&self) -> usize {
+        self.bone
+    }
+
+    pub fn set_bone(&mut self, bone: usize) {
+        self.bone = bone;
+    }
+
+    pub fn get_step(&self) -> f32 {
+        self.step
+    }
+
+    pub fn set_step(&mut self, step: f32) {
+        self.step = step;
+    }
+
+    pub fn get_x(&self) -> f32 {
+        self.x
+    }
+
+    pub fn set_x(&mut self, x: f32) {
+        self.x = x;
+    }
+
+    pub fn get_y(&self) -> f32 {
+        self.y
+    }
+
+    pub fn set_y(&mut self, y: f32) {
+        self.y = y;
+    }
+
+    pub fn get_rotate(&self) -> f32 {
+        self.rotate
+    }
+
+    pub fn set_rotate(&mut self, rotate: f32) {
+        self.rotate = rotate;
+    }
+
+    pub fn get_scale_x(&self) -> f32 {
+        self.scale_x
+    }
+
+    pub fn set_scale_x(&mut self, scale_x: f32) {
+        self.scale_x = scale_x;
+    }
+
+    pub fn get_scale_y_mode(&self) -> ScaleYMode {
+        self.scale_y_mode
+    }
+
+    pub fn set_scale_y_mode(&mut self, scale_y_mode: ScaleYMode) {
+        self.scale_y_mode = scale_y_mode;
+    }
+
+    pub fn get_shear_x(&self) -> f32 {
+        self.shear_x
+    }
+
+    pub fn set_shear_x(&mut self, shear_x: f32) {
+        self.shear_x = shear_x;
+    }
+
+    pub fn get_limit(&self) -> f32 {
+        self.limit
+    }
+
+    pub fn set_limit(&mut self, limit: f32) {
+        self.limit = limit;
+    }
+
+    pub fn get_inertia(&self) -> f32 {
+        self.inertia
+    }
+
+    pub fn set_inertia(&mut self, inertia: f32) {
+        self.inertia = inertia;
+    }
+
+    pub fn get_strength(&self) -> f32 {
+        self.strength
+    }
+
+    pub fn set_strength(&mut self, strength: f32) {
+        self.strength = strength;
+    }
+
+    pub fn get_damping(&self) -> f32 {
+        self.damping
+    }
+
+    pub fn set_damping(&mut self, damping: f32) {
+        self.damping = damping;
+    }
+
+    pub fn get_mass_inverse(&self) -> f32 {
+        self.mass_inverse
+    }
+
+    pub fn set_mass_inverse(&mut self, mass_inverse: f32) {
+        self.mass_inverse = mass_inverse;
+    }
+
+    pub fn get_wind(&self) -> f32 {
+        self.wind
+    }
+
+    pub fn set_wind(&mut self, wind: f32) {
+        self.wind = wind;
+    }
+
+    pub fn get_gravity(&self) -> f32 {
+        self.gravity
+    }
+
+    pub fn set_gravity(&mut self, gravity: f32) {
+        self.gravity = gravity;
+    }
+
+    pub fn get_mix(&self) -> f32 {
+        self.mix
+    }
+
+    pub fn set_mix(&mut self, mix: f32) {
+        self.mix = mix;
+    }
+
+    pub fn get_inertia_global(&self) -> bool {
+        self.inertia_global
+    }
+
+    pub fn set_inertia_global(&mut self, inertia_global: bool) {
+        self.inertia_global = inertia_global;
+    }
+
+    pub fn get_strength_global(&self) -> bool {
+        self.strength_global
+    }
+
+    pub fn set_strength_global(&mut self, strength_global: bool) {
+        self.strength_global = strength_global;
+    }
+
+    pub fn get_damping_global(&self) -> bool {
+        self.damping_global
+    }
+
+    pub fn set_damping_global(&mut self, damping_global: bool) {
+        self.damping_global = damping_global;
+    }
+
+    pub fn get_mass_global(&self) -> bool {
+        self.mass_global
+    }
+
+    pub fn set_mass_global(&mut self, mass_global: bool) {
+        self.mass_global = mass_global;
+    }
+
+    pub fn get_wind_global(&self) -> bool {
+        self.wind_global
+    }
+
+    pub fn set_wind_global(&mut self, wind_global: bool) {
+        self.wind_global = wind_global;
+    }
+
+    pub fn get_gravity_global(&self) -> bool {
+        self.gravity_global
+    }
+
+    pub fn set_gravity_global(&mut self, gravity_global: bool) {
+        self.gravity_global = gravity_global;
+    }
+
+    pub fn get_mix_global(&self) -> bool {
+        self.mix_global
+    }
+
+    pub fn set_mix_global(&mut self, mix_global: bool) {
+        self.mix_global = mix_global;
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct SliderConstraintData {
-    pub name: String,
-    pub order: i32,
-    pub skin_required: bool,
+    pub(crate) name: String,
+    pub(crate) order: i32,
+    pub(crate) skin_required: bool,
 
-    pub setup_time: f32,
-    pub setup_mix: f32,
+    pub(crate) setup_time: f32,
+    pub(crate) setup_mix: f32,
 
-    pub additive: bool,
-    pub looped: bool,
+    pub(crate) additive: bool,
+    pub(crate) looped: bool,
 
-    pub bone: Option<usize>,
-    pub property: Option<TransformProperty>,
-    pub property_from: f32,
-    pub to: f32,
-    pub scale: f32,
-    pub local: bool,
+    pub(crate) bone: Option<usize>,
+    pub(crate) property: Option<TransformProperty>,
+    pub(crate) property_from: f32,
+    pub(crate) to: f32,
+    pub(crate) scale: f32,
+    pub(crate) local: bool,
 
     pub(crate) animation: Option<usize>,
+}
+
+impl SliderConstraintData {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            order: 0,
+            skin_required: false,
+            setup_time: 0.0,
+            setup_mix: 0.0,
+            additive: false,
+            looped: false,
+            bone: None,
+            property: None,
+            property_from: 0.0,
+            to: 0.0,
+            scale: 0.0,
+            local: false,
+            animation: None,
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_skin_required(&self) -> bool {
+        self.skin_required
+    }
+
+    pub fn set_skin_required(&mut self, skin_required: bool) {
+        self.skin_required = skin_required;
+    }
+
+    pub fn get_animation(&self) -> Option<usize> {
+        self.animation
+    }
+
+    pub fn set_animation(&mut self, animation: usize) {
+        self.animation = Some(animation);
+    }
+
+    pub fn clear_animation(&mut self) {
+        self.animation = None;
+    }
+
+    pub fn get_additive(&self) -> bool {
+        self.additive
+    }
+
+    pub fn set_additive(&mut self, additive: bool) {
+        self.additive = additive;
+    }
+
+    pub fn get_loop(&self) -> bool {
+        self.looped
+    }
+
+    pub fn set_loop(&mut self, looped: bool) {
+        self.looped = looped;
+    }
+
+    pub fn get_bone(&self) -> Option<usize> {
+        self.bone
+    }
+
+    pub fn set_bone(&mut self, bone: Option<usize>) {
+        self.bone = bone;
+    }
+
+    pub fn get_property(&self) -> Option<TransformProperty> {
+        self.property
+    }
+
+    pub fn set_property(&mut self, property: Option<TransformProperty>) {
+        self.property = property;
+    }
+
+    pub fn get_offset(&self) -> f32 {
+        self.property_from
+    }
+
+    pub fn set_offset(&mut self, offset: f32) {
+        self.property_from = offset;
+    }
+
+    pub fn get_scale(&self) -> f32 {
+        self.scale
+    }
+
+    pub fn set_scale(&mut self, scale: f32) {
+        self.scale = scale;
+    }
+
+    pub fn get_max(&self) -> f32 {
+        self.to
+    }
+
+    pub fn set_max(&mut self, max: f32) {
+        self.to = max;
+    }
+
+    pub fn get_local(&self) -> bool {
+        self.local
+    }
+
+    pub fn set_local(&mut self, local: bool) {
+        self.local = local;
+    }
+
+    pub fn get_time(&self) -> f32 {
+        self.setup_time
+    }
+
+    pub fn set_time(&mut self, time: f32) {
+        self.setup_time = time;
+    }
+
+    pub fn get_mix(&self) -> f32 {
+        self.setup_mix
+    }
+
+    pub fn set_mix(&mut self, mix: f32) {
+        self.setup_mix = mix;
+    }
 }
 
 #[derive(Copy, Clone, Debug)]

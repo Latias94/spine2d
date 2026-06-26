@@ -2,7 +2,8 @@ use crate::{
     Animation, BoneData, BoneTimeline, ConstraintDataRef, EventData, IkConstraintData,
     PathConstraintData, PhysicsConstraintData, PositionMode, RotateMode, RotateTimeline,
     ScaleXTimeline, ScaleYMode, SkeletonData, SkinData, SliderConstraintData, SlotData,
-    SpacingMode, TransformConstraintData,
+    SpacingMode, TransformConstraintData, TransformFromProperty, TransformProperty,
+    TransformToProperty,
 };
 
 #[test]
@@ -163,15 +164,26 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
             .get_string(),
         "payload"
     );
-    assert_eq!(data.find_animation("animation").unwrap().name, "animation");
-    assert_eq!(data.find_ik_constraint("ik").unwrap().target, 0);
     assert_eq!(
-        data.find_transform_constraint("transform").unwrap().order,
-        4
+        data.find_animation("animation").unwrap().get_name(),
+        "animation"
     );
-    assert_eq!(data.find_path_constraint("path").unwrap().order, 1);
-    assert_eq!(data.find_physics_constraint("physics").unwrap().order, 3);
-    assert_eq!(data.find_slider_constraint("slider").unwrap().order, 0);
+    assert_eq!(data.find_ik_constraint("ik").unwrap().get_target(), 0);
+    assert_eq!(
+        data.find_transform_constraint("transform")
+            .unwrap()
+            .get_source(),
+        0
+    );
+    assert_eq!(data.find_path_constraint("path").unwrap().get_slot(), 0);
+    assert_eq!(
+        data.find_physics_constraint("physics").unwrap().get_bone(),
+        0
+    );
+    assert_eq!(
+        data.find_slider_constraint("slider").unwrap().get_bone(),
+        Some(0)
+    );
 
     let constraints = data.get_constraints();
     assert_eq!(
@@ -189,7 +201,7 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     );
     assert!(matches!(
         constraints[0],
-        ConstraintDataRef::Slider(data) if data.name == "slider"
+        ConstraintDataRef::Slider(data) if data.get_name() == "slider"
     ));
 
     assert!(data.find_bone("").is_none());
@@ -202,6 +214,295 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     assert!(data.find_path_constraint("").is_none());
     assert!(data.find_physics_constraint("").is_none());
     assert!(data.find_slider_constraint("").is_none());
+}
+
+#[test]
+fn constraint_data_accessors_match_cpp_surface() {
+    let mut ik = IkConstraintData::new("ik");
+    assert_eq!(ik.get_name(), "ik");
+    assert!(!ik.get_skin_required());
+    assert!(ik.get_bones().is_empty());
+    assert_eq!(ik.get_target(), 0);
+    assert_eq!(ik.get_scale_y_mode(), ScaleYMode::None);
+    assert_eq!(ik.get_mix(), 0.0);
+    assert_eq!(ik.get_softness(), 0.0);
+    assert_eq!(ik.get_bend_direction(), 0);
+    assert!(!ik.get_compress());
+    assert!(!ik.get_stretch());
+
+    ik.set_skin_required(true);
+    ik.get_bones_mut().extend([1, 2]);
+    ik.set_target(3);
+    ik.set_scale_y_mode(ScaleYMode::Volume);
+    ik.set_mix(0.75);
+    ik.set_softness(4.5);
+    ik.set_bend_direction(-1);
+    ik.set_compress(true);
+    ik.set_stretch(true);
+
+    assert!(ik.get_skin_required());
+    assert_eq!(ik.get_bones(), [1, 2]);
+    assert_eq!(ik.get_target(), 3);
+    assert_eq!(ik.get_scale_y_mode(), ScaleYMode::Volume);
+    assert_eq!(ik.get_mix(), 0.75);
+    assert_eq!(ik.get_softness(), 4.5);
+    assert_eq!(ik.get_bend_direction(), -1);
+    assert!(ik.get_compress());
+    assert!(ik.get_stretch());
+
+    let mut transform = TransformConstraintData::new("transform");
+    assert_eq!(transform.get_name(), "transform");
+    assert!(!transform.get_skin_required());
+    assert!(transform.get_bones().is_empty());
+    assert_eq!(transform.get_source(), 0);
+    assert_eq!(TransformConstraintData::ROTATION, 0);
+    assert_eq!(TransformConstraintData::X, 1);
+    assert_eq!(TransformConstraintData::Y, 2);
+    assert_eq!(TransformConstraintData::SCALE_X, 3);
+    assert_eq!(TransformConstraintData::SCALE_Y, 4);
+    assert_eq!(TransformConstraintData::SHEAR_Y, 5);
+    assert_eq!(transform.get_offset_rotation(), 0.0);
+    assert_eq!(transform.get_offset_x(), 0.0);
+    assert_eq!(transform.get_offset_y(), 0.0);
+    assert_eq!(transform.get_offset_scale_x(), 0.0);
+    assert_eq!(transform.get_offset_scale_y(), 0.0);
+    assert_eq!(transform.get_offset_shear_y(), 0.0);
+    assert!(!transform.get_local_source());
+    assert!(!transform.get_local_target());
+    assert!(!transform.get_additive());
+    assert!(!transform.get_clamp());
+    assert!(transform.get_properties().is_empty());
+    assert_eq!(transform.get_mix_rotate(), 0.0);
+    assert_eq!(transform.get_mix_x(), 0.0);
+    assert_eq!(transform.get_mix_y(), 0.0);
+    assert_eq!(transform.get_mix_scale_x(), 0.0);
+    assert_eq!(transform.get_mix_scale_y(), 0.0);
+    assert_eq!(transform.get_mix_shear_y(), 0.0);
+
+    transform.set_skin_required(true);
+    transform.get_bones_mut().extend([4, 5]);
+    transform.set_source(6);
+    transform.set_offset_rotation(10.0);
+    transform.set_offset_x(11.0);
+    transform.set_offset_y(12.0);
+    transform.set_offset_scale_x(13.0);
+    transform.set_offset_scale_y(14.0);
+    transform.set_offset_shear_y(15.0);
+    transform.set_local_source(true);
+    transform.set_local_target(true);
+    transform.set_additive(true);
+    transform.set_clamp(true);
+    transform.get_properties_mut().push(TransformFromProperty {
+        property: TransformProperty::Rotate,
+        offset: 1.5,
+        to: vec![TransformToProperty {
+            property: TransformProperty::X,
+            offset: 2.5,
+            max: 3.5,
+            scale: 4.5,
+        }],
+    });
+    transform.set_mix_rotate(0.1);
+    transform.set_mix_x(0.2);
+    transform.set_mix_y(0.3);
+    transform.set_mix_scale_x(0.4);
+    transform.set_mix_scale_y(0.5);
+    transform.set_mix_shear_y(0.6);
+
+    assert!(transform.get_skin_required());
+    assert_eq!(transform.get_bones(), [4, 5]);
+    assert_eq!(transform.get_source(), 6);
+    assert_eq!(transform.get_offset_rotation(), 10.0);
+    assert_eq!(transform.get_offset_x(), 11.0);
+    assert_eq!(transform.get_offset_y(), 12.0);
+    assert_eq!(transform.get_offset_scale_x(), 13.0);
+    assert_eq!(transform.get_offset_scale_y(), 14.0);
+    assert_eq!(transform.get_offset_shear_y(), 15.0);
+    assert!(transform.get_local_source());
+    assert!(transform.get_local_target());
+    assert!(transform.get_additive());
+    assert!(transform.get_clamp());
+    assert_eq!(
+        transform.get_properties()[0].property,
+        TransformProperty::Rotate
+    );
+    assert_eq!(transform.get_properties()[0].offset, 1.5);
+    assert_eq!(
+        transform.get_properties()[0].to[0].property,
+        TransformProperty::X
+    );
+    assert_eq!(transform.get_mix_rotate(), 0.1);
+    assert_eq!(transform.get_mix_x(), 0.2);
+    assert_eq!(transform.get_mix_y(), 0.3);
+    assert_eq!(transform.get_mix_scale_x(), 0.4);
+    assert_eq!(transform.get_mix_scale_y(), 0.5);
+    assert_eq!(transform.get_mix_shear_y(), 0.6);
+
+    let mut path = PathConstraintData::new("path");
+    assert_eq!(path.get_name(), "path");
+    assert!(!path.get_skin_required());
+    assert!(path.get_bones().is_empty());
+    assert_eq!(path.get_slot(), 0);
+    assert_eq!(path.get_position_mode(), PositionMode::Fixed);
+    assert_eq!(path.get_spacing_mode(), SpacingMode::Length);
+    assert_eq!(path.get_rotate_mode(), RotateMode::Tangent);
+    assert_eq!(path.get_offset_rotation(), 0.0);
+    assert_eq!(path.get_position(), 0.0);
+    assert_eq!(path.get_spacing(), 0.0);
+    assert_eq!(path.get_mix_rotate(), 0.0);
+    assert_eq!(path.get_mix_x(), 0.0);
+    assert_eq!(path.get_mix_y(), 0.0);
+
+    path.set_skin_required(true);
+    path.get_bones_mut().extend([7, 8]);
+    path.set_slot(9);
+    path.set_position_mode(PositionMode::Percent);
+    path.set_spacing_mode(SpacingMode::Proportional);
+    path.set_rotate_mode(RotateMode::ChainScale);
+    path.set_offset_rotation(25.0);
+    path.set_position(26.0);
+    path.set_spacing(27.0);
+    path.set_mix_rotate(0.7);
+    path.set_mix_x(0.8);
+    path.set_mix_y(0.9);
+
+    assert!(path.get_skin_required());
+    assert_eq!(path.get_bones(), [7, 8]);
+    assert_eq!(path.get_slot(), 9);
+    assert_eq!(path.get_position_mode(), PositionMode::Percent);
+    assert_eq!(path.get_spacing_mode(), SpacingMode::Proportional);
+    assert_eq!(path.get_rotate_mode(), RotateMode::ChainScale);
+    assert_eq!(path.get_offset_rotation(), 25.0);
+    assert_eq!(path.get_position(), 26.0);
+    assert_eq!(path.get_spacing(), 27.0);
+    assert_eq!(path.get_mix_rotate(), 0.7);
+    assert_eq!(path.get_mix_x(), 0.8);
+    assert_eq!(path.get_mix_y(), 0.9);
+
+    let mut physics = PhysicsConstraintData::new("physics");
+    assert_eq!(physics.get_name(), "physics");
+    assert!(!physics.get_skin_required());
+    assert_eq!(physics.get_bone(), 0);
+    assert_eq!(physics.get_step(), 0.0);
+    assert_eq!(physics.get_x(), 0.0);
+    assert_eq!(physics.get_y(), 0.0);
+    assert_eq!(physics.get_rotate(), 0.0);
+    assert_eq!(physics.get_scale_x(), 0.0);
+    assert_eq!(physics.get_scale_y_mode(), ScaleYMode::None);
+    assert_eq!(physics.get_shear_x(), 0.0);
+    assert_eq!(physics.get_limit(), 0.0);
+    assert_eq!(physics.get_inertia(), 0.0);
+    assert_eq!(physics.get_strength(), 0.0);
+    assert_eq!(physics.get_damping(), 0.0);
+    assert_eq!(physics.get_mass_inverse(), 0.0);
+    assert_eq!(physics.get_wind(), 0.0);
+    assert_eq!(physics.get_gravity(), 0.0);
+    assert_eq!(physics.get_mix(), 0.0);
+    assert!(!physics.get_inertia_global());
+    assert!(!physics.get_strength_global());
+    assert!(!physics.get_damping_global());
+    assert!(!physics.get_mass_global());
+    assert!(!physics.get_wind_global());
+    assert!(!physics.get_gravity_global());
+    assert!(!physics.get_mix_global());
+
+    physics.set_skin_required(true);
+    physics.set_bone(10);
+    physics.set_step(1.0 / 30.0);
+    physics.set_x(0.11);
+    physics.set_y(0.12);
+    physics.set_rotate(0.13);
+    physics.set_scale_x(0.14);
+    physics.set_scale_y_mode(ScaleYMode::Uniform);
+    physics.set_shear_x(0.15);
+    physics.set_limit(20.0);
+    physics.set_inertia(0.21);
+    physics.set_strength(0.22);
+    physics.set_damping(0.23);
+    physics.set_mass_inverse(0.24);
+    physics.set_wind(0.25);
+    physics.set_gravity(0.26);
+    physics.set_mix(0.27);
+    physics.set_inertia_global(true);
+    physics.set_strength_global(true);
+    physics.set_damping_global(true);
+    physics.set_mass_global(true);
+    physics.set_wind_global(true);
+    physics.set_gravity_global(true);
+    physics.set_mix_global(true);
+
+    assert!(physics.get_skin_required());
+    assert_eq!(physics.get_bone(), 10);
+    assert_eq!(physics.get_step(), 1.0 / 30.0);
+    assert_eq!(physics.get_x(), 0.11);
+    assert_eq!(physics.get_y(), 0.12);
+    assert_eq!(physics.get_rotate(), 0.13);
+    assert_eq!(physics.get_scale_x(), 0.14);
+    assert_eq!(physics.get_scale_y_mode(), ScaleYMode::Uniform);
+    assert_eq!(physics.get_shear_x(), 0.15);
+    assert_eq!(physics.get_limit(), 20.0);
+    assert_eq!(physics.get_inertia(), 0.21);
+    assert_eq!(physics.get_strength(), 0.22);
+    assert_eq!(physics.get_damping(), 0.23);
+    assert_eq!(physics.get_mass_inverse(), 0.24);
+    assert_eq!(physics.get_wind(), 0.25);
+    assert_eq!(physics.get_gravity(), 0.26);
+    assert_eq!(physics.get_mix(), 0.27);
+    assert!(physics.get_inertia_global());
+    assert!(physics.get_strength_global());
+    assert!(physics.get_damping_global());
+    assert!(physics.get_mass_global());
+    assert!(physics.get_wind_global());
+    assert!(physics.get_gravity_global());
+    assert!(physics.get_mix_global());
+
+    let mut slider = SliderConstraintData::new("slider");
+    assert_eq!(slider.get_name(), "slider");
+    assert!(!slider.get_skin_required());
+    assert_eq!(slider.get_animation(), None);
+    assert!(!slider.get_additive());
+    assert!(!slider.get_loop());
+    assert_eq!(slider.get_bone(), None);
+    assert_eq!(slider.get_property(), None);
+    assert_eq!(slider.get_offset(), 0.0);
+    assert_eq!(slider.get_scale(), 0.0);
+    assert_eq!(slider.get_max(), 0.0);
+    assert!(!slider.get_local());
+    assert_eq!(slider.get_time(), 0.0);
+    assert_eq!(slider.get_mix(), 0.0);
+
+    slider.set_skin_required(true);
+    slider.set_animation(11);
+    slider.set_additive(true);
+    slider.set_loop(true);
+    slider.set_bone(Some(12));
+    slider.set_property(Some(TransformProperty::ShearY));
+    slider.set_offset(31.0);
+    slider.set_scale(32.0);
+    slider.set_max(33.0);
+    slider.set_local(true);
+    slider.set_time(34.0);
+    slider.set_mix(0.35);
+
+    assert!(slider.get_skin_required());
+    assert_eq!(slider.get_animation(), Some(11));
+    assert!(slider.get_additive());
+    assert!(slider.get_loop());
+    assert_eq!(slider.get_bone(), Some(12));
+    assert_eq!(slider.get_property(), Some(TransformProperty::ShearY));
+    assert_eq!(slider.get_offset(), 31.0);
+    assert_eq!(slider.get_scale(), 32.0);
+    assert_eq!(slider.get_max(), 33.0);
+    assert!(slider.get_local());
+    assert_eq!(slider.get_time(), 34.0);
+    assert_eq!(slider.get_mix(), 0.35);
+
+    slider.clear_animation();
+    slider.set_bone(None);
+    slider.set_property(None);
+    assert_eq!(slider.get_animation(), None);
+    assert_eq!(slider.get_bone(), None);
+    assert_eq!(slider.get_property(), None);
 }
 
 #[test]

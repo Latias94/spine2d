@@ -72,7 +72,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
                     .get_data()
                     .get_ik_constraints()
                     .get(index)
-                    .map(|d| d.name.as_str())
+                    .map(|d| d.get_name())
                     .unwrap_or("<unknown>");
                 format!("ik {}", name)
             }
@@ -81,7 +81,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
                     .get_data()
                     .get_transform_constraints()
                     .get(index)
-                    .map(|d| d.name.as_str())
+                    .map(|d| d.get_name())
                     .unwrap_or("<unknown>");
                 format!("transform {}", name)
             }
@@ -90,7 +90,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
                     .get_data()
                     .get_path_constraints()
                     .get(index)
-                    .map(|d| d.name.as_str())
+                    .map(|d| d.get_name())
                     .unwrap_or("<unknown>");
                 format!("path {}", name)
             }
@@ -99,7 +99,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
                     .get_data()
                     .get_physics_constraints()
                     .get(index)
-                    .map(|d| d.name.as_str())
+                    .map(|d| d.get_name())
                     .unwrap_or("<unknown>");
                 format!("physics {}", name)
             }
@@ -108,7 +108,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
                     .get_data()
                     .get_slider_constraints()
                     .get(index)
-                    .map(|d| d.name.as_str())
+                    .map(|d| d.get_name())
                     .unwrap_or("<unknown>");
                 format!("slider {}", name)
             }
@@ -352,7 +352,7 @@ fn dump_animation_data(data: &SkeletonData, name: &str) {
             let constraint_name = data
                 .get_ik_constraints()
                 .get(timeline.constraint_index)
-                .map(|c| c.name.as_str())
+                .map(|c| c.get_name())
                 .unwrap_or("<unknown>");
             let frames: Vec<_> = timeline
                 .frames
@@ -756,7 +756,7 @@ fn main() {
                 .get_data()
                 .get_ik_constraints()
                 .get(i)
-                .map(|d| d.name.as_str())
+                .map(|d| d.get_name())
                 .unwrap_or("<unknown>");
             json!({
                 "i": i,
@@ -778,7 +778,7 @@ fn main() {
                 .get_data()
                 .get_transform_constraints()
                 .get(i)
-                .map(|d| d.name.as_str())
+                .map(|d| d.get_name())
                 .unwrap_or("<unknown>");
             json!({
                 "i": i,
@@ -803,7 +803,7 @@ fn main() {
                 .get_data()
                 .get_path_constraints()
                 .get(i)
-                .map(|d| d.name.as_str())
+                .map(|d| d.get_name())
                 .unwrap_or("<unknown>");
             json!({
                 "i": i,
@@ -830,28 +830,28 @@ fn main() {
             .iter()
             .map(|c| {
                 let bone_names: Vec<_> = c
-                    .bones
+                    .get_bones()
                     .iter()
                     .filter_map(|&i| skeleton.get_data().get_bones().get(i).map(|b| b.get_name()))
                     .collect();
                 let source_name = skeleton
                     .get_data()
                     .get_bones()
-                    .get(c.source)
+                    .get(c.get_source())
                     .map(|b| b.get_name())
                     .unwrap_or("<unknown>");
                 json!({
-                    "name": c.name,
-                    "bones": c.bones.len(),
+                    "name": c.get_name(),
+                    "bones": c.get_bones().len(),
                     "boneNames": bone_names,
                     "source": source_name,
-                    "properties": c.properties.len(),
-                    "mixX": c.mix_x,
-                    "mixY": c.mix_y,
-                    "localSource": c.local_source,
-                    "localTarget": c.local_target,
-                    "additive": c.additive,
-                    "clamp": c.clamp,
+                    "properties": c.get_properties().len(),
+                    "mixX": c.get_mix_x(),
+                    "mixY": c.get_mix_y(),
+                    "localSource": c.get_local_source(),
+                    "localTarget": c.get_local_target(),
+                    "additive": c.get_additive(),
+                    "clamp": c.get_clamp(),
                 })
             })
             .collect();
