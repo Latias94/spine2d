@@ -300,7 +300,7 @@ mod web {
         }
         data.get_animations()
             .first()
-            .map(|a| a.name.clone())
+            .map(|a| a.get_name().to_string())
             .unwrap_or_else(|| "spin".to_string())
     }
 
@@ -660,7 +660,7 @@ mod web {
                 .data
                 .get_animations()
                 .iter()
-                .map(|a| a.name.clone())
+                .map(|a| a.get_name().to_string())
                 .collect::<Vec<_>>();
             populate_select_options(document, &anim_select, anim_names, &st.current_animation)?;
         }
@@ -823,7 +823,7 @@ mod web {
                         .data
                         .get_animations()
                         .iter()
-                        .map(|a| a.name.clone())
+                        .map(|a| a.get_name().to_string())
                         .collect::<Vec<_>>();
                     let mut skin_names = st
                         .data

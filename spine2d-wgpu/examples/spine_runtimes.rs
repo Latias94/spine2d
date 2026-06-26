@@ -400,7 +400,7 @@ impl App {
                             .map(|d| {
                                 d.get_animations()
                                     .iter()
-                                    .map(|a| a.name.clone())
+                                    .map(|a| a.get_name().to_string())
                                     .collect::<Vec<_>>()
                             })
                             .unwrap_or_default();
@@ -724,7 +724,9 @@ fn choose_default_animation(data: &SkeletonData) -> Option<String> {
             return Some(name.to_string());
         }
     }
-    data.get_animations().first().map(|a| a.name.clone())
+    data.get_animations()
+        .first()
+        .map(|a| a.get_name().to_string())
 }
 
 fn choose_default_skin(example: &str, data: &SkeletonData) -> Option<String> {
@@ -828,7 +830,11 @@ impl ApplicationHandler for App {
                     break;
                 }
             }
-            found.or_else(|| data.get_animations().first().map(|a| a.name.clone()))
+            found.or_else(|| {
+                data.get_animations()
+                    .first()
+                    .map(|a| a.get_name().to_string())
+            })
         };
 
         let Some(chosen_animation) = chosen_animation else {
