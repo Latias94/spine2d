@@ -568,18 +568,18 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
             .into_iter()
             .filter_map(|track| {
                 track?.entry(animation_state).map(|entry| SpineTrackState {
-                    track_index: entry.track_index(),
-                    animation_name: entry.animation().name.clone(),
-                    track_time: entry.track_time(),
-                    animation_time: entry.animation_time(),
-                    loop_animation: entry.looped(),
-                    delay: entry.delay(),
-                    mix_duration: entry.mix_duration(),
-                    mix_time: entry.mix_time(),
-                    alpha: entry.alpha(),
-                    additive: entry.additive(),
-                    mix_interpolation: entry.mix_interpolation(),
-                    reverse: entry.reverse(),
+                    track_index: entry.get_track_index(),
+                    animation_name: entry.get_animation().name.clone(),
+                    track_time: entry.get_track_time(),
+                    animation_time: entry.get_animation_time(),
+                    loop_animation: entry.get_loop(),
+                    delay: entry.get_delay(),
+                    mix_duration: entry.get_mix_duration(),
+                    mix_time: entry.get_mix_time(),
+                    alpha: entry.get_alpha(),
+                    additive: entry.get_additive(),
+                    mix_interpolation: entry.get_mix_interpolation(),
+                    reverse: entry.get_reverse(),
                 })
             })
             .collect(),
@@ -837,7 +837,7 @@ mod tests {
     }
 
     fn current_track_mix_duration(app: &App, entity: Entity) -> f32 {
-        current_track_entry(app, entity, 0, |entry| entry.mix_duration())
+        current_track_entry(app, entity, 0, |entry| entry.get_mix_duration())
     }
 
     fn current_track_entry<F: FnOnce(&spine2d::TrackEntry) -> R, R>(
@@ -1374,7 +1374,7 @@ mod tests {
             .advance_by(Duration::from_millis(100));
         app.update();
 
-        let forward_time = current_track_entry(&app, entity, 0, |entry| entry.track_time());
+        let forward_time = current_track_entry(&app, entity, 0, |entry| entry.get_track_time());
         assert!(forward_time > 0.0);
 
         app.world_mut().entity_mut(entity).insert(SpineAnimation {
@@ -1387,7 +1387,7 @@ mod tests {
             .advance_by(Duration::from_millis(100));
         app.update();
 
-        let reversed_time = current_track_entry(&app, entity, 0, |entry| entry.track_time());
+        let reversed_time = current_track_entry(&app, entity, 0, |entry| entry.get_track_time());
         assert!(reversed_time < forward_time);
     }
 
@@ -1587,15 +1587,18 @@ mod tests {
         app.update();
 
         current_track_entry(&app, entity, 0, |entry| {
-            assert_eq!(entry.animation().name, "first");
-            assert_eq!(entry.alpha(), 0.5);
-            assert!(!entry.looped());
-            assert!(entry.additive());
-            assert_eq!(entry.mix_interpolation(), spine2d::MixInterpolation::Smooth);
-            assert!(entry.reverse());
-            assert!(entry.shortest_rotation());
-            assert_eq!(entry.mix_duration(), 0.25);
-            assert_eq!(entry.event_threshold(), 0.75);
+            assert_eq!(entry.get_animation().name, "first");
+            assert_eq!(entry.get_alpha(), 0.5);
+            assert!(!entry.get_loop());
+            assert!(entry.get_additive());
+            assert_eq!(
+                entry.get_mix_interpolation(),
+                spine2d::MixInterpolation::Smooth
+            );
+            assert!(entry.get_reverse());
+            assert!(entry.get_shortest_rotation());
+            assert_eq!(entry.get_mix_duration(), 0.25);
+            assert_eq!(entry.get_event_threshold(), 0.75);
         });
     }
 
@@ -1626,13 +1629,13 @@ mod tests {
         app.update();
 
         queued_track_entry(&app, entity, 0, 0, |entry| {
-            assert_eq!(entry.animation().name, "second");
-            assert_eq!(entry.delay(), 0.3);
-            assert_eq!(entry.track_end(), 0.8);
-            assert_eq!(entry.mix_duration(), 0.4);
-            assert_eq!(entry.animation_start(), 0.1);
-            assert_eq!(entry.animation_end(), 0.9);
-            assert_eq!(entry.animation_last(), 0.2);
+            assert_eq!(entry.get_animation().name, "second");
+            assert_eq!(entry.get_delay(), 0.3);
+            assert_eq!(entry.get_track_end(), 0.8);
+            assert_eq!(entry.get_mix_duration(), 0.4);
+            assert_eq!(entry.get_animation_start(), 0.1);
+            assert_eq!(entry.get_animation_end(), 0.9);
+            assert_eq!(entry.get_animation_last(), 0.2);
         });
     }
 
@@ -1648,7 +1651,7 @@ mod tests {
         app.update();
 
         let previous_duration =
-            current_track_entry(&app, entity, 0, |entry| entry.animation().duration);
+            current_track_entry(&app, entity, 0, |entry| entry.get_animation().duration);
         let mix_duration = previous_duration * 0.25;
         let expected_delay = previous_duration - mix_duration;
 
@@ -1664,8 +1667,8 @@ mod tests {
         app.update();
 
         queued_track_entry(&app, entity, 0, 0, |entry| {
-            assert!((entry.delay() - expected_delay).abs() <= 0.0001);
-            assert!((entry.mix_duration() - mix_duration).abs() <= 0.0001);
+            assert!((entry.get_delay() - expected_delay).abs() <= 0.0001);
+            assert!((entry.get_mix_duration() - mix_duration).abs() <= 0.0001);
         });
     }
 
@@ -1694,12 +1697,12 @@ mod tests {
         app.update();
 
         current_track_entry(&app, entity, 0, |entry| {
-            assert_eq!(entry.animation().name, "<empty>");
-            assert_eq!(entry.mix_duration(), 0.5);
-            assert_eq!(entry.track_end(), 0.7);
-            assert_eq!(entry.alpha_attachment_threshold(), 0.2);
-            assert_eq!(entry.mix_attachment_threshold(), 0.3);
-            assert_eq!(entry.mix_draw_order_threshold(), 0.4);
+            assert_eq!(entry.get_animation().name, "<empty>");
+            assert_eq!(entry.get_mix_duration(), 0.5);
+            assert_eq!(entry.get_track_end(), 0.7);
+            assert_eq!(entry.get_alpha_attachment_threshold(), 0.2);
+            assert_eq!(entry.get_mix_attachment_threshold(), 0.3);
+            assert_eq!(entry.get_mix_draw_order_threshold(), 0.4);
         });
     }
 
@@ -1726,9 +1729,9 @@ mod tests {
         assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| app.update())).is_err());
 
         current_track_entry(&app, entity, 0, |entry| {
-            assert_eq!(entry.animation().name, "first");
-            assert_eq!(entry.alpha(), 1.0);
-            assert!(!entry.additive());
+            assert_eq!(entry.get_animation().name, "first");
+            assert_eq!(entry.get_alpha(), 1.0);
+            assert!(!entry.get_additive());
         });
     }
 

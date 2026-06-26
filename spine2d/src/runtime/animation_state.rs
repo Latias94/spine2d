@@ -569,19 +569,19 @@ impl TrackEntry {
         }
     }
 
-    pub fn track_index(&self) -> usize {
+    pub fn get_track_index(&self) -> usize {
         self.track_index
     }
 
-    pub fn animation(&self) -> &Animation {
+    pub fn get_animation(&self) -> &Animation {
         &self.animation
     }
 
-    pub fn looped(&self) -> bool {
+    pub fn get_loop(&self) -> bool {
         self.looped
     }
 
-    pub fn additive(&self) -> bool {
+    pub fn get_additive(&self) -> bool {
         self.additive
     }
 
@@ -597,35 +597,35 @@ impl TrackEntry {
         self.animation_identity == EMPTY_ANIMATION_ID
     }
 
-    pub fn reverse(&self) -> bool {
+    pub fn get_reverse(&self) -> bool {
         self.reverse
     }
 
-    pub fn shortest_rotation(&self) -> bool {
+    pub fn get_shortest_rotation(&self) -> bool {
         self.shortest_rotation
     }
 
-    pub fn animation_start(&self) -> f32 {
+    pub fn get_animation_start(&self) -> f32 {
         self.animation_start
     }
 
-    pub fn animation_end(&self) -> f32 {
+    pub fn get_animation_end(&self) -> f32 {
         self.animation_end
     }
 
-    pub fn animation_last(&self) -> f32 {
+    pub fn get_animation_last(&self) -> f32 {
         self.animation_last_time
     }
 
-    pub fn delay(&self) -> f32 {
+    pub fn get_delay(&self) -> f32 {
         self.delay
     }
 
-    pub fn track_time(&self) -> f32 {
+    pub fn get_track_time(&self) -> f32 {
         self.track_time
     }
 
-    pub fn track_end(&self) -> f32 {
+    pub fn get_track_end(&self) -> f32 {
         self.track_end
     }
 
@@ -633,39 +633,39 @@ impl TrackEntry {
         self.time_scale
     }
 
-    pub fn mix_duration(&self) -> f32 {
+    pub fn get_mix_duration(&self) -> f32 {
         self.mix_duration
     }
 
-    pub fn mix_time(&self) -> f32 {
+    pub fn get_mix_time(&self) -> f32 {
         self.mix_time
     }
 
-    pub fn mix_interpolation(&self) -> MixInterpolation {
+    pub fn get_mix_interpolation(&self) -> MixInterpolation {
         self.mix_interpolation
     }
 
-    pub fn alpha(&self) -> f32 {
+    pub fn get_alpha(&self) -> f32 {
         self.alpha
     }
 
-    pub fn alpha_attachment_threshold(&self) -> f32 {
+    pub fn get_alpha_attachment_threshold(&self) -> f32 {
         self.alpha_attachment_threshold
     }
 
-    pub fn mix_attachment_threshold(&self) -> f32 {
+    pub fn get_mix_attachment_threshold(&self) -> f32 {
         self.mix_attachment_threshold
     }
 
-    pub fn mix_draw_order_threshold(&self) -> f32 {
+    pub fn get_mix_draw_order_threshold(&self) -> f32 {
         self.mix_draw_order_threshold
     }
 
-    pub fn event_threshold(&self) -> f32 {
+    pub fn get_event_threshold(&self) -> f32 {
         self.event_threshold
     }
 
-    pub fn animation_time(&self) -> f32 {
+    pub fn get_animation_time(&self) -> f32 {
         if self.looped {
             let duration = self.animation_end - self.animation_start;
             if duration == 0.0 {
@@ -677,7 +677,7 @@ impl TrackEntry {
         }
     }
 
-    pub fn track_complete(&self) -> f32 {
+    pub fn get_track_complete(&self) -> f32 {
         let duration = self.animation_end - self.animation_start;
         if duration != 0.0 {
             if self.looped {
@@ -884,7 +884,7 @@ impl TrackEntryHandle {
         } else if delay <= 0.0 {
             previous
                 .and_then(|id| state.entry(id))
-                .map(|entry| (delay + entry.track_complete() - mix_duration).max(0.0))
+                .map(|entry| (delay + entry.get_track_complete() - mix_duration).max(0.0))
                 .unwrap_or(0.0)
         } else {
             delay
@@ -1482,7 +1482,7 @@ impl AnimationState {
                 .entry(last)
                 .map(|last_ref| {
                     (
-                        last_ref.track_complete(),
+                        last_ref.get_track_complete(),
                         self.data.mix_duration(
                             last_ref.animation.name.as_str(),
                             animation.name.as_str(),
@@ -1553,7 +1553,7 @@ impl AnimationState {
                 .entry(last)
                 .map(|last_ref| {
                     (
-                        last_ref.track_complete(),
+                        last_ref.get_track_complete(),
                         self.data
                             .mix_duration(last_ref.animation.name.as_str(), EMPTY_ANIMATION_NAME),
                     )
@@ -1777,7 +1777,7 @@ impl AnimationState {
                 match self.entry(current_id) {
                     Some(e) => (
                         e.animation.clone(),
-                        e.animation_time(),
+                        e.get_animation_time(),
                         e.alpha_attachment_threshold,
                         e.reverse,
                     ),
@@ -1988,7 +1988,7 @@ impl AnimationState {
         ) = match self.entry(from) {
             Some(from_ref) => (
                 from_ref.animation.clone(),
-                from_ref.animation_time(),
+                from_ref.get_animation_time(),
                 from_ref.reverse,
                 from_ref.additive,
                 from_ref.additive || from_ref.shortest_rotation,
@@ -2149,7 +2149,7 @@ impl AnimationState {
         if mix_duration > 0.0 {
             self.apply_entry_events_and_complete(from, Some(mix), true, out);
         } else if let Some(from_ref) = self.entry_mut(from) {
-            let animation_time = from_ref.animation_time();
+            let animation_time = from_ref.get_animation_time();
             from_ref.next_animation_last_time = animation_time;
             from_ref.next_track_last_time = from_ref.track_time;
         }
@@ -2328,7 +2328,7 @@ impl AnimationState {
         let animation_end = entry.animation_end;
         let duration = animation_end - animation_start;
 
-        let animation_time = entry.animation_time();
+        let animation_time = entry.get_animation_time();
         let animation_last = entry.animation_last_time;
         let track_last = entry.track_last_time;
         let track_time = entry.track_time;

@@ -105,9 +105,9 @@ impl AnimationStateListener for SpineEventListener {
         let Some(entry) = entry.entry(state) else {
             return;
         };
-        let track_index = entry.track_index();
-        let animation_name = entry.animation().name.clone();
-        let track_time = entry.track_time();
+        let track_index = entry.get_track_index();
+        let animation_name = entry.get_animation().name.clone();
+        let track_time = entry.get_track_time();
 
         self.buffer.push(PendingSpineAnimationEvent {
             track_index,
