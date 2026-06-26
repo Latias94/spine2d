@@ -94,7 +94,11 @@ const SKELETON_LINKEDMESH_PARENT_DEFAULT_SKIN_DEFORM: &str = r#"
           "path": "parent",
           "uvs": [0,0, 1,0, 1,1, 0,1],
           "vertices": [-1,-1, 1,-1, 1,1, -1,1],
-          "triangles": [0,1,2, 2,3,0]
+          "triangles": [0,1,2, 2,3,0],
+          "hull": 4,
+          "edges": [0,1, 1,2],
+          "width": 8,
+          "height": 6
         }
       }
     },
@@ -141,7 +145,11 @@ const SKELETON_LINKEDMESH_SOURCE_PARENT: &str = r#"
           "path": "parent",
           "uvs": [0,0, 1,0, 1,1, 0,1],
           "vertices": [-1,-1, 1,-1, 1,1, -1,1],
-          "triangles": [0,1,2, 2,3,0]
+          "triangles": [0,1,2, 2,3,0],
+          "hull": 4,
+          "edges": [0,1, 1,2],
+          "width": 8,
+          "height": 6
         }
       }
     },
@@ -308,6 +316,18 @@ fn json_linkedmesh_source_resolves_parent_mesh_and_timeline_attachment() {
     let data = SkeletonData::from_json_str(SKELETON_LINKEDMESH_SOURCE_PARENT).unwrap();
     let skin = data.find_skin("variant").unwrap();
 
+    let parent = data
+        .find_skin("source-skin")
+        .and_then(|skin| skin.get_attachment(0, "parent"))
+        .expect("source parent mesh");
+    let AttachmentData::Mesh(parent) = parent else {
+        panic!("source parent should be a mesh");
+    };
+    assert_eq!(parent.hull_length, 8);
+    assert_eq!(parent.edges, vec![0, 1, 1, 2]);
+    assert_eq!(parent.width, 8.0);
+    assert_eq!(parent.height, 6.0);
+
     for attachment_name in ["explicit-child", "path-child"] {
         let attachment = skin.get_attachment(0, attachment_name).unwrap();
         let AttachmentData::Mesh(mesh) = attachment else {
@@ -316,6 +336,10 @@ fn json_linkedmesh_source_resolves_parent_mesh_and_timeline_attachment() {
         assert_eq!(mesh.timeline_skin, "source-skin");
         assert_eq!(mesh.timeline_attachment, "parent");
         assert_eq!(mesh.triangles, vec![0, 1, 2, 2, 3, 0]);
+        assert_eq!(mesh.hull_length, 8, "{attachment_name} hull length");
+        assert_eq!(mesh.edges, vec![0, 1, 1, 2], "{attachment_name} edges");
+        assert_eq!(mesh.width, 8.0, "{attachment_name} width");
+        assert_eq!(mesh.height, 6.0, "{attachment_name} height");
     }
 
     let mut skeleton = Skeleton::new(data.clone());

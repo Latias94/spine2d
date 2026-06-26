@@ -613,6 +613,10 @@ pub struct MeshAttachmentData {
     pub vertices: MeshVertices,
     pub uvs: Vec<[f32; 2]>,
     pub triangles: Vec<u32>,
+    pub hull_length: usize,
+    pub edges: Vec<u32>,
+    pub width: f32,
+    pub height: f32,
 }
 
 #[derive(Clone, Debug)]

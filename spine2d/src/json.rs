@@ -616,6 +616,10 @@ struct AttachmentDef {
     #[serde(default)]
     triangles: Option<Vec<u32>>,
     #[serde(default)]
+    hull: usize,
+    #[serde(default)]
+    edges: Vec<u32>,
+    #[serde(default)]
     sequence: Option<AttachmentSequenceDef>,
     #[serde(default)]
     color: Option<String>,
@@ -1143,6 +1147,10 @@ impl SkeletonData {
                                     vertices: packed_vertices,
                                     uvs: packed_uvs,
                                     triangles,
+                                    hull_length: attachment_def.hull * 2,
+                                    edges: attachment_def.edges.clone(),
+                                    width: attachment_def.width * scale,
+                                    height: attachment_def.height * scale,
                                 })
                             }
                             "path" => {
@@ -1387,6 +1395,10 @@ impl SkeletonData {
                                     vertices: crate::MeshVertices::Unweighted(Vec::new()),
                                     uvs: Vec::new(),
                                     triangles: Vec::new(),
+                                    hull_length: 0,
+                                    edges: Vec::new(),
+                                    width: attachment_def.width * scale,
+                                    height: attachment_def.height * scale,
                                 })
                             }
                             _ => unreachable!(),
@@ -1561,6 +1573,10 @@ impl SkeletonData {
                     let parent_vertices = parent_mesh.vertices.clone();
                     let parent_uvs = parent_mesh.uvs.clone();
                     let parent_triangles = parent_mesh.triangles.clone();
+                    let parent_hull_length = parent_mesh.hull_length;
+                    let parent_edges = parent_mesh.edges.clone();
+                    let parent_width = parent_mesh.width;
+                    let parent_height = parent_mesh.height;
                     let timeline_skin = if pending.inherit_deform {
                         parent_skin_name.clone()
                     } else {
@@ -1591,6 +1607,10 @@ impl SkeletonData {
                         linked_mesh.vertices = parent_vertices;
                         linked_mesh.uvs = parent_uvs;
                         linked_mesh.triangles = parent_triangles;
+                        linked_mesh.hull_length = parent_hull_length;
+                        linked_mesh.edges = parent_edges;
+                        linked_mesh.width = parent_width;
+                        linked_mesh.height = parent_height;
                         linked_mesh.timeline_skin = timeline_skin.clone();
                         linked_mesh.timeline_attachment = timeline_attachment.clone();
                     }

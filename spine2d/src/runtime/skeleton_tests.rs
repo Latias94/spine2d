@@ -95,6 +95,10 @@ fn mesh_attachment(
         ]),
         uvs: vec![[0.0, 0.0]; 4],
         triangles: vec![0, 1, 2, 2, 3, 0],
+        hull_length: 0,
+        edges: Vec::new(),
+        width: 0.0,
+        height: 0.0,
     })
 }
 
@@ -1437,6 +1441,10 @@ fn skeleton_bounds_cover_region_and_mesh_attachments() {
             ]),
             uvs: vec![[0.0, 0.0]; 4],
             triangles: vec![0, 1, 2, 2, 3, 0],
+            hull_length: 0,
+            edges: Vec::new(),
+            width: 0.0,
+            height: 0.0,
         }),
     );
 

@@ -687,6 +687,9 @@ fn read_attachment(
                 timeline_slots.push(input.read_varint(true)? as usize);
             }
 
+            let mut edges = Vec::new();
+            let mut width = 0.0;
+            let mut height = 0.0;
             if nonessential {
                 let edges_count = input.read_varint(true)? as usize;
                 if trace_binary {
@@ -702,9 +705,10 @@ fn read_attachment(
                             message: format!("invalid mesh edge index {idx}"),
                         });
                     }
+                    edges.push(idx as u32);
                 }
-                let _ = input.read_f32_be()?;
-                let _ = input.read_f32_be()?;
+                width = input.read_f32_be()? * scale;
+                height = input.read_f32_be()? * scale;
             }
 
             Ok(AttachmentData::Mesh(MeshAttachmentData {
@@ -719,6 +723,10 @@ fn read_attachment(
                 vertices: v.vertices,
                 uvs,
                 triangles,
+                hull_length: hull_length * 2,
+                edges,
+                width,
+                height,
             }))
         }
         3 => {
@@ -748,9 +756,11 @@ fn read_attachment(
                 .ok_or_else(|| Error::BinaryParse {
                     message: "linked mesh missing parent name".to_string(),
                 })?;
+            let mut width = 0.0;
+            let mut height = 0.0;
             if nonessential {
-                let _ = input.read_f32_be()? * scale;
-                let _ = input.read_f32_be()? * scale;
+                width = input.read_f32_be()? * scale;
+                height = input.read_f32_be()? * scale;
             }
 
             pending_linked_meshes.push(PendingLinkedMesh {
@@ -775,6 +785,10 @@ fn read_attachment(
                 vertices: MeshVertices::Unweighted(Vec::new()),
                 uvs: Vec::new(),
                 triangles: Vec::new(),
+                hull_length: 0,
+                edges: Vec::new(),
+                width,
+                height,
             }))
         }
         4 => {
@@ -1729,6 +1743,10 @@ impl crate::SkeletonData {
                 let parent_vertices = parent_mesh.vertices.clone();
                 let parent_uvs = parent_mesh.uvs.clone();
                 let parent_triangles = parent_mesh.triangles.clone();
+                let parent_hull_length = parent_mesh.hull_length;
+                let parent_edges = parent_mesh.edges.clone();
+                let parent_width = parent_mesh.width;
+                let parent_height = parent_mesh.height;
 
                 let timeline_skin = if pending.inherit_timelines {
                     parent_skin_name.clone()
@@ -1757,6 +1775,10 @@ impl crate::SkeletonData {
                     linked_mesh.vertices = parent_vertices;
                     linked_mesh.uvs = parent_uvs;
                     linked_mesh.triangles = parent_triangles;
+                    linked_mesh.hull_length = parent_hull_length;
+                    linked_mesh.edges = parent_edges;
+                    linked_mesh.width = parent_width;
+                    linked_mesh.height = parent_height;
                     linked_mesh.timeline_skin = timeline_skin.clone();
                     linked_mesh.timeline_attachment = timeline_attachment.clone();
                 }
