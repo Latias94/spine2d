@@ -63,7 +63,7 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
     }
 
     skeleton
-        .update_cache_items()
+        .get_update_cache()
         .iter()
         .map(|item| match *item {
             UpdateCacheItem::Bone(index) => format!("bone {}", bone_name(skeleton, index)),

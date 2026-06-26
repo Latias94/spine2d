@@ -1110,7 +1110,7 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
     assert_eq!(skeleton.get_physics_constraints_mut().len(), 0);
     assert_eq!(skeleton.get_slider_constraints().len(), 0);
     assert_eq!(skeleton.get_slider_constraints_mut().len(), 0);
-    assert!(skeleton.update_cache_items().is_empty());
+    assert!(skeleton.get_update_cache().is_empty());
 
     assert_eq!(skeleton.get_color(), [1.0, 1.0, 1.0, 1.0]);
     skeleton.set_color([0.25, 0.5, 0.75, 0.875]);
@@ -1145,7 +1145,7 @@ fn skeleton_update_cache_items_expose_read_only_solver_order() {
     let skeleton = Skeleton::new(constraint_lookup_skeleton_data());
 
     assert_eq!(
-        skeleton.update_cache_items(),
+        skeleton.get_update_cache(),
         &[
             UpdateCacheItem::Bone(0),
             UpdateCacheItem::Ik(0),
@@ -1541,7 +1541,7 @@ fn skeleton_bounds_cover_region_and_mesh_attachments() {
 
     let mut skeleton = Skeleton::new(data);
     skeleton.update_world_transform_with_physics(crate::Physics::None);
-    assert_eq!(skeleton.bounds(), Some((-1.0, -1.0, 6.0, 7.0)));
+    assert_eq!(skeleton.get_bounds(), Some((-1.0, -1.0, 6.0, 7.0)));
 }
 
 #[test]
@@ -1550,9 +1550,9 @@ fn skeleton_bounds_with_clipping_respects_clip_polygons_and_end_slots() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    assert_eq!(skeleton.bounds(), Some((-2.0, -2.0, 7.0, 4.0)));
+    assert_eq!(skeleton.get_bounds(), Some((-2.0, -2.0, 7.0, 4.0)));
     assert_eq!(
-        skeleton.bounds_with_clipping(),
+        skeleton.get_bounds_with_clipping(),
         Some((-1.0, -1.0, 6.0, 2.0))
     );
 }

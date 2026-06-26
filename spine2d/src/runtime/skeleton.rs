@@ -946,7 +946,7 @@ impl Skeleton {
         self.update_draw_order_constrained_state();
     }
 
-    pub fn update_cache_items(&self) -> &[UpdateCacheItem] {
+    pub fn get_update_cache(&self) -> &[UpdateCacheItem] {
         &self.update_cache
     }
 
@@ -1378,7 +1378,7 @@ impl Skeleton {
         );
     }
 
-    pub fn bounds(&self) -> Option<(f32, f32, f32, f32)> {
+    pub fn get_bounds(&self) -> Option<(f32, f32, f32, f32)> {
         let mut min_x = f32::INFINITY;
         let mut min_y = f32::INFINITY;
         let mut max_x = f32::NEG_INFINITY;
@@ -1435,7 +1435,7 @@ impl Skeleton {
         has_vertices.then_some((min_x, min_y, max_x - min_x, max_y - min_y))
     }
 
-    pub fn bounds_with_clipping(&self) -> Option<(f32, f32, f32, f32)> {
+    pub fn get_bounds_with_clipping(&self) -> Option<(f32, f32, f32, f32)> {
         let mut min_x = f32::INFINITY;
         let mut min_y = f32::INFINITY;
         let mut max_x = f32::NEG_INFINITY;
