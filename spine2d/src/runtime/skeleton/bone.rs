@@ -86,7 +86,7 @@ impl Bone {
         self.active = active;
     }
 
-    pub fn inherit(&self) -> crate::Inherit {
+    pub fn get_inherit(&self) -> crate::Inherit {
         self.inherit
     }
 
@@ -94,7 +94,7 @@ impl Bone {
         self.inherit = inherit;
     }
 
-    pub fn x(&self) -> f32 {
+    pub fn get_x(&self) -> f32 {
         self.x
     }
 
@@ -102,7 +102,7 @@ impl Bone {
         self.x = x;
     }
 
-    pub fn y(&self) -> f32 {
+    pub fn get_y(&self) -> f32 {
         self.y
     }
 
@@ -115,7 +115,7 @@ impl Bone {
         self.y = y;
     }
 
-    pub fn rotation(&self) -> f32 {
+    pub fn get_rotation(&self) -> f32 {
         self.rotation
     }
 
@@ -123,7 +123,7 @@ impl Bone {
         self.rotation = rotation;
     }
 
-    pub fn scale_x(&self) -> f32 {
+    pub fn get_scale_x(&self) -> f32 {
         self.scale_x
     }
 
@@ -131,7 +131,7 @@ impl Bone {
         self.scale_x = scale_x;
     }
 
-    pub fn scale_y(&self) -> f32 {
+    pub fn get_scale_y(&self) -> f32 {
         self.scale_y
     }
 
@@ -144,7 +144,7 @@ impl Bone {
         self.scale_y = scale_y;
     }
 
-    pub fn shear_x(&self) -> f32 {
+    pub fn get_shear_x(&self) -> f32 {
         self.shear_x
     }
 
@@ -152,7 +152,7 @@ impl Bone {
         self.shear_x = shear_x;
     }
 
-    pub fn shear_y(&self) -> f32 {
+    pub fn get_shear_y(&self) -> f32 {
         self.shear_y
     }
 
@@ -160,7 +160,7 @@ impl Bone {
         self.shear_y = shear_y;
     }
 
-    pub fn applied_x(&self) -> f32 {
+    pub fn get_applied_x(&self) -> f32 {
         self.ax
     }
 
@@ -168,7 +168,7 @@ impl Bone {
         self.ax = x;
     }
 
-    pub fn applied_y(&self) -> f32 {
+    pub fn get_applied_y(&self) -> f32 {
         self.ay
     }
 
@@ -176,7 +176,7 @@ impl Bone {
         self.ay = y;
     }
 
-    pub fn applied_rotation(&self) -> f32 {
+    pub fn get_applied_rotation(&self) -> f32 {
         self.arotation
     }
 
@@ -184,7 +184,7 @@ impl Bone {
         self.arotation = rotation;
     }
 
-    pub fn applied_scale_x(&self) -> f32 {
+    pub fn get_applied_scale_x(&self) -> f32 {
         self.ascale_x
     }
 
@@ -192,7 +192,7 @@ impl Bone {
         self.ascale_x = scale_x;
     }
 
-    pub fn applied_scale_y(&self) -> f32 {
+    pub fn get_applied_scale_y(&self) -> f32 {
         self.ascale_y
     }
 
@@ -200,7 +200,7 @@ impl Bone {
         self.ascale_y = scale_y;
     }
 
-    pub fn applied_shear_x(&self) -> f32 {
+    pub fn get_applied_shear_x(&self) -> f32 {
         self.ashear_x
     }
 
@@ -208,7 +208,7 @@ impl Bone {
         self.ashear_x = shear_x;
     }
 
-    pub fn applied_shear_y(&self) -> f32 {
+    pub fn get_applied_shear_y(&self) -> f32 {
         self.ashear_y
     }
 
@@ -216,7 +216,7 @@ impl Bone {
         self.ashear_y = shear_y;
     }
 
-    pub fn a(&self) -> f32 {
+    pub fn get_a(&self) -> f32 {
         self.a
     }
 
@@ -224,7 +224,7 @@ impl Bone {
         self.a = a;
     }
 
-    pub fn b(&self) -> f32 {
+    pub fn get_b(&self) -> f32 {
         self.b
     }
 
@@ -232,7 +232,7 @@ impl Bone {
         self.b = b;
     }
 
-    pub fn c(&self) -> f32 {
+    pub fn get_c(&self) -> f32 {
         self.c
     }
 
@@ -240,7 +240,7 @@ impl Bone {
         self.c = c;
     }
 
-    pub fn d(&self) -> f32 {
+    pub fn get_d(&self) -> f32 {
         self.d
     }
 
@@ -248,7 +248,7 @@ impl Bone {
         self.d = d;
     }
 
-    pub fn world_x(&self) -> f32 {
+    pub fn get_world_x(&self) -> f32 {
         self.world_x
     }
 
@@ -256,7 +256,7 @@ impl Bone {
         self.world_x = world_x;
     }
 
-    pub fn world_y(&self) -> f32 {
+    pub fn get_world_y(&self) -> f32 {
         self.world_y
     }
 
@@ -264,19 +264,19 @@ impl Bone {
         self.world_y = world_y;
     }
 
-    pub fn world_rotation_x(&self) -> f32 {
+    pub fn get_world_rotation_x(&self) -> f32 {
         atan2_degrees(self.c, self.a)
     }
 
-    pub fn world_rotation_y(&self) -> f32 {
+    pub fn get_world_rotation_y(&self) -> f32 {
         atan2_degrees(self.d, self.b)
     }
 
-    pub fn world_scale_x(&self) -> f32 {
+    pub fn get_world_scale_x(&self) -> f32 {
         sqrt_f32(self.a * self.a + self.c * self.c)
     }
 
-    pub fn world_scale_y(&self) -> f32 {
+    pub fn get_world_scale_y(&self) -> f32 {
         sqrt_f32(self.b * self.b + self.d * self.d)
     }
 

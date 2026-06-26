@@ -951,14 +951,17 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     skeleton.setup_pose_bones();
 
     assert_eq!(
-        (skeleton.get_bones()[0].x(), skeleton.get_bones()[0].y()),
+        (
+            skeleton.get_bones()[0].get_x(),
+            skeleton.get_bones()[0].get_y()
+        ),
         (1.0, 2.0)
     );
-    assert_eq!(skeleton.get_bones()[0].rotation(), 3.0);
+    assert_eq!(skeleton.get_bones()[0].get_rotation(), 3.0);
     assert_eq!(
         (
-            skeleton.get_bones()[0].applied_x(),
-            skeleton.get_bones()[0].applied_y()
+            skeleton.get_bones()[0].get_applied_x(),
+            skeleton.get_bones()[0].get_applied_y()
         ),
         (1.0, 2.0)
     );
@@ -979,7 +982,10 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     skeleton.setup_pose_slots();
 
     assert_eq!(
-        (skeleton.get_bones()[0].x(), skeleton.get_bones()[0].y()),
+        (
+            skeleton.get_bones()[0].get_x(),
+            skeleton.get_bones()[0].get_y()
+        ),
         (40.0, 50.0)
     );
     assert_eq!(skeleton.get_ik_constraints()[0].get_mix(), 0.33);
@@ -1000,7 +1006,10 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     skeleton.setup_pose();
 
     assert_eq!(
-        (skeleton.get_bones()[0].x(), skeleton.get_bones()[0].y()),
+        (
+            skeleton.get_bones()[0].get_x(),
+            skeleton.get_bones()[0].get_y()
+        ),
         (1.0, 2.0)
     );
     assert_eq!(skeleton.get_ik_constraints()[0].get_mix(), 0.8);
@@ -1159,10 +1168,10 @@ fn skeleton_finders_match_setup_order() {
     assert_eq!(skeleton.find_bone("child").unwrap().parent, Some(0));
 
     skeleton.get_bones_mut().first_mut().unwrap().set_y(3.0);
-    assert_eq!(skeleton.get_bones()[0].y(), 3.0);
+    assert_eq!(skeleton.get_bones()[0].get_y(), 3.0);
 
     skeleton.get_bones_mut()[1].set_x(7.0);
-    assert_eq!(skeleton.get_bones()[1].x(), 7.0);
+    assert_eq!(skeleton.get_bones()[1].get_x(), 7.0);
 
     assert_eq!(skeleton.find_slot("slot1").unwrap().data_index, 1);
     assert_eq!(skeleton.find_slot("slot0").unwrap().bone, 0);
@@ -1587,12 +1596,12 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
     bone.set_scale(4.0, 5.0);
     bone.set_shear_x(6.0);
     bone.set_shear_y(7.0);
-    assert_eq!(bone.inherit(), Inherit::OnlyTranslation);
-    assert_eq!((bone.x(), bone.y()), (1.0, 2.0));
-    assert_eq!(bone.rotation(), 3.0);
-    assert_eq!((bone.scale_x(), bone.scale_y()), (4.0, 5.0));
-    assert_eq!(bone.shear_x(), 6.0);
-    assert_eq!(bone.shear_y(), 7.0);
+    assert_eq!(bone.get_inherit(), Inherit::OnlyTranslation);
+    assert_eq!((bone.get_x(), bone.get_y()), (1.0, 2.0));
+    assert_eq!(bone.get_rotation(), 3.0);
+    assert_eq!((bone.get_scale_x(), bone.get_scale_y()), (4.0, 5.0));
+    assert_eq!(bone.get_shear_x(), 6.0);
+    assert_eq!(bone.get_shear_y(), 7.0);
 
     bone.set_applied_x(8.0);
     bone.set_applied_y(9.0);
@@ -1601,14 +1610,14 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
     bone.set_applied_scale_y(12.0);
     bone.set_applied_shear_x(13.0);
     bone.set_applied_shear_y(14.0);
-    assert_eq!((bone.applied_x(), bone.applied_y()), (8.0, 9.0));
-    assert_eq!(bone.applied_rotation(), 10.0);
+    assert_eq!((bone.get_applied_x(), bone.get_applied_y()), (8.0, 9.0));
+    assert_eq!(bone.get_applied_rotation(), 10.0);
     assert_eq!(
-        (bone.applied_scale_x(), bone.applied_scale_y()),
+        (bone.get_applied_scale_x(), bone.get_applied_scale_y()),
         (11.0, 12.0)
     );
     assert_eq!(
-        (bone.applied_shear_x(), bone.applied_shear_y()),
+        (bone.get_applied_shear_x(), bone.get_applied_shear_y()),
         (13.0, 14.0)
     );
 
@@ -1618,15 +1627,15 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
     bone.set_d(2.0);
     bone.set_world_x(15.0);
     bone.set_world_y(16.0);
-    assert_eq!(bone.a(), 3.0);
-    assert_eq!(bone.b(), 0.0);
-    assert_eq!(bone.c(), 4.0);
-    assert_eq!(bone.d(), 2.0);
-    assert_eq!((bone.world_x(), bone.world_y()), (15.0, 16.0));
-    assert_approx(bone.world_scale_x(), 5.0);
-    assert_approx(bone.world_scale_y(), 2.0);
-    assert_approx_angle(bone.world_rotation_x(), 4.0f32.atan2(3.0).to_degrees());
-    assert_approx(bone.world_rotation_y(), 90.0);
+    assert_eq!(bone.get_a(), 3.0);
+    assert_eq!(bone.get_b(), 0.0);
+    assert_eq!(bone.get_c(), 4.0);
+    assert_eq!(bone.get_d(), 2.0);
+    assert_eq!((bone.get_world_x(), bone.get_world_y()), (15.0, 16.0));
+    assert_approx(bone.get_world_scale_x(), 5.0);
+    assert_approx(bone.get_world_scale_y(), 2.0);
+    assert_approx_angle(bone.get_world_rotation_x(), 4.0f32.atan2(3.0).to_degrees());
+    assert_approx(bone.get_world_rotation_y(), 90.0);
 }
 
 #[test]
@@ -1682,12 +1691,12 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
     assert_eq!(skeleton.get_scale_y(), 3.0);
     assert_approx_pair(
         (
-            skeleton.get_bones()[0].world_x(),
-            skeleton.get_bones()[0].world_y(),
+            skeleton.get_bones()[0].get_world_x(),
+            skeleton.get_bones()[0].get_world_y(),
         ),
         (2.0, 6.0),
     );
-    assert_approx(skeleton.get_bones()[0].d(), 3.0);
+    assert_approx(skeleton.get_bones()[0].get_d(), 3.0);
 
     Bone::set_y_down(true);
 
@@ -1702,12 +1711,12 @@ fn bone_y_down_switch_controls_skeleton_scale_y() {
     assert_eq!(skeleton.get_scale_y(), -3.0);
     assert_approx_pair(
         (
-            skeleton.get_bones()[0].world_x(),
-            skeleton.get_bones()[0].world_y(),
+            skeleton.get_bones()[0].get_world_x(),
+            skeleton.get_bones()[0].get_world_y(),
         ),
         (2.0, -6.0),
     );
-    assert_approx(skeleton.get_bones()[0].d(), -3.0);
+    assert_approx(skeleton.get_bones()[0].get_d(), -3.0);
 }
 
 #[test]
@@ -1778,10 +1787,10 @@ fn bone_rotation_helpers_match_bone_pose_formulas() {
     bone.set_d(1.0);
     bone.rotate_world(90.0);
 
-    assert_approx(bone.a(), 0.0);
-    assert_approx(bone.b(), -1.0);
-    assert_approx(bone.c(), 1.0);
-    assert_approx(bone.d(), 0.0);
+    assert_approx(bone.get_a(), 0.0);
+    assert_approx(bone.get_b(), -1.0);
+    assert_approx(bone.get_c(), 1.0);
+    assert_approx(bone.get_d(), 0.0);
 }
 
 #[test]
@@ -1796,8 +1805,8 @@ fn skeleton_bone_world_transform_helper_recomputes_modified_local_pose() {
     skeleton.update_bone_world_transform(0);
 
     let bone = &skeleton.get_bones()[0];
-    assert_approx_pair((bone.world_x(), bone.world_y()), (12.0, 34.0));
-    assert_approx(bone.world_rotation_x(), 90.0);
+    assert_approx_pair((bone.get_world_x(), bone.get_world_y()), (12.0, 34.0));
+    assert_approx(bone.get_world_rotation_x(), 90.0);
 }
 
 #[test]
@@ -1818,18 +1827,24 @@ fn skeleton_bone_local_transform_helper_rebuilds_applied_pose_from_world() {
     skeleton.update_bone_local_transform(0);
 
     let bone = &skeleton.get_bones()[0];
-    assert_approx_pair((bone.applied_x(), bone.applied_y()), (10.0, 15.0));
-    assert_approx(bone.applied_rotation(), 90.0);
-    assert_approx_pair((bone.applied_scale_x(), bone.applied_scale_y()), (1.0, 1.0));
-    assert_approx_pair((bone.applied_shear_x(), bone.applied_shear_y()), (0.0, 0.0));
+    assert_approx_pair((bone.get_applied_x(), bone.get_applied_y()), (10.0, 15.0));
+    assert_approx(bone.get_applied_rotation(), 90.0);
+    assert_approx_pair(
+        (bone.get_applied_scale_x(), bone.get_applied_scale_y()),
+        (1.0, 1.0),
+    );
+    assert_approx_pair(
+        (bone.get_applied_shear_x(), bone.get_applied_shear_y()),
+        (0.0, 0.0),
+    );
 
     skeleton.get_bones_mut()[0].set_applied_x(99.0);
     skeleton.get_bones_mut()[0].set_applied_y(99.0);
     skeleton.update_bone_world_transform(0);
     assert_approx_pair(
         (
-            skeleton.get_bones()[0].world_x(),
-            skeleton.get_bones()[0].world_y(),
+            skeleton.get_bones()[0].get_world_x(),
+            skeleton.get_bones()[0].get_world_y(),
         ),
         (12.0, 18.0),
     );
@@ -1845,8 +1860,8 @@ fn skeleton_validate_bone_local_transform_uses_world_modified_marker() {
     skeleton.validate_bone_local_transform(0);
     assert_approx_pair(
         (
-            skeleton.get_bones()[0].applied_x(),
-            skeleton.get_bones()[0].applied_y(),
+            skeleton.get_bones()[0].get_applied_x(),
+            skeleton.get_bones()[0].get_applied_y(),
         ),
         (0.0, 0.0),
     );
@@ -1855,8 +1870,8 @@ fn skeleton_validate_bone_local_transform_uses_world_modified_marker() {
     skeleton.validate_bone_local_transform(0);
     assert_approx_pair(
         (
-            skeleton.get_bones()[0].applied_x(),
-            skeleton.get_bones()[0].applied_y(),
+            skeleton.get_bones()[0].get_applied_x(),
+            skeleton.get_bones()[0].get_applied_y(),
         ),
         (21.0, 22.0),
     );
