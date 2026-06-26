@@ -1037,7 +1037,7 @@ fn slider_slot_pose_uses_applied_buffer_without_mutating_pose() {
     assert_eq!(
         skeleton.slots()[0]
             .get_applied_attachment(&skeleton)
-            .map(AttachmentData::name),
+            .map(AttachmentData::get_name),
         Some("alt")
     );
 
@@ -1219,15 +1219,15 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
     let mut skeleton = Skeleton::new(named_attachment_skeleton_data());
 
     assert_eq!(
-        skeleton.get_attachment(0, "shared").unwrap().name(),
+        skeleton.get_attachment(0, "shared").unwrap().get_name(),
         "default-shared"
     );
     assert_eq!(
-        skeleton.get_attachment(0, "shared").unwrap().name(),
+        skeleton.get_attachment(0, "shared").unwrap().get_name(),
         "default-shared"
     );
     assert_eq!(
-        skeleton.get_attachment(1, "fallback").unwrap().name(),
+        skeleton.get_attachment(1, "fallback").unwrap().get_name(),
         "default-fallback"
     );
     assert!(skeleton.get_attachment(0, "").is_none());
@@ -1235,7 +1235,7 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
     skeleton.set_skin(Some("missing"));
     assert!(skeleton.get_skin().is_none());
     assert_eq!(
-        skeleton.get_attachment(0, "shared").unwrap().name(),
+        skeleton.get_attachment(0, "shared").unwrap().get_name(),
         "default-shared"
     );
 
@@ -1245,11 +1245,11 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
         Some("custom")
     );
     assert_eq!(
-        skeleton.get_attachment(0, "shared").unwrap().name(),
+        skeleton.get_attachment(0, "shared").unwrap().get_name(),
         "custom-shared"
     );
     assert_eq!(
-        skeleton.get_attachment(1, "fallback").unwrap().name(),
+        skeleton.get_attachment(1, "fallback").unwrap().get_name(),
         "default-fallback"
     );
 

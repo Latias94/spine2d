@@ -716,7 +716,7 @@ fn main() {
                 .unwrap_or("<unknown>");
             let attachment = slot
                 .get_applied_attachment(&skeleton)
-                .map(|a| json!({"name": a.name()}));
+                .map(|a| json!({"name": a.get_name()}));
             let has_dark = if slot.has_dark_color() { 1 } else { 0 };
             let dark_color = if slot.has_dark_color() {
                 let dark = slot.dark_color();

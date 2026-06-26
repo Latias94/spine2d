@@ -307,7 +307,7 @@ fn dump_pose(skeleton: &Skeleton, _time: f32, debug_slot: Option<&str>) -> PoseD
             let attachment = slot
                 .get_applied_attachment(skeleton)
                 .map(|a| AttachmentDump {
-                    name: a.name().to_string(),
+                    name: a.get_name().to_string(),
                 });
             let dark = slot.applied_dark_color();
             let dark_color = if slot.applied_has_dark_color() {

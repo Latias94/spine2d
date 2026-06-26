@@ -150,7 +150,7 @@ fn skin_required_active_and_gating_match_spine_cpp_semantics() {
     let resolved = skeleton.slots[backpack_slot]
         .get_attachment(&skeleton)
         .expect("resolve backpack attachment");
-    assert_eq!(resolved.name(), "boy/backpack");
+    assert_eq!(resolved.get_name(), "boy/backpack");
 
     // Bone timeline gating: `aware` anim drives `hat-control.translate` but the bone is inactive
     // under this skin, so its local transform must remain at setup values.
@@ -565,7 +565,7 @@ fn skin_find_slot_queries_append_like_cpp() {
     assert_eq!(
         attachments
             .iter()
-            .map(|attachment| attachment.name())
+            .map(|attachment| attachment.get_name())
             .collect::<Vec<_>>(),
         vec!["first", "second"]
     );
@@ -574,7 +574,7 @@ fn skin_find_slot_queries_append_like_cpp() {
     assert_eq!(
         attachments
             .iter()
-            .map(|attachment| attachment.name())
+            .map(|attachment| attachment.get_name())
             .collect::<Vec<_>>(),
         vec!["first", "second"]
     );

@@ -4440,7 +4440,7 @@ fn find_linked_mesh_attachment_name<'a>(
         slot_map.get_key_value(source).or_else(|| {
             slot_map
                 .iter()
-                .find(|(_, attachment)| attachment.name() == source)
+                .find(|(_, attachment)| attachment.get_name() == source)
         })
     })
 }

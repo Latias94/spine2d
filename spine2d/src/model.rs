@@ -654,7 +654,7 @@ pub enum AttachmentData {
 }
 
 impl AttachmentData {
-    pub fn name(&self) -> &str {
+    pub fn get_name(&self) -> &str {
         match self {
             AttachmentData::Region(a) => a.name.as_str(),
             AttachmentData::Mesh(a) => a.name.as_str(),
