@@ -121,6 +121,8 @@ flowchart TB
 
 ## Implementation Units
 
+**Recent update:** `BoneData` and `SlotData` now expose official-style relation helpers instead of forcing callers through raw indices: `BoneData::get_parent(&SkeletonData)` resolves the owning bone, `BoneData::get_color_mut()` mirrors the mutable C++ color reference, and `SlotData::get_bone(&SkeletonData)` resolves the owning setup bone. The flattened owned storage remains for now, but the public lookup surface is moving closer to the latest-tag C++ object graph. Verification passed on 2026-06-26: focused `model_lookup_tests` (`9 passed, 649 skipped`), full core nextest (`656 passed, 2 skipped`), `cargo fmt --all -- --check`, and `git diff --check`.
+
 ### U1. Record the autonomous refactor operating baseline
 
 **Goal:** Persist this plan and the current green parity state before changing runtime code.

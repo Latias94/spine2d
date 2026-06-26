@@ -146,14 +146,22 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
         animation: None,
     });
 
+    let mut color_bone = BoneData::default();
+    color_bone.get_color_mut()[0] = 0.25;
+    assert_eq!(color_bone.get_color()[0], 0.25);
+
     assert_eq!(data.find_bone("root").unwrap().get_name(), "root");
     assert_eq!(
-        data.bones[data.find_bone("child").unwrap().parent.unwrap()].get_name(),
+        data.find_bone("child")
+            .unwrap()
+            .get_parent(&data)
+            .unwrap()
+            .get_name(),
         "root"
     );
     assert_eq!(data.find_slot("slot").unwrap().get_name(), "slot");
     assert_eq!(
-        data.bones[data.find_slot("slot").unwrap().bone].get_name(),
+        data.find_slot("slot").unwrap().get_bone(&data).get_name(),
         "child"
     );
     assert_eq!(data.find_skin("skin").unwrap().get_name(), "skin");

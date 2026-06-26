@@ -32,6 +32,11 @@ impl BoneData {
         self.name.as_str()
     }
 
+    /// Mirrors the official C++ `BoneData::getParent()` relation through `SkeletonData`.
+    pub fn get_parent<'a>(&self, skeleton_data: &'a SkeletonData) -> Option<&'a BoneData> {
+        self.parent.and_then(|index| skeleton_data.bones.get(index))
+    }
+
     pub fn get_length(&self) -> f32 {
         self.length
     }
@@ -50,6 +55,10 @@ impl BoneData {
 
     pub fn get_color(&self) -> [f32; 4] {
         self.color
+    }
+
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
     }
 
     pub fn get_icon(&self) -> &str {
@@ -157,6 +166,11 @@ impl SlotData {
 
     pub fn get_name(&self) -> &str {
         self.name.as_str()
+    }
+
+    /// Mirrors the official C++ `SlotData::getBoneData()` relation through `SkeletonData`.
+    pub fn get_bone<'a>(&self, skeleton_data: &'a SkeletonData) -> &'a BoneData {
+        &skeleton_data.bones[self.bone]
     }
 
     pub fn get_attachment_name(&self) -> &str {
