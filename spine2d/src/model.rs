@@ -1351,55 +1351,75 @@ pub struct SliderConstraintTimeline {
 
 #[derive(Clone, Debug)]
 pub struct RegionAttachmentData {
-    pub name: String,
-    pub path: String,
-    pub sequence: Option<SequenceDef>,
-    pub color: [f32; 4],
-    pub x: f32,
-    pub y: f32,
-    pub rotation: f32,
-    pub scale_x: f32,
-    pub scale_y: f32,
-    pub width: f32,
-    pub height: f32,
+    pub(crate) name: String,
+    pub(crate) path: String,
+    pub(crate) sequence: Option<SequenceDef>,
+    pub(crate) color: [f32; 4],
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) rotation: f32,
+    pub(crate) scale_x: f32,
+    pub(crate) scale_y: f32,
+    pub(crate) width: f32,
+    pub(crate) height: f32,
+}
+
+impl RegionAttachmentData {
+    pub fn get_color(&self) -> [f32; 4] {
+        self.color
+    }
+
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct SequenceDef {
-    pub id: u32,
-    pub count: usize,
-    pub start: i32,
-    pub digits: usize,
-    pub setup_index: i32,
+    pub(crate) id: u32,
+    pub(crate) count: usize,
+    pub(crate) start: i32,
+    pub(crate) digits: usize,
+    pub(crate) setup_index: i32,
 }
 
 #[derive(Clone, Debug)]
 pub struct MeshAttachmentData {
-    pub vertex_id: u32,
-    pub name: String,
-    pub path: String,
+    pub(crate) vertex_id: u32,
+    pub(crate) name: String,
+    pub(crate) path: String,
     /// For deform timelines, Spine runtimes match on `timelineAttachment` (linked meshes may inherit from a parent mesh).
     /// This stores the `(skin, attachmentKey)` of the mesh used as the deform timeline target.
-    pub timeline_skin: String,
-    pub timeline_attachment: String,
-    pub timeline_slots: Vec<usize>,
-    pub sequence: Option<SequenceDef>,
-    pub color: [f32; 4],
-    pub vertices: MeshVertices,
-    pub uvs: Vec<[f32; 2]>,
-    pub triangles: Vec<u32>,
-    pub hull_length: usize,
-    pub edges: Vec<u32>,
-    pub width: f32,
-    pub height: f32,
+    pub(crate) timeline_skin: String,
+    pub(crate) timeline_attachment: String,
+    pub(crate) timeline_slots: Vec<usize>,
+    pub(crate) sequence: Option<SequenceDef>,
+    pub(crate) color: [f32; 4],
+    pub(crate) vertices: MeshVertices,
+    pub(crate) uvs: Vec<[f32; 2]>,
+    pub(crate) triangles: Vec<u32>,
+    pub(crate) hull_length: usize,
+    pub(crate) edges: Vec<u32>,
+    pub(crate) width: f32,
+    pub(crate) height: f32,
+}
+
+impl MeshAttachmentData {
+    pub fn get_color(&self) -> [f32; 4] {
+        self.color
+    }
+
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct VertexWeight {
-    pub bone: usize,
-    pub x: f32,
-    pub y: f32,
-    pub weight: f32,
+    pub(crate) bone: usize,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) weight: f32,
 }
 
 #[derive(Clone, Debug)]
@@ -1433,57 +1453,89 @@ impl AttachmentData {
 
 #[derive(Clone, Debug)]
 pub struct PointAttachmentData {
-    pub name: String,
-    pub x: f32,
-    pub y: f32,
-    pub rotation: f32,
-    pub color: [f32; 4],
+    pub(crate) name: String,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) rotation: f32,
+    pub(crate) color: [f32; 4],
 }
 
 impl PointAttachmentData {
     pub const DEFAULT_COLOR: [f32; 4] = [0.9451, 0.9451, 0.0, 1.0];
+
+    pub fn get_color(&self) -> [f32; 4] {
+        self.color
+    }
+
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct PathAttachmentData {
-    pub vertex_id: u32,
-    pub name: String,
-    pub color: [f32; 4],
-    pub vertices: MeshVertices,
-    pub lengths: Vec<f32>,
-    pub closed: bool,
-    pub constant_speed: bool,
+    pub(crate) vertex_id: u32,
+    pub(crate) name: String,
+    pub(crate) color: [f32; 4],
+    pub(crate) vertices: MeshVertices,
+    pub(crate) lengths: Vec<f32>,
+    pub(crate) closed: bool,
+    pub(crate) constant_speed: bool,
 }
 
 impl PathAttachmentData {
     pub const DEFAULT_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
+
+    pub fn get_color(&self) -> [f32; 4] {
+        self.color
+    }
+
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct BoundingBoxAttachmentData {
-    pub vertex_id: u32,
-    pub name: String,
-    pub color: [f32; 4],
-    pub vertices: MeshVertices,
+    pub(crate) vertex_id: u32,
+    pub(crate) name: String,
+    pub(crate) color: [f32; 4],
+    pub(crate) vertices: MeshVertices,
 }
 
 impl BoundingBoxAttachmentData {
     pub const DEFAULT_COLOR: [f32; 4] = [0.38, 0.94, 0.0, 1.0];
+
+    pub fn get_color(&self) -> [f32; 4] {
+        self.color
+    }
+
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct ClippingAttachmentData {
-    pub vertex_id: u32,
-    pub name: String,
-    pub color: [f32; 4],
-    pub vertices: MeshVertices,
-    pub end_slot: Option<usize>,
-    pub convex: bool,
-    pub inverse: bool,
+    pub(crate) vertex_id: u32,
+    pub(crate) name: String,
+    pub(crate) color: [f32; 4],
+    pub(crate) vertices: MeshVertices,
+    pub(crate) end_slot: Option<usize>,
+    pub(crate) convex: bool,
+    pub(crate) inverse: bool,
 }
 
 impl ClippingAttachmentData {
     pub const DEFAULT_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
+
+    pub fn get_color(&self) -> [f32; 4] {
+        self.color
+    }
+
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
+    }
 }
 
 #[derive(Clone, Debug)]
