@@ -177,16 +177,7 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     assert_eq!(
         constraints
             .iter()
-            .map(|constraint| {
-                let order = match constraint {
-                    ConstraintDataRef::Ik(data) => data.order,
-                    ConstraintDataRef::Transform(data) => data.order,
-                    ConstraintDataRef::Path(data) => data.order,
-                    ConstraintDataRef::Physics(data) => data.order,
-                    ConstraintDataRef::Slider(data) => data.order,
-                };
-                (order, constraint.name())
-            })
+            .map(|constraint| (constraint.get_order(), constraint.get_name()))
             .collect::<Vec<_>>(),
         vec![
             (0, "slider"),
@@ -363,16 +354,7 @@ fn skeleton_data_constraints_follow_cpp_unified_order_after_json_parse() {
     assert_eq!(
         data.get_constraints()
             .iter()
-            .map(|constraint| {
-                let order = match constraint {
-                    ConstraintDataRef::Ik(data) => data.order,
-                    ConstraintDataRef::Transform(data) => data.order,
-                    ConstraintDataRef::Path(data) => data.order,
-                    ConstraintDataRef::Physics(data) => data.order,
-                    ConstraintDataRef::Slider(data) => data.order,
-                };
-                (order, constraint.name())
-            })
+            .map(|constraint| (constraint.get_order(), constraint.get_name()))
             .collect::<Vec<_>>(),
         vec![
             (0, "physics"),

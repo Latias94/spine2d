@@ -446,7 +446,7 @@ pub enum ConstraintDataRef<'a> {
 }
 
 impl ConstraintDataRef<'_> {
-    pub fn name(&self) -> &str {
+    pub fn get_name(&self) -> &str {
         match self {
             ConstraintDataRef::Ik(data) => data.name.as_str(),
             ConstraintDataRef::Transform(data) => data.name.as_str(),
@@ -456,13 +456,23 @@ impl ConstraintDataRef<'_> {
         }
     }
 
-    pub fn skin_required(&self) -> bool {
+    pub fn get_skin_required(&self) -> bool {
         match self {
             ConstraintDataRef::Ik(data) => data.skin_required,
             ConstraintDataRef::Transform(data) => data.skin_required,
             ConstraintDataRef::Path(data) => data.skin_required,
             ConstraintDataRef::Physics(data) => data.skin_required,
             ConstraintDataRef::Slider(data) => data.skin_required,
+        }
+    }
+
+    pub fn get_order(&self) -> i32 {
+        match self {
+            ConstraintDataRef::Ik(data) => data.order,
+            ConstraintDataRef::Transform(data) => data.order,
+            ConstraintDataRef::Path(data) => data.order,
+            ConstraintDataRef::Physics(data) => data.order,
+            ConstraintDataRef::Slider(data) => data.order,
         }
     }
 }
@@ -1594,13 +1604,7 @@ impl SkeletonData {
                 .enumerate()
                 .map(|(_, data)| ConstraintDataRef::Slider(data)),
         );
-        constraints.sort_by_key(|constraint| match constraint {
-            ConstraintDataRef::Ik(data) => data.order,
-            ConstraintDataRef::Transform(data) => data.order,
-            ConstraintDataRef::Path(data) => data.order,
-            ConstraintDataRef::Physics(data) => data.order,
-            ConstraintDataRef::Slider(data) => data.order,
-        });
+        constraints.sort_by_key(ConstraintDataRef::get_order);
         constraints
     }
 

@@ -345,7 +345,7 @@ flowchart TB
 
 **Recent update:** `SkeletonData.skins` and `SkeletonData.events` were first moved from `HashMap` to ordered `IndexMap` to preserve C++ `getSkins()` / `getEvents()` order, then superseded on 2026-06-26 by C++-style ordered `Vec` storage plus slice getters. JSON and binary parser outputs still preserve observable skin/event order, while parser-local maps are now just temporary lookup aids.
 
-**Recent update:** `SkeletonData::constraints()` now covers the C++ `SkeletonData::getConstraints()` unified data view. Rust still stores constraint data in typed vectors, but returns `ConstraintDataRef` entries in parser-assigned unified order with name/order/skin-required/data-index helpers, and JSON mixed-type constraint parsing now has focused coverage.
+**Recent update:** `SkeletonData::get_constraints()` now covers the C++ `SkeletonData::getConstraints()` unified data view. Rust still stores constraint data in typed vectors, but returns `ConstraintDataRef` entries in parser-assigned unified order with `get_name` / `get_order` / `get_skin_required` helpers, and JSON mixed-type constraint parsing now has focused coverage.
 
 **Recent update:** `Animation` now exposes `bones()` as the Rust equivalent of C++ `Animation::getBones()`, and `BoneTimeline::bone_index()` exposes each concrete bone timeline target. The implementation derives unique affected bone indices from stored bone timelines rather than adding a separate parser-maintained cache. Slider runtime initialization now uses this helper instead of its previous local sorted/deduped collector.
 
