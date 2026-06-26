@@ -365,6 +365,8 @@ flowchart TB
 
 **Recent update:** `SkeletonData::get_constraints()` now covers the C++ `SkeletonData::getConstraints()` unified data view. Rust still stores constraint data in typed vectors, but returns `ConstraintDataRef` entries in parser-assigned unified order with `get_name` / `get_order` / `get_skin_required` helpers, and JSON mixed-type constraint parsing now has focused coverage.
 
+**Recent update:** Commit `dd5d0db` narrowed IK, transform, path, physics, and slider setup data fields to crate visibility and added latest-tag C++-style constructors plus getter/setter surfaces. Rust keeps parser-only `order` internal, exposes mutable slice-backed vectors where C++ returns mutable `Array` references, and uses safe `Option<usize>` access for nullable slider animation/bone/property links. `pose_dump_scenario` now reads constraint diagnostics through getters, and `model_lookup_tests` covers the accessor defaults and mutation paths for all five setup-data types.
+
 **Recent update:** `Animation` now exposes `get_bones()` as the Rust equivalent of C++ `Animation::getBones()`, and `BoneTimeline::get_bone_index()` exposes each concrete bone timeline target. The implementation derives unique affected bone indices from stored bone timelines rather than adding a separate parser-maintained cache. Slider runtime initialization now uses this helper instead of its previous local sorted/deduped collector.
 
 **Recent update:** `Animation::color` now covers the C++ `Animation::getColor()` field. JSON animation objects preserve the optional color string, binary animations preserve the trailing nonessential RGBA block, and the model defaults to white when the field is absent.
