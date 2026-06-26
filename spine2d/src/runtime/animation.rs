@@ -2278,7 +2278,7 @@ pub(crate) fn apply_slot_color(
         match blend {
             MixBlend::Setup => pose.set_color(setup),
             MixBlend::First => {
-                pose.set_color(lerp_color(pose.color(), setup, alpha));
+                pose.set_color(lerp_color(pose.get_color(), setup, alpha));
             }
             _ => {}
         }
@@ -2289,7 +2289,7 @@ pub(crate) fn apply_slot_color(
     let color = match blend {
         MixBlend::Setup => lerp_color(setup, target, alpha),
         MixBlend::First | MixBlend::Replace | MixBlend::Add => {
-            lerp_color(pose.color(), target, alpha)
+            lerp_color(pose.get_color(), target, alpha)
         }
     };
     pose.set_color(color);
@@ -2327,7 +2327,7 @@ pub(crate) fn apply_slot_rgb(
         match blend {
             MixBlend::Setup => pose.set_color(setup),
             MixBlend::First => {
-                pose.set_color(lerp_color(pose.color(), setup, alpha));
+                pose.set_color(lerp_color(pose.get_color(), setup, alpha));
             }
             _ => {}
         }
@@ -2449,8 +2449,8 @@ pub(crate) fn apply_slot_rgba2(
                 pose.set_dark_color(setup_dark);
             }
             MixBlend::First => {
-                pose.set_color(lerp_color(pose.color(), setup_light, alpha));
-                pose.set_dark_color(lerp3(pose.dark_color(), setup_dark, alpha));
+                pose.set_color(lerp_color(pose.get_color(), setup_light, alpha));
+                pose.set_dark_color(lerp3(pose.get_dark_color(), setup_dark, alpha));
             }
             _ => {}
         }
@@ -2471,8 +2471,8 @@ pub(crate) fn apply_slot_rgba2(
         pose.set_dark_color(setup_dark);
     }
 
-    pose.set_color(lerp_color(pose.color(), target_light, alpha));
-    pose.set_dark_color(lerp3(pose.dark_color(), target_dark, alpha));
+    pose.set_color(lerp_color(pose.get_color(), target_light, alpha));
+    pose.set_dark_color(lerp3(pose.get_dark_color(), target_dark, alpha));
     pose.set_has_dark_color(true);
 }
 
@@ -2522,14 +2522,14 @@ pub(crate) fn apply_slot_rgb2(
             }
             MixBlend::First => {
                 let target = [setup_light[0], setup_light[1], setup_light[2]];
-                let color = pose.color();
+                let color = pose.get_color();
                 let current = [color[0], color[1], color[2]];
                 let out = lerp3(current, target, alpha);
                 let color = pose.color_mut();
                 color[0] = out[0];
                 color[1] = out[1];
                 color[2] = out[2];
-                pose.set_dark_color(lerp3(pose.dark_color(), setup_dark, alpha));
+                pose.set_dark_color(lerp3(pose.get_dark_color(), setup_dark, alpha));
             }
             _ => {}
         }
@@ -2556,14 +2556,14 @@ pub(crate) fn apply_slot_rgb2(
         pose.set_dark_color(setup_dark);
     }
 
-    let color = pose.color();
+    let color = pose.get_color();
     let current = [color[0], color[1], color[2]];
     let out = lerp3(current, target_light, alpha);
     let color = pose.color_mut();
     color[0] = out[0];
     color[1] = out[1];
     color[2] = out[2];
-    pose.set_dark_color(lerp3(pose.dark_color(), target_dark, alpha));
+    pose.set_dark_color(lerp3(pose.get_dark_color(), target_dark, alpha));
     pose.set_has_dark_color(true);
 }
 
@@ -2673,8 +2673,8 @@ fn set_attachment(
         .map(|slot| slot.pose_for(applied_pose))
         .map(|pose| {
             (
-                pose.attachment_name().map(|s| s.to_string()),
-                pose.attachment_skin().map(|s| s.to_string()),
+                pose.get_attachment_name().map(|s| s.to_string()),
+                pose.get_attachment_skin().map(|s| s.to_string()),
             )
         })
         .unwrap_or((None, None));
@@ -2923,10 +2923,10 @@ fn slot_matches_deform_timeline(
         return false;
     }
     let pose = slot.pose_for(applied_pose);
-    let Some(slot_key) = pose.attachment_name() else {
+    let Some(slot_key) = pose.get_attachment_name() else {
         return false;
     };
-    let Some(slot_skin) = pose.attachment_skin() else {
+    let Some(slot_skin) = pose.get_attachment_skin() else {
         return false;
     };
 
@@ -2960,7 +2960,7 @@ fn apply_deform_to_slot(
     };
     let mut pose = slot.pose_mut_for(applied_pose);
     let mut blend = blend;
-    if pose.deform().is_empty() {
+    if pose.get_deform().is_empty() {
         blend = MixBlend::Setup;
     }
 
@@ -3117,10 +3117,10 @@ fn slot_matches_sequence_timeline(
         return false;
     }
     let pose = slot.pose_for(applied_pose);
-    let Some(slot_key) = pose.attachment_name() else {
+    let Some(slot_key) = pose.get_attachment_name() else {
         return false;
     };
-    let Some(slot_skin) = pose.attachment_skin() else {
+    let Some(slot_skin) = pose.get_attachment_skin() else {
         return false;
     };
 

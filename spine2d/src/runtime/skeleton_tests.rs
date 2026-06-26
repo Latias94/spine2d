@@ -971,9 +971,12 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     assert_eq!(skeleton.get_path_constraints()[0].get_position(), 1.1);
     assert_eq!(skeleton.get_physics_constraints()[0].get_gravity(), 0.6);
     assert_eq!(skeleton.get_slider_constraints()[0].get_time(), 2.1);
-    assert_eq!(skeleton.get_slots()[0].color(), [0.9, 0.8, 0.7, 0.6]);
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("manual"));
-    assert_eq!(skeleton.get_slots()[0].sequence_index(), 7);
+    assert_eq!(skeleton.get_slots()[0].get_color(), [0.9, 0.8, 0.7, 0.6]);
+    assert_eq!(
+        skeleton.get_slots()[0].get_attachment_name(),
+        Some("manual")
+    );
+    assert_eq!(skeleton.get_slots()[0].get_sequence_index(), 7);
     assert_eq!(skeleton.get_draw_order(), &[1, 0]);
 
     skeleton.get_bones_mut()[0].set_position(40.0, 50.0);
@@ -989,13 +992,13 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
         (40.0, 50.0)
     );
     assert_eq!(skeleton.get_ik_constraints()[0].get_mix(), 0.33);
-    assert_eq!(skeleton.get_slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(skeleton.get_slots()[0].get_color(), [0.1, 0.2, 0.3, 0.4]);
     assert!(skeleton.get_slots()[0].has_dark_color());
-    assert_eq!(skeleton.get_slots()[0].dark_color(), [0.5, 0.6, 0.7]);
+    assert_eq!(skeleton.get_slots()[0].get_dark_color(), [0.5, 0.6, 0.7]);
     assert_eq!(skeleton.get_data().slots[0].blend, BlendMode::Additive);
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), None);
-    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
-    assert!(skeleton.get_slots()[0].deform().is_empty());
+    assert_eq!(skeleton.get_slots()[0].get_attachment_name(), None);
+    assert_eq!(skeleton.get_slots()[0].get_sequence_index(), -1);
+    assert!(skeleton.get_slots()[0].get_deform().is_empty());
     assert_eq!(skeleton.get_draw_order(), &[0, 1]);
 
     skeleton.get_bones_mut()[0].set_position(70.0, 80.0);
@@ -1013,8 +1016,8 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
         (1.0, 2.0)
     );
     assert_eq!(skeleton.get_ik_constraints()[0].get_mix(), 0.8);
-    assert_eq!(skeleton.get_slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
-    assert_eq!(skeleton.get_slots()[0].sequence_index(), 0);
+    assert_eq!(skeleton.get_slots()[0].get_color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(skeleton.get_slots()[0].get_sequence_index(), 0);
     assert_eq!(skeleton.get_draw_order(), &[0, 1]);
 }
 
@@ -1041,27 +1044,27 @@ fn slider_draw_order_uses_applied_buffer_without_mutating_pose() {
 fn slider_slot_pose_uses_applied_buffer_without_mutating_pose() {
     let mut skeleton = Skeleton::new(slider_slot_pose_skeleton_data());
 
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("base"));
+    assert_eq!(skeleton.get_slots()[0].get_attachment_name(), Some("base"));
     assert_eq!(
-        skeleton.get_slots()[0].applied_attachment_name(),
+        skeleton.get_slots()[0].get_applied_attachment_name(),
         Some("base")
     );
-    assert_eq!(skeleton.get_slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(skeleton.get_slots()[0].get_color(), [0.1, 0.2, 0.3, 0.4]);
     assert_eq!(
-        skeleton.get_slots()[0].applied_color(),
+        skeleton.get_slots()[0].get_applied_color(),
         [0.1, 0.2, 0.3, 0.4]
     );
 
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("base"));
+    assert_eq!(skeleton.get_slots()[0].get_attachment_name(), Some("base"));
     assert_eq!(
-        skeleton.get_slots()[0].applied_attachment_name(),
+        skeleton.get_slots()[0].get_applied_attachment_name(),
         Some("alt")
     );
-    assert_eq!(skeleton.get_slots()[0].color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(skeleton.get_slots()[0].get_color(), [0.1, 0.2, 0.3, 0.4]);
     assert_eq!(
-        skeleton.get_slots()[0].applied_color(),
+        skeleton.get_slots()[0].get_applied_color(),
         [0.2, 0.3, 0.4, 0.5]
     );
     assert_eq!(
@@ -1074,13 +1077,13 @@ fn slider_slot_pose_uses_applied_buffer_without_mutating_pose() {
     skeleton.get_slider_constraints_mut()[0].set_mix(0.0);
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("base"));
+    assert_eq!(skeleton.get_slots()[0].get_attachment_name(), Some("base"));
     assert_eq!(
-        skeleton.get_slots()[0].applied_attachment_name(),
+        skeleton.get_slots()[0].get_applied_attachment_name(),
         Some("base")
     );
     assert_eq!(
-        skeleton.get_slots()[0].applied_color(),
+        skeleton.get_slots()[0].get_applied_color(),
         [0.1, 0.2, 0.3, 0.4]
     );
 }
@@ -1176,7 +1179,7 @@ fn skeleton_finders_match_setup_order() {
     assert_eq!(skeleton.find_slot("slot1").unwrap().data_index, 1);
     assert_eq!(skeleton.find_slot("slot0").unwrap().bone, 0);
     skeleton.get_slots_mut()[1].set_color([0.2, 0.3, 0.4, 0.5]);
-    assert_eq!(skeleton.get_slots()[1].color(), [0.2, 0.3, 0.4, 0.5]);
+    assert_eq!(skeleton.get_slots()[1].get_color(), [0.2, 0.3, 0.4, 0.5]);
 }
 
 #[test]
@@ -1296,14 +1299,14 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
     let before = (
         skeleton.get_slots()[0].attachment.clone(),
         skeleton.get_slots()[0].attachment_skin.clone(),
-        skeleton.get_slots()[0].sequence_index(),
+        skeleton.get_slots()[0].get_sequence_index(),
     );
     skeleton.set_skin(Some("custom"));
     assert_eq!(
         (
             skeleton.get_slots()[0].attachment.clone(),
             skeleton.get_slots()[0].attachment_skin.clone(),
-            skeleton.get_slots()[0].sequence_index(),
+            skeleton.get_slots()[0].get_sequence_index(),
         ),
         before
     );
@@ -1327,13 +1330,16 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
 
     skeleton.set_skin(None);
     skeleton.set_attachment("slot0", "shared");
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("shared"));
+    assert_eq!(
+        skeleton.get_slots()[0].get_attachment_name(),
+        Some("shared")
+    );
     assert_eq!(
         skeleton.get_slots()[0].attachment_skin.as_deref(),
         Some("default")
     );
-    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
-    assert!(skeleton.get_slots()[0].deform().is_empty());
+    assert_eq!(skeleton.get_slots()[0].get_sequence_index(), -1);
+    assert!(skeleton.get_slots()[0].get_deform().is_empty());
 
     {
         let slot = &mut skeleton.get_slots_mut()[0];
@@ -1346,17 +1352,17 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
         skeleton.get_slots()[0].attachment_skin.as_deref(),
         Some("default")
     );
-    assert_eq!(skeleton.get_slots()[0].sequence_index(), 9);
-    assert_eq!(skeleton.get_slots()[0].deform(), &[3.0]);
+    assert_eq!(skeleton.get_slots()[0].get_sequence_index(), 9);
+    assert_eq!(skeleton.get_slots()[0].get_deform(), &[3.0]);
 
     skeleton.set_attachment("slot0", "");
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), None);
+    assert_eq!(skeleton.get_slots()[0].get_attachment_name(), None);
     assert_eq!(skeleton.get_slots()[0].attachment_skin, None);
-    assert!(skeleton.get_slots()[0].deform().is_empty());
-    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
+    assert!(skeleton.get_slots()[0].get_deform().is_empty());
+    assert_eq!(skeleton.get_slots()[0].get_sequence_index(), -1);
     skeleton.set_attachment("missing", "shared");
     skeleton.set_attachment("", "shared");
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), None);
+    assert_eq!(skeleton.get_slots()[0].get_attachment_name(), None);
     assert_eq!(skeleton.get_slots()[0].attachment_skin, None);
 }
 
@@ -1371,15 +1377,15 @@ fn skeleton_set_attachment_preserves_deform_for_matching_timeline_attachment() {
     }
 
     skeleton.set_attachment("slot0", "child");
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("child"));
-    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
-    assert_eq!(skeleton.get_slots()[0].deform(), &[1.0, 2.0, 3.0, 4.0]);
+    assert_eq!(skeleton.get_slots()[0].get_attachment_name(), Some("child"));
+    assert_eq!(skeleton.get_slots()[0].get_sequence_index(), -1);
+    assert_eq!(skeleton.get_slots()[0].get_deform(), &[1.0, 2.0, 3.0, 4.0]);
 
     skeleton.get_slots_mut()[0].set_sequence_index(9);
     skeleton.set_attachment("slot0", "other");
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("other"));
-    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
-    assert!(skeleton.get_slots()[0].deform().is_empty());
+    assert_eq!(skeleton.get_slots()[0].get_attachment_name(), Some("other"));
+    assert_eq!(skeleton.get_slots()[0].get_sequence_index(), -1);
+    assert!(skeleton.get_slots()[0].get_deform().is_empty());
 }
 
 #[test]
@@ -1387,7 +1393,7 @@ fn skeleton_set_skin_preserves_deform_for_matching_timeline_attachment() {
     let mut skeleton = Skeleton::new(skin_switch_linked_mesh_skeleton_data());
 
     skeleton.set_skin(Some("old"));
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("mesh"));
+    assert_eq!(skeleton.get_slots()[0].get_attachment_name(), Some("mesh"));
     assert_eq!(
         skeleton.get_slots()[0].attachment_skin.as_deref(),
         Some("old")
@@ -1408,8 +1414,8 @@ fn skeleton_set_skin_preserves_deform_for_matching_timeline_attachment() {
         skeleton.get_slots()[0].attachment_skin.as_deref(),
         Some("new")
     );
-    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
-    assert_eq!(skeleton.get_slots()[0].deform(), &[5.0, 6.0]);
+    assert_eq!(skeleton.get_slots()[0].get_sequence_index(), -1);
+    assert_eq!(skeleton.get_slots()[0].get_deform(), &[5.0, 6.0]);
 }
 
 #[test]
@@ -1417,7 +1423,7 @@ fn skeleton_set_skin_from_default_preserves_deform_for_matching_timeline_attachm
     let mut skeleton = Skeleton::new(skin_switch_linked_mesh_skeleton_data());
 
     assert!(skeleton.get_skin().is_none());
-    assert_eq!(skeleton.get_slots()[0].attachment_name(), Some("mesh"));
+    assert_eq!(skeleton.get_slots()[0].get_attachment_name(), Some("mesh"));
     assert_eq!(
         skeleton.get_slots()[0].attachment_skin.as_deref(),
         Some("default")
@@ -1438,8 +1444,8 @@ fn skeleton_set_skin_from_default_preserves_deform_for_matching_timeline_attachm
         skeleton.get_slots()[0].attachment_skin.as_deref(),
         Some("new")
     );
-    assert_eq!(skeleton.get_slots()[0].sequence_index(), -1);
-    assert_eq!(skeleton.get_slots()[0].deform(), &[7.0, 8.0]);
+    assert_eq!(skeleton.get_slots()[0].get_sequence_index(), -1);
+    assert_eq!(skeleton.get_slots()[0].get_deform(), &[7.0, 8.0]);
 }
 
 #[test]
@@ -1922,14 +1928,14 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
     slot.set_color([0.1, 0.2, 0.3, 0.4]);
     slot.set_has_dark_color(true);
     slot.set_dark_color([0.5, 0.6, 0.7]);
-    assert_eq!(slot.color(), [0.1, 0.2, 0.3, 0.4]);
+    assert_eq!(slot.get_color(), [0.1, 0.2, 0.3, 0.4]);
     assert!(slot.has_dark_color());
-    assert_eq!(slot.dark_color(), [0.5, 0.6, 0.7]);
+    assert_eq!(slot.get_dark_color(), [0.5, 0.6, 0.7]);
 
     slot.set_sequence_index(4);
     slot.deform_mut().extend_from_slice(&[1.0, 2.0, 3.0]);
-    assert_eq!(slot.sequence_index(), 4);
-    assert_eq!(slot.deform(), &[1.0, 2.0, 3.0]);
+    assert_eq!(slot.get_sequence_index(), 4);
+    assert_eq!(slot.get_deform(), &[1.0, 2.0, 3.0]);
 }
 
 #[test]

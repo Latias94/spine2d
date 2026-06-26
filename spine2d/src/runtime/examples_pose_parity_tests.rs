@@ -121,7 +121,11 @@ fn slot_index(data: &SkeletonData, name: &str) -> usize {
 fn assert_slot_attachment(h: &SpineboyHarness, slot_name: &str, expected: Option<&str>) {
     let i = slot_index(&h.data, slot_name);
     let slot = &h.skeleton.slots[i];
-    assert_eq!(slot.applied_attachment_name(), expected, "slot {slot_name}");
+    assert_eq!(
+        slot.get_applied_attachment_name(),
+        expected,
+        "slot {slot_name}"
+    );
 }
 
 fn assert_slot_color_approx(h: &SpineboyHarness, slot_name: &str, expected: [f32; 4]) {
@@ -129,7 +133,7 @@ fn assert_slot_color_approx(h: &SpineboyHarness, slot_name: &str, expected: [f32
     let slot = &h.skeleton.slots[i];
     let eps = 1.0e-3;
     for (j, label) in ["r", "g", "b", "a"].into_iter().enumerate() {
-        let actual = slot.applied_color()[j];
+        let actual = slot.get_applied_color()[j];
         let exp = expected[j];
         let diff = (actual - exp).abs();
         assert!(
@@ -481,10 +485,10 @@ fn example_tank_shoot_rgba2_slot_color_matches_spine_cpp_lite_0p3() {
     assert!(slot.applied_has_dark_color());
 
     for (j, exp) in [1.0, 0.835294, 0.0470588, 1.0].into_iter().enumerate() {
-        assert_approx(slot.applied_color()[j], exp);
+        assert_approx(slot.get_applied_color()[j], exp);
     }
     for (j, exp) in [0.376471, 0.294118, 0.247059].into_iter().enumerate() {
-        assert_approx(slot.applied_dark_color()[j], exp);
+        assert_approx(slot.get_applied_dark_color()[j], exp);
     }
 }
 

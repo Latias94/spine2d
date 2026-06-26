@@ -719,7 +719,7 @@ fn main() {
                 .map(|a| json!({"name": a.get_name()}));
             let has_dark = if slot.has_dark_color() { 1 } else { 0 };
             let dark_color = if slot.has_dark_color() {
-                let dark = slot.dark_color();
+                let dark = slot.get_dark_color();
                 [dark[0], dark[1], dark[2], 1.0]
             } else {
                 [0.0, 0.0, 0.0, 0.0]
@@ -727,7 +727,7 @@ fn main() {
             json!({
                 "i": i,
                 "name": name,
-                "color": slot.color(),
+                "color": slot.get_color(),
                 "hasDark": has_dark,
                 "darkColor": dark_color,
                 "attachment": attachment,

@@ -590,9 +590,9 @@ impl Skeleton {
     ) -> Option<&crate::AttachmentData> {
         let slot = self.slots.get(slot_index)?;
         let pose = slot.pose_for(applied_pose);
-        let key = pose.attachment_name()?;
+        let key = pose.get_attachment_name()?;
 
-        if let Some(source_skin) = pose.attachment_skin()
+        if let Some(source_skin) = pose.get_attachment_skin()
             && let Some(skin) = self.data.find_skin(source_skin)
             && let Some(att) = skin.get_attachment(slot_index, key)
         {

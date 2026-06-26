@@ -309,7 +309,7 @@ fn dump_pose(skeleton: &Skeleton, _time: f32, debug_slot: Option<&str>) -> PoseD
                 .map(|a| AttachmentDump {
                     name: a.get_name().to_string(),
                 });
-            let dark = slot.applied_dark_color();
+            let dark = slot.get_applied_dark_color();
             let dark_color = if slot.applied_has_dark_color() {
                 [dark[0], dark[1], dark[2], 1.0]
             } else {
@@ -317,10 +317,10 @@ fn dump_pose(skeleton: &Skeleton, _time: f32, debug_slot: Option<&str>) -> PoseD
             };
             SlotDump {
                 name: name.to_string(),
-                color: slot.applied_color(),
+                color: slot.get_applied_color(),
                 has_dark: if slot.applied_has_dark_color() { 1 } else { 0 },
                 dark_color,
-                sequence_index: slot.applied_sequence_index(),
+                sequence_index: slot.get_applied_sequence_index(),
                 attachment,
             }
         })

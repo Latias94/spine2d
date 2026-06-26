@@ -284,6 +284,8 @@ flowchart TB
 
 **Recent update:** `Bone` runtime pose getters now use latest-tag C++ getter spelling for local, applied, and world pose reads. The old Rust-style zero-argument helpers (`inherit`, `x`, `y`, `rotation`, `scale_x`, `scale_y`, `shear_x`, `shear_y`, `applied_*`, `a`, `b`, `c`, `d`, `world_*`) were removed in favor of matching `get_*` names. Setters, transform helpers, y-down control, and solver behavior were not changed.
 
+**Recent update:** `Slot` runtime pose getters now use latest-tag C++ getter spelling for color, dark color, attachment name, sequence index, deform, and applied-pose reads. The old Rust-style zero-argument helpers (`color`, `dark_color`, `attachment_name`, `sequence_index`, `deform`, `applied_*`) were removed in favor of matching `get_*` names. `has_dark_color` and `applied_has_dark_color` remain predicate-style because the latest-tag C++ method is `hasDarkColor()`.
+
 **Recent update:** Commit `9147966` split applied slot pose from the unconstrained slot pose and routed slider-driven slot, attachment, sequence, and deform timelines through the applied buffer, matching C++ `Slot`/`SlotPose` applied-pose semantics more closely without exposing raw `PosedGeneric` internals.
 
 **Recent update:** Commit `068263d` removed the Rust-only `Slot::set_attachment_name` public helper. Bare name mutation cannot match C++ `SlotPose::setAttachment(Attachment*)` because it lacks attachment object identity and timeline-attachment comparison; runtime name changes now use `Skeleton::set_attachment`.

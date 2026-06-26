@@ -113,7 +113,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     // Match spine-cpp `SkeletonRenderer` early-outs:
                     // - Skip region/mesh attachments when the slot color alpha is 0.
                     // - Skip when the slot's bone is inactive (skinRequired bones not included by the current skin).
-                    let slot_color = slot.applied_color();
+                    let slot_color = slot.get_applied_color();
                     if slot_color[3] <= 0.0 || !bone.active {
                         break 'process_slot;
                     }
@@ -125,7 +125,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     let attachment_path = effective_attachment_path(
                         region.path.as_str(),
                         region.sequence.as_ref(),
-                        slot.applied_sequence_index(),
+                        slot.get_applied_sequence_index(),
                     );
                     let atlas_region_opt =
                         atlas.and_then(|a| a.find_region(attachment_path.as_ref()));
@@ -289,7 +289,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     }
 
                     call_clip_end_for_slot = false;
-                    let deform = slot.applied_deform();
+                    let deform = slot.get_applied_deform();
 
                     let polygon =
                         attachment_world_positions(skeleton, slot_index, &clip.vertices, deform);
@@ -315,14 +315,14 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                         break 'process_slot;
                     };
                     // Match spine-cpp `SkeletonRenderer` early-outs (see region case).
-                    let slot_color = slot.applied_color();
+                    let slot_color = slot.get_applied_color();
                     if slot_color[3] <= 0.0 || !bone.active {
                         break 'process_slot;
                     }
                     if mesh.color[3] <= 0.0 {
                         break 'process_slot;
                     }
-                    let deform = slot.applied_deform();
+                    let deform = slot.get_applied_deform();
 
                     let blend = skeleton
                         .data
@@ -332,7 +332,7 @@ fn append_draw_list_internal(out: &mut DrawList, skeleton: &Skeleton, atlas: Opt
                     let attachment_path = effective_attachment_path(
                         mesh.path.as_str(),
                         mesh.sequence.as_ref(),
-                        slot.applied_sequence_index(),
+                        slot.get_applied_sequence_index(),
                     );
                     let (texture_path, atlas_region_and_page, premultiplied_alpha) =
                         if let Some(atlas) = atlas {
@@ -738,16 +738,16 @@ fn slot_dark_color_rgba(
 
     if premultiplied_alpha {
         [
-            slot.applied_dark_color()[0] * light_alpha,
-            slot.applied_dark_color()[1] * light_alpha,
-            slot.applied_dark_color()[2] * light_alpha,
+            slot.get_applied_dark_color()[0] * light_alpha,
+            slot.get_applied_dark_color()[1] * light_alpha,
+            slot.get_applied_dark_color()[2] * light_alpha,
             1.0,
         ]
     } else {
         [
-            slot.applied_dark_color()[0],
-            slot.applied_dark_color()[1],
-            slot.applied_dark_color()[2],
+            slot.get_applied_dark_color()[0],
+            slot.get_applied_dark_color()[1],
+            slot.get_applied_dark_color()[2],
             0.0,
         ]
     }

@@ -31,28 +31,28 @@ pub(crate) enum SlotPoseRef<'a> {
 }
 
 impl SlotPoseRef<'_> {
-    pub(crate) fn attachment_name(&self) -> Option<&str> {
+    pub(crate) fn get_attachment_name(&self) -> Option<&str> {
         match self {
             Self::Pose(slot) => slot.attachment.as_deref(),
             Self::Applied(pose) => pose.attachment.as_deref(),
         }
     }
 
-    pub(crate) fn attachment_skin(&self) -> Option<&str> {
+    pub(crate) fn get_attachment_skin(&self) -> Option<&str> {
         match self {
             Self::Pose(slot) => slot.attachment_skin.as_deref(),
             Self::Applied(pose) => pose.attachment_skin.as_deref(),
         }
     }
 
-    pub(crate) fn sequence_index(&self) -> i32 {
+    pub(crate) fn get_sequence_index(&self) -> i32 {
         match self {
             Self::Pose(slot) => slot.sequence_index,
             Self::Applied(pose) => pose.sequence_index,
         }
     }
 
-    pub(crate) fn color(&self) -> [f32; 4] {
+    pub(crate) fn get_color(&self) -> [f32; 4] {
         match self {
             Self::Pose(slot) => slot.color,
             Self::Applied(pose) => pose.color,
@@ -66,7 +66,7 @@ impl SlotPoseRef<'_> {
         }
     }
 
-    pub(crate) fn dark_color(&self) -> [f32; 3] {
+    pub(crate) fn get_dark_color(&self) -> [f32; 3] {
         match self {
             Self::Pose(slot) => slot.dark_color,
             Self::Applied(pose) => pose.dark_color,
@@ -80,7 +80,7 @@ pub(crate) enum SlotPoseMut<'a> {
 }
 
 impl SlotPoseMut<'_> {
-    pub(crate) fn color(&self) -> [f32; 4] {
+    pub(crate) fn get_color(&self) -> [f32; 4] {
         match self {
             Self::Pose(slot) => slot.color,
             Self::Applied(pose) => pose.color,
@@ -108,7 +108,7 @@ impl SlotPoseMut<'_> {
         }
     }
 
-    pub(crate) fn dark_color(&self) -> [f32; 3] {
+    pub(crate) fn get_dark_color(&self) -> [f32; 3] {
         match self {
             Self::Pose(slot) => slot.dark_color,
             Self::Applied(pose) => pose.dark_color,
@@ -129,7 +129,7 @@ impl SlotPoseMut<'_> {
         }
     }
 
-    pub(crate) fn deform(&self) -> &[f32] {
+    pub(crate) fn get_deform(&self) -> &[f32] {
         match self {
             Self::Pose(slot) => slot.deform.as_slice(),
             Self::Applied(pose) => pose.deform.as_slice(),
@@ -205,11 +205,11 @@ impl Slot {
         skeleton.get_attachment(slot_index, key)
     }
 
-    pub fn attachment_name(&self) -> Option<&str> {
+    pub fn get_attachment_name(&self) -> Option<&str> {
         self.attachment.as_deref()
     }
 
-    pub fn applied_attachment_name(&self) -> Option<&str> {
+    pub fn get_applied_attachment_name(&self) -> Option<&str> {
         if self.pose_constrained {
             self.applied_pose.attachment.as_deref()
         } else {
@@ -238,28 +238,28 @@ impl Slot {
         Self::attachment_data(
             skeleton,
             self.data_index,
-            pose.attachment_name(),
-            pose.attachment_skin(),
+            pose.get_attachment_name(),
+            pose.get_attachment_skin(),
         )
     }
 
-    pub fn sequence_index(&self) -> i32 {
+    pub fn get_sequence_index(&self) -> i32 {
         self.sequence_index
     }
 
-    pub fn applied_sequence_index(&self) -> i32 {
-        self.pose_for(true).sequence_index()
+    pub fn get_applied_sequence_index(&self) -> i32 {
+        self.pose_for(true).get_sequence_index()
     }
 
     pub fn set_sequence_index(&mut self, sequence_index: i32) {
         self.sequence_index = sequence_index;
     }
 
-    pub fn deform(&self) -> &[f32] {
+    pub fn get_deform(&self) -> &[f32] {
         &self.deform
     }
 
-    pub fn applied_deform(&self) -> &[f32] {
+    pub fn get_applied_deform(&self) -> &[f32] {
         if self.pose_constrained {
             self.applied_pose.deform.as_slice()
         } else {
@@ -271,12 +271,12 @@ impl Slot {
         &mut self.deform
     }
 
-    pub fn color(&self) -> [f32; 4] {
+    pub fn get_color(&self) -> [f32; 4] {
         self.color
     }
 
-    pub fn applied_color(&self) -> [f32; 4] {
-        self.pose_for(true).color()
+    pub fn get_applied_color(&self) -> [f32; 4] {
+        self.pose_for(true).get_color()
     }
 
     pub fn set_color(&mut self, color: [f32; 4]) {
@@ -295,12 +295,12 @@ impl Slot {
         self.has_dark = has_dark;
     }
 
-    pub fn dark_color(&self) -> [f32; 3] {
+    pub fn get_dark_color(&self) -> [f32; 3] {
         self.dark_color
     }
 
-    pub fn applied_dark_color(&self) -> [f32; 3] {
-        self.pose_for(true).dark_color()
+    pub fn get_applied_dark_color(&self) -> [f32; 3] {
+        self.pose_for(true).get_dark_color()
     }
 
     pub fn set_dark_color(&mut self, dark_color: [f32; 3]) {
