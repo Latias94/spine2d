@@ -244,6 +244,8 @@ flowchart TB
 
 **Verification:** Core animation-state tests and Bevy backend tests pass, with public API breakage captured in docs or release notes when needed.
 
+**Recent update:** Commit `eeefb13` narrowed attachment DTO storage in `spine2d/src/model.rs`: the attachment data fields that mirror latest-tag C++ private state are now crate-private, and the color fields on region, mesh, point, path, bounding-box, and clipping attachments expose official-style getters/mutators instead of broad public field bags. The same slice also tightened a couple of internal helper structs that were still leaking implementation detail through the public model. Verification passed on 2026-06-26: `cargo fmt --all -- --check`, `cargo check -p spine2d --features json,binary,upstream-smoke`, `cargo nextest run -p spine2d --features json,binary,upstream-smoke --no-fail-fast --status-level fail` (`656 passed, 2 skipped`), `cargo check -p spine2d --examples --features json,binary,upstream-smoke`, `cargo check -p spine2d-bevy --examples`, `cargo check -p spine2d-wgpu -p spine2d-web`, and `git diff --check`.
+
 ### U6. Extract Skeleton pose-solver boundaries incrementally
 
 **Goal:** Split the largest live `Skeleton` responsibilities after dead code has been removed and solver coverage is confirmed.
