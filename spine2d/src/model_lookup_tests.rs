@@ -214,6 +214,34 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
 }
 
 #[test]
+fn skeleton_data_header_getters_match_cpp_names() {
+    let mut data = SkeletonData::default();
+    data.name = "hero".to_string();
+    data.spine_version = Some("4.3.8".to_string());
+    data.hash = "123".to_string();
+    data.x = 1.0;
+    data.y = 2.0;
+    data.width = 3.0;
+    data.height = 4.0;
+    data.reference_scale = 50.0;
+    data.fps = 24.0;
+    data.images_path = "images/".to_string();
+    data.audio_path = "audio/".to_string();
+
+    assert_eq!(data.get_name(), "hero");
+    assert_eq!(data.get_version(), Some("4.3.8"));
+    assert_eq!(data.get_hash(), "123");
+    assert_eq!(data.get_x(), 1.0);
+    assert_eq!(data.get_y(), 2.0);
+    assert_eq!(data.get_width(), 3.0);
+    assert_eq!(data.get_height(), 4.0);
+    assert_eq!(data.get_reference_scale(), 50.0);
+    assert_eq!(data.get_fps(), 24.0);
+    assert_eq!(data.get_images_path(), "images/");
+    assert_eq!(data.get_audio_path(), "audio/");
+}
+
+#[test]
 fn bone_and_slot_data_accessors_match_cpp_surface() {
     let mut bone = BoneData::default();
     bone.set_length(12.5);

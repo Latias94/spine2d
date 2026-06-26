@@ -1429,7 +1429,7 @@ impl SkeletonData {
         self.name.as_str()
     }
 
-    pub fn get_spine_version(&self) -> Option<&str> {
+    pub fn get_version(&self) -> Option<&str> {
         self.spine_version.as_deref()
     }
 
