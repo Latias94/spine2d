@@ -207,7 +207,7 @@ fn main() {
             "--mix" if i + 3 < args.len() => {
                 let duration = args[i + 3].parse::<f32>().unwrap_or(0.0);
                 state
-                    .data_mut()
+                    .get_data_mut()
                     .set_mix(args[i + 1].as_str(), args[i + 2].as_str(), duration);
                 i += 4;
             }

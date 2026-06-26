@@ -1033,7 +1033,7 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
     for cmd in &case.commands {
         match *cmd {
             RenderScenarioCommand::Mix { from, to, duration } => {
-                state.data_mut().set_mix(from, to, duration);
+                state.get_data_mut().set_mix(from, to, duration);
             }
             RenderScenarioCommand::Set {
                 track,

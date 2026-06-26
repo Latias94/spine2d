@@ -208,7 +208,7 @@ pub fn apply_spine_animation_state_config(
             continue;
         };
 
-        apply_animation_state_config(instance.animation_state.data_mut(), &config, entity);
+        apply_animation_state_config(instance.animation_state.get_data_mut(), &config, entity);
     }
 }
 
@@ -395,11 +395,11 @@ pub fn apply_spine_animation_commands(
                 instance.loop_animation = false;
             }
             SpineAnimationCommandKind::SetDefaultMix { default_mix } => {
-                apply_default_mix(instance.animation_state.data_mut(), *default_mix);
+                apply_default_mix(instance.animation_state.get_data_mut(), *default_mix);
             }
             SpineAnimationCommandKind::SetMix { from, to, duration } => {
                 apply_animation_mix(
-                    instance.animation_state.data_mut(),
+                    instance.animation_state.get_data_mut(),
                     from,
                     to,
                     *duration,
@@ -407,7 +407,7 @@ pub fn apply_spine_animation_commands(
                 );
             }
             SpineAnimationCommandKind::ClearMixes => {
-                instance.animation_state.data_mut().clear();
+                instance.animation_state.get_data_mut().clear();
             }
         }
     }
@@ -564,7 +564,7 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
     SpineRuntimeState {
         ready: true,
         tracks: animation_state
-            .tracks()
+            .get_tracks()
             .into_iter()
             .filter_map(|track| {
                 track?.entry(animation_state).map(|entry| SpineTrackState {
@@ -850,7 +850,7 @@ mod tests {
         let spine_world = app.world().non_send::<SpineWorld>();
         let state = &spine_world.get(key.0).unwrap().animation_state;
         state
-            .current(track_index)
+            .get_current(track_index)
             .and_then(|handle| handle.entry(state).map(f))
             .unwrap()
     }
@@ -865,7 +865,7 @@ mod tests {
         let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
         let spine_world = app.world().non_send::<SpineWorld>();
         let state = &spine_world.get(key.0).unwrap().animation_state;
-        let mut handle = state.current(track_index).unwrap().next(state).unwrap();
+        let mut handle = state.get_current(track_index).unwrap().next(state).unwrap();
         for _ in 0..queue_index {
             handle = handle.next(state).unwrap();
         }
@@ -885,7 +885,7 @@ mod tests {
             .get_mut(key.0)
             .unwrap()
             .animation_state
-            .data_mut()
+            .get_data_mut()
             .default_mix()
     }
 

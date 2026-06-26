@@ -94,7 +94,7 @@ fn run_all_animations_queue_smoke(relative: &str) {
 
     const MAX_RUN_TIME: usize = 6000; // matches upstream (about 100s at 60fps)
     for _ in 0..MAX_RUN_TIME {
-        if state.current(0).is_none() {
+        if state.get_current(0).is_none() {
             break;
         }
         let dt = 1.0 / 60.0;
@@ -221,7 +221,7 @@ fn run_queued_animations_smoke(data: Arc<SkeletonData>, example_label: &str) {
     }
 
     for _ in 0..MAX_FRAMES {
-        if state.current(0).is_none() {
+        if state.get_current(0).is_none() {
             break;
         }
         state.update(dt);

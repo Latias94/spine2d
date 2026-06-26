@@ -629,7 +629,7 @@ impl TrackEntry {
         self.track_end
     }
 
-    pub fn time_scale(&self) -> f32 {
+    pub fn get_time_scale(&self) -> f32 {
         self.time_scale
     }
 
@@ -1059,7 +1059,7 @@ impl AnimationState {
         self.manual_track_entry_disposal = manual;
     }
 
-    pub fn manual_track_entry_disposal(&self) -> bool {
+    pub fn get_manual_track_entry_disposal(&self) -> bool {
         self.manual_track_entry_disposal
     }
 
@@ -1069,7 +1069,7 @@ impl AnimationState {
         }
     }
 
-    pub fn time_scale(&self) -> f32 {
+    pub fn get_time_scale(&self) -> f32 {
         self.time_scale
     }
 
@@ -1077,15 +1077,15 @@ impl AnimationState {
         self.time_scale = time_scale;
     }
 
-    pub fn data_mut(&mut self) -> &mut AnimationStateData {
+    pub fn get_data_mut(&mut self) -> &mut AnimationStateData {
         &mut self.data
     }
 
-    pub fn data(&self) -> &AnimationStateData {
+    pub fn get_data(&self) -> &AnimationStateData {
         &self.data
     }
 
-    pub fn tracks(&self) -> Vec<Option<TrackEntryHandle>> {
+    pub fn get_tracks(&self) -> Vec<Option<TrackEntryHandle>> {
         self.tracks
             .iter()
             .map(|track| track.current.map(|id| self.handle(id)))
@@ -1265,7 +1265,7 @@ impl AnimationState {
         }
     }
 
-    pub fn current(&self, track_index: usize) -> Option<TrackEntryHandle> {
+    pub fn get_current(&self, track_index: usize) -> Option<TrackEntryHandle> {
         let id = self.tracks.get(track_index)?.current?;
         self.entry(id)?;
         Some(self.handle(id))

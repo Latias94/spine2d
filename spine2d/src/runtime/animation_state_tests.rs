@@ -63,7 +63,7 @@ fn round_tracks(state: &mut AnimationState) {
         (value * factor).round() / factor
     }
 
-    let current_ids = state.tracks().into_iter().flatten().collect::<Vec<_>>();
+    let current_ids = state.get_tracks().into_iter().flatten().collect::<Vec<_>>();
     for current in current_ids {
         let track_time = current
             .entry(state)
@@ -137,7 +137,7 @@ fn with_track_entry<R>(
     track_index: usize,
     f: impl FnOnce(&TrackEntry) -> R,
 ) -> Option<R> {
-    state.current(track_index)?.entry(state).map(f)
+    state.get_current(track_index)?.entry(state).map(f)
 }
 
 fn with_queued_track_entry<R>(
@@ -146,7 +146,7 @@ fn with_queued_track_entry<R>(
     queue_index: usize,
     f: impl FnOnce(&TrackEntry) -> R,
 ) -> Option<R> {
-    let mut handle = state.current(track_index)?.next(state)?;
+    let mut handle = state.get_current(track_index)?.next(state)?;
     for _ in 0..queue_index {
         handle = handle.next(state)?;
     }
@@ -228,10 +228,10 @@ fn animation_state_data_clear_resets_default_and_animation_mixes() {
 fn animation_state_data_accessor_matches_mutable_data() {
     let (mut state, _skeleton, _recording) = setup();
 
-    assert_eq!(state.data().default_mix(), 0.0);
-    state.data_mut().set_default_mix(0.3);
+    assert_eq!(state.get_data().default_mix(), 0.0);
+    state.get_data_mut().set_default_mix(0.3);
 
-    assert_eq!(state.data().default_mix(), 0.3);
+    assert_eq!(state.get_data().default_mix(), 0.3);
 }
 
 #[test]
@@ -485,7 +485,7 @@ fn add_empty_animation_delay_is_adjusted_to_end_with_previous_entry() {
     state.set_animation(0, "a", false);
     state.add_empty_animation(0, 0.5, 0.0);
     let delay = state
-        .current(0)
+        .get_current(0)
         .and_then(|entry| entry.next(&state))
         .and_then(|entry| entry.entry(&state).map(|entry| entry.delay()))
         .expect("queued empty animation");
@@ -575,7 +575,7 @@ fn track_entry_set_animation_swaps_animation_without_rebuilding_timing() {
     entry.set_track_time(&mut state, 0.25);
     entry.set_delay(&mut state, 0.375);
     let replacement = state
-        .data()
+        .get_data()
         .skeleton_data()
         .find_animation("events1")
         .unwrap()
@@ -601,7 +601,7 @@ fn track_entry_set_animation_preserves_animation_references() {
 
     let entry = state.set_animation(0, "events0", false);
     let mut unknown = state
-        .data()
+        .get_data()
         .skeleton_data()
         .find_animation("events1")
         .unwrap()
@@ -681,21 +681,21 @@ fn animation_state_apply_returns_whether_any_track_was_applied() {
 fn animation_state_current_returns_current_track_handle() {
     let (mut state, _skeleton, _recording) = setup();
 
-    assert_eq!(state.current(0), None);
-    assert!(state.tracks().is_empty());
+    assert_eq!(state.get_current(0), None);
+    assert!(state.get_tracks().is_empty());
 
     let first = state.set_animation(0, "events0", false);
     state.add_animation(0, "events1", false, 0.0);
     let third = state.set_animation(2, "events2", false);
 
-    assert_eq!(state.current(0), Some(first));
-    assert_eq!(state.current(1), None);
-    assert_eq!(state.current(2), Some(third));
-    assert_eq!(state.tracks(), vec![Some(first), None, Some(third)]);
+    assert_eq!(state.get_current(0), Some(first));
+    assert_eq!(state.get_current(1), None);
+    assert_eq!(state.get_current(2), Some(third));
+    assert_eq!(state.get_tracks(), vec![Some(first), None, Some(third)]);
 
     state.clear_track(0);
-    assert_eq!(state.current(0), None);
-    assert_eq!(state.tracks(), vec![None, None, Some(third)]);
+    assert_eq!(state.get_current(0), None);
+    assert_eq!(state.get_tracks(), vec![None, None, Some(third)]);
 }
 
 #[test]
@@ -770,9 +770,9 @@ fn animation_state_manual_track_entry_disposal_matches_cpp_lifetime_control() {
     assert!(auto_entry.entry(&auto_state).is_none());
 
     let (mut manual_state, _skeleton, _recording) = setup();
-    assert!(!manual_state.manual_track_entry_disposal());
+    assert!(!manual_state.get_manual_track_entry_disposal());
     manual_state.set_manual_track_entry_disposal(true);
-    assert!(manual_state.manual_track_entry_disposal());
+    assert!(manual_state.get_manual_track_entry_disposal());
 
     let manual_entry = manual_state.set_animation(0, "events0", false);
     manual_state.clear_track(0);
@@ -821,7 +821,7 @@ fn track_entry_set_mix_duration_with_delay_adjusts_queued_delay() {
     queued.set_mix_duration_with_delay(&mut state, 0.4, 0.0);
 
     let delay = state
-        .current(0)
+        .get_current(0)
         .and_then(|entry| entry.next(&state))
         .and_then(|entry| entry.entry(&state).map(|entry| entry.delay()))
         .expect("queued animation");
@@ -1551,7 +1551,7 @@ fn interrupt_with_delay_and_mix_time() {
         recording: recording.clone(),
     });
 
-    state.data_mut().set_mix("events0", "events1", 0.7);
+    state.get_data_mut().set_mix("events0", "events1", 0.7);
 
     state.set_animation(0, "events0", true);
     let entry = state.add_animation(0, "events1", false, 0.9);
@@ -1656,7 +1656,7 @@ fn animation0_events_do_not_fire_during_mix() {
         recording: recording.clone(),
     });
 
-    state.data_mut().set_default_mix(0.7);
+    state.get_data_mut().set_default_mix(0.7);
 
     state.set_animation(0, "events0", false);
     let entry = state.add_animation(0, "events1", false, 0.4);
@@ -1755,7 +1755,7 @@ fn event_threshold_some_animation0_events_fire_during_mix() {
         recording: recording.clone(),
     });
 
-    state.data_mut().set_mix("events0", "events1", 0.7);
+    state.get_data_mut().set_mix("events0", "events1", 0.7);
 
     let entry = state.set_animation(0, "events0", false);
     entry.set_event_threshold(&mut state, 0.5);
@@ -3302,7 +3302,7 @@ fn set_animation_twice_with_multiple_mixing() {
         recording: recording.clone(),
     });
 
-    state.data_mut().set_default_mix(0.6);
+    state.get_data_mut().set_default_mix(0.6);
 
     state.set_animation(0, "events0", false); // First should be ignored.
     state.set_animation(0, "events1", false);
@@ -4011,7 +4011,7 @@ fn set_empty_animations_sets_empty_entries_for_active_tracks() {
 
     state.set_empty_animations(0.4);
 
-    assert!(state.current(0).unwrap().next(&state).is_none());
+    assert!(state.get_current(0).unwrap().next(&state).is_none());
     with_track_entry(&state, 0, |entry| {
         assert_eq!(entry.animation().name, "<empty>");
         assert_eq!(entry.mix_duration(), 0.4);
@@ -4032,7 +4032,7 @@ fn set_empty_animations_is_noop_without_active_tracks() {
 
     state.set_empty_animations(0.4);
 
-    assert!(state.tracks().is_empty());
+    assert!(state.get_tracks().is_empty());
 }
 
 #[test]
