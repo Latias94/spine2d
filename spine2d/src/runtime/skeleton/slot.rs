@@ -267,20 +267,16 @@ impl Slot {
         }
     }
 
-    pub fn deform_mut(&mut self) -> &mut Vec<f32> {
-        &mut self.deform
-    }
-
     pub fn get_color(&self) -> [f32; 4] {
         self.color
     }
 
-    pub fn get_applied_color(&self) -> [f32; 4] {
-        self.pose_for(true).get_color()
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
     }
 
-    pub fn set_color(&mut self, color: [f32; 4]) {
-        self.color = color;
+    pub fn get_applied_color(&self) -> [f32; 4] {
+        self.pose_for(true).get_color()
     }
 
     pub fn has_dark_color(&self) -> bool {
@@ -299,12 +295,16 @@ impl Slot {
         self.dark_color
     }
 
+    pub fn get_dark_color_mut(&mut self) -> &mut [f32; 3] {
+        &mut self.dark_color
+    }
+
     pub fn get_applied_dark_color(&self) -> [f32; 3] {
         self.pose_for(true).get_dark_color()
     }
 
-    pub fn set_dark_color(&mut self, dark_color: [f32; 3]) {
-        self.dark_color = dark_color;
+    pub fn get_deform_mut(&mut self) -> &mut Vec<f32> {
+        &mut self.deform
     }
 
     pub(crate) fn pose_for(&self, applied_pose: bool) -> SlotPoseRef<'_> {

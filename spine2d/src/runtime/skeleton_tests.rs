@@ -982,7 +982,7 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
         .find_constraint_mut::<SliderConstraint>("slider")
         .unwrap()
         .set_time(0.65);
-    skeleton.get_slots_mut()[0].set_color([0.9, 0.8, 0.7, 0.6]);
+    *skeleton.get_slots_mut()[0].get_color_mut() = [0.9, 0.8, 0.7, 0.6];
     {
         let slot = &mut skeleton.get_slots_mut()[0];
         slot.attachment = Some("manual".to_string());
@@ -1089,7 +1089,7 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
         .find_constraint_mut::<IkConstraint>("ik")
         .unwrap()
         .set_mix(0.44);
-    skeleton.get_slots_mut()[0].set_color([0.2, 0.3, 0.4, 0.5]);
+    *skeleton.get_slots_mut()[0].get_color_mut() = [0.2, 0.3, 0.4, 0.5];
     skeleton.get_draw_order_mut().swap(0, 1);
 
     skeleton.setup_pose();
@@ -1270,7 +1270,7 @@ fn skeleton_finders_match_setup_order() {
 
     assert_eq!(skeleton.find_slot("slot1").unwrap().data_index, 1);
     assert_eq!(skeleton.find_slot("slot0").unwrap().bone, 0);
-    skeleton.get_slots_mut()[1].set_color([0.2, 0.3, 0.4, 0.5]);
+    *skeleton.get_slots_mut()[1].get_color_mut() = [0.2, 0.3, 0.4, 0.5];
     assert_eq!(skeleton.get_slots()[1].get_color(), [0.2, 0.3, 0.4, 0.5]);
 }
 
@@ -1599,7 +1599,7 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
 
     {
         let slot = &mut skeleton.get_slots_mut()[0];
-        slot.deform_mut().extend_from_slice(&[1.0, 2.0]);
+        slot.get_deform_mut().extend_from_slice(&[1.0, 2.0]);
         slot.set_sequence_index(7);
     }
 
@@ -1618,7 +1618,7 @@ fn skeleton_set_attachment_updates_source_skin_and_pose_state() {
 
     {
         let slot = &mut skeleton.get_slots_mut()[0];
-        slot.deform_mut().extend_from_slice(&[3.0]);
+        slot.get_deform_mut().extend_from_slice(&[3.0]);
         slot.set_sequence_index(9);
     }
 
@@ -1695,7 +1695,8 @@ fn skeleton_set_attachment_preserves_deform_for_matching_timeline_attachment() {
 
     {
         let slot = &mut skeleton.get_slots_mut()[0];
-        slot.deform_mut().extend_from_slice(&[1.0, 2.0, 3.0, 4.0]);
+        slot.get_deform_mut()
+            .extend_from_slice(&[1.0, 2.0, 3.0, 4.0]);
         slot.set_sequence_index(7);
     }
 
@@ -1724,7 +1725,7 @@ fn skeleton_set_skin_preserves_deform_for_matching_timeline_attachment() {
 
     {
         let slot = &mut skeleton.get_slots_mut()[0];
-        slot.deform_mut().extend_from_slice(&[5.0, 6.0]);
+        slot.get_deform_mut().extend_from_slice(&[5.0, 6.0]);
         slot.set_sequence_index(4);
     }
 
@@ -1754,7 +1755,7 @@ fn skeleton_set_skin_from_default_preserves_deform_for_matching_timeline_attachm
 
     {
         let slot = &mut skeleton.get_slots_mut()[0];
-        slot.deform_mut().extend_from_slice(&[7.0, 8.0]);
+        slot.get_deform_mut().extend_from_slice(&[7.0, 8.0]);
         slot.set_sequence_index(6);
     }
 
@@ -2254,15 +2255,15 @@ fn slot_accessors_expose_attachment_tint_and_deform_state() {
 
     assert_eq!(slot.bone, 0);
 
-    slot.set_color([0.1, 0.2, 0.3, 0.4]);
+    *slot.get_color_mut() = [0.1, 0.2, 0.3, 0.4];
     slot.set_has_dark_color(true);
-    slot.set_dark_color([0.5, 0.6, 0.7]);
+    *slot.get_dark_color_mut() = [0.5, 0.6, 0.7];
     assert_eq!(slot.get_color(), [0.1, 0.2, 0.3, 0.4]);
     assert!(slot.has_dark_color());
     assert_eq!(slot.get_dark_color(), [0.5, 0.6, 0.7]);
 
     slot.set_sequence_index(4);
-    slot.deform_mut().extend_from_slice(&[1.0, 2.0, 3.0]);
+    slot.get_deform_mut().extend_from_slice(&[1.0, 2.0, 3.0]);
     assert_eq!(slot.get_sequence_index(), 4);
     assert_eq!(slot.get_deform(), &[1.0, 2.0, 3.0]);
 }
