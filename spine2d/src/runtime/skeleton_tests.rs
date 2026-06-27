@@ -1580,6 +1580,18 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
         "default-fallback"
     );
 
+    let custom_skin = skeleton.get_data().find_skin("custom").unwrap().clone();
+    skeleton.set_skin(None);
+    skeleton.set_skin_data(Some(&custom_skin));
+    assert_eq!(
+        skeleton.get_skin().map(|skin| skin.name.as_str()),
+        Some("custom")
+    );
+    assert_eq!(
+        skeleton.get_attachment(0, "shared").unwrap().get_name(),
+        "custom-shared"
+    );
+
     skeleton.set_skin(Some("custom"));
     let before = (
         skeleton.get_slots()[0].attachment.clone(),

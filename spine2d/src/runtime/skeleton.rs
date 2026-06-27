@@ -1381,6 +1381,13 @@ impl Skeleton {
         None
     }
 
+    /// Sets the skin using a resolved skin object.
+    ///
+    /// Mirrors the official runtimes' `Skeleton::setSkin(Skin *)`.
+    pub fn set_skin_data(&mut self, skin: Option<&crate::SkinData>) {
+        self.set_skin(skin.map(|skin| skin.get_name()));
+    }
+
     pub fn set_attachment(&mut self, slot_name: &str, attachment_name: &str) {
         if slot_name.is_empty() {
             return;
