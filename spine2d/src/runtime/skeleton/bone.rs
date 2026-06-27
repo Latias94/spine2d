@@ -62,6 +62,13 @@ impl Bone {
         self.parent.and_then(|index| skeleton.bones.get(index))
     }
 
+    /// The setup pose data for this bone in the given skeleton.
+    ///
+    /// Mirrors the official runtimes' `Bone::getData`.
+    pub fn get_data<'a>(&self, skeleton: &'a Skeleton) -> &'a crate::BoneData {
+        &skeleton.data.bones[self.data_index]
+    }
+
     /// The immediate child bones for this bone in the given skeleton.
     ///
     /// Mirrors the official runtimes' `Bone::getChildren`.

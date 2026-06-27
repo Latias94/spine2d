@@ -1111,6 +1111,14 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     assert_eq!(skeleton.get_slots()[0].get_color(), [0.1, 0.2, 0.3, 0.4]);
     assert_eq!(skeleton.get_slots()[0].get_sequence_index(), 0);
     assert_eq!(skeleton.get_draw_order(), &[0, 1]);
+    assert_eq!(
+        skeleton.get_bones()[0].get_data(&skeleton).get_name(),
+        "root"
+    );
+    assert_eq!(
+        skeleton.get_slots()[0].get_data(&skeleton).get_name(),
+        "slot0"
+    );
 }
 
 #[test]
@@ -1972,6 +1980,10 @@ fn bone_accessors_expose_local_applied_and_world_pose() {
     assert_approx(bone.get_world_scale_y(), 2.0);
     assert_approx_angle(bone.get_world_rotation_x(), 4.0f32.atan2(3.0).to_degrees());
     assert_approx(bone.get_world_rotation_y(), 90.0);
+    assert_eq!(
+        skeleton.get_bones()[0].get_data(&skeleton).get_name(),
+        "root"
+    );
 }
 
 #[test]

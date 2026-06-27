@@ -221,6 +221,13 @@ impl Slot {
         &skeleton.bones[self.bone]
     }
 
+    /// The setup pose data for this slot in the given skeleton.
+    ///
+    /// Mirrors the official runtimes' `Slot::getData`.
+    pub fn get_data<'a>(&self, skeleton: &'a Skeleton) -> &'a crate::SlotData {
+        &skeleton.data.slots[self.data_index]
+    }
+
     pub fn get_attachment<'a>(&self, skeleton: &'a Skeleton) -> Option<&'a crate::AttachmentData> {
         Self::attachment_data(
             skeleton,
