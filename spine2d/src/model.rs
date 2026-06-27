@@ -2938,6 +2938,60 @@ impl Animation {
         false
     }
 
+    pub(crate) fn timeline_kind_additive(&self, kind: TimelineKind) -> bool {
+        match kind {
+            TimelineKind::Deform(_)
+            | TimelineKind::TransformConstraint(_)
+            | TimelineKind::SliderMix(_) => true,
+            TimelineKind::Bone(i) => !matches!(self.bone_timelines[i], BoneTimeline::Inherit(_)),
+            TimelineKind::PathConstraint(i) => matches!(
+                self.path_constraint_timelines[i],
+                PathConstraintTimeline::Position(_)
+            ),
+            TimelineKind::PhysicsConstraint(i) => matches!(
+                self.physics_constraint_timelines[i],
+                PhysicsConstraintTimeline::Wind(_) | PhysicsConstraintTimeline::Gravity(_)
+            ),
+            TimelineKind::SlotAttachment(_)
+            | TimelineKind::Sequence(_)
+            | TimelineKind::SlotColor(_)
+            | TimelineKind::SlotRgb(_)
+            | TimelineKind::SlotAlpha(_)
+            | TimelineKind::SlotRgba2(_)
+            | TimelineKind::SlotRgb2(_)
+            | TimelineKind::IkConstraint(_)
+            | TimelineKind::PhysicsReset(_)
+            | TimelineKind::SliderTime(_)
+            | TimelineKind::DrawOrder
+            | TimelineKind::DrawOrderFolder(_) => false,
+        }
+    }
+
+    pub(crate) fn timeline_kind_instant(&self, kind: TimelineKind) -> bool {
+        match kind {
+            TimelineKind::SlotAttachment(_)
+            | TimelineKind::Sequence(_)
+            | TimelineKind::DrawOrder
+            | TimelineKind::DrawOrderFolder(_)
+            | TimelineKind::PhysicsReset(_) => true,
+            TimelineKind::Bone(i) => {
+                matches!(self.bone_timelines[i], BoneTimeline::Inherit(_))
+            }
+            TimelineKind::Deform(_)
+            | TimelineKind::SlotColor(_)
+            | TimelineKind::SlotRgb(_)
+            | TimelineKind::SlotAlpha(_)
+            | TimelineKind::SlotRgba2(_)
+            | TimelineKind::SlotRgb2(_)
+            | TimelineKind::IkConstraint(_)
+            | TimelineKind::TransformConstraint(_)
+            | TimelineKind::PathConstraint(_)
+            | TimelineKind::PhysicsConstraint(_)
+            | TimelineKind::SliderTime(_)
+            | TimelineKind::SliderMix(_) => false,
+        }
+    }
+
     /// Returns the `Skeleton::get_bones()` indices affected by this animation.
     ///
     /// This matches C++ `Animation::getBones()` for callers such as Slider constraints. The

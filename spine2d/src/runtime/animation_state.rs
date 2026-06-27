@@ -60,63 +60,6 @@ struct TimelineApplyMode {
     hold: bool,
 }
 
-fn timeline_kind_additive(animation: &Animation, kind: TimelineKind) -> bool {
-    match kind {
-        TimelineKind::Deform(_)
-        | TimelineKind::TransformConstraint(_)
-        | TimelineKind::SliderMix(_) => true,
-        TimelineKind::Bone(i) => {
-            !matches!(animation.bone_timelines[i], crate::BoneTimeline::Inherit(_))
-        }
-        TimelineKind::PathConstraint(i) => matches!(
-            animation.path_constraint_timelines[i],
-            crate::PathConstraintTimeline::Position(_)
-        ),
-        TimelineKind::PhysicsConstraint(i) => matches!(
-            animation.physics_constraint_timelines[i],
-            crate::PhysicsConstraintTimeline::Wind(_)
-                | crate::PhysicsConstraintTimeline::Gravity(_)
-        ),
-        TimelineKind::SlotAttachment(_)
-        | TimelineKind::Sequence(_)
-        | TimelineKind::SlotColor(_)
-        | TimelineKind::SlotRgb(_)
-        | TimelineKind::SlotAlpha(_)
-        | TimelineKind::SlotRgba2(_)
-        | TimelineKind::SlotRgb2(_)
-        | TimelineKind::IkConstraint(_)
-        | TimelineKind::PhysicsReset(_)
-        | TimelineKind::SliderTime(_)
-        | TimelineKind::DrawOrder
-        | TimelineKind::DrawOrderFolder(_) => false,
-    }
-}
-
-fn timeline_kind_instant(animation: &Animation, kind: TimelineKind) -> bool {
-    match kind {
-        TimelineKind::SlotAttachment(_)
-        | TimelineKind::Sequence(_)
-        | TimelineKind::DrawOrder
-        | TimelineKind::DrawOrderFolder(_)
-        | TimelineKind::PhysicsReset(_) => true,
-        TimelineKind::Bone(i) => {
-            matches!(animation.bone_timelines[i], crate::BoneTimeline::Inherit(_))
-        }
-        TimelineKind::Deform(_)
-        | TimelineKind::SlotColor(_)
-        | TimelineKind::SlotRgb(_)
-        | TimelineKind::SlotAlpha(_)
-        | TimelineKind::SlotRgba2(_)
-        | TimelineKind::SlotRgb2(_)
-        | TimelineKind::IkConstraint(_)
-        | TimelineKind::TransformConstraint(_)
-        | TimelineKind::PathConstraint(_)
-        | TimelineKind::PhysicsConstraint(_)
-        | TimelineKind::SliderTime(_)
-        | TimelineKind::SliderMix(_) => false,
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct EntryId {
     index: usize,
@@ -943,13 +886,13 @@ impl AnimationState {
             let mix_from = self.compute_mix_from(track_id, kind, &ids);
             timeline_mode[i].from = mix_from;
 
-            let timeline_additive = timeline_kind_additive(&animation, kind);
+            let timeline_additive = animation.timeline_kind_additive(kind);
             if entry_additive && timeline_additive {
                 continue;
             }
 
             if let Some(to_id) = to_id
-                && !timeline_kind_instant(&animation, kind)
+                && !animation.timeline_kind_instant(kind)
             {
                 let to_holds_property = match self.entry(to_id) {
                     Some(to) => {
