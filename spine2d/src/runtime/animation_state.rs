@@ -682,7 +682,7 @@ pub struct AnimationState {
     event_queue: VecDeque<QueuedEvent>,
     time_scale: f32,
     listener: Option<Box<dyn AnimationStateListener>>,
-    drain_disabled: bool,
+    pub(crate) drain_disabled: bool,
     manual_track_entry_disposal: bool,
     animations_changed: bool,
     property_ids: HashMap<u64, EntryId>,
@@ -710,14 +710,6 @@ impl AnimationState {
 
     pub fn set_listener<L: AnimationStateListener + 'static>(&mut self, listener: L) {
         self.listener = Some(Box::new(listener));
-    }
-
-    pub fn disable_queue(&mut self) {
-        self.drain_disabled = true;
-    }
-
-    pub fn enable_queue(&mut self) {
-        self.drain_disabled = false;
     }
 
     pub fn set_manual_track_entry_disposal(&mut self, manual: bool) {

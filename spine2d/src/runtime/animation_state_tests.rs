@@ -697,11 +697,11 @@ fn animation_state_queue_can_be_disabled_until_next_drain_point() {
         recording: recording.clone(),
     });
 
-    state.disable_queue();
+    state.drain_disabled = true;
     state.set_animation(0, "events0", false);
     assert!(recording.rows.borrow().is_empty());
 
-    state.enable_queue();
+    state.drain_disabled = false;
     assert!(recording.rows.borrow().is_empty());
 
     state.update(0.0);
@@ -733,7 +733,7 @@ fn disable_queue_inside_listener_only_suppresses_reentrant_drain_like_cpp() {
         ) {
             if matches!(event, AnimationStateEvent::Start) {
                 self.starts.set(self.starts.get() + 1);
-                state.disable_queue();
+                state.drain_disabled = true;
             }
         }
     }
