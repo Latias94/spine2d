@@ -1,6 +1,8 @@
 # Engineering Memory Update Log
 
 ## 2026-06-27
+* **Timeline property ID helpers moved toward the model layer**: `DeformTimeline` and `SequenceTimeline` now own the attachment-resolution helpers used by `animation_state.rs` for vertex and sequence property IDs, while deform/sequence slot matching continues to share the attachment helper added in the previous slice. Verification passed: `cargo fmt --all -- --check`, `cargo test -p spine2d --all-features --no-run`, and `cargo nextest run -p spine2d --all-features` (`660 passed, 2 skipped`).
+* **Attachment timeline matching helper deduplicated**: `AttachmentData::get_timeline_skin()` now exposes the mesh-only linked-mesh timeline source skin, and deform/sequence slot matching in `animation.rs` routes through a shared attachment-timeline helper instead of carrying two near-identical match blocks. Verification passed: `cargo fmt --all -- --check`, `cargo test -p spine2d --all-features --no-run`, and `cargo nextest run -p spine2d --all-features` (`660 passed, 2 skipped, 1 leaky`).
 * **Attachment timeline metadata aligned to C++ base semantics**: Region, point, path, bounding-box, clipping, and mesh attachment data now all carry explicit timeline attachment keys and timeline slot lists in the Rust model. JSON and Binary constructors populate those fields, attachment timeline slot lookup now uses the shared getter path, and the latest-tag C++ attachment timeline behavior is covered by the full crate test run. Verification passed: `cargo fmt --all -- --check`, `cargo test -p spine2d --all-features --no-run`, and `cargo nextest run -p spine2d --all-features` (`660 passed, 2 skipped`).
 
 ## 2026-06-26

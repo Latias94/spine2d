@@ -97,45 +97,6 @@ fn property_id(property: u64, data: u32) -> u64 {
     (property << 32) | u64::from(data)
 }
 
-fn vertex_attachment_id(attachment: &crate::AttachmentData) -> Option<u32> {
-    match attachment {
-        crate::AttachmentData::Mesh(m) => Some(m.vertex_id),
-        crate::AttachmentData::Path(p) => Some(p.vertex_id),
-        crate::AttachmentData::BoundingBox(b) => Some(b.vertex_id),
-        crate::AttachmentData::Clipping(c) => Some(c.vertex_id),
-        crate::AttachmentData::Region(_) | crate::AttachmentData::Point(_) => None,
-    }
-}
-
-fn deform_timeline_vertex_id(data: &SkeletonData, timeline: &crate::DeformTimeline) -> Option<u32> {
-    let attachment = data
-        .find_skin(timeline.skin.as_str())
-        .and_then(|s| s.get_attachment(timeline.slot_index, timeline.attachment.as_str()))?;
-
-    match attachment {
-        crate::AttachmentData::Mesh(m) => {
-            let target = data.find_skin(m.timeline_skin.as_str()).and_then(|s| {
-                s.get_attachment(timeline.slot_index, m.timeline_attachment.as_str())
-            })?;
-            vertex_attachment_id(target)
-        }
-        _ => vertex_attachment_id(attachment),
-    }
-}
-
-fn sequence_timeline_sequence_id(
-    data: &SkeletonData,
-    timeline: &crate::SequenceTimeline,
-) -> Option<u32> {
-    data.find_skin(timeline.skin.as_str())
-        .and_then(|s| s.get_attachment(timeline.slot_index, timeline.attachment.as_str()))
-        .and_then(|a| match a {
-            crate::AttachmentData::Region(r) => r.sequence.as_ref().map(|s| s.id),
-            crate::AttachmentData::Mesh(m) => m.sequence.as_ref().map(|s| s.id),
-            _ => None,
-        })
-}
-
 fn timeline_kind_additive(animation: &Animation, kind: TimelineKind) -> bool {
     match kind {
         TimelineKind::Deform(_)
@@ -205,13 +166,13 @@ fn timeline_property_ids(
         }
         TimelineKind::Deform(i) => {
             let t = &animation.deform_timelines[i];
-            let deform_id = deform_timeline_vertex_id(data, t).unwrap_or(0);
+            let deform_id = t.get_vertex_attachment_id(data).unwrap_or(0);
             let low = (t.slot_index as u32) << 16 | deform_id;
             vec![property_id(PROPERTY_DEFORM, low)]
         }
         TimelineKind::Sequence(i) => {
             let t = &animation.sequence_timelines[i];
-            let sequence_id = sequence_timeline_sequence_id(data, t).unwrap_or(0);
+            let sequence_id = t.get_sequence_id(data).unwrap_or(0);
             let low = (t.slot_index as u32) << 16 | sequence_id;
             vec![property_id(PROPERTY_SEQUENCE, low)]
         }

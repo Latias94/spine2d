@@ -1545,6 +1545,18 @@ impl MeshAttachmentData {
         self.name.as_str()
     }
 
+    pub fn get_timeline_skin(&self) -> &str {
+        self.timeline_skin.as_str()
+    }
+
+    pub fn get_timeline_attachment(&self) -> &str {
+        self.timeline_attachment.as_str()
+    }
+
+    pub fn get_timeline_slots(&self) -> &[usize] {
+        self.timeline_slots.as_slice()
+    }
+
     pub fn get_region_uvs(&self) -> &[[f32; 2]] {
         &self.uvs
     }
@@ -1646,10 +1658,17 @@ impl AttachmentData {
         }
     }
 
+    pub fn get_timeline_skin(&self) -> Option<&str> {
+        match self {
+            AttachmentData::Mesh(a) => Some(a.get_timeline_skin()),
+            _ => None,
+        }
+    }
+
     pub fn get_timeline_attachment(&self) -> &str {
         match self {
             AttachmentData::Region(a) => a.timeline_attachment.as_str(),
-            AttachmentData::Mesh(a) => a.timeline_attachment.as_str(),
+            AttachmentData::Mesh(a) => a.get_timeline_attachment(),
             AttachmentData::Point(a) => a.timeline_attachment.as_str(),
             AttachmentData::Path(a) => a.timeline_attachment.as_str(),
             AttachmentData::BoundingBox(a) => a.timeline_attachment.as_str(),
@@ -1660,7 +1679,7 @@ impl AttachmentData {
     pub fn get_timeline_slots(&self) -> &[usize] {
         match self {
             AttachmentData::Region(a) => a.timeline_slots.as_slice(),
-            AttachmentData::Mesh(a) => a.timeline_slots.as_slice(),
+            AttachmentData::Mesh(a) => a.get_timeline_slots(),
             AttachmentData::Point(a) => a.timeline_slots.as_slice(),
             AttachmentData::Path(a) => a.timeline_slots.as_slice(),
             AttachmentData::BoundingBox(a) => a.timeline_slots.as_slice(),
@@ -2232,6 +2251,34 @@ pub struct DeformTimeline {
     pub frames: Vec<DeformFrame>,
 }
 
+fn attachment_vertex_id(attachment: &AttachmentData) -> Option<u32> {
+    match attachment {
+        AttachmentData::Mesh(m) => Some(m.vertex_id),
+        AttachmentData::Path(p) => Some(p.vertex_id),
+        AttachmentData::BoundingBox(b) => Some(b.vertex_id),
+        AttachmentData::Clipping(c) => Some(c.vertex_id),
+        AttachmentData::Region(_) | AttachmentData::Point(_) => None,
+    }
+}
+
+impl DeformTimeline {
+    pub(crate) fn get_vertex_attachment_id(&self, data: &SkeletonData) -> Option<u32> {
+        let attachment = data
+            .find_skin(self.skin.as_str())
+            .and_then(|skin| skin.get_attachment(self.slot_index, self.attachment.as_str()))?;
+
+        match attachment {
+            AttachmentData::Mesh(mesh) => {
+                let target = data.find_skin(mesh.get_timeline_skin()).and_then(|skin| {
+                    skin.get_attachment(self.slot_index, mesh.get_timeline_attachment())
+                })?;
+                attachment_vertex_id(target)
+            }
+            _ => attachment_vertex_id(attachment),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SequenceMode {
     Hold,
@@ -2257,6 +2304,18 @@ pub struct SequenceTimeline {
     pub slot_index: usize,
     pub attachment: String,
     pub frames: Vec<SequenceFrame>,
+}
+
+impl SequenceTimeline {
+    pub(crate) fn get_sequence_id(&self, data: &SkeletonData) -> Option<u32> {
+        data.find_skin(self.skin.as_str())
+            .and_then(|skin| skin.get_attachment(self.slot_index, self.attachment.as_str()))
+            .and_then(|attachment| match attachment {
+                AttachmentData::Region(region) => region.sequence.as_ref().map(|s| s.id),
+                AttachmentData::Mesh(mesh) => mesh.sequence.as_ref().map(|s| s.id),
+                _ => None,
+            })
+    }
 }
 
 #[derive(Clone, Debug)]

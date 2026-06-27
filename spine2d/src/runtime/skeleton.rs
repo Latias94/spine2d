@@ -1685,8 +1685,8 @@ impl Skeleton {
         match attachment {
             crate::AttachmentData::Mesh(mesh) => Some((
                 true,
-                mesh.timeline_skin.clone(),
-                mesh.timeline_attachment.clone(),
+                mesh.get_timeline_skin().to_string(),
+                mesh.get_timeline_attachment().to_string(),
             )),
             crate::AttachmentData::Path(_)
             | crate::AttachmentData::BoundingBox(_)

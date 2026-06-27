@@ -2929,12 +2929,14 @@ fn slot_matches_deform_timeline(
 
     skeleton
         .slot_attachment_data_for_pose(slot_index, applied_pose)
-        .map(|attachment| match attachment {
-            crate::AttachmentData::Mesh(mesh) => {
-                mesh.timeline_skin.as_str() == timeline.skin.as_str()
-                    && mesh.timeline_attachment.as_str() == timeline.attachment.as_str()
-            }
-            _ => slot_skin == timeline.skin.as_str() && slot_key == timeline.attachment.as_str(),
+        .map(|attachment| {
+            attachment_matches_timeline(
+                attachment,
+                timeline.skin.as_str(),
+                timeline.attachment.as_str(),
+                slot_skin,
+                slot_key,
+            )
         })
         .unwrap_or(false)
 }
@@ -3120,14 +3122,31 @@ fn slot_matches_sequence_timeline(
 
     skeleton
         .slot_attachment_data_for_pose(slot_index, applied_pose)
-        .map(|attachment| match attachment {
-            crate::AttachmentData::Mesh(mesh) => {
-                mesh.timeline_skin.as_str() == timeline.skin.as_str()
-                    && mesh.timeline_attachment.as_str() == timeline.attachment.as_str()
-            }
-            _ => slot_skin == timeline.skin.as_str() && slot_key == timeline.attachment.as_str(),
+        .map(|attachment| {
+            attachment_matches_timeline(
+                attachment,
+                timeline.skin.as_str(),
+                timeline.attachment.as_str(),
+                slot_skin,
+                slot_key,
+            )
         })
         .unwrap_or(false)
+}
+
+fn attachment_matches_timeline(
+    attachment: &crate::AttachmentData,
+    timeline_skin: &str,
+    timeline_attachment: &str,
+    slot_skin: &str,
+    slot_key: &str,
+) -> bool {
+    if let Some(attachment_timeline_skin) = attachment.get_timeline_skin() {
+        attachment_timeline_skin == timeline_skin
+            && attachment.get_timeline_attachment() == timeline_attachment
+    } else {
+        slot_skin == timeline_skin && slot_key == timeline_attachment
+    }
 }
 
 fn setup_sequence_timeline_slots(
