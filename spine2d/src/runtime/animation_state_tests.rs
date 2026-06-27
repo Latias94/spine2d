@@ -137,20 +137,7 @@ fn with_track_entry<R>(
     track_index: usize,
     f: impl FnOnce(&TrackEntry) -> R,
 ) -> Option<R> {
-    state.get_current(track_index)?.entry(state).map(f)
-}
-
-fn with_queued_track_entry<R>(
-    state: &AnimationState,
-    track_index: usize,
-    queue_index: usize,
-    f: impl FnOnce(&TrackEntry) -> R,
-) -> Option<R> {
-    let mut handle = state.get_current(track_index)?.get_next(state)?;
-    for _ in 0..queue_index {
-        handle = handle.get_next(state)?;
-    }
-    handle.entry(state).map(f)
+    state.get_track(track_index)?.entry(state).map(f)
 }
 
 #[test]
@@ -203,7 +190,7 @@ fn animation_state_data_animation_mix_accessors_match_name_mix_storage() {
     state_data.set_default_mix(0.25);
     assert_eq!(state_data.get_mix(from, to), 0.25);
 
-    state_data.set_mix_animation(from, to, 0.5);
+    state_data.set_mix_ref(from, to, 0.5);
 
     assert_eq!(state_data.get_mix(from, to), 0.5);
 }
@@ -261,8 +248,8 @@ fn track_entry_handles_are_bound_to_their_animation_state() {
     let first_entry = first_state.set_animation(0, "events0", false);
     let second_entry = second_state.set_animation(0, "events1", false);
 
-    assert!(first_entry.get_animation_state(&first_state).is_some());
-    assert!(first_entry.get_animation_state(&second_state).is_none());
+    assert!(first_entry.entry(&first_state).is_some());
+    assert!(first_entry.entry(&second_state).is_none());
     assert!(first_entry.entry(&first_state).is_some());
     assert!(first_entry.entry(&second_state).is_none());
 
@@ -345,7 +332,7 @@ fn animation_state_data_animation_mix_accepts_animation_references() {
     state_data.set_default_mix(0.25);
 
     assert_eq!(state_data.get_mix(&from, &to), 0.25);
-    state_data.set_mix_animation(&from, &to, 0.5);
+    state_data.set_mix_ref(&from, &to, 0.5);
     assert_eq!(state_data.get_mix(&from, &to), 0.5);
 }
 
@@ -485,7 +472,7 @@ fn add_empty_animation_delay_is_adjusted_to_end_with_previous_entry() {
     state.set_animation(0, "a", false);
     state.add_empty_animation(0, 0.5, 0.0);
     let delay = state
-        .get_current(0)
+        .get_track(0)
         .and_then(|entry| entry.get_next(&state))
         .and_then(|entry| entry.entry(&state).map(|entry| entry.get_delay()))
         .expect("queued empty animation");
@@ -686,20 +673,20 @@ fn animation_state_apply_returns_whether_any_track_was_applied() {
 fn animation_state_current_returns_current_track_handle() {
     let (mut state, _skeleton, _recording) = setup();
 
-    assert_eq!(state.get_current(0), None);
+    assert_eq!(state.get_track(0), None);
     assert!(state.get_tracks().is_empty());
 
     let first = state.set_animation(0, "events0", false);
     state.add_animation(0, "events1", false, 0.0);
     let third = state.set_animation(2, "events2", false);
 
-    assert_eq!(state.get_current(0), Some(first));
-    assert_eq!(state.get_current(1), None);
-    assert_eq!(state.get_current(2), Some(third));
+    assert_eq!(state.get_track(0), Some(first));
+    assert_eq!(state.get_track(1), None);
+    assert_eq!(state.get_track(2), Some(third));
     assert_eq!(state.get_tracks(), vec![Some(first), None, Some(third)]);
 
     state.clear_track(0);
-    assert_eq!(state.get_current(0), None);
+    assert_eq!(state.get_track(0), None);
     assert_eq!(state.get_tracks(), vec![None, None, Some(third)]);
 }
 
@@ -816,35 +803,13 @@ fn manual_disposal_disposes_a_single_entry_without_chain_cleanup() {
 }
 
 #[test]
-fn track_entry_set_mix_duration_with_delay_adjusts_queued_delay() {
-    let data = crate::SkeletonData::from_json_str(EMPTY_DELAY_JSON).unwrap();
-    let state_data = AnimationStateData::new(data);
-    let mut state = AnimationState::new(state_data);
-
-    state.set_animation(0, "a", false);
-    let queued = state.add_animation(0, "a", false, 0.0);
-    queued.set_mix_duration_with_delay(&mut state, 0.4, 0.0);
-
-    let delay = state
-        .get_current(0)
-        .and_then(|entry| entry.get_next(&state))
-        .and_then(|entry| entry.entry(&state).map(|entry| entry.get_delay()))
-        .expect("queued animation");
-    assert_eq!(round3(delay), 0.6);
-
-    let mix_duration = with_queued_track_entry(&state, 0, 0, |entry| entry.get_mix_duration())
-        .expect("queued entry");
-    assert_eq!(round3(mix_duration), 0.4);
-}
-
-#[test]
 fn queued_negative_mix_duration_is_preserved_on_activation() {
     let (mut state, _skeleton, _recording) = setup();
     let mut skeleton = _skeleton;
 
     state.set_animation(0, "events0", false);
     let queued = state.add_animation(0, "events1", false, 0.0);
-    queued.set_mix_duration_with_delay(&mut state, -0.25, 0.0);
+    queued.set_mix_duration(&mut state, -0.25);
 
     state.apply(&mut skeleton);
     state.update(1.3);
@@ -4019,7 +3984,7 @@ fn set_empty_animations_sets_empty_entries_for_active_tracks() {
 
     state.set_empty_animations(0.4);
 
-    assert!(state.get_current(0).unwrap().get_next(&state).is_none());
+    assert!(state.get_track(0).unwrap().get_next(&state).is_none());
     with_track_entry(&state, 0, |entry| {
         assert_eq!(entry.get_animation().name, "<empty>");
         assert_eq!(entry.get_mix_duration(), 0.4);
@@ -4097,7 +4062,7 @@ fn set_animation_same_unapplied_animation_replaces_without_mixing_like_cpp() {
 }
 
 #[test]
-fn animation_state_clear_listener_restores_noop_listener_like_cpp() {
+fn animation_state_listener_replacement_restores_noop_behavior() {
     struct Counter {
         events: Rc<Cell<usize>>,
     }
@@ -4113,6 +4078,18 @@ fn animation_state_clear_listener_restores_noop_listener_like_cpp() {
         }
     }
 
+    struct Noop;
+
+    impl AnimationStateListener for Noop {
+        fn on_event(
+            &mut self,
+            _state: &mut AnimationState,
+            _entry: TrackEntryHandle,
+            _event: &AnimationStateEvent,
+        ) {
+        }
+    }
+
     let data = crate::SkeletonData::from_json_str(TEST_JSON).unwrap();
     let mut state = AnimationState::new(AnimationStateData::new(data));
     let events = Rc::new(Cell::new(0));
@@ -4120,14 +4097,14 @@ fn animation_state_clear_listener_restores_noop_listener_like_cpp() {
     state.set_listener(Counter {
         events: events.clone(),
     });
-    state.clear_listener();
+    state.set_listener(Noop);
     state.set_animation(0, "events0", false);
 
     assert_eq!(events.get(), 0);
 }
 
 #[test]
-fn track_entry_clear_listener_restores_noop_listener_like_cpp() {
+fn track_entry_listener_replacement_restores_noop_behavior() {
     struct Counter {
         events: Rc<Cell<usize>>,
     }
@@ -4143,6 +4120,18 @@ fn track_entry_clear_listener_restores_noop_listener_like_cpp() {
         }
     }
 
+    struct Noop;
+
+    impl TrackEntryListener for Noop {
+        fn on_event(
+            &mut self,
+            _state: &mut AnimationState,
+            _entry: TrackEntryHandle,
+            _event: &AnimationStateEvent,
+        ) {
+        }
+    }
+
     let (mut state, _skeleton, _recording) = setup();
     let events = Rc::new(Cell::new(0));
 
@@ -4153,7 +4142,7 @@ fn track_entry_clear_listener_restores_noop_listener_like_cpp() {
             events: events.clone(),
         },
     );
-    entry.clear_listener(&mut state);
+    entry.set_listener(&mut state, Noop);
     state.clear_track(0);
 
     assert_eq!(events.get(), 0);

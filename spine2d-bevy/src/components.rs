@@ -643,7 +643,17 @@ impl SpineTrackEntrySettings {
 
         match (self.mix_duration, self.delay) {
             (Some(mix_duration), Some(delay)) => {
-                handle.set_mix_duration_with_delay(state, mix_duration, delay);
+                let resolved_delay = if delay > 0.0 {
+                    delay
+                } else {
+                    handle
+                        .get_previous(state)
+                        .and_then(|previous| previous.entry(state))
+                        .map(|entry| (delay + entry.get_track_complete() - mix_duration).max(0.0))
+                        .unwrap_or(0.0)
+                };
+                handle.set_mix_duration(state, mix_duration);
+                handle.set_delay(state, resolved_delay);
             }
             (Some(mix_duration), None) => {
                 handle.set_mix_duration(state, mix_duration);

@@ -113,7 +113,7 @@ impl AnimationStateData {
             .insert((from.to_string(), to.to_string()), duration);
     }
 
-    pub fn set_mix_animation(&mut self, from: &Animation, to: &Animation, duration: f32) {
+    pub fn set_mix_ref(&mut self, from: &Animation, to: &Animation, duration: f32) {
         self.mixes
             .insert((from.name.clone(), to.name.clone()), duration);
     }
@@ -406,11 +406,6 @@ pub struct TrackEntryHandle {
 }
 
 impl TrackEntryHandle {
-    pub fn get_animation_state<'a>(&self, state: &'a AnimationState) -> Option<&'a AnimationState> {
-        state.entry_for_handle(*self)?;
-        Some(state)
-    }
-
     pub fn entry<'a>(&self, state: &'a AnimationState) -> Option<&'a TrackEntry> {
         state.entry_for_handle(*self)
     }
@@ -480,12 +475,6 @@ impl TrackEntryHandle {
         });
     }
 
-    pub fn clear_listener(&self, state: &mut AnimationState) {
-        self.with_entry_mut(state, |entry| {
-            entry.listener = None;
-        });
-    }
-
     pub fn set_track_end(&self, state: &mut AnimationState, track_end: f32) {
         self.with_entry_mut(state, |entry| {
             entry.track_end = track_end;
@@ -551,32 +540,6 @@ impl TrackEntryHandle {
     ) {
         self.with_entry_mut(state, |entry| {
             entry.mix_interpolation = mix_interpolation;
-        });
-    }
-
-    pub fn set_mix_duration_with_delay(
-        &self,
-        state: &mut AnimationState,
-        mix_duration: f32,
-        delay: f32,
-    ) {
-        let previous = state
-            .entry_for_handle(*self)
-            .and_then(|entry| entry.previous);
-        let resolved_delay = if delay > 0.0 {
-            delay
-        } else if delay <= 0.0 {
-            previous
-                .and_then(|id| state.entry(id))
-                .map(|entry| (delay + entry.get_track_complete() - mix_duration).max(0.0))
-                .unwrap_or(0.0)
-        } else {
-            delay
-        };
-
-        self.with_entry_mut(state, |entry| {
-            entry.mix_duration = mix_duration;
-            entry.delay = resolved_delay;
         });
     }
 
@@ -725,10 +688,6 @@ impl AnimationState {
 
     pub fn set_listener<L: AnimationStateListener + 'static>(&mut self, listener: L) {
         self.listener = Some(Box::new(listener));
-    }
-
-    pub fn clear_listener(&mut self) {
-        self.listener = None;
     }
 
     pub fn disable_queue(&mut self) {
@@ -945,7 +904,7 @@ impl AnimationState {
         }
     }
 
-    pub fn get_current(&self, track_index: usize) -> Option<TrackEntryHandle> {
+    pub fn get_track(&self, track_index: usize) -> Option<TrackEntryHandle> {
         let id = self.tracks.get(track_index)?.current?;
         self.entry(id)?;
         Some(self.handle(id))

@@ -850,7 +850,7 @@ mod tests {
         let spine_world = app.world().non_send::<SpineWorld>();
         let state = &spine_world.get(key.0).unwrap().animation_state;
         state
-            .get_current(track_index)
+            .get_track(track_index)
             .and_then(|handle| handle.entry(state).map(f))
             .unwrap()
     }
@@ -866,7 +866,7 @@ mod tests {
         let spine_world = app.world().non_send::<SpineWorld>();
         let state = &spine_world.get(key.0).unwrap().animation_state;
         let mut handle = state
-            .get_current(track_index)
+            .get_track(track_index)
             .unwrap()
             .get_next(state)
             .unwrap();
