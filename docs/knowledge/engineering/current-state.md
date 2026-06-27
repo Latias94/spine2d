@@ -3,7 +3,7 @@ type: "Current State"
 title: "Current Engineering State"
 description: "Short durable summary of the active engineering state."
 tags: ["engineering-memory"]
-timestamp: 2026-06-27T04:42:29Z
+timestamp: 2026-06-27T05:01:36Z
 status: "active"
 ---
 
@@ -14,6 +14,7 @@ status: "active"
 - Baseline: `spine-ts-4.3.8` / commit `8e12b1250ab88c0f890849ea45aab80338cead63`；行为参考只看本地 `repo-ref/spine-runtimes/spine-cpp`。
 - Current posture: core runtime parity is now in late-stage cleanup. The remaining visible gaps are mostly Rust-only convenience or inspection helpers, not broad behavior mismatches; the current cleanup direction is trimming Rust-only lookup wrappers and redundant data wrappers toward the latest-tag C++ naming and surface. Data-model fields are being narrowed when latest-tag C++ keeps equivalent state private, while field-like Rust structs remain acceptable where C++ exposes simple public data directly. `Slot` accessor naming is treated as a separate stable layer and should not be batch-renamed with `Skeleton` APIs.
 - Last verified:
+  - Attachment vertex/sequence ID lookup now lives in `AttachmentData` helper methods, and `DeformTimeline` / `SequenceTimeline` call through those model-layer accessors instead of carrying a standalone attachment-ID helper. That keeps the remaining timeline property resolution logic inside the model layer and removes one more free-function fragment from `model.rs`. Verification passed on 2026-06-27: `cargo fmt --all -- --check`, `cargo test -p spine2d --all-features --no-run`, and `cargo nextest run -p spine2d --all-features` (`660 passed, 2 skipped`).
   - Deform and sequence timeline attachment matching now routes through a shared helper, and the timeline structs themselves now own the attachment resolution helpers for vertex and sequence property IDs. That pulls the runtime's parity logic closer to the model layer and removes a small helper cluster from `animation_state.rs` without changing behavior. Verification passed on 2026-06-27: `cargo fmt --all -- --check`, `cargo test -p spine2d --all-features --no-run`, and `cargo nextest run -p spine2d --all-features` (`660 passed, 2 skipped`).
   - Deform and sequence timeline slot matching now routes through a shared attachment-timeline helper in `animation.rs`, and mesh attachments expose `get_timeline_skin()` alongside the existing timeline attachment/slot getters. That keeps the runtime's attachment matching logic centralized without changing the upstream parity checks. Verification passed on 2026-06-27: `cargo fmt --all -- --check`, `cargo test -p spine2d --all-features --no-run`, and `cargo nextest run -p spine2d --all-features` (`660 passed, 2 skipped, 1 leaky`).
   - Attachment timeline metadata now mirrors latest-tag `spine-cpp` attachment base semantics more closely: region, point, path, bounding-box, clipping, and mesh attachment data all carry explicit timeline attachment keys and timeline slot lists; JSON/Binary constructors populate those fields; and the runtime now reads the shared getter path for deform/sequence timeline slot lookup. Verification passed on 2026-06-27: `cargo fmt --all -- --check`, `cargo test -p spine2d --all-features --no-run`, and `cargo nextest run -p spine2d --all-features` (`660 passed, 2 skipped`).

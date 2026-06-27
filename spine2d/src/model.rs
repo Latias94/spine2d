@@ -1686,6 +1686,27 @@ impl AttachmentData {
             AttachmentData::Clipping(a) => a.timeline_slots.as_slice(),
         }
     }
+
+    pub fn get_vertex_attachment_id(&self) -> Option<u32> {
+        match self {
+            AttachmentData::Mesh(a) => Some(a.vertex_id),
+            AttachmentData::Path(a) => Some(a.vertex_id),
+            AttachmentData::BoundingBox(a) => Some(a.vertex_id),
+            AttachmentData::Clipping(a) => Some(a.vertex_id),
+            AttachmentData::Region(_) | AttachmentData::Point(_) => None,
+        }
+    }
+
+    pub fn get_sequence_id(&self) -> Option<u32> {
+        match self {
+            AttachmentData::Region(a) => a.sequence.as_ref().map(|s| s.id),
+            AttachmentData::Mesh(a) => a.sequence.as_ref().map(|s| s.id),
+            AttachmentData::Point(_)
+            | AttachmentData::Path(_)
+            | AttachmentData::BoundingBox(_)
+            | AttachmentData::Clipping(_) => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -2251,16 +2272,6 @@ pub struct DeformTimeline {
     pub frames: Vec<DeformFrame>,
 }
 
-fn attachment_vertex_id(attachment: &AttachmentData) -> Option<u32> {
-    match attachment {
-        AttachmentData::Mesh(m) => Some(m.vertex_id),
-        AttachmentData::Path(p) => Some(p.vertex_id),
-        AttachmentData::BoundingBox(b) => Some(b.vertex_id),
-        AttachmentData::Clipping(c) => Some(c.vertex_id),
-        AttachmentData::Region(_) | AttachmentData::Point(_) => None,
-    }
-}
-
 impl DeformTimeline {
     pub(crate) fn get_vertex_attachment_id(&self, data: &SkeletonData) -> Option<u32> {
         let attachment = data
@@ -2272,9 +2283,9 @@ impl DeformTimeline {
                 let target = data.find_skin(mesh.get_timeline_skin()).and_then(|skin| {
                     skin.get_attachment(self.slot_index, mesh.get_timeline_attachment())
                 })?;
-                attachment_vertex_id(target)
+                target.get_vertex_attachment_id()
             }
-            _ => attachment_vertex_id(attachment),
+            _ => attachment.get_vertex_attachment_id(),
         }
     }
 }
@@ -2310,11 +2321,7 @@ impl SequenceTimeline {
     pub(crate) fn get_sequence_id(&self, data: &SkeletonData) -> Option<u32> {
         data.find_skin(self.skin.as_str())
             .and_then(|skin| skin.get_attachment(self.slot_index, self.attachment.as_str()))
-            .and_then(|attachment| match attachment {
-                AttachmentData::Region(region) => region.sequence.as_ref().map(|s| s.id),
-                AttachmentData::Mesh(mesh) => mesh.sequence.as_ref().map(|s| s.id),
-                _ => None,
-            })
+            .and_then(AttachmentData::get_sequence_id)
     }
 }
 
