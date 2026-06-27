@@ -100,22 +100,10 @@ impl AnimationStateData {
         self.default_mix = duration;
     }
 
-    pub fn set_mix(&mut self, from: &str, to: &str, duration: f32) {
-        assert!(
-            self.skeleton_data.find_animation(from).is_some(),
-            "unknown animation: {from}"
-        );
-        assert!(
-            self.skeleton_data.find_animation(to).is_some(),
-            "unknown animation: {to}"
-        );
-        self.mixes
-            .insert((from.to_string(), to.to_string()), duration);
-    }
-
-    pub fn set_mix_ref(&mut self, from: &Animation, to: &Animation, duration: f32) {
-        self.mixes
-            .insert((from.name.clone(), to.name.clone()), duration);
+    pub fn set_mix(&mut self, from: impl MixKeyInput, to: impl MixKeyInput, duration: f32) {
+        let from = from.into_mix_key(self.skeleton_data.as_ref());
+        let to = to.into_mix_key(self.skeleton_data.as_ref());
+        self.mixes.insert((from, to), duration);
     }
 
     pub fn get_mix(&self, from: &Animation, to: &Animation) -> f32 {
@@ -132,6 +120,40 @@ impl AnimationStateData {
             .get(&(from.to_string(), to.to_string()))
             .copied()
             .unwrap_or(self.default_mix)
+    }
+}
+
+mod sealed {
+    pub trait Sealed {}
+}
+
+#[doc(hidden)]
+pub trait MixKeyInput: sealed::Sealed {
+    fn into_mix_key(self, skeleton_data: &SkeletonData) -> String;
+}
+
+impl sealed::Sealed for &str {}
+impl MixKeyInput for &str {
+    fn into_mix_key(self, skeleton_data: &SkeletonData) -> String {
+        assert!(
+            skeleton_data.find_animation(self).is_some(),
+            "unknown animation: {self}"
+        );
+        self.to_string()
+    }
+}
+
+impl sealed::Sealed for &String {}
+impl MixKeyInput for &String {
+    fn into_mix_key(self, skeleton_data: &SkeletonData) -> String {
+        self.as_str().into_mix_key(skeleton_data)
+    }
+}
+
+impl sealed::Sealed for &Animation {}
+impl MixKeyInput for &Animation {
+    fn into_mix_key(self, _skeleton_data: &SkeletonData) -> String {
+        self.name.clone()
     }
 }
 
@@ -720,12 +742,8 @@ impl AnimationState {
         self.time_scale = time_scale;
     }
 
-    pub fn get_data_mut(&mut self) -> &mut AnimationStateData {
+    pub fn get_data(&mut self) -> &mut AnimationStateData {
         &mut self.data
-    }
-
-    pub fn get_data(&self) -> &AnimationStateData {
-        &self.data
     }
 
     pub fn get_tracks(&self) -> Vec<Option<TrackEntryHandle>> {

@@ -544,7 +544,7 @@ fn main() {
                 let from = args[i + 1].as_str();
                 let to = args[i + 2].as_str();
                 let duration: f32 = args[i + 3].parse().unwrap();
-                state.get_data_mut().set_mix(from, to, duration);
+                state.get_data().set_mix(from, to, duration);
                 i += 4;
             }
             "--set" if i + 3 < args.len() => {

@@ -208,7 +208,7 @@ pub fn apply_spine_animation_state_config(
             continue;
         };
 
-        apply_animation_state_config(instance.animation_state.get_data_mut(), &config, entity);
+        apply_animation_state_config(instance.animation_state.get_data(), &config, entity);
     }
 }
 
@@ -395,11 +395,11 @@ pub fn apply_spine_animation_commands(
                 instance.loop_animation = false;
             }
             SpineAnimationCommandKind::SetDefaultMix { default_mix } => {
-                apply_default_mix(instance.animation_state.get_data_mut(), *default_mix);
+                apply_default_mix(instance.animation_state.get_data(), *default_mix);
             }
             SpineAnimationCommandKind::SetMix { from, to, duration } => {
                 apply_animation_mix(
-                    instance.animation_state.get_data_mut(),
+                    instance.animation_state.get_data(),
                     from,
                     to,
                     *duration,
@@ -407,7 +407,7 @@ pub fn apply_spine_animation_commands(
                 );
             }
             SpineAnimationCommandKind::ClearMixes => {
-                instance.animation_state.get_data_mut().clear();
+                instance.animation_state.get_data().clear();
             }
         }
     }
@@ -889,7 +889,7 @@ mod tests {
             .get_mut(key.0)
             .unwrap()
             .animation_state
-            .get_data_mut()
+            .get_data()
             .get_default_mix()
     }
 

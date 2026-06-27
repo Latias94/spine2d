@@ -190,7 +190,7 @@ fn animation_state_data_animation_mix_accessors_match_name_mix_storage() {
     state_data.set_default_mix(0.25);
     assert_eq!(state_data.get_mix(from, to), 0.25);
 
-    state_data.set_mix_ref(from, to, 0.5);
+    state_data.set_mix(from, to, 0.5);
 
     assert_eq!(state_data.get_mix(from, to), 0.5);
 }
@@ -216,7 +216,7 @@ fn animation_state_data_accessor_matches_mutable_data() {
     let (mut state, _skeleton, _recording) = setup();
 
     assert_eq!(state.get_data().get_default_mix(), 0.0);
-    state.get_data_mut().set_default_mix(0.3);
+    state.get_data().set_default_mix(0.3);
 
     assert_eq!(state.get_data().get_default_mix(), 0.3);
 }
@@ -332,7 +332,7 @@ fn animation_state_data_animation_mix_accepts_animation_references() {
     state_data.set_default_mix(0.25);
 
     assert_eq!(state_data.get_mix(&from, &to), 0.25);
-    state_data.set_mix_ref(&from, &to, 0.5);
+    state_data.set_mix(&from, &to, 0.5);
     assert_eq!(state_data.get_mix(&from, &to), 0.5);
 }
 
@@ -1521,7 +1521,7 @@ fn interrupt_with_delay_and_mix_time() {
         recording: recording.clone(),
     });
 
-    state.get_data_mut().set_mix("events0", "events1", 0.7);
+    state.get_data().set_mix("events0", "events1", 0.7);
 
     state.set_animation(0, "events0", true);
     let entry = state.add_animation(0, "events1", false, 0.9);
@@ -1626,7 +1626,7 @@ fn animation0_events_do_not_fire_during_mix() {
         recording: recording.clone(),
     });
 
-    state.get_data_mut().set_default_mix(0.7);
+    state.get_data().set_default_mix(0.7);
 
     state.set_animation(0, "events0", false);
     let entry = state.add_animation(0, "events1", false, 0.4);
@@ -1725,7 +1725,7 @@ fn event_threshold_some_animation0_events_fire_during_mix() {
         recording: recording.clone(),
     });
 
-    state.get_data_mut().set_mix("events0", "events1", 0.7);
+    state.get_data().set_mix("events0", "events1", 0.7);
 
     let entry = state.set_animation(0, "events0", false);
     entry.set_event_threshold(&mut state, 0.5);
@@ -3272,7 +3272,7 @@ fn set_animation_twice_with_multiple_mixing() {
         recording: recording.clone(),
     });
 
-    state.get_data_mut().set_default_mix(0.6);
+    state.get_data().set_default_mix(0.6);
 
     state.set_animation(0, "events0", false); // First should be ignored.
     state.set_animation(0, "events1", false);
