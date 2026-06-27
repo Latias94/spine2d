@@ -1381,6 +1381,18 @@ impl Skeleton {
         None
     }
 
+    /// Looks up an attachment by slot name and placeholder.
+    ///
+    /// Mirrors the official runtimes' `Skeleton::getAttachment(String, String)`.
+    pub fn get_attachment_by_slot_name(
+        &self,
+        slot_name: &str,
+        attachment_name: &str,
+    ) -> Option<&crate::AttachmentData> {
+        let slot_index = self.slot_index_by_name(slot_name)?;
+        self.get_attachment(slot_index, attachment_name)
+    }
+
     /// Sets the skin using a resolved skin object.
     ///
     /// Mirrors the official runtimes' `Skeleton::setSkin(Skin *)`.

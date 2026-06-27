@@ -1557,6 +1557,13 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
         skeleton.get_attachment(1, "fallback").unwrap().get_name(),
         "default-fallback"
     );
+    assert_eq!(
+        skeleton
+            .get_attachment_by_slot_name("slot0", "shared")
+            .unwrap()
+            .get_name(),
+        "default-shared"
+    );
     assert!(skeleton.get_attachment(0, "").is_none());
 
     skeleton.set_skin(Some("missing"));
@@ -1573,6 +1580,13 @@ fn skeleton_attachment_lookup_prefers_current_skin_then_default_skin() {
     );
     assert_eq!(
         skeleton.get_attachment(0, "shared").unwrap().get_name(),
+        "custom-shared"
+    );
+    assert_eq!(
+        skeleton
+            .get_attachment_by_slot_name("slot0", "shared")
+            .unwrap()
+            .get_name(),
         "custom-shared"
     );
     assert_eq!(
