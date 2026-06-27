@@ -1218,12 +1218,14 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
 
     assert_eq!((skeleton.get_x(), skeleton.get_y()), (0.0, 0.0));
     skeleton.set_position(10.0, -2.0);
+    assert_eq!(skeleton.get_position(), (10.0, -2.0));
     assert_eq!((skeleton.get_x(), skeleton.get_y()), (10.0, -2.0));
     assert_eq!(skeleton.get_x(), 10.0);
     assert_eq!(skeleton.get_y(), -2.0);
 
     skeleton.set_x(3.0);
     skeleton.set_y(4.0);
+    assert_eq!(skeleton.get_position(), (3.0, 4.0));
     assert_eq!((skeleton.get_x(), skeleton.get_y()), (3.0, 4.0));
 
     assert_eq!((skeleton.get_scale_x(), skeleton.get_scale_y()), (1.0, 1.0));

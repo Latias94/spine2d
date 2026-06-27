@@ -834,6 +834,13 @@ impl Skeleton {
         self.y = y;
     }
 
+    /// Returns the skeleton's world position as `(x, y)`.
+    ///
+    /// Mirrors the official runtimes' `Skeleton::getPosition`.
+    pub fn get_position(&self) -> (f32, f32) {
+        (self.x, self.y)
+    }
+
     pub fn get_scale_x(&self) -> f32 {
         self.scale_x
     }
