@@ -598,6 +598,8 @@ fn read_attachment(
                 path,
                 sequence,
                 color,
+                timeline_attachment: attachment_key.to_string(),
+                timeline_slots: Vec::new(),
                 x,
                 y,
                 rotation,
@@ -620,6 +622,8 @@ fn read_attachment(
                 vertex_id: crate::ids::next_vertex_attachment_id(),
                 name,
                 color,
+                timeline_attachment: attachment_key.to_string(),
+                timeline_slots: Vec::new(),
                 vertices: v.vertices,
             }))
         }
@@ -811,6 +815,8 @@ fn read_attachment(
                 vertex_id: crate::ids::next_vertex_attachment_id(),
                 name,
                 color,
+                timeline_attachment: attachment_key.to_string(),
+                timeline_slots: Vec::new(),
                 vertices: v.vertices,
                 lengths,
                 closed,
@@ -833,6 +839,8 @@ fn read_attachment(
                 y,
                 rotation,
                 color,
+                timeline_attachment: attachment_key.to_string(),
+                timeline_slots: Vec::new(),
             }))
         }
         6 => {
@@ -849,6 +857,8 @@ fn read_attachment(
                 vertex_id: crate::ids::next_vertex_attachment_id(),
                 name,
                 color,
+                timeline_attachment: attachment_key.to_string(),
+                timeline_slots: Vec::new(),
                 vertices: v.vertices,
                 end_slot: Some(end_slot_index),
                 convex: (flags & 32) != 0,

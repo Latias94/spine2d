@@ -78,6 +78,8 @@ fn build_data() -> Arc<SkeletonData> {
                 path: format!("{name}.png"),
                 sequence: None,
                 color: [1.0, 1.0, 1.0, 1.0],
+                timeline_attachment: name.to_string(),
+                timeline_slots: Vec::new(),
                 x: 0.0,
                 y: 0.0,
                 rotation: 0.0,

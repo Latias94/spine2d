@@ -1050,6 +1050,8 @@ impl SkeletonData {
                                 path,
                                 sequence: sequence.clone(),
                                 color: attachment_color.unwrap_or([1.0, 1.0, 1.0, 1.0]),
+                                timeline_attachment: attachment_name.clone(),
+                                timeline_slots: Vec::new(),
                                 x: attachment_def.x * scale,
                                 y: attachment_def.y * scale,
                                 rotation: attachment_def.rotation,
@@ -1065,6 +1067,8 @@ impl SkeletonData {
                                 rotation: attachment_def.rotation,
                                 color: attachment_color
                                     .unwrap_or(PointAttachmentData::DEFAULT_COLOR),
+                                timeline_attachment: attachment_name.clone(),
+                                timeline_slots: Vec::new(),
                             }),
                             "mesh" => {
                                 let uvs = attachment_def.uvs.ok_or_else(|| {
@@ -1201,6 +1205,8 @@ impl SkeletonData {
                                     name: internal_name.clone(),
                                     color: attachment_color
                                         .unwrap_or(PathAttachmentData::DEFAULT_COLOR),
+                                    timeline_attachment: attachment_name.clone(),
+                                    timeline_slots: Vec::new(),
                                     vertices: packed_vertices,
                                     lengths: attachment_def
                                         .lengths
@@ -1258,6 +1264,8 @@ impl SkeletonData {
                                     name: internal_name.clone(),
                                     color: attachment_color
                                         .unwrap_or(BoundingBoxAttachmentData::DEFAULT_COLOR),
+                                    timeline_attachment: attachment_name.clone(),
+                                    timeline_slots: Vec::new(),
                                     vertices: packed_vertices,
                                 })
                             }
@@ -1323,6 +1331,8 @@ impl SkeletonData {
                                     name: internal_name.clone(),
                                     color: attachment_color
                                         .unwrap_or(ClippingAttachmentData::DEFAULT_COLOR),
+                                    timeline_attachment: attachment_name.clone(),
+                                    timeline_slots: Vec::new(),
                                     vertices: packed_vertices,
                                     end_slot,
                                     convex: attachment_def.convex,

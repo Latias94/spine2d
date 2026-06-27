@@ -2898,10 +2898,7 @@ fn deform_timeline_slots(timeline: &DeformTimeline, skeleton: &Skeleton) -> Vec<
         .data
         .find_skin(timeline.skin.as_str())
         .and_then(|skin| skin.get_attachment(timeline.slot_index, timeline.attachment.as_str()))
-        .and_then(|attachment| match attachment {
-            crate::AttachmentData::Mesh(mesh) => Some(mesh.timeline_slots.clone()),
-            _ => None,
-        })
+        .map(|attachment| attachment.get_timeline_slots().to_vec())
         .unwrap_or_default()
 }
 
@@ -3080,10 +3077,7 @@ fn sequence_timeline_slots(timeline: &crate::SequenceTimeline, skeleton: &Skelet
         .data
         .find_skin(timeline.skin.as_str())
         .and_then(|skin| skin.get_attachment(timeline.slot_index, timeline.attachment.as_str()))
-        .and_then(|attachment| match attachment {
-            crate::AttachmentData::Mesh(mesh) => Some(mesh.timeline_slots.clone()),
-            _ => None,
-        })
+        .map(|attachment| attachment.get_timeline_slots().to_vec())
         .unwrap_or_default()
 }
 

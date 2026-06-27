@@ -1421,6 +1421,8 @@ pub struct RegionAttachmentData {
     pub(crate) path: String,
     pub(crate) sequence: Option<SequenceDef>,
     pub(crate) color: [f32; 4],
+    pub(crate) timeline_attachment: String,
+    pub(crate) timeline_slots: Vec<usize>,
     pub(crate) x: f32,
     pub(crate) y: f32,
     pub(crate) rotation: f32,
@@ -1643,6 +1645,28 @@ impl AttachmentData {
             AttachmentData::Clipping(a) => a.name.as_str(),
         }
     }
+
+    pub fn get_timeline_attachment(&self) -> &str {
+        match self {
+            AttachmentData::Region(a) => a.timeline_attachment.as_str(),
+            AttachmentData::Mesh(a) => a.timeline_attachment.as_str(),
+            AttachmentData::Point(a) => a.timeline_attachment.as_str(),
+            AttachmentData::Path(a) => a.timeline_attachment.as_str(),
+            AttachmentData::BoundingBox(a) => a.timeline_attachment.as_str(),
+            AttachmentData::Clipping(a) => a.timeline_attachment.as_str(),
+        }
+    }
+
+    pub fn get_timeline_slots(&self) -> &[usize] {
+        match self {
+            AttachmentData::Region(a) => a.timeline_slots.as_slice(),
+            AttachmentData::Mesh(a) => a.timeline_slots.as_slice(),
+            AttachmentData::Point(a) => a.timeline_slots.as_slice(),
+            AttachmentData::Path(a) => a.timeline_slots.as_slice(),
+            AttachmentData::BoundingBox(a) => a.timeline_slots.as_slice(),
+            AttachmentData::Clipping(a) => a.timeline_slots.as_slice(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1652,6 +1676,8 @@ pub struct PointAttachmentData {
     pub(crate) y: f32,
     pub(crate) rotation: f32,
     pub(crate) color: [f32; 4],
+    pub(crate) timeline_attachment: String,
+    pub(crate) timeline_slots: Vec<usize>,
 }
 
 impl PointAttachmentData {
@@ -1703,6 +1729,8 @@ pub struct PathAttachmentData {
     pub(crate) lengths: Vec<f32>,
     pub(crate) closed: bool,
     pub(crate) constant_speed: bool,
+    pub(crate) timeline_attachment: String,
+    pub(crate) timeline_slots: Vec<usize>,
 }
 
 impl PathAttachmentData {
@@ -1751,6 +1779,8 @@ pub struct BoundingBoxAttachmentData {
     pub(crate) name: String,
     pub(crate) color: [f32; 4],
     pub(crate) vertices: MeshVertices,
+    pub(crate) timeline_attachment: String,
+    pub(crate) timeline_slots: Vec<usize>,
 }
 
 impl BoundingBoxAttachmentData {
@@ -1778,6 +1808,8 @@ pub struct ClippingAttachmentData {
     pub(crate) end_slot: Option<usize>,
     pub(crate) convex: bool,
     pub(crate) inverse: bool,
+    pub(crate) timeline_attachment: String,
+    pub(crate) timeline_slots: Vec<usize>,
 }
 
 impl ClippingAttachmentData {

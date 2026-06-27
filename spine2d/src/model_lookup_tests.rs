@@ -633,6 +633,8 @@ fn constraint_data_accessors_match_cpp_surface() {
         vertex_id: 0,
         name: "clip".to_string(),
         color: ClippingAttachmentData::DEFAULT_COLOR,
+        timeline_attachment: "clip".to_string(),
+        timeline_slots: Vec::new(),
         vertices: crate::MeshVertices::Unweighted(Vec::new()),
         end_slot: Some(1),
         convex: true,
