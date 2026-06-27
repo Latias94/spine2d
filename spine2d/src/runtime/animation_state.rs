@@ -47,39 +47,6 @@ fn animation_identity(animation: &Animation) -> u64 {
     animation as *const Animation as usize as u64
 }
 
-// Matches `spine::Property` in upstream `spine-cpp` (bit flags).
-const PROPERTY_ROTATE: u64 = 1 << 0;
-const PROPERTY_X: u64 = 1 << 1;
-const PROPERTY_Y: u64 = 1 << 2;
-const PROPERTY_SCALE_X: u64 = 1 << 3;
-const PROPERTY_SCALE_Y: u64 = 1 << 4;
-const PROPERTY_SHEAR_X: u64 = 1 << 5;
-const PROPERTY_SHEAR_Y: u64 = 1 << 6;
-const PROPERTY_INHERIT: u64 = 1 << 7;
-const PROPERTY_RGB: u64 = 1 << 8;
-const PROPERTY_ALPHA: u64 = 1 << 9;
-const PROPERTY_RGB2: u64 = 1 << 10;
-const PROPERTY_ATTACHMENT: u64 = 1 << 11;
-const PROPERTY_DEFORM: u64 = 1 << 12;
-const PROPERTY_DRAW_ORDER: u64 = 1 << 14;
-const PROPERTY_IK_CONSTRAINT: u64 = 1 << 15;
-const PROPERTY_TRANSFORM_CONSTRAINT: u64 = 1 << 16;
-const PROPERTY_PATH_CONSTRAINT_POSITION: u64 = 1 << 17;
-const PROPERTY_PATH_CONSTRAINT_SPACING: u64 = 1 << 18;
-const PROPERTY_PATH_CONSTRAINT_MIX: u64 = 1 << 19;
-const PROPERTY_PHYSICS_CONSTRAINT_INERTIA: u64 = 1 << 20;
-const PROPERTY_PHYSICS_CONSTRAINT_STRENGTH: u64 = 1 << 21;
-const PROPERTY_PHYSICS_CONSTRAINT_DAMPING: u64 = 1 << 22;
-const PROPERTY_PHYSICS_CONSTRAINT_MASS: u64 = 1 << 23;
-const PROPERTY_PHYSICS_CONSTRAINT_WIND: u64 = 1 << 24;
-const PROPERTY_PHYSICS_CONSTRAINT_GRAVITY: u64 = 1 << 25;
-const PROPERTY_PHYSICS_CONSTRAINT_MIX: u64 = 1 << 26;
-const PROPERTY_PHYSICS_CONSTRAINT_RESET: u64 = 1 << 27;
-const PROPERTY_SEQUENCE: u64 = 1 << 28;
-const PROPERTY_SLIDER_TIME: u64 = 1 << 29;
-const PROPERTY_SLIDER_MIX: u64 = 1 << 30;
-const PROPERTY_DRAW_ORDER_FOLDER: u64 = 1 << 31;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TimelineMode {
     Current,
@@ -91,10 +58,6 @@ enum TimelineMode {
 struct TimelineApplyMode {
     from: TimelineMode,
     hold: bool,
-}
-
-fn property_id(property: u64, data: u32) -> u64 {
-    (property << 32) | u64::from(data)
 }
 
 fn timeline_kind_additive(animation: &Animation, kind: TimelineKind) -> bool {
@@ -152,189 +115,6 @@ fn timeline_kind_instant(animation: &Animation, kind: TimelineKind) -> bool {
         | TimelineKind::SliderTime(_)
         | TimelineKind::SliderMix(_) => false,
     }
-}
-
-fn timeline_property_ids(
-    data: &SkeletonData,
-    animation: &Animation,
-    kind: TimelineKind,
-) -> Vec<u64> {
-    match kind {
-        TimelineKind::SlotAttachment(i) => {
-            let slot = animation.slot_attachment_timelines[i].slot_index as u32;
-            vec![property_id(PROPERTY_ATTACHMENT, slot)]
-        }
-        TimelineKind::Deform(i) => {
-            let t = &animation.deform_timelines[i];
-            let deform_id = t.get_vertex_attachment_id(data).unwrap_or(0);
-            let low = (t.slot_index as u32) << 16 | deform_id;
-            vec![property_id(PROPERTY_DEFORM, low)]
-        }
-        TimelineKind::Sequence(i) => {
-            let t = &animation.sequence_timelines[i];
-            let sequence_id = t.get_sequence_id(data).unwrap_or(0);
-            let low = (t.slot_index as u32) << 16 | sequence_id;
-            vec![property_id(PROPERTY_SEQUENCE, low)]
-        }
-        TimelineKind::Bone(i) => match &animation.bone_timelines[i] {
-            crate::BoneTimeline::Rotate(t) => {
-                vec![property_id(PROPERTY_ROTATE, t.bone_index as u32)]
-            }
-            crate::BoneTimeline::Translate(t) => vec![
-                property_id(PROPERTY_X, t.bone_index as u32),
-                property_id(PROPERTY_Y, t.bone_index as u32),
-            ],
-            crate::BoneTimeline::TranslateX(t) => {
-                vec![property_id(PROPERTY_X, t.bone_index as u32)]
-            }
-            crate::BoneTimeline::TranslateY(t) => {
-                vec![property_id(PROPERTY_Y, t.bone_index as u32)]
-            }
-            crate::BoneTimeline::Scale(t) => vec![
-                property_id(PROPERTY_SCALE_X, t.bone_index as u32),
-                property_id(PROPERTY_SCALE_Y, t.bone_index as u32),
-            ],
-            crate::BoneTimeline::ScaleX(t) => {
-                vec![property_id(PROPERTY_SCALE_X, t.bone_index as u32)]
-            }
-            crate::BoneTimeline::ScaleY(t) => {
-                vec![property_id(PROPERTY_SCALE_Y, t.bone_index as u32)]
-            }
-            crate::BoneTimeline::Shear(t) => vec![
-                property_id(PROPERTY_SHEAR_X, t.bone_index as u32),
-                property_id(PROPERTY_SHEAR_Y, t.bone_index as u32),
-            ],
-            crate::BoneTimeline::ShearX(t) => {
-                vec![property_id(PROPERTY_SHEAR_X, t.bone_index as u32)]
-            }
-            crate::BoneTimeline::ShearY(t) => {
-                vec![property_id(PROPERTY_SHEAR_Y, t.bone_index as u32)]
-            }
-            crate::BoneTimeline::Inherit(t) => {
-                vec![property_id(PROPERTY_INHERIT, t.bone_index as u32)]
-            }
-        },
-        TimelineKind::SlotColor(i) => {
-            let slot = animation.slot_color_timelines[i].slot_index as u32;
-            vec![
-                property_id(PROPERTY_RGB, slot),
-                property_id(PROPERTY_ALPHA, slot),
-            ]
-        }
-        TimelineKind::SlotRgb(i) => {
-            let slot = animation.slot_rgb_timelines[i].slot_index as u32;
-            vec![property_id(PROPERTY_RGB, slot)]
-        }
-        TimelineKind::SlotAlpha(i) => {
-            let slot = animation.slot_alpha_timelines[i].slot_index as u32;
-            vec![property_id(PROPERTY_ALPHA, slot)]
-        }
-        TimelineKind::SlotRgba2(i) => {
-            let slot = animation.slot_rgba2_timelines[i].slot_index as u32;
-            vec![
-                property_id(PROPERTY_RGB, slot),
-                property_id(PROPERTY_ALPHA, slot),
-                property_id(PROPERTY_RGB2, slot),
-            ]
-        }
-        TimelineKind::SlotRgb2(i) => {
-            let slot = animation.slot_rgb2_timelines[i].slot_index as u32;
-            vec![
-                property_id(PROPERTY_RGB, slot),
-                property_id(PROPERTY_RGB2, slot),
-            ]
-        }
-        TimelineKind::IkConstraint(i) => {
-            let c = animation.ik_constraint_timelines[i].constraint_index as u32;
-            vec![property_id(PROPERTY_IK_CONSTRAINT, c)]
-        }
-        TimelineKind::TransformConstraint(i) => {
-            let c = animation.transform_constraint_timelines[i].constraint_index as u32;
-            vec![property_id(PROPERTY_TRANSFORM_CONSTRAINT, c)]
-        }
-        TimelineKind::PathConstraint(i) => {
-            let c = match &animation.path_constraint_timelines[i] {
-                crate::PathConstraintTimeline::Position(t) => t.constraint_index as u32,
-                crate::PathConstraintTimeline::Spacing(t) => t.constraint_index as u32,
-                crate::PathConstraintTimeline::Mix(t) => t.constraint_index as u32,
-            };
-            match &animation.path_constraint_timelines[i] {
-                crate::PathConstraintTimeline::Position(_) => {
-                    vec![property_id(PROPERTY_PATH_CONSTRAINT_POSITION, c)]
-                }
-                crate::PathConstraintTimeline::Spacing(_) => {
-                    vec![property_id(PROPERTY_PATH_CONSTRAINT_SPACING, c)]
-                }
-                crate::PathConstraintTimeline::Mix(_) => {
-                    vec![property_id(PROPERTY_PATH_CONSTRAINT_MIX, c)]
-                }
-            }
-        }
-        TimelineKind::PhysicsConstraint(i) => {
-            let (constraint_index, property) = match &animation.physics_constraint_timelines[i] {
-                crate::PhysicsConstraintTimeline::Inertia(t) => {
-                    (t.constraint_index, PROPERTY_PHYSICS_CONSTRAINT_INERTIA)
-                }
-                crate::PhysicsConstraintTimeline::Strength(t) => {
-                    (t.constraint_index, PROPERTY_PHYSICS_CONSTRAINT_STRENGTH)
-                }
-                crate::PhysicsConstraintTimeline::Damping(t) => {
-                    (t.constraint_index, PROPERTY_PHYSICS_CONSTRAINT_DAMPING)
-                }
-                crate::PhysicsConstraintTimeline::Mass(t) => {
-                    (t.constraint_index, PROPERTY_PHYSICS_CONSTRAINT_MASS)
-                }
-                crate::PhysicsConstraintTimeline::Wind(t) => {
-                    (t.constraint_index, PROPERTY_PHYSICS_CONSTRAINT_WIND)
-                }
-                crate::PhysicsConstraintTimeline::Gravity(t) => {
-                    (t.constraint_index, PROPERTY_PHYSICS_CONSTRAINT_GRAVITY)
-                }
-                crate::PhysicsConstraintTimeline::Mix(t) => {
-                    (t.constraint_index, PROPERTY_PHYSICS_CONSTRAINT_MIX)
-                }
-            };
-            vec![property_id(property, constraint_index as u32)]
-        }
-        TimelineKind::SliderTime(i) => {
-            let c = animation.slider_time_timelines[i].constraint_index as u32;
-            vec![property_id(PROPERTY_SLIDER_TIME, c)]
-        }
-        TimelineKind::SliderMix(i) => {
-            let c = animation.slider_mix_timelines[i].constraint_index as u32;
-            vec![property_id(PROPERTY_SLIDER_MIX, c)]
-        }
-        TimelineKind::DrawOrder => vec![property_id(PROPERTY_DRAW_ORDER, 0)],
-        TimelineKind::DrawOrderFolder(i) => animation.draw_order_folder_timelines[i]
-            .slots
-            .iter()
-            .map(|&slot| property_id(PROPERTY_DRAW_ORDER_FOLDER, slot as u32))
-            .collect(),
-        TimelineKind::PhysicsReset(_) => vec![property_id(PROPERTY_PHYSICS_CONSTRAINT_RESET, 0)],
-    }
-}
-
-fn animation_timeline_order(animation: &Animation) -> &[TimelineKind] {
-    animation.timeline_order()
-}
-
-fn animation_has_any_timeline_property(
-    data: &SkeletonData,
-    animation: &Animation,
-    ids: &[u64],
-) -> bool {
-    if ids.is_empty() {
-        return false;
-    }
-
-    for kind in animation_timeline_order(animation).iter().copied() {
-        let props = timeline_property_ids(data, animation, kind);
-        if props.iter().any(|p| ids.contains(p)) {
-            return true;
-        }
-    }
-
-    false
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -1092,7 +872,7 @@ impl AnimationState {
         }
 
         if matches!(kind, TimelineKind::DrawOrderFolder(_)) {
-            let draw_order_id = property_id(PROPERTY_DRAW_ORDER, 0);
+            let draw_order_id = crate::model::draw_order_property_id();
             if let Some(owner) = self.property_ids.get(&draw_order_id).copied() {
                 return if owner == track_id {
                     TimelineMode::First
@@ -1148,7 +928,7 @@ impl AnimationState {
             };
         let skeleton_data = self.data.skeleton_data.clone();
 
-        let kinds = animation_timeline_order(&animation).to_vec();
+        let kinds = animation.timeline_order().to_vec();
         let mut timeline_mode = vec![
             TimelineApplyMode {
                 from: TimelineMode::Setup,
@@ -1159,7 +939,7 @@ impl AnimationState {
         let mut timeline_hold_mix = vec![None; kinds.len()];
 
         for (i, kind) in kinds.iter().copied().enumerate() {
-            let ids = timeline_property_ids(skeleton_data.as_ref(), &animation, kind);
+            let ids = animation.timeline_property_ids(skeleton_data.as_ref(), kind);
             let mix_from = self.compute_mix_from(track_id, kind, &ids);
             timeline_mode[i].from = mix_from;
 
@@ -1174,11 +954,9 @@ impl AnimationState {
                 let to_holds_property = match self.entry(to_id) {
                     Some(to) => {
                         !(to.additive && timeline_additive)
-                            && animation_has_any_timeline_property(
-                                skeleton_data.as_ref(),
-                                &to.animation,
-                                &ids,
-                            )
+                            && to
+                                .animation
+                                .has_timeline_property_ids(skeleton_data.as_ref(), &ids)
                     }
                     None => false,
                 };
@@ -1192,11 +970,9 @@ impl AnimationState {
                         };
 
                         if next_entry.additive && timeline_additive
-                            || !animation_has_any_timeline_property(
-                                skeleton_data.as_ref(),
-                                &next_entry.animation,
-                                &ids,
-                            )
+                            || !next_entry
+                                .animation
+                                .has_timeline_property_ids(skeleton_data.as_ref(), &ids)
                         {
                             if next_entry.mix_duration > 0.0 {
                                 hold_mix = Some(next_id);
@@ -1805,7 +1581,7 @@ impl AnimationState {
         let track_index = self.entry(entry_id).map(|e| e.track_index).unwrap_or(0);
         let special_case = track_index == 0 && alpha == 1.0;
 
-        let kinds = animation_timeline_order(animation).to_vec();
+        let kinds = animation.timeline_order().to_vec();
         let mut timeline_mode = self
             .entry(entry_id)
             .map(|e| e.timeline_mode.clone())
@@ -1988,7 +1764,7 @@ impl AnimationState {
         };
 
         {
-            let kinds = animation_timeline_order(&from_animation).to_vec();
+            let kinds = from_animation.timeline_order().to_vec();
             let (timeline_mode, timeline_hold_mix) = match self.entry(from) {
                 Some(e) => (e.timeline_mode.clone(), e.timeline_hold_mix.clone()),
                 None => (Vec::new(), Vec::new()),
