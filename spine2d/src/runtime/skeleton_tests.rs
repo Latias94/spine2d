@@ -1215,6 +1215,8 @@ fn skeleton_accessors_expose_runtime_controls_without_public_vec_fields() {
     assert_eq!(skeleton.get_color(), [1.0, 1.0, 1.0, 1.0]);
     skeleton.set_color([0.25, 0.5, 0.75, 0.875]);
     assert_eq!(skeleton.get_color(), [0.25, 0.5, 0.75, 0.875]);
+    *skeleton.get_color_mut() = [0.6, 0.4, 0.2, 0.1];
+    assert_eq!(skeleton.get_color(), [0.6, 0.4, 0.2, 0.1]);
 
     assert_eq!((skeleton.get_x(), skeleton.get_y()), (0.0, 0.0));
     skeleton.set_position(10.0, -2.0);

@@ -725,6 +725,13 @@ impl Skeleton {
         self.color
     }
 
+    /// Returns a mutable reference to the skeleton color.
+    ///
+    /// Mirrors the official runtimes' `Skeleton::getColor()`.
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
+    }
+
     pub fn set_color(&mut self, color: [f32; 4]) {
         self.color = color;
     }
