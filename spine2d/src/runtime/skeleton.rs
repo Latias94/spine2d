@@ -17,7 +17,9 @@ pub use slider::SliderConstraint;
 pub use slot::Slot;
 pub use transform::TransformConstraint;
 
-use crate::{ConstraintDataRef, SkeletonData, geometry::SkeletonClipper};
+#[cfg(test)]
+use crate::geometry::SkeletonClipper;
+use crate::{ConstraintDataRef, SkeletonData};
 use path::{PathConstraintScratch, estimate_path_attachment_scratch_capacities};
 use slot::SlotPose;
 use std::sync::Arc;
@@ -1494,7 +1496,8 @@ impl Skeleton {
         has_vertices.then_some((min_x, min_y, max_x - min_x, max_y - min_y))
     }
 
-    pub fn get_bounds_with_clipping(&self) -> Option<(f32, f32, f32, f32)> {
+    #[cfg(test)]
+    pub(crate) fn get_bounds_with_clipping(&self) -> Option<(f32, f32, f32, f32)> {
         let mut min_x = f32::INFINITY;
         let mut min_y = f32::INFINITY;
         let mut max_x = f32::NEG_INFINITY;
@@ -1779,14 +1782,15 @@ impl Skeleton {
     ///
     /// Mirrors `BonePose::updateWorldTransform` in the official runtime. Child
     /// bones are not updated by this method.
-    pub fn update_bone_world_transform(&mut self, bone_index: usize) {
+    pub(crate) fn update_bone_world_transform(&mut self, bone_index: usize) {
         bone::update_world_transform(self, bone_index);
     }
 
     /// Computes one bone's applied local transform from its world transform.
     ///
     /// Mirrors `BonePose::updateLocalTransform` in the official runtime.
-    pub fn update_bone_local_transform(&mut self, bone_index: usize) {
+    #[cfg(test)]
+    pub(crate) fn update_bone_local_transform(&mut self, bone_index: usize) {
         bone::update_applied_transform(self, bone_index);
         if let Some(bone) = self.bones.get_mut(bone_index) {
             bone.world_epoch = self.update_epoch;
@@ -1797,7 +1801,8 @@ impl Skeleton {
     /// been marked modified in the current update epoch.
     ///
     /// Mirrors `BonePose::validateLocalTransform` in the official runtime.
-    pub fn validate_bone_local_transform(&mut self, bone_index: usize) {
+    #[cfg(test)]
+    pub(crate) fn validate_bone_local_transform(&mut self, bone_index: usize) {
         if self
             .bones
             .get(bone_index)
@@ -1814,7 +1819,8 @@ impl Skeleton {
     /// update epoch, invalidating descendants that were already updated.
     ///
     /// Mirrors `BonePose::modifyLocal` in the official runtime.
-    pub fn modify_bone_local(&mut self, bone_index: usize) {
+    #[cfg(test)]
+    pub(crate) fn modify_bone_local(&mut self, bone_index: usize) {
         self.bone_modify_local(bone_index);
     }
 
@@ -1823,7 +1829,8 @@ impl Skeleton {
     ///
     /// Mirrors `BonePose::modifyWorld` in the official runtime without
     /// exposing the raw update counter.
-    pub fn modify_bone_world(&mut self, bone_index: usize) {
+    #[cfg(test)]
+    pub(crate) fn modify_bone_world(&mut self, bone_index: usize) {
         self.bone_modify_world(bone_index);
     }
 
