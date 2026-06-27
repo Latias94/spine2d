@@ -1011,28 +1011,28 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     );
     assert_eq!(
         skeleton
-            .find_constraint::<IkConstraint>("ik")
+            .find_constraint_mut::<IkConstraint>("ik")
             .unwrap()
             .get_mix(),
         0.8
     );
     assert_eq!(
         skeleton
-            .find_constraint::<IkConstraint>("ik")
+            .find_constraint_mut::<IkConstraint>("ik")
             .unwrap()
             .get_bend_direction(),
         -1
     );
     assert_eq!(
         skeleton
-            .find_constraint::<TransformConstraint>("transform")
+            .find_constraint_mut::<TransformConstraint>("transform")
             .unwrap()
             .get_mix_x(),
         0.12
     );
     assert_eq!(
         skeleton
-            .find_constraint::<PathConstraint>("path")
+            .find_constraint_mut::<PathConstraint>("path")
             .unwrap()
             .get_position(),
         1.1
@@ -1040,7 +1040,7 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     assert_eq!(skeleton.get_physics_constraints()[0].get_gravity(), 0.6);
     assert_eq!(
         skeleton
-            .find_constraint::<SliderConstraint>("slider")
+            .find_constraint_mut::<SliderConstraint>("slider")
             .unwrap()
             .get_time(),
         2.1
@@ -1070,7 +1070,7 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     );
     assert_eq!(
         skeleton
-            .find_constraint::<IkConstraint>("ik")
+            .find_constraint_mut::<IkConstraint>("ik")
             .unwrap()
             .get_mix(),
         0.33
@@ -1103,7 +1103,7 @@ fn skeleton_setup_pose_methods_match_cpp_split() {
     );
     assert_eq!(
         skeleton
-            .find_constraint::<IkConstraint>("ik")
+            .find_constraint_mut::<IkConstraint>("ik")
             .unwrap()
             .get_mix(),
         0.8
@@ -1280,7 +1280,7 @@ fn skeleton_constraint_finders_match_data_names() {
 
     assert_eq!(
         skeleton
-            .find_constraint::<IkConstraint>("ik")
+            .find_constraint_mut::<IkConstraint>("ik")
             .unwrap()
             .data_index,
         0
@@ -1291,7 +1291,7 @@ fn skeleton_constraint_finders_match_data_names() {
         .set_mix(0.25);
     assert_eq!(
         skeleton
-            .find_constraint::<IkConstraint>("ik")
+            .find_constraint_mut::<IkConstraint>("ik")
             .unwrap()
             .get_mix(),
         0.25
@@ -1299,7 +1299,7 @@ fn skeleton_constraint_finders_match_data_names() {
 
     assert_eq!(
         skeleton
-            .find_constraint::<TransformConstraint>("transform")
+            .find_constraint_mut::<TransformConstraint>("transform")
             .unwrap()
             .data_index,
         0
@@ -1310,7 +1310,7 @@ fn skeleton_constraint_finders_match_data_names() {
         .set_mix_x(0.5);
     assert_eq!(
         skeleton
-            .find_constraint::<TransformConstraint>("transform")
+            .find_constraint_mut::<TransformConstraint>("transform")
             .unwrap()
             .get_mix_x(),
         0.5
@@ -1318,7 +1318,7 @@ fn skeleton_constraint_finders_match_data_names() {
 
     assert_eq!(
         skeleton
-            .find_constraint::<PathConstraint>("path")
+            .find_constraint_mut::<PathConstraint>("path")
             .unwrap()
             .data_index,
         0
@@ -1329,7 +1329,7 @@ fn skeleton_constraint_finders_match_data_names() {
         .set_position(2.0);
     assert_eq!(
         skeleton
-            .find_constraint::<PathConstraint>("path")
+            .find_constraint_mut::<PathConstraint>("path")
             .unwrap()
             .get_position(),
         2.0
@@ -1337,7 +1337,7 @@ fn skeleton_constraint_finders_match_data_names() {
 
     assert_eq!(
         skeleton
-            .find_constraint::<PhysicsConstraint>("physics")
+            .find_constraint_mut::<PhysicsConstraint>("physics")
             .unwrap()
             .data_index,
         0
@@ -1347,7 +1347,7 @@ fn skeleton_constraint_finders_match_data_names() {
 
     assert_eq!(
         skeleton
-            .find_constraint::<SliderConstraint>("slider")
+            .find_constraint_mut::<SliderConstraint>("slider")
             .unwrap()
             .data_index,
         0
@@ -1358,25 +1358,29 @@ fn skeleton_constraint_finders_match_data_names() {
         .set_time(3.0);
     assert_eq!(
         skeleton
-            .find_constraint::<SliderConstraint>("slider")
+            .find_constraint_mut::<SliderConstraint>("slider")
             .unwrap()
             .get_time(),
         3.0
     );
 
-    assert!(skeleton.find_constraint::<IkConstraint>("").is_none());
+    assert!(skeleton.find_constraint_mut::<IkConstraint>("").is_none());
     assert!(
         skeleton
-            .find_constraint::<TransformConstraint>("missing")
+            .find_constraint_mut::<TransformConstraint>("missing")
             .is_none()
     );
-    assert!(skeleton.find_constraint::<PathConstraint>("").is_none());
+    assert!(skeleton.find_constraint_mut::<PathConstraint>("").is_none());
     assert!(
         skeleton
-            .find_constraint::<PhysicsConstraint>("missing")
+            .find_constraint_mut::<PhysicsConstraint>("missing")
             .is_none()
     );
-    assert!(skeleton.find_constraint::<SliderConstraint>("").is_none());
+    assert!(
+        skeleton
+            .find_constraint_mut::<SliderConstraint>("")
+            .is_none()
+    );
 }
 
 #[test]
@@ -1443,21 +1447,21 @@ fn skeleton_constraints_mut_expose_ordered_typed_constraint_refs() {
 
     assert_eq!(
         skeleton
-            .find_constraint::<IkConstraint>("ik")
+            .find_constraint_mut::<IkConstraint>("ik")
             .unwrap()
             .get_mix(),
         0.25
     );
     assert_eq!(
         skeleton
-            .find_constraint::<TransformConstraint>("transform")
+            .find_constraint_mut::<TransformConstraint>("transform")
             .unwrap()
             .get_mix_x(),
         0.5
     );
     assert_eq!(
         skeleton
-            .find_constraint::<PathConstraint>("path")
+            .find_constraint_mut::<PathConstraint>("path")
             .unwrap()
             .get_position(),
         2.0
@@ -1465,7 +1469,7 @@ fn skeleton_constraints_mut_expose_ordered_typed_constraint_refs() {
     assert_eq!(skeleton.get_physics_constraints()[0].get_mix(), 0.75);
     assert_eq!(
         skeleton
-            .find_constraint::<SliderConstraint>("slider")
+            .find_constraint_mut::<SliderConstraint>("slider")
             .unwrap()
             .get_time(),
         3.0
@@ -1522,10 +1526,10 @@ fn slider_invalid_bone_index_does_not_activate_constraint() {
         }],
     });
 
-    let skeleton = Skeleton::new(data);
+    let mut skeleton = Skeleton::new(data);
     assert!(
         !skeleton
-            .find_constraint::<SliderConstraint>("slider")
+            .find_constraint_mut::<SliderConstraint>("slider")
             .unwrap()
             .is_active()
     );
@@ -2567,17 +2571,21 @@ fn constraint_accessors_expose_pose_state() {
     }
     assert_eq!(
         skeleton
-            .find_constraint::<SliderConstraint>("slider")
+            .find_constraint_mut::<SliderConstraint>("slider")
             .unwrap()
             .bone,
         Some(0)
     );
+    let slider = skeleton
+        .get_constraints()
+        .into_iter()
+        .find_map(|constraint| match constraint {
+            ConstraintRef::Slider(slider) => Some(slider),
+            _ => None,
+        })
+        .unwrap();
     assert_eq!(
-        skeleton
-            .find_constraint::<SliderConstraint>("slider")
-            .unwrap()
-            .get_bone(&skeleton)
-            .map(|bone| bone.data_index),
+        slider.get_bone(&skeleton).map(|bone| bone.data_index),
         Some(0)
     );
 }
