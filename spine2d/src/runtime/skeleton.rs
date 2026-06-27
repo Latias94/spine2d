@@ -809,10 +809,7 @@ impl Skeleton {
         &mut self.physics_constraints
     }
 
-    pub fn find_constraint_mut<T: SkeletonConstraintLookup>(
-        &mut self,
-        name: &str,
-    ) -> Option<&mut T> {
+    pub fn find_constraint<T: SkeletonConstraintLookup>(&mut self, name: &str) -> Option<&mut T> {
         T::find_in_mut(self, name)
     }
 

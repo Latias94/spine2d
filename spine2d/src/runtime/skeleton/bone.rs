@@ -139,7 +139,18 @@ impl Bone {
         self.scale_y = scale_y;
     }
 
-    pub fn set_scale(&mut self, scale_x: f32, scale_y: f32) {
+    /// Sets local scaleX and scaleY to the same value.
+    ///
+    /// Mirrors the official runtimes' `BoneLocal::setScale(float)`.
+    pub fn set_scale(&mut self, scale: f32) {
+        self.scale_x = scale;
+        self.scale_y = scale;
+    }
+
+    /// Sets local scaleX and scaleY independently.
+    ///
+    /// Mirrors the official runtimes' `BoneLocal::setScale(float, float)`.
+    pub fn set_scale_xy(&mut self, scale_x: f32, scale_y: f32) {
         self.scale_x = scale_x;
         self.scale_y = scale_y;
     }

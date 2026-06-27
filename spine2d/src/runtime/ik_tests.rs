@@ -124,7 +124,7 @@ fn ik_one_bone_negative_mix_rotates_away_from_target() {
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
     skeleton
-        .find_constraint_mut::<IkConstraint>("ik")
+        .find_constraint::<IkConstraint>("ik")
         .unwrap()
         .set_mix(-1.0);
     skeleton.update_world_transform_with_physics(crate::Physics::None);
@@ -138,7 +138,7 @@ fn ik_one_bone_nan_mix_propagates_nan_rotation() {
     let mut skeleton = Skeleton::new(data);
     skeleton.setup_pose();
     skeleton
-        .find_constraint_mut::<IkConstraint>("ik")
+        .find_constraint::<IkConstraint>("ik")
         .unwrap()
         .set_mix(f32::NAN);
     skeleton.update_world_transform_with_physics(crate::Physics::None);
