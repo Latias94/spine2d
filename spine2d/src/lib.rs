@@ -13,7 +13,6 @@ mod ids;
 mod model;
 mod render;
 mod runtime;
-mod version;
 
 #[cfg(feature = "json")]
 pub mod json;
@@ -26,7 +25,6 @@ pub use error::*;
 pub use model::*;
 pub use render::*;
 pub use runtime::*;
-pub use version::*;
 
 #[cfg(test)]
 mod geometry_tests;

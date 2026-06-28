@@ -1,6 +1,9 @@
 use indexmap::IndexMap;
 use std::sync::Arc;
 
+use crate::Skeleton;
+use crate::runtime::{MixFrom, PublicAnimationApply, apply_animation_public};
+
 #[derive(Clone, Debug)]
 pub struct BoneData {
     pub(crate) index: usize,
@@ -1241,16 +1244,6 @@ pub enum ConstraintDataRef<'a> {
 }
 
 impl ConstraintDataRef<'_> {
-    pub fn get_index(&self) -> usize {
-        match self {
-            ConstraintDataRef::Ik(index, _) => *index,
-            ConstraintDataRef::Transform(index, _) => *index,
-            ConstraintDataRef::Path(index, _) => *index,
-            ConstraintDataRef::Physics(index, _) => *index,
-            ConstraintDataRef::Slider(index, _) => *index,
-        }
-    }
-
     pub fn get_name(&self) -> &str {
         match self {
             ConstraintDataRef::Ik(_, data) => data.name.as_str(),
@@ -1271,7 +1264,7 @@ impl ConstraintDataRef<'_> {
         }
     }
 
-    pub fn get_order(&self) -> i32 {
+    fn get_order(&self) -> i32 {
         match self {
             ConstraintDataRef::Ik(_, data) => data.order,
             ConstraintDataRef::Transform(_, data) => data.order,
@@ -1545,15 +1538,15 @@ impl MeshAttachmentData {
         self.name.as_str()
     }
 
-    pub fn get_timeline_skin(&self) -> &str {
+    pub(crate) fn get_timeline_skin(&self) -> &str {
         self.timeline_skin.as_str()
     }
 
-    pub fn get_timeline_attachment(&self) -> &str {
+    pub(crate) fn get_timeline_attachment(&self) -> &str {
         self.timeline_attachment.as_str()
     }
 
-    pub fn get_timeline_slots(&self) -> &[usize] {
+    pub(crate) fn get_timeline_slots(&self) -> &[usize] {
         self.timeline_slots.as_slice()
     }
 
@@ -1658,14 +1651,14 @@ impl AttachmentData {
         }
     }
 
-    pub fn get_timeline_skin(&self) -> Option<&str> {
+    pub(crate) fn get_timeline_skin(&self) -> Option<&str> {
         match self {
             AttachmentData::Mesh(a) => Some(a.get_timeline_skin()),
             _ => None,
         }
     }
 
-    pub fn get_timeline_attachment(&self) -> &str {
+    pub(crate) fn get_timeline_attachment(&self) -> &str {
         match self {
             AttachmentData::Region(a) => a.timeline_attachment.as_str(),
             AttachmentData::Mesh(a) => a.get_timeline_attachment(),
@@ -1676,7 +1669,7 @@ impl AttachmentData {
         }
     }
 
-    pub fn get_timeline_slots(&self) -> &[usize] {
+    pub(crate) fn get_timeline_slots(&self) -> &[usize] {
         match self {
             AttachmentData::Region(a) => a.timeline_slots.as_slice(),
             AttachmentData::Mesh(a) => a.get_timeline_slots(),
@@ -1687,7 +1680,7 @@ impl AttachmentData {
         }
     }
 
-    pub fn get_vertex_attachment_id(&self) -> Option<u32> {
+    pub(crate) fn get_vertex_attachment_id(&self) -> Option<u32> {
         match self {
             AttachmentData::Mesh(a) => Some(a.vertex_id),
             AttachmentData::Path(a) => Some(a.vertex_id),
@@ -1697,7 +1690,7 @@ impl AttachmentData {
         }
     }
 
-    pub fn get_sequence_id(&self) -> Option<u32> {
+    pub(crate) fn get_sequence_id(&self) -> Option<u32> {
         match self {
             AttachmentData::Region(a) => a.sequence.as_ref().map(|s| s.id),
             AttachmentData::Mesh(a) => a.sequence.as_ref().map(|s| s.id),
@@ -1895,6 +1888,168 @@ impl ClippingAttachmentData {
 }
 
 #[derive(Clone, Debug)]
+pub struct SkinAttachmentEntry<'a> {
+    slot_index: usize,
+    placeholder: &'a str,
+    attachment: &'a AttachmentData,
+}
+
+impl SkinAttachmentEntry<'_> {
+    pub fn get_slot_index(&self) -> usize {
+        self.slot_index
+    }
+
+    pub fn get_placeholder(&self) -> &'_ str {
+        self.placeholder
+    }
+
+    pub fn get_attachment(&self) -> &'_ AttachmentData {
+        self.attachment
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SkinConstraintKind {
+    Ik,
+    Transform,
+    Path,
+    Physics,
+    Slider,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SkinConstraintEntry {
+    kind: SkinConstraintKind,
+    index: usize,
+}
+
+impl SkinConstraintEntry {
+    pub fn get_kind(&self) -> SkinConstraintKind {
+        self.kind
+    }
+
+    pub fn get_index(&self) -> usize {
+        self.index
+    }
+}
+
+pub struct SkinAttachmentEntries<'a> {
+    slots: std::iter::Enumerate<std::slice::Iter<'a, IndexMap<String, AttachmentData>>>,
+    current: Option<(usize, indexmap::map::Iter<'a, String, AttachmentData>)>,
+}
+
+impl<'a> SkinAttachmentEntries<'a> {
+    fn new(attachments: &'a [IndexMap<String, AttachmentData>]) -> Self {
+        Self {
+            slots: attachments.iter().enumerate(),
+            current: None,
+        }
+    }
+}
+
+impl<'a> Iterator for SkinAttachmentEntries<'a> {
+    type Item = SkinAttachmentEntry<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some((slot_index, slot_map)) = &mut self.current
+                && let Some((placeholder, attachment)) = slot_map.next()
+            {
+                return Some(SkinAttachmentEntry {
+                    slot_index: *slot_index,
+                    placeholder: placeholder.as_str(),
+                    attachment,
+                });
+            }
+
+            self.current = self
+                .slots
+                .next()
+                .map(|(slot_index, slot_map)| (slot_index, slot_map.iter()));
+            self.current.as_ref()?;
+        }
+    }
+}
+
+pub struct SkinConstraintEntries<'a> {
+    ik: std::slice::Iter<'a, usize>,
+    transform: std::slice::Iter<'a, usize>,
+    path: std::slice::Iter<'a, usize>,
+    physics: std::slice::Iter<'a, usize>,
+    slider: std::slice::Iter<'a, usize>,
+    state: SkinConstraintKind,
+}
+
+impl<'a> SkinConstraintEntries<'a> {
+    fn new(skin: &'a SkinData) -> Self {
+        Self {
+            ik: skin.ik_constraints.iter(),
+            transform: skin.transform_constraints.iter(),
+            path: skin.path_constraints.iter(),
+            physics: skin.physics_constraints.iter(),
+            slider: skin.slider_constraints.iter(),
+            state: SkinConstraintKind::Ik,
+        }
+    }
+}
+
+impl<'a> Iterator for SkinConstraintEntries<'a> {
+    type Item = SkinConstraintEntry;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.state {
+                SkinConstraintKind::Ik => {
+                    if let Some(&index) = self.ik.next() {
+                        return Some(SkinConstraintEntry {
+                            kind: SkinConstraintKind::Ik,
+                            index,
+                        });
+                    }
+                    self.state = SkinConstraintKind::Transform;
+                }
+                SkinConstraintKind::Transform => {
+                    if let Some(&index) = self.transform.next() {
+                        return Some(SkinConstraintEntry {
+                            kind: SkinConstraintKind::Transform,
+                            index,
+                        });
+                    }
+                    self.state = SkinConstraintKind::Path;
+                }
+                SkinConstraintKind::Path => {
+                    if let Some(&index) = self.path.next() {
+                        return Some(SkinConstraintEntry {
+                            kind: SkinConstraintKind::Path,
+                            index,
+                        });
+                    }
+                    self.state = SkinConstraintKind::Physics;
+                }
+                SkinConstraintKind::Physics => {
+                    if let Some(&index) = self.physics.next() {
+                        return Some(SkinConstraintEntry {
+                            kind: SkinConstraintKind::Physics,
+                            index,
+                        });
+                    }
+                    self.state = SkinConstraintKind::Slider;
+                }
+                SkinConstraintKind::Slider => {
+                    if let Some(&index) = self.slider.next() {
+                        return Some(SkinConstraintEntry {
+                            kind: SkinConstraintKind::Slider,
+                            index,
+                        });
+                    }
+                    return None;
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct SkinData {
     pub(crate) name: String,
     pub(crate) color: [f32; 4],
@@ -1933,12 +2088,26 @@ impl SkinData {
         self.color
     }
 
-    pub fn get_attachments(&self) -> &[IndexMap<String, AttachmentData>] {
-        &self.attachments
+    pub fn get_color_mut(&mut self) -> &mut [f32; 4] {
+        &mut self.color
+    }
+
+    /// Returns the flattened attachment entry view used by C++ `Skin::getAttachments()`.
+    pub fn get_attachments(&self) -> SkinAttachmentEntries<'_> {
+        SkinAttachmentEntries::new(&self.attachments)
+    }
+
+    /// Returns the flattened constraint membership view used by C++ `Skin::getConstraints()`.
+    pub fn get_constraints(&self) -> SkinConstraintEntries<'_> {
+        SkinConstraintEntries::new(self)
     }
 
     pub fn get_bones(&self) -> &[usize] {
         &self.bones
+    }
+
+    pub fn get_bones_mut(&mut self) -> &mut Vec<usize> {
+        &mut self.bones
     }
 
     /// Merges `other` into `self` (union of bones/constraints + last-write-wins attachments).
@@ -2268,25 +2437,14 @@ pub struct DeformTimeline {
     pub slot_index: usize,
     pub attachment: String,
     pub vertex_count: usize,
+    pub(crate) property_id: u64,
     pub setup_vertices: Option<Vec<f32>>,
     pub frames: Vec<DeformFrame>,
 }
 
 impl DeformTimeline {
-    pub(crate) fn get_vertex_attachment_id(&self, data: &SkeletonData) -> Option<u32> {
-        let attachment = data
-            .find_skin(self.skin.as_str())
-            .and_then(|skin| skin.get_attachment(self.slot_index, self.attachment.as_str()))?;
-
-        match attachment {
-            AttachmentData::Mesh(mesh) => {
-                let target = data.find_skin(mesh.get_timeline_skin()).and_then(|skin| {
-                    skin.get_attachment(self.slot_index, mesh.get_timeline_attachment())
-                })?;
-                target.get_vertex_attachment_id()
-            }
-            _ => attachment.get_vertex_attachment_id(),
-        }
+    pub(crate) fn get_property_id(&self) -> u64 {
+        self.property_id
     }
 }
 
@@ -2314,14 +2472,13 @@ pub struct SequenceTimeline {
     pub skin: String,
     pub slot_index: usize,
     pub attachment: String,
+    pub(crate) property_id: u64,
     pub frames: Vec<SequenceFrame>,
 }
 
 impl SequenceTimeline {
-    pub(crate) fn get_sequence_id(&self, data: &SkeletonData) -> Option<u32> {
-        data.find_skin(self.skin.as_str())
-            .and_then(|skin| skin.get_attachment(self.slot_index, self.attachment.as_str()))
-            .and_then(AttachmentData::get_sequence_id)
+    pub(crate) fn get_property_id(&self) -> u64 {
+        self.property_id
     }
 }
 
@@ -2592,6 +2749,17 @@ pub(crate) fn draw_order_property_id() -> u64 {
     property_id(PROPERTY_DRAW_ORDER, 0)
 }
 
+pub(crate) fn deform_property_id(slot_index: usize, vertex_attachment_id: u32) -> u64 {
+    property_id(
+        PROPERTY_DEFORM,
+        ((slot_index as u32) << 16) | vertex_attachment_id,
+    )
+}
+
+pub(crate) fn sequence_property_id(slot_index: usize, sequence_id: u32) -> u64 {
+    property_id(PROPERTY_SEQUENCE, ((slot_index as u32) << 16) | sequence_id)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum TimelineRef<'a> {
     Event {
@@ -2748,27 +2916,89 @@ impl Animation {
         &mut self.color
     }
 
-    pub(crate) fn timeline_property_ids(
+    /// C++ `Animation::apply(Skeleton&, float, float, bool, Array<Event*>*, float, MixFrom, bool, bool, bool)`.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "public API mirrors the official spine-cpp Animation::apply signature"
+    )]
+    pub fn apply(
         &self,
-        data: &SkeletonData,
-        kind: TimelineKind,
-    ) -> Vec<u64> {
+        skeleton: &mut Skeleton,
+        last_time: f32,
+        time: f32,
+        looped: bool,
+        events: Option<&mut Vec<Event>>,
+        alpha: f32,
+        from: MixFrom,
+        add: bool,
+        out: bool,
+        applied_pose: bool,
+    ) {
+        apply_animation_public(
+            self,
+            skeleton,
+            PublicAnimationApply {
+                last_time,
+                time,
+                looped,
+                events,
+                alpha,
+                from,
+                add,
+                out,
+                applied_pose,
+            },
+        );
+    }
+
+    /// C++ `Animation::search(Array<float>&, float)`.
+    pub fn search(frames: &[f32], target: f32) -> i32 {
+        Self::search_with_step(frames, target, 1)
+    }
+
+    /// C++ `Animation::search(Array<float>&, float, int)`.
+    pub fn search_with_step(frames: &[f32], target: f32, step: i32) -> i32 {
+        assert!(step > 0, "step must be greater than zero");
+        let step = step as usize;
+        let n = frames.len();
+        let mut i = step;
+        while i < n {
+            if frames[i] > target {
+                return (i - step) as i32;
+            }
+            i += step;
+        }
+        (n as isize - step as isize) as i32
+    }
+
+    /// C++ `Animation::hasTimeline(Array<PropertyId>&)`.
+    ///
+    pub fn has_timeline(&self, ids: &[u64]) -> bool {
+        if ids.is_empty() {
+            return false;
+        }
+
+        for kind in self.timeline_order.iter().copied() {
+            let props = self.timeline_property_ids(kind);
+            if props.iter().any(|p| ids.contains(p)) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub(crate) fn timeline_property_ids(&self, kind: TimelineKind) -> Vec<u64> {
         match kind {
             TimelineKind::SlotAttachment(i) => {
                 let slot = self.slot_attachment_timelines[i].slot_index as u32;
                 vec![property_id(PROPERTY_ATTACHMENT, slot)]
             }
             TimelineKind::Deform(i) => {
-                let t = &self.deform_timelines[i];
-                let deform_id = t.get_vertex_attachment_id(data).unwrap_or(0);
-                let low = (t.slot_index as u32) << 16 | deform_id;
-                vec![property_id(PROPERTY_DEFORM, low)]
+                vec![self.deform_timelines[i].get_property_id()]
             }
             TimelineKind::Sequence(i) => {
-                let t = &self.sequence_timelines[i];
-                let sequence_id = t.get_sequence_id(data).unwrap_or(0);
-                let low = (t.slot_index as u32) << 16 | sequence_id;
-                vec![property_id(PROPERTY_SEQUENCE, low)]
+                vec![self.sequence_timelines[i].get_property_id()]
             }
             TimelineKind::Bone(i) => match &self.bone_timelines[i] {
                 BoneTimeline::Rotate(t) => vec![property_id(PROPERTY_ROTATE, t.bone_index as u32)],
@@ -2921,21 +3151,6 @@ impl Animation {
                 .map(|&slot| property_id(PROPERTY_DRAW_ORDER_FOLDER, slot as u32))
                 .collect(),
         }
-    }
-
-    pub(crate) fn has_timeline_property_ids(&self, data: &SkeletonData, ids: &[u64]) -> bool {
-        if ids.is_empty() {
-            return false;
-        }
-
-        for kind in self.timeline_order.iter().copied() {
-            let props = self.timeline_property_ids(data, kind);
-            if props.iter().any(|p| ids.contains(p)) {
-                return true;
-            }
-        }
-
-        false
     }
 
     pub(crate) fn timeline_kind_additive(&self, kind: TimelineKind) -> bool {
@@ -3389,7 +3604,6 @@ impl Default for SkeletonData {
     }
 }
 
-#[cfg(any(test, feature = "json", feature = "binary"))]
 pub(crate) fn timeline_order_for_animation(animation: &Animation) -> Vec<TimelineKind> {
     let mut timeline_order = Vec::new();
     timeline_order

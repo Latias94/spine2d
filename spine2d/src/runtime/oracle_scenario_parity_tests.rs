@@ -54,6 +54,7 @@ fn golden_path(name: &str) -> PathBuf {
         .join(name)
 }
 
+#[cfg(feature = "binary")]
 fn golden_skel_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests/golden/oracle_scenarios_skel")

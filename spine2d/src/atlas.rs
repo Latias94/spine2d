@@ -8,10 +8,6 @@ pub struct Atlas {
 }
 
 impl Atlas {
-    pub fn parse(input: &str) -> Result<Self, Error> {
-        parse_atlas(input)
-    }
-
     pub fn flip_v(&mut self) {
         for region in &mut self.regions {
             region.v = 1.0 - region.v;
@@ -259,75 +255,7 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
             continue;
         }
 
-        if current_page.is_none() {
-            let page_index = pages.len();
-            pages.push(AtlasPage {
-                name: line.to_string(),
-                texture_path: line.to_string(),
-                index: page_index,
-                format: AtlasFormat::default(),
-                width: 0,
-                height: 0,
-                pma: false,
-                min_filter: AtlasFilter::default(),
-                mag_filter: AtlasFilter::default(),
-                wrap_u: AtlasWrap::default(),
-                wrap_v: AtlasWrap::default(),
-            });
-            current_page = Some(page_index);
-            cursor += 1;
-
-            while cursor < lines.len() {
-                let Some((key, value)) = parse_entry(lines[cursor]) else {
-                    break;
-                };
-
-                match key {
-                    "format" => {
-                        if let Some(page) = pages.get_mut(page_index) {
-                            page.format = parse_format(value);
-                        }
-                    }
-                    "size" => {
-                        let (w, h) = parse_pair_u32(value).ok_or_else(|| Error::AtlasParse {
-                            message: format!("invalid page size: {value}"),
-                        })?;
-                        if let Some(page) = pages.get_mut(page_index) {
-                            page.width = w;
-                            page.height = h;
-                        }
-                    }
-                    "filter" => {
-                        let (min, mag) = parse_pair_str(value)
-                            .map(|(a, b)| (parse_filter(a), parse_filter(b)))
-                            .unwrap_or_else(|| {
-                                let f = parse_filter(value);
-                                (f.clone(), f)
-                            });
-                        if let Some(page) = pages.get_mut(page_index) {
-                            page.min_filter = min;
-                            page.mag_filter = mag;
-                        }
-                    }
-                    "repeat" => {
-                        let (wrap_u, wrap_v) = parse_repeat(value);
-                        if let Some(page) = pages.get_mut(page_index) {
-                            page.wrap_u = wrap_u;
-                            page.wrap_v = wrap_v;
-                        }
-                    }
-                    "pma" => {
-                        if let Some(page) = pages.get_mut(page_index) {
-                            page.pma = matches!(value, "true");
-                        }
-                    }
-                    _ => {}
-                }
-
-                cursor += 1;
-            }
-        } else {
-            let page_index = current_page.expect("current page exists for atlas region");
+        if let Some(page_index) = current_page {
             let mut region = AtlasRegion {
                 name: line.to_string(),
                 page: page_index,
@@ -428,6 +356,73 @@ fn parse_atlas(input: &str) -> Result<Atlas, Error> {
 
             let page = &pages[page_index];
             regions.push(finalize_region(region, page));
+        } else {
+            let page_index = pages.len();
+            pages.push(AtlasPage {
+                name: line.to_string(),
+                texture_path: line.to_string(),
+                index: page_index,
+                format: AtlasFormat::default(),
+                width: 0,
+                height: 0,
+                pma: false,
+                min_filter: AtlasFilter::default(),
+                mag_filter: AtlasFilter::default(),
+                wrap_u: AtlasWrap::default(),
+                wrap_v: AtlasWrap::default(),
+            });
+            current_page = Some(page_index);
+            cursor += 1;
+
+            while cursor < lines.len() {
+                let Some((key, value)) = parse_entry(lines[cursor]) else {
+                    break;
+                };
+
+                match key {
+                    "format" => {
+                        if let Some(page) = pages.get_mut(page_index) {
+                            page.format = parse_format(value);
+                        }
+                    }
+                    "size" => {
+                        let (w, h) = parse_pair_u32(value).ok_or_else(|| Error::AtlasParse {
+                            message: format!("invalid page size: {value}"),
+                        })?;
+                        if let Some(page) = pages.get_mut(page_index) {
+                            page.width = w;
+                            page.height = h;
+                        }
+                    }
+                    "filter" => {
+                        let (min, mag) = parse_pair_str(value)
+                            .map(|(a, b)| (parse_filter(a), parse_filter(b)))
+                            .unwrap_or_else(|| {
+                                let f = parse_filter(value);
+                                (f.clone(), f)
+                            });
+                        if let Some(page) = pages.get_mut(page_index) {
+                            page.min_filter = min;
+                            page.mag_filter = mag;
+                        }
+                    }
+                    "repeat" => {
+                        let (wrap_u, wrap_v) = parse_repeat(value);
+                        if let Some(page) = pages.get_mut(page_index) {
+                            page.wrap_u = wrap_u;
+                            page.wrap_v = wrap_v;
+                        }
+                    }
+                    "pma" => {
+                        if let Some(page) = pages.get_mut(page_index) {
+                            page.pma = matches!(value, "true");
+                        }
+                    }
+                    _ => {}
+                }
+
+                cursor += 1;
+            }
         }
     }
 
@@ -548,8 +543,7 @@ mod tests {
 
     #[test]
     fn parse_minimal_atlas_one_page_one_region() {
-        let atlas = Atlas::parse(
-            r#"
+        let atlas = r#"
 page.png
 size: 64,64
 scale: 0.5
@@ -559,8 +553,8 @@ head
   rotate: false
   xy: 0, 0
   size: 16, 8
-"#,
-        )
+"#
+        .parse::<Atlas>()
         .unwrap();
 
         assert_eq!(atlas.get_pages().len(), 1);
@@ -586,8 +580,7 @@ head
 
     #[test]
     fn parse_atlas_multiple_pages_assigns_region_pages() {
-        let atlas = Atlas::parse(
-            r#"
+        let atlas = r#"
 page0.png
 size: 32,32
 r0
@@ -597,8 +590,8 @@ page1.png
 size: 64,64
 r1
   bounds: 2, 3, 4, 5
-"#,
-        )
+"#
+        .parse::<Atlas>()
         .unwrap();
 
         assert_eq!(atlas.get_pages().len(), 2);
@@ -621,8 +614,7 @@ r1
 
     #[test]
     fn parse_atlas_regions_keep_cpp_array_order_index_and_extra_values() {
-        let atlas = Atlas::parse(
-            r#"
+        let atlas = r#"
 page.png
 size: 64,64
 beta
@@ -633,8 +625,8 @@ alpha
   bounds: 1, 2, 12, 13
   index: -1
   pad: 5, 6, 7, 8
-"#,
-        )
+"#
+        .parse::<Atlas>()
         .unwrap();
 
         assert_eq!(
@@ -661,16 +653,15 @@ alpha
 
     #[test]
     fn parse_atlas_region_computes_texture_region_uvs_and_flip_v() {
-        let mut atlas = Atlas::parse(
-            r#"
+        let mut atlas = r#"
 page.png
 size: 64,64
 head
   rotate: true
   xy: 16, 32
   size: 16, 8
-"#,
-        )
+"#
+        .parse::<Atlas>()
         .unwrap();
 
         let region = atlas.find_region("head").unwrap();
@@ -691,14 +682,13 @@ head
 
     #[test]
     fn parse_atlas_region_bounds_sets_xy_and_size() {
-        let atlas = Atlas::parse(
-            r#"
+        let atlas = r#"
 page.png
 size: 64,64
 head
   bounds: 16, 32, 8, 4
-"#,
-        )
+"#
+        .parse::<Atlas>()
         .unwrap();
 
         let region = atlas.find_region("head").unwrap();
@@ -712,8 +702,7 @@ head
 
     #[test]
     fn parse_atlas_page_filter_and_repeat() {
-        let atlas = Atlas::parse(
-            r#"
+        let atlas = r#"
 page.png
 format: RGB888
 size: 64,64
@@ -721,8 +710,8 @@ filter: Nearest, Linear
 repeat: xy
 head
   bounds: 0, 0, 1, 1
-"#,
-        )
+"#
+        .parse::<Atlas>()
         .unwrap();
 
         let page = &atlas.get_pages()[0];
@@ -735,14 +724,13 @@ head
 
     #[test]
     fn parse_atlas_unknown_filter_matches_cpp_unknown() {
-        let atlas = Atlas::parse(
-            r#"
+        let atlas = r#"
 page.png
 filter: Strange, Linear
 head
   bounds: 0, 0, 1, 1
-"#,
-        )
+"#
+        .parse::<Atlas>()
         .unwrap();
 
         let page = &atlas.get_pages()[0];
@@ -752,8 +740,7 @@ head
 
     #[test]
     fn parse_atlas_region_orig_and_offset() {
-        let atlas = Atlas::parse(
-            r#"
+        let atlas = r#"
 page.png
 size: 64,64
 head
@@ -761,8 +748,8 @@ head
   size: 10, 11
   orig: 20, 21
   offset: 3, 4
-"#,
-        )
+"#
+        .parse::<Atlas>()
         .unwrap();
 
         let region = atlas.find_region("head").unwrap();
@@ -776,15 +763,14 @@ head
 
     #[test]
     fn parse_atlas_region_offsets_compact_field() {
-        let atlas = Atlas::parse(
-            r#"
+        let atlas = r#"
 page.png
 size: 64,64
 head
   bounds: 1, 2, 3, 4
   offsets: 5, 6, 7, 8
-"#,
-        )
+"#
+        .parse::<Atlas>()
         .unwrap();
 
         let region = atlas.find_region("head").unwrap();
@@ -800,8 +786,7 @@ head
 
     #[test]
     fn parse_atlas_region_rotate_degrees_accepts_true_false_and_numbers() {
-        let atlas = Atlas::parse(
-            r#"
+        let atlas = r#"
 page.png
 size: 64,64
 r0
@@ -816,8 +801,8 @@ r180
 r270
   bounds: 0, 0, 1, 1
   rotate: 270
-"#,
-        )
+"#
+        .parse::<Atlas>()
         .unwrap();
 
         assert_eq!(atlas.find_region("r0").unwrap().get_degrees(), 0);

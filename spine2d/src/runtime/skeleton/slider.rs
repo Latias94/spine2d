@@ -1,4 +1,5 @@
 use super::{Bone, Skeleton, atan2_degrees};
+use crate::runtime::MixFrom;
 
 #[derive(Clone, Debug)]
 pub struct SliderConstraint {
@@ -221,17 +222,17 @@ pub(super) fn apply(skeleton: &mut Skeleton, constraint_index: usize) -> bool {
         skeleton.bone_modify_local(bone_index);
     }
 
-    crate::runtime::apply_animation_applied(
-        animation,
+    animation.apply(
         skeleton,
         time_to_apply,
+        time_to_apply,
         looped,
+        None,
         mix,
-        if additive {
-            crate::runtime::MixBlend::Add
-        } else {
-            crate::runtime::MixBlend::Replace
-        },
+        MixFrom::Current,
+        additive,
+        false,
+        true,
     );
 
     skeleton.slider_constraints[constraint_index].animation_bones = animation_bones;

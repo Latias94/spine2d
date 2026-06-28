@@ -380,7 +380,7 @@ struct ReadVertices {
 }
 
 fn validate_spine_version(value: &str) -> Result<(), Error> {
-    if !crate::version::spine_version_matches_runtime(value) {
+    if !value.starts_with("4.3") {
         return Err(Error::BinarySpineVersion {
             value: value.to_string(),
         });
@@ -1934,10 +1934,7 @@ impl crate::SkeletonData {
             slots,
             skins,
             default_skin,
-            events: events
-                .into_values()
-                .map(|event| Arc::unwrap_or_clone(event))
-                .collect(),
+            events: events.into_values().map(Arc::unwrap_or_clone).collect(),
             animations,
             ik_constraints,
             transform_constraints,
@@ -3030,6 +3027,10 @@ fn read_animation(
                             slot_index,
                             attachment: attachment_key,
                             vertex_count,
+                            property_id: crate::deform_property_id(
+                                slot_index,
+                                attachment.get_vertex_attachment_id().unwrap_or(0),
+                            ),
                             setup_vertices,
                             frames,
                         });
@@ -3055,6 +3056,10 @@ fn read_animation(
                             skin: skin_name.clone(),
                             slot_index,
                             attachment: attachment_key,
+                            property_id: crate::sequence_property_id(
+                                slot_index,
+                                attachment.get_sequence_id().unwrap_or(0),
+                            ),
                             frames,
                         });
                         timeline_order.sequence(&sequence_timelines);

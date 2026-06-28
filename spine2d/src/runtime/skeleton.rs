@@ -111,19 +111,19 @@ impl ConstraintRefMut<'_> {
     pub fn get_data(&self) -> ConstraintDataRef<'_> {
         match self {
             ConstraintRefMut::Ik(constraint, data) => {
-                ConstraintDataRef::Ik(constraint.data_index, *data)
+                ConstraintDataRef::Ik(constraint.data_index, data)
             }
             ConstraintRefMut::Transform(constraint, data) => {
-                ConstraintDataRef::Transform(constraint.data_index, *data)
+                ConstraintDataRef::Transform(constraint.data_index, data)
             }
             ConstraintRefMut::Path(constraint, data) => {
-                ConstraintDataRef::Path(constraint.data_index, *data)
+                ConstraintDataRef::Path(constraint.data_index, data)
             }
             ConstraintRefMut::Physics(constraint, data) => {
-                ConstraintDataRef::Physics(constraint.data_index, *data)
+                ConstraintDataRef::Physics(constraint.data_index, data)
             }
             ConstraintRefMut::Slider(constraint, data) => {
-                ConstraintDataRef::Slider(constraint.data_index, *data)
+                ConstraintDataRef::Slider(constraint.data_index, data)
             }
         }
     }

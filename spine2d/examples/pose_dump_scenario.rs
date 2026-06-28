@@ -98,21 +98,25 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
         .map(|item| match *item {
             UpdateCacheItem::Bone(index) => format!("bone {}", bone_name(skeleton, index)),
             UpdateCacheItem::Ik(index) => runtime_constraint_name(skeleton, "ik", |constraint| {
-                matches!(constraint, ConstraintRef::Ik(_)
-                        if constraint.get_data(skeleton).get_index() == index)
+                matches!(
+                    constraint.get_data(skeleton),
+                    ConstraintDataRef::Ik(i, _) if i == index
+                )
             }),
             UpdateCacheItem::Transform(index) => {
-                runtime_constraint_name(skeleton, "transform", |constraint| match constraint {
-                    ConstraintRef::Transform(_) => {
-                        constraint.get_data(skeleton).get_index() == index
-                    }
-                    _ => false,
+                runtime_constraint_name(skeleton, "transform", |constraint| {
+                    matches!(
+                        constraint.get_data(skeleton),
+                        ConstraintDataRef::Transform(i, _) if i == index
+                    )
                 })
             }
             UpdateCacheItem::Path(index) => {
                 runtime_constraint_name(skeleton, "path", |constraint| {
-                    matches!(constraint, ConstraintRef::Path(_)
-                        if constraint.get_data(skeleton).get_index() == index)
+                    matches!(
+                        constraint.get_data(skeleton),
+                        ConstraintDataRef::Path(i, _) if i == index
+                    )
                 })
             }
             UpdateCacheItem::Physics(index) => skeleton
@@ -121,9 +125,11 @@ fn update_cache_debug_labels(skeleton: &Skeleton) -> Vec<String> {
                 .map(|constraint| format!("physics {}", constraint.get_data(skeleton).get_name()))
                 .unwrap_or_else(|| "physics <unknown>".to_string()),
             UpdateCacheItem::Slider(index) => {
-                runtime_constraint_name(skeleton, "slider", |constraint| match constraint {
-                    ConstraintRef::Slider(_) => constraint.get_data(skeleton).get_index() == index,
-                    _ => false,
+                runtime_constraint_name(skeleton, "slider", |constraint| {
+                    matches!(
+                        constraint.get_data(skeleton),
+                        ConstraintDataRef::Slider(i, _) if i == index
+                    )
                 })
             }
         })

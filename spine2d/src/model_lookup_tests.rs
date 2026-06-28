@@ -6,6 +6,16 @@ use crate::{
     TransformToProperty,
 };
 
+fn sort_constraint_refs(constraints: &mut [ConstraintDataRef<'_>]) {
+    constraints.sort_by_key(|constraint| match constraint {
+        ConstraintDataRef::Ik(_, data) => data.order,
+        ConstraintDataRef::Transform(_, data) => data.order,
+        ConstraintDataRef::Path(_, data) => data.order,
+        ConstraintDataRef::Physics(_, data) => data.order,
+        ConstraintDataRef::Slider(_, data) => data.order,
+    });
+}
+
 #[test]
 fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
     let mut data = SkeletonData::default();
@@ -215,11 +225,30 @@ fn skeleton_data_named_lookup_helpers_match_cpp_surface() {
         "root"
     );
 
-    let constraints = data.get_constraints();
+    let constraints = {
+        let mut constraints = vec![
+            ConstraintDataRef::Physics(0, &data.physics_constraints[0]),
+            ConstraintDataRef::Slider(0, &data.slider_constraints[0]),
+            ConstraintDataRef::Ik(0, &data.ik_constraints[0]),
+            ConstraintDataRef::Path(0, &data.path_constraints[0]),
+            ConstraintDataRef::Transform(0, &data.transform_constraints[0]),
+        ];
+        sort_constraint_refs(&mut constraints);
+        constraints
+    };
     assert_eq!(
         constraints
             .iter()
-            .map(|constraint| (constraint.get_order(), constraint.get_name()))
+            .map(|constraint| {
+                let order = match constraint {
+                    ConstraintDataRef::Ik(_, data) => data.order,
+                    ConstraintDataRef::Transform(_, data) => data.order,
+                    ConstraintDataRef::Path(_, data) => data.order,
+                    ConstraintDataRef::Physics(_, data) => data.order,
+                    ConstraintDataRef::Slider(_, data) => data.order,
+                };
+                (order, constraint.get_name())
+            })
             .collect::<Vec<_>>(),
         vec![
             (0, "slider"),
@@ -732,6 +761,255 @@ fn animation_getters_and_duration_setter_match_cpp_surface() {
 }
 
 #[test]
+fn animation_search_matches_cpp_scan_semantics() {
+    let frames = [0.0, 0.3, 0.6, 0.9];
+
+    assert_eq!(Animation::search(&frames, -0.1), 0);
+    assert_eq!(Animation::search(&frames, 0.0), 0);
+    assert_eq!(Animation::search(&frames, 0.29), 0);
+    assert_eq!(Animation::search(&frames, 0.3), 1);
+    assert_eq!(Animation::search(&frames, 0.89), 2);
+    assert_eq!(Animation::search(&frames, 1.0), 3);
+}
+
+#[test]
+fn animation_search_with_step_matches_cpp_scan_semantics() {
+    let frames = [0.0, 0.1, 0.3, 0.2, 0.6, 0.5, 0.9, 0.8];
+
+    assert_eq!(Animation::search_with_step(&frames, 0.29, 2), 0);
+    assert_eq!(Animation::search_with_step(&frames, 0.3, 2), 2);
+    assert_eq!(Animation::search_with_step(&frames, 0.59, 2), 2);
+    assert_eq!(Animation::search_with_step(&frames, 0.9, 2), 6);
+}
+
+#[test]
+fn animation_has_timeline_matches_cpp_property_scan_semantics() {
+    let mut animation = Animation::new("anim");
+    animation.timeline_order = vec![
+        crate::TimelineKind::Bone(0),
+        crate::TimelineKind::PathConstraint(0),
+        crate::TimelineKind::DrawOrder,
+    ];
+    animation
+        .bone_timelines
+        .push(BoneTimeline::Rotate(crate::RotateTimeline {
+            bone_index: 0,
+            frames: Vec::new(),
+        }));
+    animation
+        .path_constraint_timelines
+        .push(crate::PathConstraintTimeline::Position(
+            crate::PathConstraintPositionTimeline {
+                constraint_index: 0,
+                frames: Vec::new(),
+            },
+        ));
+
+    let mut data = SkeletonData::default();
+    data.bones.push(BoneData::default());
+    data.path_constraints.push(PathConstraintData::new("path"));
+    data.path_constraints[0].target = 0;
+
+    let rotate_ids = animation.timeline_property_ids(crate::TimelineKind::Bone(0));
+    let path_ids = animation.timeline_property_ids(crate::TimelineKind::PathConstraint(0));
+    let draw_order_ids = animation.timeline_property_ids(crate::TimelineKind::DrawOrder);
+
+    assert!(!animation.has_timeline(&[]));
+    assert!(animation.has_timeline(&rotate_ids));
+    assert!(animation.has_timeline(&path_ids));
+    assert!(animation.has_timeline(&draw_order_ids));
+    assert!(!animation.has_timeline(&[0]));
+}
+
+#[test]
+fn skin_data_color_and_bone_accessors_match_cpp_surface() {
+    let mut skin = SkinData::new("skin");
+    skin.get_color_mut()[1] = 0.75;
+    skin.get_bones_mut().extend([1, 3]);
+
+    assert_eq!(skin.get_color(), [0.99607843, 0.75, 0.30980393, 1.0]);
+    assert_eq!(skin.get_bones(), [1, 3]);
+}
+
+#[test]
+fn skin_data_constraints_follow_cpp_section_order() {
+    let mut data = SkeletonData::default();
+    data.ik_constraints.push(IkConstraintData {
+        name: "ik".to_string(),
+        order: 2,
+        skin_required: false,
+        bones: vec![],
+        target: 0,
+        scale_y_mode: ScaleYMode::None,
+        mix: 0.0,
+        softness: 0.0,
+        compress: false,
+        stretch: false,
+        bend_direction: 0,
+    });
+    data.transform_constraints.push(TransformConstraintData {
+        name: "transform".to_string(),
+        order: 4,
+        skin_required: false,
+        bones: vec![],
+        source: 0,
+        local_source: false,
+        local_target: false,
+        additive: false,
+        clamp: false,
+        offsets: [0.0; 6],
+        properties: Vec::new(),
+        mix_rotate: 0.0,
+        mix_x: 0.0,
+        mix_y: 0.0,
+        mix_scale_x: 0.0,
+        mix_scale_y: 0.0,
+        mix_shear_y: 0.0,
+    });
+    data.path_constraints.push(PathConstraintData {
+        name: "path".to_string(),
+        order: 1,
+        bones: vec![],
+        target: 0,
+        position_mode: PositionMode::Fixed,
+        spacing_mode: SpacingMode::Length,
+        rotate_mode: RotateMode::Tangent,
+        offset_rotation: 0.0,
+        position: 0.0,
+        spacing: 0.0,
+        mix_rotate: 0.0,
+        mix_x: 0.0,
+        mix_y: 0.0,
+        skin_required: false,
+    });
+    data.physics_constraints.push(PhysicsConstraintData {
+        name: "physics".to_string(),
+        order: 3,
+        skin_required: false,
+        bone: 0,
+        x: 0.0,
+        y: 0.0,
+        rotate: 0.0,
+        scale_x: 0.0,
+        scale_y_mode: ScaleYMode::None,
+        shear_x: 0.0,
+        limit: 0.0,
+        step: 0.0,
+        inertia: 0.0,
+        strength: 0.0,
+        damping: 0.0,
+        mass_inverse: 0.0,
+        wind: 0.0,
+        gravity: 0.0,
+        mix: 0.0,
+        inertia_global: false,
+        strength_global: false,
+        damping_global: false,
+        mass_global: false,
+        wind_global: false,
+        gravity_global: false,
+        mix_global: false,
+    });
+    data.slider_constraints
+        .push(SliderConstraintData::new("slider"));
+    data.slider_constraints[0].order = 0;
+
+    let mut skin = SkinData::new("skin");
+    skin.ik_constraints.push(0);
+    skin.transform_constraints.push(0);
+    skin.path_constraints.push(0);
+    skin.physics_constraints.push(0);
+    skin.slider_constraints.push(0);
+
+    let mut constraints = vec![
+        ConstraintDataRef::Ik(0, &data.ik_constraints[0]),
+        ConstraintDataRef::Transform(0, &data.transform_constraints[0]),
+        ConstraintDataRef::Path(0, &data.path_constraints[0]),
+        ConstraintDataRef::Physics(0, &data.physics_constraints[0]),
+        ConstraintDataRef::Slider(0, &data.slider_constraints[0]),
+    ];
+    sort_constraint_refs(&mut constraints);
+    assert_eq!(
+        constraints
+            .iter()
+            .map(|constraint| {
+                let order = match constraint {
+                    ConstraintDataRef::Ik(_, data) => data.order,
+                    ConstraintDataRef::Transform(_, data) => data.order,
+                    ConstraintDataRef::Path(_, data) => data.order,
+                    ConstraintDataRef::Physics(_, data) => data.order,
+                    ConstraintDataRef::Slider(_, data) => data.order,
+                };
+                (order, constraint.get_name())
+            })
+            .collect::<Vec<_>>(),
+        vec![
+            (0, "slider"),
+            (1, "path"),
+            (2, "ik"),
+            (3, "physics"),
+            (4, "transform"),
+        ]
+    );
+}
+
+#[test]
+fn skin_data_attachment_entries_expose_flattened_cpp_style_view() {
+    let mut skin = SkinData::new("skin");
+    skin.set_attachment(
+        1,
+        "slot-1-a",
+        crate::AttachmentData::Region(crate::RegionAttachmentData {
+            name: "slot-1-a".to_string(),
+            path: "slot-1-a.png".to_string(),
+            sequence: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            timeline_attachment: "slot-1-a".to_string(),
+            timeline_slots: Vec::new(),
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            width: 0.0,
+            height: 0.0,
+        }),
+    );
+    skin.set_attachment(
+        0,
+        "slot-0-a",
+        crate::AttachmentData::Region(crate::RegionAttachmentData {
+            name: "slot-0-a".to_string(),
+            path: "slot-0-a.png".to_string(),
+            sequence: None,
+            color: [1.0, 1.0, 1.0, 1.0],
+            timeline_attachment: "slot-0-a".to_string(),
+            timeline_slots: Vec::new(),
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
+            width: 0.0,
+            height: 0.0,
+        }),
+    );
+
+    let entries = skin.get_attachments().collect::<Vec<_>>();
+    assert_eq!(
+        entries
+            .iter()
+            .map(|entry| (
+                entry.get_slot_index(),
+                entry.get_placeholder(),
+                entry.get_attachment().get_name()
+            ))
+            .collect::<Vec<_>>(),
+        vec![(0, "slot-0-a", "slot-0-a"), (1, "slot-1-a", "slot-1-a"),]
+    );
+}
+
+#[test]
 fn animation_bones_reports_unique_affected_bone_indices_like_cpp() {
     let mut animation = empty_animation("bones");
     animation
@@ -817,7 +1095,16 @@ fn skeleton_data_constraints_follow_cpp_unified_order_after_json_parse() {
     assert_eq!(
         data.get_constraints()
             .iter()
-            .map(|constraint| (constraint.get_order(), constraint.get_name()))
+            .map(|constraint| {
+                let order = match constraint {
+                    ConstraintDataRef::Ik(_, data) => data.order,
+                    ConstraintDataRef::Transform(_, data) => data.order,
+                    ConstraintDataRef::Path(_, data) => data.order,
+                    ConstraintDataRef::Physics(_, data) => data.order,
+                    ConstraintDataRef::Slider(_, data) => data.order,
+                };
+                (order, constraint.get_name())
+            })
             .collect::<Vec<_>>(),
         vec![
             (0, "physics"),
@@ -825,6 +1112,29 @@ fn skeleton_data_constraints_follow_cpp_unified_order_after_json_parse() {
             (2, "ik"),
             (3, "path"),
             (4, "transform"),
+        ]
+    );
+}
+
+#[test]
+fn skin_data_constraint_entries_expose_flattened_cpp_style_view() {
+    let mut skin = SkinData::new("skin");
+    skin.ik_constraints.push(2);
+    skin.transform_constraints.push(4);
+    skin.path_constraints.push(6);
+    skin.physics_constraints.push(8);
+    skin.slider_constraints.push(10);
+
+    assert_eq!(
+        skin.get_constraints()
+            .map(|entry| (entry.get_kind(), entry.get_index()))
+            .collect::<Vec<_>>(),
+        vec![
+            (crate::SkinConstraintKind::Ik, 2),
+            (crate::SkinConstraintKind::Transform, 4),
+            (crate::SkinConstraintKind::Path, 6),
+            (crate::SkinConstraintKind::Physics, 8),
+            (crate::SkinConstraintKind::Slider, 10),
         ]
     );
 }

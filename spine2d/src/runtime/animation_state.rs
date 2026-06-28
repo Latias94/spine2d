@@ -48,15 +48,8 @@ fn animation_identity(animation: &Animation) -> u64 {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum TimelineMode {
-    Current,
-    Setup,
-    First,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct TimelineApplyMode {
-    from: TimelineMode,
+    from: MixFrom,
     hold: bool,
 }
 
@@ -88,8 +81,8 @@ impl AnimationStateData {
         }
     }
 
-    pub fn get_skeleton_data(&self) -> &SkeletonData {
-        self.skeleton_data.as_ref()
+    pub fn get_skeleton_data(&mut self) -> &mut SkeletonData {
+        Arc::make_mut(&mut self.skeleton_data)
     }
 
     pub fn get_default_mix(&self) -> f32 {
@@ -123,16 +116,33 @@ impl AnimationStateData {
     }
 }
 
+impl AnimationState {
+    fn mix_duration_from_last(&self, last: Option<EntryId>, animation_name: &str) -> f32 {
+        last.and_then(|last| {
+            self.entry(last).map(|last_ref| {
+                self.data
+                    .mix_duration(last_ref.animation.name.as_str(), animation_name)
+            })
+        })
+        .unwrap_or(0.0)
+    }
+}
+
 mod sealed {
     pub trait Sealed {}
 }
+
+impl sealed::Sealed for &str {}
+impl sealed::Sealed for &String {}
+impl sealed::Sealed for String {}
+impl sealed::Sealed for &Animation {}
+impl sealed::Sealed for Animation {}
 
 #[doc(hidden)]
 pub trait MixKeyInput: sealed::Sealed {
     fn into_mix_key(self, skeleton_data: &SkeletonData) -> String;
 }
 
-impl sealed::Sealed for &str {}
 impl MixKeyInput for &str {
     fn into_mix_key(self, skeleton_data: &SkeletonData) -> String {
         assert!(
@@ -143,17 +153,50 @@ impl MixKeyInput for &str {
     }
 }
 
-impl sealed::Sealed for &String {}
 impl MixKeyInput for &String {
     fn into_mix_key(self, skeleton_data: &SkeletonData) -> String {
         self.as_str().into_mix_key(skeleton_data)
     }
 }
 
-impl sealed::Sealed for &Animation {}
 impl MixKeyInput for &Animation {
     fn into_mix_key(self, _skeleton_data: &SkeletonData) -> String {
         self.name.clone()
+    }
+}
+
+#[doc(hidden)]
+pub trait AnimationInput: sealed::Sealed {
+    fn into_animation(self, state: &AnimationState) -> (u64, Animation);
+}
+
+impl AnimationInput for &str {
+    fn into_animation(self, state: &AnimationState) -> (u64, Animation) {
+        state.resolve_animation_name(self)
+    }
+}
+
+impl AnimationInput for &String {
+    fn into_animation(self, state: &AnimationState) -> (u64, Animation) {
+        self.as_str().into_animation(state)
+    }
+}
+
+impl AnimationInput for String {
+    fn into_animation(self, state: &AnimationState) -> (u64, Animation) {
+        self.as_str().into_animation(state)
+    }
+}
+
+impl AnimationInput for &Animation {
+    fn into_animation(self, _state: &AnimationState) -> (u64, Animation) {
+        (animation_identity(self), self.clone())
+    }
+}
+
+impl AnimationInput for Animation {
+    fn into_animation(self, _state: &AnimationState) -> (u64, Animation) {
+        (animation_identity(&self), self)
     }
 }
 
@@ -410,14 +453,7 @@ impl TrackEntry {
             return mix;
         }
 
-        let mix = self.mix_interpolation.apply(mix);
-        if mix < 0.0 {
-            0.0
-        } else if mix > 1.0 {
-            1.0
-        } else {
-            mix
-        }
+        self.mix_interpolation.apply(mix).clamp(0.0, 1.0)
     }
 }
 
@@ -430,6 +466,14 @@ pub struct TrackEntryHandle {
 impl TrackEntryHandle {
     pub fn entry<'a>(&self, state: &'a AnimationState) -> Option<&'a TrackEntry> {
         state.entry_for_handle(*self)
+    }
+
+    pub fn get_animation_state<'a>(&self, state: &'a AnimationState) -> Option<&'a AnimationState> {
+        if self.state_id == state.state_id {
+            Some(state)
+        } else {
+            None
+        }
     }
 
     pub fn get_mixing_from(&self, state: &AnimationState) -> Option<TrackEntryHandle> {
@@ -546,6 +590,34 @@ impl TrackEntryHandle {
     pub fn set_mix_duration(&self, state: &mut AnimationState, mix_duration: f32) {
         self.with_entry_mut(state, |entry| {
             entry.mix_duration = mix_duration;
+        });
+    }
+
+    /// Sets both the mix duration and delay for this track entry.
+    ///
+    /// Mirrors the official runtimes' `TrackEntry::setMixDuration(float, float)`.
+    pub fn set_mix_duration_with_delay(
+        &self,
+        state: &mut AnimationState,
+        mix_duration: f32,
+        delay: f32,
+    ) {
+        let previous_track_complete = state
+            .entry_for_handle(*self)
+            .and_then(|entry| entry.previous)
+            .and_then(|previous| state.entry(previous))
+            .map(|entry| entry.get_track_complete());
+        let resolved_delay = if delay <= 0.0 {
+            previous_track_complete
+                .map(|track_complete| (delay + track_complete - mix_duration).max(0.0))
+                .unwrap_or(0.0)
+        } else {
+            delay
+        };
+
+        self.with_entry_mut(state, |entry| {
+            entry.mix_duration = mix_duration;
+            entry.delay = resolved_delay;
         });
     }
 
@@ -712,6 +784,16 @@ impl AnimationState {
         self.listener = Some(Box::new(listener));
     }
 
+    /// Disables draining the event queue until `enable_queue()` is called.
+    pub fn disable_queue(&mut self) {
+        self.drain_disabled = true;
+    }
+
+    /// Re-enables draining the event queue.
+    pub fn enable_queue(&mut self) {
+        self.drain_disabled = false;
+    }
+
     pub fn set_manual_track_entry_disposal(&mut self, manual: bool) {
         self.manual_track_entry_disposal = manual;
     }
@@ -759,26 +841,19 @@ impl AnimationState {
         self.entry(handle.id)
     }
 
-    fn compute_mix_from(
-        &mut self,
-        track_id: EntryId,
-        kind: TimelineKind,
-        ids: &[u64],
-    ) -> TimelineMode {
-        let mut mix_from = TimelineMode::Setup;
+    fn compute_mix_from(&mut self, track_id: EntryId, kind: TimelineKind, ids: &[u64]) -> MixFrom {
+        let mut mix_from = MixFrom::Setup;
         for (i, id) in ids.iter().copied().enumerate() {
             match self.property_ids.get(&id).copied() {
                 None => {
                     self.property_ids.insert(id, track_id);
                 }
-                Some(owner) if owner == track_id => {
-                    mix_from = TimelineMode::First;
-                }
+                Some(owner) if owner == track_id => mix_from = MixFrom::First,
                 Some(_) => {
                     for id in ids.iter().skip(i + 1).copied() {
                         self.property_ids.entry(id).or_insert(track_id);
                     }
-                    return TimelineMode::Current;
+                    return MixFrom::Current;
                 }
             }
         }
@@ -787,9 +862,9 @@ impl AnimationState {
             let draw_order_id = crate::model::draw_order_property_id();
             if let Some(owner) = self.property_ids.get(&draw_order_id).copied() {
                 return if owner == track_id {
-                    TimelineMode::First
+                    MixFrom::First
                 } else {
-                    TimelineMode::Current
+                    MixFrom::Current
                 };
             }
         }
@@ -838,12 +913,10 @@ impl AnimationState {
                 ),
                 None => return,
             };
-        let skeleton_data = self.data.skeleton_data.clone();
-
         let kinds = animation.timeline_order().to_vec();
         let mut timeline_mode = vec![
             TimelineApplyMode {
-                from: TimelineMode::Setup,
+                from: MixFrom::Setup,
                 hold: false,
             };
             kinds.len()
@@ -851,7 +924,7 @@ impl AnimationState {
         let mut timeline_hold_mix = vec![None; kinds.len()];
 
         for (i, kind) in kinds.iter().copied().enumerate() {
-            let ids = animation.timeline_property_ids(skeleton_data.as_ref(), kind);
+            let ids = animation.timeline_property_ids(kind);
             let mix_from = self.compute_mix_from(track_id, kind, &ids);
             timeline_mode[i].from = mix_from;
 
@@ -865,10 +938,7 @@ impl AnimationState {
             {
                 let to_holds_property = match self.entry(to_id) {
                     Some(to) => {
-                        !(to.additive && timeline_additive)
-                            && to
-                                .animation
-                                .has_timeline_property_ids(skeleton_data.as_ref(), &ids)
+                        !(to.additive && timeline_additive) && to.animation.has_timeline(&ids)
                     }
                     None => false,
                 };
@@ -882,9 +952,7 @@ impl AnimationState {
                         };
 
                         if next_entry.additive && timeline_additive
-                            || !next_entry
-                                .animation
-                                .has_timeline_property_ids(skeleton_data.as_ref(), &ids)
+                            || !next_entry.animation.has_timeline(&ids)
                         {
                             if next_entry.mix_duration > 0.0 {
                                 hold_mix = Some(next_id);
@@ -924,33 +992,20 @@ impl AnimationState {
         let animation_name = animation_name.as_ref();
         let animation = self
             .data
-            .get_skeleton_data()
+            .skeleton_data
+            .as_ref()
             .find_animation(animation_name)
             .unwrap_or_else(|| panic!("unknown animation: {}", animation_name));
-        (animation_identity(animation), animation.clone())
-    }
-
-    fn animation_ref_payload(animation: &Animation) -> (u64, Animation) {
         (animation_identity(animation), animation.clone())
     }
 
     pub fn set_animation(
         &mut self,
         track_index: usize,
-        animation_name: impl AsRef<str>,
+        animation: impl AnimationInput,
         looped: bool,
     ) -> TrackEntryHandle {
-        let (animation_id, animation) = self.resolve_animation_name(animation_name);
-        self.set_animation_internal(track_index, animation_id, animation, looped)
-    }
-
-    pub fn set_animation_ref(
-        &mut self,
-        track_index: usize,
-        animation: &Animation,
-        looped: bool,
-    ) -> TrackEntryHandle {
-        let (animation_id, animation) = Self::animation_ref_payload(animation);
+        let (animation_id, animation) = animation.into_animation(self);
         self.set_animation_internal(track_index, animation_id, animation, looped)
     }
 
@@ -1086,22 +1141,11 @@ impl AnimationState {
     pub fn add_animation(
         &mut self,
         track_index: usize,
-        animation_name: impl AsRef<str>,
+        animation: impl AnimationInput,
         looped: bool,
         delay: f32,
     ) -> TrackEntryHandle {
-        let (animation_id, animation) = self.resolve_animation_name(animation_name);
-        self.add_animation_internal(track_index, animation_id, animation, looped, delay)
-    }
-
-    pub fn add_animation_ref(
-        &mut self,
-        track_index: usize,
-        animation: &Animation,
-        looped: bool,
-        delay: f32,
-    ) -> TrackEntryHandle {
-        let (animation_id, animation) = Self::animation_ref_payload(animation);
+        let (animation_id, animation) = animation.into_animation(self);
         self.add_animation_internal(track_index, animation_id, animation, looped, delay)
     }
 
@@ -1126,34 +1170,7 @@ impl AnimationState {
             looped,
         ));
 
-        let (resolved_delay, resolved_mix_duration) = if let Some(last) = last {
-            let (last_track_complete, mix_duration) = self
-                .entry(last)
-                .map(|last_ref| {
-                    (
-                        last_ref.get_track_complete(),
-                        self.data.mix_duration(
-                            last_ref.animation.name.as_str(),
-                            animation.name.as_str(),
-                        ),
-                    )
-                })
-                .unwrap_or((0.0, 0.0));
-            let resolved_delay = if delay > 0.0 {
-                delay
-            } else {
-                (delay + last_track_complete - mix_duration).max(0.0)
-            };
-            (resolved_delay, mix_duration)
-        } else {
-            (delay.max(0.0), 0.0)
-        };
-
         if let Some(entry_ref) = self.entry_mut(entry_id) {
-            if last.is_some() {
-                entry_ref.delay = resolved_delay;
-            }
-            entry_ref.mix_duration = resolved_mix_duration;
             entry_ref.previous = last;
         }
         if let Some(last) = last
@@ -1161,6 +1178,8 @@ impl AnimationState {
         {
             last_entry.next = Some(entry_id);
         }
+        let mix_duration = self.mix_duration_from_last(last, animation.name.as_str());
+        let entry = self.handle(entry_id);
 
         let track_empty = self.tracks[track_index].current.is_none();
         if track_empty {
@@ -1168,10 +1187,9 @@ impl AnimationState {
             push_event(&mut self.event_queue, entry_id, AnimationStateEvent::Start);
             self.animations_changed = true;
             self.drain_event_queue();
-            if let Some(entry_ref) = self.entry_mut(entry_id) {
-                entry_ref.delay = resolved_delay;
-            }
+            entry.set_mix_duration_with_delay(self, mix_duration, delay);
         } else {
+            entry.set_mix_duration_with_delay(self, mix_duration, delay);
             self.tracks[track_index].queue.push_back(entry_id);
         }
         self.handle(entry_id)
@@ -1197,41 +1215,7 @@ impl AnimationState {
             false,
         ));
 
-        let (mut resolved_delay, resolved_mix_duration) = if let Some(last) = last {
-            let (last_track_complete, mix_duration_to_empty) = self
-                .entry(last)
-                .map(|last_ref| {
-                    (
-                        last_ref.get_track_complete(),
-                        self.data
-                            .mix_duration(last_ref.animation.name.as_str(), EMPTY_ANIMATION_NAME),
-                    )
-                })
-                .unwrap_or((0.0, 0.0));
-            let resolved_delay = if delay > 0.0 {
-                delay
-            } else {
-                (delay + last_track_complete - mix_duration_to_empty).max(0.0)
-            };
-            (resolved_delay, mix_duration_to_empty)
-        } else {
-            (delay.max(0.0), 0.0)
-        };
-
-        // Match upstream runtimes: if delay <= 0, reduce the delay by the difference between the
-        // previous->empty mix duration and the requested empty mix duration so the empty mix ends
-        // at the same time the previous entry ends.
-        if delay <= 0.0 {
-            resolved_delay = (resolved_delay + resolved_mix_duration - mix_duration).max(0.0);
-        }
-
-        let track_empty = self.tracks[track_index].current.is_none();
         if let Some(entry_ref) = self.entry_mut(entry_id) {
-            if !track_empty {
-                entry_ref.delay = resolved_delay;
-                entry_ref.mix_duration = mix_duration;
-                entry_ref.track_end = mix_duration;
-            }
             entry_ref.previous = last;
         }
         if let Some(last) = last
@@ -1239,19 +1223,32 @@ impl AnimationState {
         {
             last_entry.next = Some(entry_id);
         }
+        let mix_duration_to_empty = self.mix_duration_from_last(last, EMPTY_ANIMATION_NAME);
+        let entry = self.handle(entry_id);
+
+        // Match upstream runtimes: if delay <= 0, reduce the delay by the difference between the
+        // previous->empty mix duration and the requested empty mix duration so the empty mix ends
+        // at the same time the previous entry ends.
+        let track_empty = self.tracks[track_index].current.is_none();
 
         if track_empty {
             self.tracks[track_index].current = Some(entry_id);
             push_event(&mut self.event_queue, entry_id, AnimationStateEvent::Start);
             self.animations_changed = true;
             self.drain_event_queue();
-            if let Some(entry_ref) = self.entry_mut(entry_id) {
-                entry_ref.delay = resolved_delay;
-                entry_ref.mix_duration = mix_duration;
-                entry_ref.track_end = mix_duration;
-            }
+            entry.set_mix_duration_with_delay(self, mix_duration_to_empty, delay);
         } else {
+            entry.set_mix_duration_with_delay(self, mix_duration_to_empty, delay);
             self.tracks[track_index].queue.push_back(entry_id);
+        }
+        if delay <= 0.0
+            && let Some(entry_ref) = self.entry_mut(entry_id)
+        {
+            entry_ref.delay = (entry_ref.delay + entry_ref.mix_duration - mix_duration).max(0.0);
+        }
+        if let Some(entry_ref) = self.entry_mut(entry_id) {
+            entry_ref.mix_duration = mix_duration;
+            entry_ref.track_end = mix_duration;
         }
         self.handle(entry_id)
     }
@@ -1526,20 +1523,20 @@ impl AnimationState {
 
         for (i, kind) in kinds.into_iter().enumerate() {
             let mode = timeline_mode.get(i).copied().unwrap_or(TimelineApplyMode {
-                from: TimelineMode::First,
+                from: MixFrom::First,
                 hold: false,
             });
             let timeline_blend = if special_case {
                 blend
             } else {
                 match mode.from {
-                    TimelineMode::Current => blend,
-                    TimelineMode::Setup => MixBlend::Setup,
-                    TimelineMode::First => MixBlend::First,
+                    MixFrom::Current => blend,
+                    MixFrom::Setup => MixBlend::Setup,
+                    MixFrom::First => MixBlend::First,
                 }
             };
             let effective_from = if special_case {
-                TimelineMode::Setup
+                MixFrom::Setup
             } else {
                 mode.from
             };
@@ -1549,11 +1546,7 @@ impl AnimationState {
             } else {
                 timeline_blend
             };
-            let from = match effective_from {
-                TimelineMode::Current => MixFrom::Current,
-                TimelineMode::Setup => MixFrom::Setup,
-                TimelineMode::First => MixFrom::First,
-            };
+            let from = effective_from;
             let uses_mixed_rotation = !shortest_rotation
                 && !special_case
                 && alpha < 1.0
@@ -1699,14 +1692,14 @@ impl AnimationState {
             let mut total_alpha = 0.0f32;
             for (i, kind) in kinds.into_iter().enumerate() {
                 let mode = timeline_mode.get(i).copied().unwrap_or(TimelineApplyMode {
-                    from: TimelineMode::First,
+                    from: MixFrom::First,
                     hold: false,
                 });
 
                 let timeline_blend = match mode.from {
-                    TimelineMode::Current => from_blend,
-                    TimelineMode::Setup => MixBlend::Setup,
-                    TimelineMode::First => MixBlend::First,
+                    MixFrom::Current => from_blend,
+                    MixFrom::Setup => MixBlend::Setup,
+                    MixFrom::First => MixBlend::First,
                 };
                 let alpha = if mode.hold {
                     let hold_mix = timeline_hold_mix.get(i).copied().flatten();
@@ -1725,7 +1718,7 @@ impl AnimationState {
                 if !mode.hold
                     && !draw_order
                     && kind == TimelineKind::DrawOrder
-                    && mode.from == TimelineMode::Current
+                    && mode.from == MixFrom::Current
                 {
                     continue;
                 }
@@ -1736,11 +1729,7 @@ impl AnimationState {
                 } else {
                     timeline_blend
                 };
-                let from_mode = match mode.from {
-                    TimelineMode::Current => MixFrom::Current,
-                    TimelineMode::Setup => MixFrom::Setup,
-                    TimelineMode::First => MixFrom::First,
-                };
+                let from_mode = mode.from;
                 let physics_last_time = self
                     .entry(from)
                     .map(|e| e.animation_last_time)
@@ -1783,7 +1772,7 @@ impl AnimationState {
                         direction: MixDirection::Out,
                         attachments: attachments && alpha >= alpha_attachment_threshold,
                         unkeyed_state,
-                        draw_order_out: !draw_order || mode.from == TimelineMode::Current,
+                        draw_order_out: !draw_order || mode.from == MixFrom::Current,
                         physics_last_time,
                         physics_time,
                         rotate,

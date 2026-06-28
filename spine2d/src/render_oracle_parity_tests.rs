@@ -41,6 +41,7 @@ fn golden_render_path(name: &str) -> PathBuf {
         .join(name)
 }
 
+#[cfg(feature = "binary")]
 fn golden_render_skel_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests/golden/render_oracle_scenarios_skel")
@@ -879,8 +880,9 @@ fn assert_render_parity(case: &RenderCase, golden_path: &Path) {
     let atlas_path = example_path(case.atlas);
     let skeleton_path = example_path(case.skeleton);
     let atlas_text = read_to_string(&atlas_path);
-    let atlas =
-        Atlas::parse(&atlas_text).unwrap_or_else(|e| panic!("parse atlas {atlas_path:?}: {e}"));
+    let atlas = (&atlas_text)
+        .parse::<Atlas>()
+        .unwrap_or_else(|e| panic!("parse atlas {atlas_path:?}: {e}"));
 
     let data = load_skeleton_data(&skeleton_path);
     let mut skeleton = Skeleton::new(data.clone());
@@ -1019,8 +1021,9 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
     let atlas_path = example_path(case.atlas);
     let skeleton_path = example_path(case.skeleton);
     let atlas_text = read_to_string(&atlas_path);
-    let atlas =
-        Atlas::parse(&atlas_text).unwrap_or_else(|e| panic!("parse atlas {atlas_path:?}: {e}"));
+    let atlas = (&atlas_text)
+        .parse::<Atlas>()
+        .unwrap_or_else(|e| panic!("parse atlas {atlas_path:?}: {e}"));
 
     let data = load_skeleton_data(&skeleton_path);
     let mut skeleton = Skeleton::new(data.clone());

@@ -168,7 +168,7 @@ fn main() {
         eprintln!("{e}");
         std::process::exit(2);
     });
-    let atlas = Atlas::parse(&atlas_text).unwrap_or_else(|e| {
+    let atlas = (&atlas_text).parse::<Atlas>().unwrap_or_else(|e| {
         eprintln!("failed to parse {}: {e}", atlas_path.display());
         std::process::exit(2);
     });

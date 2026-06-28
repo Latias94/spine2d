@@ -25,7 +25,7 @@ fn build_draw_list_region_attachment_quad() {
   },
   "animations": {}
 }
-"#,
+"#
     )
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
@@ -144,23 +144,22 @@ fn build_draw_list_with_atlas_sets_uv_and_page_texture() {
   },
   "animations": {}
 }
-"#,
+"#
     )
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let atlas = Atlas::parse(
-        r#"
+    let atlas = r#"
 page.png
 size: 64,64
 head
   rotate: false
   xy: 16, 32
   size: 16, 16
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
@@ -200,16 +199,15 @@ fn build_draw_list_uses_flipped_atlas_region_v_coordinates() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let mut atlas = Atlas::parse(
-        r#"
+    let mut atlas = r#"
 page.png
 size: 64,64
 head
   rotate: false
   xy: 16, 32
   size: 16, 16
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
     atlas.flip_v();
 
@@ -239,23 +237,22 @@ fn build_draw_list_with_rotated_atlas_region_rotates_uvs() {
   },
   "animations": {}
 }
-"#,
+"#
     )
     .unwrap();
     let mut skeleton = crate::Skeleton::new(data);
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let atlas = Atlas::parse(
-        r#"
+    let atlas = r#"
 page.png
 size: 64,64
 head
   rotate: true
   xy: 16, 32
   size: 16, 8
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
@@ -353,16 +350,15 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_to_region_rect() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let atlas = Atlas::parse(
-        r#"
+    let atlas = r#"
 page.png
 size: 64,64
 mesh0
   rotate: false
   xy: 16, 32
   size: 16, 16
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
@@ -400,16 +396,15 @@ fn build_draw_list_with_atlas_maps_region_uvs_for_rotated_region_90() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let atlas = Atlas::parse(
-        r#"
+    let atlas = r#"
 page.png
 size: 64,64
 head
   rotate: true
   xy: 16, 32
   size: 10, 20
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
@@ -836,8 +831,7 @@ fn build_draw_list_with_atlas_marks_pma_and_premultiplies_vertex_color() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let atlas = Atlas::parse(
-        r#"
+    let atlas = r#"
 page.png
 size: 64,64
 pma: true
@@ -845,8 +839,8 @@ head
   rotate: false
   xy: 0, 0
   size: 16, 16
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
@@ -879,7 +873,7 @@ fn build_draw_list_multiplies_skeleton_slot_and_attachment_tints() {
   },
   "animations": {}
 }
-"#,
+"#
     )
     .unwrap();
 
@@ -924,8 +918,7 @@ fn build_draw_list_two_color_tint_sets_dark_color_alpha_by_pma_and_premultiplies
 "#;
     let data = SkeletonData::from_json_str(json).unwrap();
 
-    let atlas_pma = Atlas::parse(
-        r#"
+    let atlas_pma = r#"
 page.png
 size: 64,64
 pma: true
@@ -933,12 +926,11 @@ head
   rotate: false
   xy: 0, 0
   size: 16, 16
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
-    let atlas_non_pma = Atlas::parse(
-        r#"
+    let atlas_non_pma = r#"
 page.png
 size: 64,64
 pma: false
@@ -946,8 +938,8 @@ head
   rotate: false
   xy: 0, 0
   size: 16, 16
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     // PMA: dark.rgb is premultiplied by final alpha, and dark.a=1.
@@ -1003,8 +995,7 @@ fn build_draw_list_with_atlas_applies_region_trim_offset_and_orig() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let atlas = Atlas::parse(
-        r#"
+    let atlas = r#"
 page.png
 size: 64,64
 head
@@ -1013,8 +1004,8 @@ head
   size: 10, 10
   orig: 20, 20
   offset: 5, 5
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
@@ -1061,8 +1052,7 @@ fn build_draw_list_with_atlas_applies_rotated_region_trim_using_packed_swap() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let atlas = Atlas::parse(
-        r#"
+    let atlas = r#"
 page.png
 size: 64,64
 head
@@ -1071,8 +1061,8 @@ head
   size: 5, 9
   orig: 20, 20
   offset: 0, 0
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
@@ -1125,8 +1115,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_90() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let atlas = Atlas::parse(
-        r#"
+    let atlas = r#"
 page.png
 size: 100,100
 mesh0
@@ -1134,8 +1123,8 @@ mesh0
   bounds: 30, 20, 30, 40
   orig: 50, 60
   offset: 7, 11
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
@@ -1180,8 +1169,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_180() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let atlas = Atlas::parse(
-        r#"
+    let atlas = r#"
 page.png
 size: 100,100
 mesh0
@@ -1189,8 +1177,8 @@ mesh0
   bounds: 30, 20, 30, 40
   orig: 50, 60
   offset: 7, 11
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);
@@ -1235,8 +1223,7 @@ fn build_draw_list_with_atlas_maps_mesh_uvs_with_trim_and_rotate_270() {
     skeleton.setup_pose();
     skeleton.update_world_transform_with_physics(crate::Physics::None);
 
-    let atlas = Atlas::parse(
-        r#"
+    let atlas = r#"
 page.png
 size: 100,100
 mesh0
@@ -1244,8 +1231,8 @@ mesh0
   bounds: 30, 20, 30, 40
   orig: 50, 60
   offset: 7, 11
-"#,
-    )
+"#
+    .parse::<Atlas>()
     .unwrap();
 
     let draw_list = build_draw_list_with_atlas(&skeleton, &atlas);

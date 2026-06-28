@@ -508,7 +508,6 @@ fn copy_skin_matches_cpp_deep_copy_surface() {
 #[test]
 fn skin_attachment_iteration_preserves_insertion_order() {
     let mut skin = SkinData::new("ordered");
-    skin.attachments.resize_with(1, Default::default);
     skin.set_attachment(
         0,
         "first".to_string(),
@@ -548,14 +547,21 @@ fn skin_attachment_iteration_preserves_insertion_order() {
         }),
     );
 
-    let slot0 = &skin.attachments[0];
+    let entries = skin.get_attachments().collect::<Vec<_>>();
     assert_eq!(
-        slot0.keys().map(String::as_str).collect::<Vec<_>>(),
+        entries
+            .iter()
+            .map(|entry| (entry.get_slot_index(), entry.get_placeholder()))
+            .collect::<Vec<_>>(),
+        vec![(0, "first"), (0, "second")]
+    );
+    assert_eq!(
+        entries
+            .iter()
+            .map(|entry| entry.get_attachment().get_name())
+            .collect::<Vec<_>>(),
         vec!["first", "second"]
     );
-    assert_eq!(slot0.len(), 2);
-    assert_eq!(slot0.get_index(0).unwrap().0.as_str(), "first");
-    assert_eq!(slot0.get_index(1).unwrap().0.as_str(), "second");
 }
 
 #[test]
