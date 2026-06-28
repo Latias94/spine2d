@@ -157,7 +157,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut demo: ResMu
             asset_server.load(assets.skeleton),
             asset_server.load(assets.atlas),
         )
-        .with_animation(assets.animations.idle.clone(), true),
+        .with_animation_name(assets.animations.idle.clone(), true),
         SpineAnimationStateConfig::new()
             .with_default_mix(0.2)
             .with_mix(

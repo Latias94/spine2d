@@ -41,7 +41,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             asset_server.load("demo.json"),
             asset_server.load("demo.atlas"),
         )
-        .with_animation("spin", true),
+        .with_animation_name("spin", true),
         SpineAnimationStateConfig::new().with_default_mix(0.2),
         SpineSkeletonControl::new()
             .with_physics(spine2d::Physics::None)

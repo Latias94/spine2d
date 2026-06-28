@@ -15,7 +15,7 @@ Renamed `Spine::get_skin()` to `Spine::get_skin_name()` because the Bevy root co
 
 - `Spine::get_skin_name()` now matches `Spine::set_skin_name(...)` and the internal `SpineInstance::get_skin_name()` surface.
 - The instance creation system now reads the initial skin through the explicit name getter.
-- The convenience constructor `Spine::with_skin(...)` remains unchanged because it is a Bevy spawn-time builder, not a resolved skin accessor.
+- The follow-up builder rename slice completes this naming alignment with `Spine::with_skin_name(...)`.
 
 # Verification
 

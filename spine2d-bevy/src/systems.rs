@@ -933,7 +933,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("spin", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("spin", true))
             .id();
 
         app.update();
@@ -974,8 +974,8 @@ mod tests {
             .world_mut()
             .spawn((
                 Spine::new(skeleton, atlas)
-                    .with_animation("spin", true)
-                    .with_skin("default"),
+                    .with_animation_name("spin", true)
+                    .with_skin_name("default"),
                 animation_component(None, false, 2.0),
                 skin_component(None),
             ))
@@ -1125,7 +1125,7 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                Spine::new(skeleton, atlas).with_animation("spin", true),
+                Spine::new(skeleton, atlas).with_animation_name("spin", true),
                 RenderLayers::layer(2),
             ))
             .id();
@@ -1195,7 +1195,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("spin", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("spin", true))
             .id();
 
         app.update();
@@ -1237,7 +1237,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("spin", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("spin", true))
             .id();
 
         app.update();
@@ -1274,7 +1274,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(first_skeleton, first_atlas).with_animation("spin", true))
+            .spawn(Spine::new(first_skeleton, first_atlas).with_animation_name("spin", true))
             .id();
 
         app.update();
@@ -1288,8 +1288,8 @@ mod tests {
 
         app.world_mut().entity_mut(entity).insert(
             Spine::new(second_skeleton, second_atlas)
-                .with_animation("spin", true)
-                .with_skin("default"),
+                .with_animation_name("spin", true)
+                .with_skin_name("default"),
         );
         app.update();
         app.update();
@@ -1326,7 +1326,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(first_skeleton, first_atlas).with_animation("spin", true))
+            .spawn(Spine::new(first_skeleton, first_atlas).with_animation_name("spin", true))
             .id();
 
         app.update();
@@ -1342,7 +1342,7 @@ mod tests {
                 Handle::<SpineSkeletonAsset>::default(),
                 Handle::<SpineAtlasAsset>::default(),
             )
-            .with_animation("missing", true),
+            .with_animation_name("missing", true),
         );
         app.update();
 
@@ -1370,7 +1370,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", false))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", false))
             .id();
 
         app.update();
@@ -1402,7 +1402,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
 
         app.update();
@@ -1433,7 +1433,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
 
         app.update();
@@ -1495,7 +1495,7 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                Spine::new(skeleton, atlas).with_animation("first", true),
+                Spine::new(skeleton, atlas).with_animation_name("first", true),
                 SpineAnimationStateConfig::new()
                     .with_default_mix(0.35)
                     .with_mix("first", "second", 0.2),
@@ -1521,7 +1521,7 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                Spine::new(skeleton, atlas).with_animation("first", true),
+                Spine::new(skeleton, atlas).with_animation_name("first", true),
                 SpineAnimationStateConfig::new().with_default_mix(0.1),
             ))
             .id();
@@ -1550,7 +1550,7 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                Spine::new(skeleton, atlas).with_animation("first", true),
+                Spine::new(skeleton, atlas).with_animation_name("first", true),
                 SpineAnimationStateConfig::new().with_default_mix(0.1),
             ))
             .id();
@@ -1574,7 +1574,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
         app.update();
 
@@ -1642,7 +1642,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
         app.update();
 
@@ -1679,7 +1679,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
         app.update();
 
@@ -1713,7 +1713,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
         app.update();
 
@@ -1747,7 +1747,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
         app.update();
 
@@ -1776,7 +1776,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
         app.update();
 
@@ -1982,7 +1982,7 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                Spine::new(skeleton, atlas).with_animation("first", true),
+                Spine::new(skeleton, atlas).with_animation_name("first", true),
                 SpineSkeletonControl::new()
                     .with_physics(spine2d::Physics::Update)
                     .with_wind(Vec2::new(3.0, 4.0)),
@@ -2007,7 +2007,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
         app.update();
 
@@ -2037,7 +2037,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
         app.update();
 
@@ -2057,7 +2057,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
         app.update();
         assert!(app.world().get::<SpineRuntimeState>(entity).is_some());
@@ -2075,7 +2075,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("first", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("first", true))
             .id();
         app.update();
         drain_animation_events(&mut app);
@@ -2119,7 +2119,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton.clone(), atlas).with_animation("spin", true))
+            .spawn(Spine::new(skeleton.clone(), atlas).with_animation_name("spin", true))
             .id();
         app.update();
 
@@ -2161,7 +2161,7 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                Spine::new(skeleton, atlas).with_animation("spin", true),
+                Spine::new(skeleton, atlas).with_animation_name("spin", true),
                 animation_component(None, false, 2.0),
                 skin_component(None),
             ))
@@ -2196,7 +2196,7 @@ mod tests {
 
         let entity = app
             .world_mut()
-            .spawn(Spine::new(skeleton, atlas).with_animation("spin", true))
+            .spawn(Spine::new(skeleton, atlas).with_animation_name("spin", true))
             .id();
         app.update();
         assert_eq!(app.world().non_send::<SpineWorld>().len(), 1);

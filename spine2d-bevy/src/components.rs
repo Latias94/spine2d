@@ -73,14 +73,14 @@ impl Spine {
         self.skin = skin.map(Into::into);
     }
 
-    pub fn with_animation(mut self, animation: impl Into<String>, looped: bool) -> Self {
-        self.set_animation_name(Some(animation));
+    pub fn with_animation_name(mut self, animation_name: impl Into<String>, looped: bool) -> Self {
+        self.set_animation_name(Some(animation_name));
         self.set_loop(looped);
         self
     }
 
-    pub fn with_skin(mut self, skin: impl Into<String>) -> Self {
-        self.set_skin_name(Some(skin));
+    pub fn with_skin_name(mut self, skin_name: impl Into<String>) -> Self {
+        self.set_skin_name(Some(skin_name));
         self
     }
 }

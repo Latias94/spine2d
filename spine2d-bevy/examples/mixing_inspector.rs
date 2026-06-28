@@ -124,7 +124,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, controls: Res<M
             asset_server.load(assets.skeleton),
             asset_server.load(assets.atlas),
         )
-        .with_animation(assets.first_animation.clone(), true),
+        .with_animation_name(assets.first_animation.clone(), true),
         SpineAnimationStateConfig::new()
             .with_default_mix(controls.default_mix)
             .with_mix(

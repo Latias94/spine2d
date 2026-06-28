@@ -42,7 +42,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             asset_server.load("demo.json"),
             asset_server.load("demo.atlas"),
         )
-        .with_animation("spin", true),
+        .with_animation_name("spin", true),
         Transform::from_xyz(0.0, 0.0, 0.0).with_scale(Vec3::splat(1.5)),
         PlayerSpine,
     ));

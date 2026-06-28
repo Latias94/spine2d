@@ -39,7 +39,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     commands.insert_resource(DemoSkeleton(skeleton.clone()));
     commands.spawn((
-        Spine::new(skeleton, atlas).with_animation("spin", true),
+        Spine::new(skeleton, atlas).with_animation_name("spin", true),
         Transform::from_scale(Vec3::splat(1.5)),
     ));
 }
