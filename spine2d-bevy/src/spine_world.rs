@@ -3,37 +3,89 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use bevy::prelude::*;
 use spine2d::{
     AnimationState, AnimationStateEvent, AnimationStateListener, Atlas, DrawList, Skeleton,
-    TrackEntryHandle,
+    TrackEntryHandle, build_draw_list_with_atlas,
 };
 
 use crate::{SpineAnimationEventKind, SpineSkeletonControl, components::SpineInstanceId};
 
 pub(crate) struct SpineInstance {
-    pub skeleton: Skeleton,
-    pub animation_state: AnimationState,
-    pub draw_list: DrawList,
-    pub atlas: Atlas,
-    pub atlas_directory: String,
-    pub animation_name: Option<String>,
-    pub loop_animation: bool,
-    pub time_scale: f32,
-    pub skin_name: Option<String>,
-    pub flip_y: bool,
-    pub skeleton_control: SpineSkeletonControl,
+    skeleton: Skeleton,
+    animation_state: AnimationState,
+    draw_list: DrawList,
+    atlas: Atlas,
+    atlas_directory: String,
+    animation_name: Option<String>,
+    loop_animation: bool,
+    time_scale: f32,
+    skin_name: Option<String>,
+    flip_y: bool,
+    skeleton_control: SpineSkeletonControl,
     pending_events: SpineEventBuffer,
 }
 
 pub(crate) struct SpineInstanceParts {
-    pub skeleton: Skeleton,
-    pub animation_state: AnimationState,
-    pub atlas: Atlas,
-    pub atlas_directory: String,
-    pub animation_name: Option<String>,
-    pub loop_animation: bool,
-    pub time_scale: f32,
-    pub skin_name: Option<String>,
-    pub flip_y: bool,
-    pub skeleton_control: SpineSkeletonControl,
+    skeleton: Skeleton,
+    animation_state: AnimationState,
+    atlas: Atlas,
+    atlas_directory: String,
+    animation_name: Option<String>,
+    loop_animation: bool,
+    time_scale: f32,
+    skin_name: Option<String>,
+    flip_y: bool,
+    skeleton_control: SpineSkeletonControl,
+}
+
+impl SpineInstanceParts {
+    pub fn new(
+        skeleton: Skeleton,
+        animation_state: AnimationState,
+        atlas: Atlas,
+        atlas_directory: String,
+    ) -> Self {
+        Self {
+            skeleton,
+            animation_state,
+            atlas,
+            atlas_directory,
+            animation_name: None,
+            loop_animation: false,
+            time_scale: 1.0,
+            skin_name: None,
+            flip_y: false,
+            skeleton_control: SpineSkeletonControl::default(),
+        }
+    }
+
+    pub fn with_animation_name(mut self, animation_name: Option<String>) -> Self {
+        self.animation_name = animation_name;
+        self
+    }
+
+    pub fn with_loop_animation(mut self, loop_animation: bool) -> Self {
+        self.loop_animation = loop_animation;
+        self
+    }
+
+    pub fn with_time_scale(mut self, time_scale: f32) -> Self {
+        self.time_scale = time_scale;
+        self
+    }
+
+    pub fn with_skin_name(mut self, skin_name: Option<String>) -> Self {
+        self.skin_name = skin_name;
+        self
+    }
+
+    pub fn with_flip_y(mut self, flip_y: bool) -> Self {
+        self.flip_y = flip_y;
+        self
+    }
+
+    pub fn with_skeleton_control(mut self, skeleton_control: SpineSkeletonControl) -> Self {
+        self.skeleton_control = skeleton_control;
+        self
+    }
 }
 
 impl SpineInstance {
@@ -61,6 +113,86 @@ impl SpineInstance {
 
     pub fn drain_events(&mut self) -> Vec<PendingSpineAnimationEvent> {
         self.pending_events.drain()
+    }
+
+    pub fn get_skeleton(&self) -> &Skeleton {
+        &self.skeleton
+    }
+
+    pub fn get_skeleton_mut(&mut self) -> &mut Skeleton {
+        &mut self.skeleton
+    }
+
+    pub fn get_animation_state(&self) -> &AnimationState {
+        &self.animation_state
+    }
+
+    pub fn get_animation_state_mut(&mut self) -> &mut AnimationState {
+        &mut self.animation_state
+    }
+
+    pub fn get_draw_list(&self) -> &DrawList {
+        &self.draw_list
+    }
+
+    pub fn get_atlas_directory(&self) -> &str {
+        &self.atlas_directory
+    }
+
+    pub fn get_animation_name(&self) -> Option<&str> {
+        self.animation_name.as_deref()
+    }
+
+    pub fn set_animation_name(&mut self, animation_name: Option<String>) {
+        self.animation_name = animation_name;
+    }
+
+    pub fn get_loop_animation(&self) -> bool {
+        self.loop_animation
+    }
+
+    pub fn set_loop_animation(&mut self, loop_animation: bool) {
+        self.loop_animation = loop_animation;
+    }
+
+    pub fn get_time_scale(&self) -> f32 {
+        self.time_scale
+    }
+
+    pub fn set_time_scale(&mut self, time_scale: f32) {
+        self.time_scale = time_scale;
+    }
+
+    pub fn get_skin_name(&self) -> Option<&str> {
+        self.skin_name.as_deref()
+    }
+
+    pub fn set_skin_name(&mut self, skin_name: Option<String>) {
+        self.skin_name = skin_name;
+    }
+
+    pub fn get_flip_y(&self) -> bool {
+        self.flip_y
+    }
+
+    pub fn set_flip_y(&mut self, flip_y: bool) {
+        self.flip_y = flip_y;
+    }
+
+    pub fn get_skeleton_control(&self) -> SpineSkeletonControl {
+        self.skeleton_control
+    }
+
+    pub fn set_skeleton_control(&mut self, skeleton_control: SpineSkeletonControl) {
+        self.skeleton_control = skeleton_control;
+    }
+
+    pub fn rebuild_pose(&mut self, delta: f32) {
+        self.animation_state.update(delta);
+        self.animation_state.apply(&mut self.skeleton);
+        self.skeleton
+            .update_world_transform_with_physics(self.skeleton_control.get_physics());
+        self.draw_list = build_draw_list_with_atlas(&self.skeleton, &self.atlas);
     }
 }
 
@@ -214,21 +346,20 @@ mod tests {
     fn demo_instance() -> SpineInstance {
         let data = SkeletonData::from_json_str(include_str!("../../spine2d-web/assets/demo.json"))
             .expect("parse demo skeleton");
-        let atlas = Atlas::parse(include_str!("../../spine2d-web/assets/demo.atlas"))
+        let atlas = (include_str!("../../spine2d-web/assets/demo.atlas"))
+            .parse::<Atlas>()
             .expect("parse demo atlas");
 
-        SpineInstance::new(SpineInstanceParts {
-            skeleton: Skeleton::new(data.clone()),
-            animation_state: AnimationState::new(AnimationStateData::new(data)),
-            atlas,
-            atlas_directory: String::new(),
-            animation_name: Some("spin".to_owned()),
-            loop_animation: true,
-            time_scale: 1.0,
-            skin_name: None,
-            flip_y: false,
-            skeleton_control: SpineSkeletonControl::default(),
-        })
+        SpineInstance::new(
+            SpineInstanceParts::new(
+                Skeleton::new(data.clone()),
+                AnimationState::new(AnimationStateData::new(data)),
+                atlas,
+                String::new(),
+            )
+            .with_animation_name(Some("spin".to_owned()))
+            .with_loop_animation(true),
+        )
     }
 
     #[test]

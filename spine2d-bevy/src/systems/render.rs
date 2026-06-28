@@ -52,7 +52,7 @@ pub fn render_spines(
         let Some(instance) = spine_world.get(key.0) else {
             continue;
         };
-        let draw_list = &instance.draw_list;
+        let draw_list = instance.get_draw_list();
         let new_render_layers = render_layers.cloned();
         let new_draws = draw_list
             .draws
@@ -60,22 +60,23 @@ pub fn render_spines(
             .map(|draw| {
                 SpineDrawSignature::from_draw(
                     draw,
-                    texture_asset_path(&instance.atlas_directory, &draw.texture_path),
+                    texture_asset_path(instance.get_atlas_directory(), &draw.texture_path),
                 )
             })
             .collect::<Vec<_>>();
-        let geometry_changed = new_draws != signature_cache.signature.draws;
-        let render_layers_changed = new_render_layers != signature_cache.signature.render_layers;
+        let geometry_changed = new_draws != signature_cache.get_signature().get_draws();
+        let render_layers_changed =
+            new_render_layers.as_ref() != signature_cache.get_signature().get_render_layers();
 
         if new_draws.is_empty() {
-            if !signature_cache.signature.draws.is_empty() {
+            if !signature_cache.get_signature().get_draws().is_empty() {
                 despawn_mesh_children(
                     &mut commands,
                     &mesh_children.children,
                     &mesh_children.mesh_children,
                     spine_entity,
                 );
-                signature_cache.signature = SpineRenderSignature::default();
+                signature_cache.set_signature(SpineRenderSignature::default());
             }
             continue;
         }
@@ -90,16 +91,13 @@ pub fn render_spines(
             spawn_mesh_children(
                 &mut commands,
                 &mut render_assets,
-                &instance.atlas_directory,
+                instance.get_atlas_directory(),
                 spine_entity,
                 draw_list,
-                instance.flip_y,
+                instance.get_flip_y(),
                 render_layers,
             );
-            signature_cache.signature = SpineRenderSignature {
-                draws: new_draws,
-                render_layers: new_render_layers,
-            };
+            signature_cache.set_signature(SpineRenderSignature::new(new_draws, new_render_layers));
             continue;
         }
 
@@ -111,16 +109,13 @@ pub fn render_spines(
             spawn_mesh_children(
                 &mut commands,
                 &mut render_assets,
-                &instance.atlas_directory,
+                instance.get_atlas_directory(),
                 spine_entity,
                 draw_list,
-                instance.flip_y,
+                instance.get_flip_y(),
                 render_layers,
             );
-            signature_cache.signature = SpineRenderSignature {
-                draws: new_draws,
-                render_layers: new_render_layers,
-            };
+            signature_cache.set_signature(SpineRenderSignature::new(new_draws, new_render_layers));
             continue;
         };
 
@@ -138,16 +133,13 @@ pub fn render_spines(
             spawn_mesh_children(
                 &mut commands,
                 &mut render_assets,
-                &instance.atlas_directory,
+                instance.get_atlas_directory(),
                 spine_entity,
                 draw_list,
-                instance.flip_y,
+                instance.get_flip_y(),
                 render_layers,
             );
-            signature_cache.signature = SpineRenderSignature {
-                draws: new_draws,
-                render_layers: new_render_layers,
-            };
+            signature_cache.set_signature(SpineRenderSignature::new(new_draws, new_render_layers));
             continue;
         }
 
@@ -159,12 +151,12 @@ pub fn render_spines(
                 spine_entity,
                 render_layers,
             );
-            signature_cache.signature.render_layers = new_render_layers;
+            signature_cache.set_render_layers(new_render_layers);
         }
 
         for (draw, mesh_handle) in draw_list.draws.iter().zip(mesh_child_handles.iter()) {
             if let Some(mut mesh) = render_assets.meshes.get_mut(mesh_handle) {
-                write_mesh_data(&mut mesh, draw_list, draw, instance.flip_y);
+                write_mesh_data(&mut mesh, draw_list, draw, instance.get_flip_y());
             }
         }
     }
@@ -179,7 +171,7 @@ fn collect_mesh_children(
         children
             .iter()
             .filter_map(|child| mesh_child_query.get(child).ok())
-            .map(|child| child.mesh.clone())
+            .map(|child| child.get_mesh().clone())
             .collect::<Vec<_>>()
     })
 }
@@ -274,9 +266,7 @@ fn spawn_mesh_children(
             );
 
             let mut child = parent.spawn((
-                SpineMeshChild {
-                    mesh: mesh_handle.clone(),
-                },
+                SpineMeshChild::new(mesh_handle.clone()),
                 Mesh2d(mesh_handle),
                 Transform::from_xyz(0.0, 0.0, draw_index as f32 * 0.001),
             ));

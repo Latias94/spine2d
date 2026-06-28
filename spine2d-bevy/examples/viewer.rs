@@ -266,15 +266,15 @@ fn sync_viewer_selection(
     if state.is_changed() {
         let skeleton = asset_server.load(example.skeleton.clone());
         let atlas = asset_server.load(example.atlas.clone());
-        if spine.skeleton != skeleton || spine.atlas != atlas {
-            spine.skeleton = skeleton;
-            spine.atlas = atlas;
+        if spine.get_skeleton() != &skeleton || spine.get_atlas() != &atlas {
+            spine.set_skeleton(skeleton);
+            spine.set_atlas(atlas);
             spine.set_changed();
         }
     }
 
-    let Some(asset) = skeleton_assets.get(&spine.skeleton) else {
-        animation.time_scale = 0.0;
+    let Some(asset) = skeleton_assets.get(spine.get_skeleton()) else {
+        animation.set_time_scale(0.0);
         return;
     };
 
@@ -284,18 +284,18 @@ fn sync_viewer_selection(
     let skin_name = selected_skin(&state, example, asset, &skins).map(str::to_owned);
     let speed = if state.playing { state.speed } else { 0.0 };
 
-    if animation.name != animation_name
-        || !animation.loop_animation
-        || (animation.time_scale - speed).abs() > f32::EPSILON
+    if animation.get_name() != animation_name.as_deref()
+        || !animation.get_loop_animation()
+        || (animation.get_time_scale() - speed).abs() > f32::EPSILON
     {
-        animation.name = animation_name;
-        animation.loop_animation = true;
-        animation.time_scale = speed;
+        animation.set_name(animation_name);
+        animation.set_loop_animation(true);
+        animation.set_time_scale(speed);
         animation.set_changed();
     }
 
-    if skin.name != skin_name {
-        skin.name = skin_name;
+    if skin.get_name() != skin_name.as_deref() {
+        skin.set_name(skin_name);
         skin.set_changed();
     }
 }
@@ -396,9 +396,9 @@ fn current_skeleton_asset<'a>(
     skeleton_assets: &'a Assets<SpineSkeletonAsset>,
 ) -> Option<&'a SpineSkeletonAsset> {
     let spine = spine_query.single().ok()?;
-    let asset = skeleton_assets.get(&spine.skeleton)?;
+    let asset = skeleton_assets.get(spine.get_skeleton())?;
     let expected = state.current_example();
-    let path = spine.skeleton.path()?.path().to_string_lossy();
+    let path = spine.get_skeleton().path()?.path().to_string_lossy();
     (path == expected.skeleton).then_some(asset)
 }
 
@@ -480,18 +480,19 @@ fn auto_animation<'a>(asset: &'a SpineSkeletonAsset, animations: &'a [&'a str]) 
 
 fn auto_skin<'a>(example: &ExampleEntry, asset: &'a SpineSkeletonAsset) -> Option<&'a str> {
     recommended_skin(example, asset)
-        .or_else(|| asset.data.find_skin("default").map(|skin| skin.get_name()))
         .or_else(|| {
             asset
-                .data
+                .get_data()
+                .find_skin("default")
+                .map(|skin| skin.get_name())
+        })
+        .or_else(|| {
+            asset
+                .get_data()
                 .get_skins()
                 .iter()
                 .filter_map(|skin| {
-                    let attachment_count = skin
-                        .get_attachments()
-                        .iter()
-                        .map(|attachment| attachment.len())
-                        .sum::<usize>();
+                    let attachment_count = skin.get_attachments().count();
                     (attachment_count > 0).then_some((skin.get_name(), attachment_count))
                 })
                 .max_by_key(|(_, attachment_count)| *attachment_count)
@@ -506,7 +507,7 @@ fn recommended_skin<'a>(example: &ExampleEntry, asset: &'a SpineSkeletonAsset) -
         "chibi-stickers" => "spineboy",
         _ => return None,
     };
-    asset.data.find_skin(name).map(|skin| skin.get_name())
+    asset.get_data().find_skin(name).map(|skin| skin.get_name())
 }
 
 fn animation_option_count(animations: &[&str]) -> usize {

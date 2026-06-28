@@ -324,21 +324,21 @@ fn preset_panel(
             ui.separator();
             if let Some(state) = runtime_state {
                 let current = state
-                    .tracks
+                    .get_tracks()
                     .first()
-                    .map(|track| track.animation_name.as_str())
+                    .map(|track| track.get_animation_name())
                     .unwrap_or("<none>");
                 ui.label(format!("current: {current}"));
-                ui.label(format!("tracks: {}", state.tracks.len()));
-                for track in &state.tracks {
+                ui.label(format!("tracks: {}", state.get_tracks().len()));
+                for track in state.get_tracks() {
                     ui.label(format!(
                         "track {}: {}, time: {:.2}, mix: {:.2}/{:.2}, alpha: {:.2}",
-                        track.track_index,
-                        track.animation_name,
-                        track.track_time,
-                        track.mix_time,
-                        track.mix_duration,
-                        track.alpha
+                        track.get_track_index(),
+                        track.get_animation_name(),
+                        track.get_track_time(),
+                        track.get_mix_time(),
+                        track.get_mix_duration(),
+                        track.get_alpha()
                     ));
                 }
             }
@@ -474,13 +474,13 @@ fn fit_camera_to_spine(
         return;
     };
 
-    let size = state.bounds.size();
+    let size = state.get_bounds().size();
     if size.x <= 0.0 || size.y <= 0.0 {
         return;
     }
 
-    camera_transform.translation.x = state.bounds.center().x;
-    camera_transform.translation.y = state.bounds.center().y;
+    camera_transform.translation.x = state.get_bounds().center().x;
+    camera_transform.translation.y = state.get_bounds().center().y;
     let viewport = Vec2::new(window.width().max(1.0), window.height().max(1.0));
     let fit_scale = (size.x / viewport.x)
         .max(size.y / viewport.y)

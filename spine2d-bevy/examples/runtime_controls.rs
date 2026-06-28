@@ -97,9 +97,9 @@ fn log_runtime_state_once(
 
     info!(
         "runtime state: tracks={}, physics={:?}, bounds={:?}",
-        state.tracks.len(),
-        state.physics,
-        state.bounds
+        state.get_tracks().len(),
+        state.get_physics(),
+        state.get_bounds()
     );
     logged.0 = true;
 }

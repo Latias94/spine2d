@@ -6,10 +6,18 @@ use std::sync::Arc;
 
 #[derive(Asset, TypePath, Debug)]
 pub struct SpineSkeletonAsset {
-    pub data: Arc<SkeletonData>,
+    data: Arc<SkeletonData>,
 }
 
 impl SpineSkeletonAsset {
+    pub fn new(data: Arc<SkeletonData>) -> Self {
+        Self { data }
+    }
+
+    pub fn get_data(&self) -> &Arc<SkeletonData> {
+        &self.data
+    }
+
     pub fn info(&self) -> SpineSkeletonInfo<'_> {
         let mut animations = self
             .data
@@ -78,10 +86,24 @@ pub struct SpineSkeletonInfo<'a> {
 
 #[derive(Asset, TypePath, Debug)]
 pub struct SpineAtlasAsset {
-    pub atlas: Atlas,
+    atlas: Atlas,
     /// Asset-relative directory of the atlas file, e.g. "Spine/spineboy/export".
     /// Used to resolve texture paths like "spineboy-pma.png" at render time.
-    pub directory: String,
+    directory: String,
+}
+
+impl SpineAtlasAsset {
+    pub fn new(atlas: Atlas, directory: String) -> Self {
+        Self { atlas, directory }
+    }
+
+    pub fn get_atlas(&self) -> &Atlas {
+        &self.atlas
+    }
+
+    pub fn get_directory(&self) -> &str {
+        &self.directory
+    }
 }
 
 #[derive(Default, TypePath)]
@@ -102,7 +124,7 @@ impl AssetLoader for JsonSkeletonLoader {
         reader.read_to_end(&mut bytes).await?;
         let json_str = String::from_utf8(bytes)?;
         let data = SkeletonData::from_json_str(&json_str)?;
-        Ok(SpineSkeletonAsset { data })
+        Ok(SpineSkeletonAsset::new(data))
     }
 
     fn extensions(&self) -> &[&str] {
@@ -127,7 +149,7 @@ impl AssetLoader for BinarySkeletonLoader {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
         let data = SkeletonData::from_skel_bytes(&bytes)?;
-        Ok(SpineSkeletonAsset { data })
+        Ok(SpineSkeletonAsset::new(data))
     }
 
     fn extensions(&self) -> &[&str] {
@@ -152,7 +174,7 @@ impl AssetLoader for AtlasLoader {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
         let atlas_text = String::from_utf8(bytes)?;
-        let atlas = Atlas::parse(&atlas_text)?;
+        let atlas = atlas_text.parse::<Atlas>()?;
 
         let directory = load_context
             .path()
@@ -162,7 +184,7 @@ impl AssetLoader for AtlasLoader {
             .replace('\\', "/") // normalise Windows separators
             .to_string();
 
-        Ok(SpineAtlasAsset { atlas, directory })
+        Ok(SpineAtlasAsset::new(atlas, directory))
     }
 
     fn extensions(&self) -> &[&str] {
@@ -175,8 +197,8 @@ mod tests {
     use super::*;
 
     fn skeleton_asset() -> SpineSkeletonAsset {
-        SpineSkeletonAsset {
-            data: SkeletonData::from_json_str(
+        SpineSkeletonAsset::new(
+            SkeletonData::from_json_str(
                 r#"
                 {
                   "skeleton": { "spine": "4.3.00" },
@@ -204,7 +226,7 @@ mod tests {
                 "#,
             )
             .expect("parse skeleton"),
-        }
+        )
     }
 
     #[test]

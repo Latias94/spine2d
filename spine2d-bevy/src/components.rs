@@ -5,12 +5,12 @@ use crate::{SpineAtlasAsset, SpineSkeletonAsset};
 #[derive(Component, Clone, Debug)]
 #[require(Transform, Visibility)]
 pub struct Spine {
-    pub skeleton: Handle<SpineSkeletonAsset>,
-    pub atlas: Handle<SpineAtlasAsset>,
-    pub animation: Option<String>,
-    pub loop_animation: bool,
-    pub time_scale: f32,
-    pub skin: Option<String>,
+    skeleton: Handle<SpineSkeletonAsset>,
+    atlas: Handle<SpineAtlasAsset>,
+    animation: Option<String>,
+    loop_animation: bool,
+    time_scale: f32,
+    skin: Option<String>,
 }
 
 impl Spine {
@@ -25,14 +25,62 @@ impl Spine {
         }
     }
 
-    pub fn with_animation(mut self, animation: impl Into<String>, loop_animation: bool) -> Self {
-        self.animation = Some(animation.into());
+    pub fn get_skeleton(&self) -> &Handle<SpineSkeletonAsset> {
+        &self.skeleton
+    }
+
+    pub fn set_skeleton(&mut self, skeleton: Handle<SpineSkeletonAsset>) {
+        self.skeleton = skeleton;
+    }
+
+    pub fn get_atlas(&self) -> &Handle<SpineAtlasAsset> {
+        &self.atlas
+    }
+
+    pub fn set_atlas(&mut self, atlas: Handle<SpineAtlasAsset>) {
+        self.atlas = atlas;
+    }
+
+    pub fn get_animation(&self) -> Option<&str> {
+        self.animation.as_deref()
+    }
+
+    pub fn set_animation_name(&mut self, animation: Option<impl Into<String>>) {
+        self.animation = animation.map(Into::into);
+    }
+
+    pub fn get_loop_animation(&self) -> bool {
+        self.loop_animation
+    }
+
+    pub fn set_loop_animation(&mut self, loop_animation: bool) {
         self.loop_animation = loop_animation;
+    }
+
+    pub fn get_time_scale(&self) -> f32 {
+        self.time_scale
+    }
+
+    pub fn set_time_scale(&mut self, time_scale: f32) {
+        self.time_scale = time_scale;
+    }
+
+    pub fn get_skin(&self) -> Option<&str> {
+        self.skin.as_deref()
+    }
+
+    pub fn set_skin_name(&mut self, skin: Option<impl Into<String>>) {
+        self.skin = skin.map(Into::into);
+    }
+
+    pub fn with_animation(mut self, animation: impl Into<String>, loop_animation: bool) -> Self {
+        self.set_animation_name(Some(animation));
+        self.set_loop_animation(loop_animation);
         self
     }
 
     pub fn with_skin(mut self, skin: impl Into<String>) -> Self {
-        self.skin = Some(skin.into());
+        self.set_skin_name(Some(skin));
         self
     }
 }
@@ -44,7 +92,7 @@ impl Default for Spine {
 }
 
 #[derive(Component, Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct SpineFlipY(pub bool);
+pub struct SpineFlipY(bool);
 
 impl SpineFlipY {
     pub fn new(flip_y: bool) -> Self {
@@ -54,13 +102,17 @@ impl SpineFlipY {
     pub fn flipped() -> Self {
         Self(true)
     }
+
+    pub fn get_flip_y(&self) -> bool {
+        self.0
+    }
 }
 
 #[derive(Component, Clone, Debug, PartialEq)]
 pub struct SpineAnimation {
-    pub name: Option<String>,
-    pub loop_animation: bool,
-    pub time_scale: f32,
+    name: Option<String>,
+    loop_animation: bool,
+    time_scale: f32,
 }
 
 impl SpineAnimation {
@@ -70,6 +122,45 @@ impl SpineAnimation {
             loop_animation: true,
             time_scale: 1.0,
         }
+    }
+
+    pub fn get_name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub fn set_name(&mut self, name: Option<impl Into<String>>) {
+        self.name = name.map(Into::into);
+    }
+
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    pub fn get_loop_animation(&self) -> bool {
+        self.loop_animation
+    }
+
+    pub fn set_loop_animation(&mut self, loop_animation: bool) {
+        self.loop_animation = loop_animation;
+    }
+
+    pub fn with_loop_animation(mut self, loop_animation: bool) -> Self {
+        self.loop_animation = loop_animation;
+        self
+    }
+
+    pub fn get_time_scale(&self) -> f32 {
+        self.time_scale
+    }
+
+    pub fn set_time_scale(&mut self, time_scale: f32) {
+        self.time_scale = time_scale;
+    }
+
+    pub fn with_time_scale(mut self, time_scale: f32) -> Self {
+        self.time_scale = time_scale;
+        self
     }
 }
 
@@ -85,7 +176,7 @@ impl Default for SpineAnimation {
 
 #[derive(Component, Clone, Debug, Default, PartialEq, Eq)]
 pub struct SpineSkin {
-    pub name: Option<String>,
+    name: Option<String>,
 }
 
 impl SpineSkin {
@@ -94,13 +185,26 @@ impl SpineSkin {
             name: Some(name.into()),
         }
     }
+
+    pub fn get_name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub fn set_name(&mut self, name: Option<impl Into<String>>) {
+        self.name = name.map(Into::into);
+    }
+
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpineAnimationStateMix {
-    pub from: String,
-    pub to: String,
-    pub duration: f32,
+    from: String,
+    to: String,
+    duration: f32,
 }
 
 impl SpineAnimationStateMix {
@@ -111,12 +215,24 @@ impl SpineAnimationStateMix {
             duration,
         }
     }
+
+    pub fn get_from(&self) -> &str {
+        &self.from
+    }
+
+    pub fn get_to(&self) -> &str {
+        &self.to
+    }
+
+    pub fn get_duration(&self) -> f32 {
+        self.duration
+    }
 }
 
 #[derive(Component, Clone, Debug, Default, PartialEq)]
 pub struct SpineAnimationStateConfig {
-    pub default_mix: f32,
-    pub mixes: Vec<SpineAnimationStateMix>,
+    default_mix: f32,
+    mixes: Vec<SpineAnimationStateMix>,
 }
 
 impl SpineAnimationStateConfig {
@@ -124,9 +240,17 @@ impl SpineAnimationStateConfig {
         Self::default()
     }
 
+    pub fn get_default_mix(&self) -> f32 {
+        self.default_mix
+    }
+
     pub fn with_default_mix(mut self, default_mix: f32) -> Self {
         self.default_mix = default_mix;
         self
+    }
+
+    pub fn get_mixes(&self) -> &[SpineAnimationStateMix] {
+        &self.mixes
     }
 
     pub fn with_mix(
@@ -143,10 +267,10 @@ impl SpineAnimationStateConfig {
 
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
 pub struct SpineSkeletonControl {
-    pub physics: spine2d::Physics,
-    pub wind: Vec2,
-    pub gravity: Vec2,
-    pub time: Option<f32>,
+    physics: spine2d::Physics,
+    wind: Vec2,
+    gravity: Vec2,
+    time: Option<f32>,
 }
 
 impl SpineSkeletonControl {
@@ -154,24 +278,56 @@ impl SpineSkeletonControl {
         Self::default()
     }
 
+    pub fn get_physics(&self) -> spine2d::Physics {
+        self.physics
+    }
+
     pub fn with_physics(mut self, physics: spine2d::Physics) -> Self {
-        self.physics = physics;
+        self.set_physics(physics);
         self
+    }
+
+    pub fn set_physics(&mut self, physics: spine2d::Physics) {
+        self.physics = physics;
+    }
+
+    pub fn get_wind(&self) -> Vec2 {
+        self.wind
     }
 
     pub fn with_wind(mut self, wind: Vec2) -> Self {
-        self.wind = wind;
+        self.set_wind(wind);
         self
+    }
+
+    pub fn set_wind(&mut self, wind: Vec2) {
+        self.wind = wind;
+    }
+
+    pub fn get_gravity(&self) -> Vec2 {
+        self.gravity
     }
 
     pub fn with_gravity(mut self, gravity: Vec2) -> Self {
-        self.gravity = gravity;
+        self.set_gravity(gravity);
         self
     }
 
+    pub fn set_gravity(&mut self, gravity: Vec2) {
+        self.gravity = gravity;
+    }
+
+    pub fn get_time(&self) -> Option<f32> {
+        self.time
+    }
+
     pub fn with_time(mut self, time: f32) -> Self {
-        self.time = Some(time);
+        self.set_time(time);
         self
+    }
+
+    pub fn set_time(&mut self, time: f32) {
+        self.time = Some(time);
     }
 }
 
@@ -188,13 +344,21 @@ impl Default for SpineSkeletonControl {
 
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
 pub struct SpineBounds {
-    pub min: Vec2,
-    pub max: Vec2,
+    min: Vec2,
+    max: Vec2,
 }
 
 impl SpineBounds {
     pub fn new(min: Vec2, max: Vec2) -> Self {
         Self { min, max }
+    }
+
+    pub fn get_min(&self) -> Vec2 {
+        self.min
+    }
+
+    pub fn get_max(&self) -> Vec2 {
+        self.max
     }
 
     pub fn center(&self) -> Vec2 {
@@ -211,17 +375,83 @@ pub struct SpineReady;
 
 #[derive(Component, Clone, Debug, PartialEq)]
 pub struct SpineRuntimeState {
-    pub ready: bool,
-    pub tracks: Vec<SpineTrackState>,
-    pub skeleton_time: f32,
-    pub physics: spine2d::Physics,
-    pub wind: Vec2,
-    pub gravity: Vec2,
-    pub bounds: SpineBounds,
+    ready: bool,
+    tracks: Vec<SpineTrackState>,
+    skeleton_time: f32,
+    physics: spine2d::Physics,
+    wind: Vec2,
+    gravity: Vec2,
+    bounds: SpineBounds,
+}
+
+impl SpineRuntimeState {
+    pub fn new(
+        ready: bool,
+        tracks: Vec<SpineTrackState>,
+        skeleton_time: f32,
+        physics: spine2d::Physics,
+        wind: Vec2,
+        gravity: Vec2,
+        bounds: SpineBounds,
+    ) -> Self {
+        Self {
+            ready,
+            tracks,
+            skeleton_time,
+            physics,
+            wind,
+            gravity,
+            bounds,
+        }
+    }
+
+    pub fn is_ready(&self) -> bool {
+        self.ready
+    }
+
+    pub fn get_tracks(&self) -> &[SpineTrackState] {
+        &self.tracks
+    }
+
+    pub fn get_skeleton_time(&self) -> f32 {
+        self.skeleton_time
+    }
+
+    pub fn get_physics(&self) -> spine2d::Physics {
+        self.physics
+    }
+
+    pub fn get_wind(&self) -> Vec2 {
+        self.wind
+    }
+
+    pub fn get_gravity(&self) -> Vec2 {
+        self.gravity
+    }
+
+    pub fn get_bounds(&self) -> &SpineBounds {
+        &self.bounds
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpineTrackState {
+    track_index: usize,
+    animation_name: String,
+    track_time: f32,
+    animation_time: f32,
+    loop_animation: bool,
+    delay: f32,
+    mix_duration: f32,
+    mix_time: f32,
+    alpha: f32,
+    additive: bool,
+    mix_interpolation: spine2d::MixInterpolation,
+    reverse: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpineTrackStateParts {
     pub track_index: usize,
     pub animation_name: String,
     pub track_time: f32,
@@ -234,6 +464,73 @@ pub struct SpineTrackState {
     pub additive: bool,
     pub mix_interpolation: spine2d::MixInterpolation,
     pub reverse: bool,
+}
+
+impl SpineTrackState {
+    pub fn new(parts: SpineTrackStateParts) -> Self {
+        Self {
+            track_index: parts.track_index,
+            animation_name: parts.animation_name,
+            track_time: parts.track_time,
+            animation_time: parts.animation_time,
+            loop_animation: parts.loop_animation,
+            delay: parts.delay,
+            mix_duration: parts.mix_duration,
+            mix_time: parts.mix_time,
+            alpha: parts.alpha,
+            additive: parts.additive,
+            mix_interpolation: parts.mix_interpolation,
+            reverse: parts.reverse,
+        }
+    }
+
+    pub fn get_track_index(&self) -> usize {
+        self.track_index
+    }
+
+    pub fn get_animation_name(&self) -> &str {
+        &self.animation_name
+    }
+
+    pub fn get_track_time(&self) -> f32 {
+        self.track_time
+    }
+
+    pub fn get_animation_time(&self) -> f32 {
+        self.animation_time
+    }
+
+    pub fn get_loop_animation(&self) -> bool {
+        self.loop_animation
+    }
+
+    pub fn get_delay(&self) -> f32 {
+        self.delay
+    }
+
+    pub fn get_mix_duration(&self) -> f32 {
+        self.mix_duration
+    }
+
+    pub fn get_mix_time(&self) -> f32 {
+        self.mix_time
+    }
+
+    pub fn get_alpha(&self) -> f32 {
+        self.alpha
+    }
+
+    pub fn get_additive(&self) -> bool {
+        self.additive
+    }
+
+    pub fn get_mix_interpolation(&self) -> spine2d::MixInterpolation {
+        self.mix_interpolation
+    }
+
+    pub fn get_reverse(&self) -> bool {
+        self.reverse
+    }
 }
 
 #[derive(Message, Clone, Copy, Debug, PartialEq, Eq)]
@@ -517,24 +814,24 @@ pub enum SpineAnimationCommandKind {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SpineTrackEntrySettings {
-    pub track_end: Option<f32>,
-    pub delay: Option<f32>,
-    pub time_scale: Option<f32>,
-    pub looped: Option<bool>,
-    pub mix_duration: Option<f32>,
-    pub mix_interpolation: Option<spine2d::MixInterpolation>,
-    pub additive: Option<bool>,
-    pub alpha: Option<f32>,
-    pub reverse: Option<bool>,
-    pub shortest_rotation: Option<bool>,
-    pub reset_rotation_directions: bool,
-    pub alpha_attachment_threshold: Option<f32>,
-    pub mix_attachment_threshold: Option<f32>,
-    pub mix_draw_order_threshold: Option<f32>,
-    pub event_threshold: Option<f32>,
-    pub animation_start: Option<f32>,
-    pub animation_end: Option<f32>,
-    pub animation_last: Option<f32>,
+    track_end: Option<f32>,
+    delay: Option<f32>,
+    time_scale: Option<f32>,
+    looped: Option<bool>,
+    mix_duration: Option<f32>,
+    mix_interpolation: Option<spine2d::MixInterpolation>,
+    additive: Option<bool>,
+    alpha: Option<f32>,
+    reverse: Option<bool>,
+    shortest_rotation: Option<bool>,
+    reset_rotation_directions: bool,
+    alpha_attachment_threshold: Option<f32>,
+    mix_attachment_threshold: Option<f32>,
+    mix_draw_order_threshold: Option<f32>,
+    event_threshold: Option<f32>,
+    animation_start: Option<f32>,
+    animation_end: Option<f32>,
+    animation_last: Option<f32>,
 }
 
 impl SpineTrackEntrySettings {
@@ -643,17 +940,7 @@ impl SpineTrackEntrySettings {
 
         match (self.mix_duration, self.delay) {
             (Some(mix_duration), Some(delay)) => {
-                let resolved_delay = if delay > 0.0 {
-                    delay
-                } else {
-                    handle
-                        .get_previous(state)
-                        .and_then(|previous| previous.entry(state))
-                        .map(|entry| (delay + entry.get_track_complete() - mix_duration).max(0.0))
-                        .unwrap_or(0.0)
-                };
-                handle.set_mix_duration(state, mix_duration);
-                handle.set_delay(state, resolved_delay);
+                handle.set_mix_duration_with_delay(state, mix_duration, delay);
             }
             (Some(mix_duration), None) => {
                 handle.set_mix_duration(state, mix_duration);
@@ -733,24 +1020,68 @@ pub(crate) struct SpineInstanceKey(pub SpineInstanceId);
 
 #[derive(Component, Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct SpineDrawSignatureCache {
-    pub signature: SpineRenderSignature,
+    signature: SpineRenderSignature,
+}
+
+impl SpineDrawSignatureCache {
+    pub(crate) fn get_signature(&self) -> &SpineRenderSignature {
+        &self.signature
+    }
+
+    pub(crate) fn set_signature(&mut self, signature: SpineRenderSignature) {
+        self.signature = signature;
+    }
+
+    pub(crate) fn set_render_layers(
+        &mut self,
+        render_layers: Option<bevy::camera::visibility::RenderLayers>,
+    ) {
+        self.signature.set_render_layers(render_layers);
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct SpineRenderSignature {
-    pub draws: Vec<SpineDrawSignature>,
-    pub render_layers: Option<bevy::camera::visibility::RenderLayers>,
+    draws: Vec<SpineDrawSignature>,
+    render_layers: Option<bevy::camera::visibility::RenderLayers>,
+}
+
+impl SpineRenderSignature {
+    pub(crate) fn new(
+        draws: Vec<SpineDrawSignature>,
+        render_layers: Option<bevy::camera::visibility::RenderLayers>,
+    ) -> Self {
+        Self {
+            draws,
+            render_layers,
+        }
+    }
+
+    pub(crate) fn get_draws(&self) -> &[SpineDrawSignature] {
+        &self.draws
+    }
+
+    pub(crate) fn get_render_layers(&self) -> Option<&bevy::camera::visibility::RenderLayers> {
+        self.render_layers.as_ref()
+    }
+
+    pub(crate) fn set_render_layers(
+        &mut self,
+        render_layers: Option<bevy::camera::visibility::RenderLayers>,
+    ) {
+        self.render_layers = render_layers;
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct SpineDrawSignature {
-    pub texture_path: String,
-    pub blend: spine2d::BlendMode,
-    pub premultiplied_alpha: bool,
+    texture_path: String,
+    blend: spine2d::BlendMode,
+    premultiplied_alpha: bool,
 }
 
 impl SpineDrawSignature {
-    pub fn from_draw(draw: &spine2d::Draw, texture_path: String) -> Self {
+    pub(crate) fn from_draw(draw: &spine2d::Draw, texture_path: String) -> Self {
         Self {
             texture_path,
             blend: draw.blend,
@@ -761,5 +1092,15 @@ impl SpineDrawSignature {
 
 #[derive(Component)]
 pub(crate) struct SpineMeshChild {
-    pub mesh: Handle<Mesh>,
+    mesh: Handle<Mesh>,
+}
+
+impl SpineMeshChild {
+    pub(crate) fn new(mesh: Handle<Mesh>) -> Self {
+        Self { mesh }
+    }
+
+    pub(crate) fn get_mesh(&self) -> &Handle<Mesh> {
+        &self.mesh
+    }
 }
