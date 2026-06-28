@@ -11,8 +11,11 @@ TBD
 
 ### Migration notes
 
+- The core Rust API now follows the official Spine C++ runtime more closely. Runtime, model, event, and atlas types favor explicit getters/setters, typed handles, named lookup methods, and narrower field visibility; migrate code that accessed fields or Rust-only convenience helpers to the new accessor surface.
+- `AnimationState` and `TrackEntry` removed Rust-only mix removal, snapshot, convenience, index, and time helpers. Use direct mix accessors, handle-bound entry reads, current/queued entry accessors, and the C++-aligned track-entry getters/setters instead.
+- `SkeletonData` and atlas lookups now follow C++ ordering and naming more closely. Skins/events stay ordered, named lookups scan by name, atlas regions are found with `find_region`, and C++ page/region metadata is exposed through getters.
 - Bevy animation-state configuration now uses `SpineAnimationStateConfig` instead of the temporary `SpineAnimationMixes`; mix data is configured through `SpineAnimationStateConfig` or `SpineAnimationCommand::{set_default_mix,set_mix,clear_mix_data}`, and the Rust-only `remove_mix` command was removed.
-- Per-entry playback options now use `SpineTrackEntrySettings` through settings-bearing animation commands, so gameplay code no longer needs to store raw runtime track-entry handles.
+- Per-entry Bevy playback options now use `SpineTrackEntrySettings` through settings-bearing animation commands, so gameplay code no longer needs to store raw runtime track-entry handles.
 - Bevy wrapper names now make names, handles, and runtime objects explicit:
 
 | Old API | New API |
@@ -31,9 +34,21 @@ TBD
 
 ### Added
 
-- Bevy: add `SpineSkeletonControl`, `SpineSkeletonCommand`, `SpineRuntimeState`, `SpineReady`, and `SpineLifecycleEvent` so gameplay code can configure skeleton controls and observe runtime lifecycle/track state without touching internal handles.
-- Runtime: add validated `AnimationStateData` mix configuration, `set_empty_animations`, queued/current track snapshots, and skeleton wind/gravity getters.
+- Runtime: add C++-aligned animation-state and track-entry controls for mix configuration, queued/current entry inspection, entry mutation, event queue control, listener cleanup, manual entry disposal, and track slot inspection.
+- Runtime: add skeleton-facing APIs for physics movement, named lookups, clipping-aware bounds, attachment world vertices, update-cache and constraint inspection, split setup-pose operations, skin slot queries, mesh metadata, and skeleton color mutation.
+- Model and atlas: preserve and expose more source data, including skeleton headers, default skins, ordered skins/events, constraints, affected bones, animation and attachment colors, attachment metadata, bone-slot relationships, and C++ page/region atlas metadata.
+- Bevy: add `SpineSkeletonControl`, `SpineSkeletonCommand`, `SpineRuntimeState`, `SpineReady`, `SpineLifecycleEvent`, `SpineBounds`, `SpineFlipY`, animation events, animation-state config components, and animation/skeleton command messages so gameplay code can control runtime state without accessing internal handles.
 - Examples: add `runtime_controls`, `mixing`, and `mixing_inspector` for skeleton controls, gameplay-style animation mixing, queued recovery, empty-animation fades, and live mix tuning.
+
+### Fixed
+
+- Improve AnimationState parity with Spine C++ for track-entry delays, empty-track timing/defaults, event queue behavior, reverse playback, completion boundaries, animation-time math, mix completion, hold-previous behavior, and nonpositive timeline alpha.
+- Improve skeleton and animation application parity for applied draw order, applied slot pose, shared-attachment deform, bone world epochs, IK mix propagation, point attachment world rotation, event audio defaults, explicit physics world transforms, and attachment timeline resolution.
+
+### Parity and tooling
+
+- Refresh the upstream Spine runtime baseline to the latest verified Spine 4.3 tag, `spine-ts-4.3.8`, and keep the reproducibility anchor in `spine-upstream.toml` and `scripts/upstream_baseline.json`.
+- Expand the C++ oracle and render-oracle tooling, regenerate affected goldens, add model lookup coverage, add version parsing tests, and prune stale parity plans so the release tracks the current Spine C++ behavior more directly.
 
 ## 0.3.0
 
