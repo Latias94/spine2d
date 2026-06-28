@@ -41,7 +41,7 @@ impl Spine {
         self.atlas = atlas;
     }
 
-    pub fn get_animation(&self) -> Option<&str> {
+    pub fn get_animation_name(&self) -> Option<&str> {
         self.animation.as_deref()
     }
 

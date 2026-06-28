@@ -134,7 +134,7 @@ pub fn spawn_spine_instances(
 
         let animation_component = animation.cloned().unwrap_or_else(|| {
             let mut component = SpineAnimation::default();
-            component.set_name(spine.get_animation().map(str::to_owned));
+            component.set_name(spine.get_animation_name().map(str::to_owned));
             component.set_loop(spine.get_loop());
             component.set_time_scale(spine.get_time_scale());
             component
