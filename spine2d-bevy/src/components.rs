@@ -65,7 +65,7 @@ impl Spine {
         self.time_scale = time_scale;
     }
 
-    pub fn get_skin(&self) -> Option<&str> {
+    pub fn get_skin_name(&self) -> Option<&str> {
         self.skin.as_deref()
     }
 

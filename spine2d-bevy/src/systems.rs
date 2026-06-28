@@ -141,7 +141,7 @@ pub fn spawn_spine_instances(
         });
         let skin_component = skin.cloned().unwrap_or_else(|| {
             let mut component = SpineSkin::default();
-            component.set_name(spine.get_skin().map(str::to_owned));
+            component.set_name(spine.get_skin_name().map(str::to_owned));
             component
         });
         let skeleton_control = skeleton_control.copied().unwrap_or_default();
