@@ -64,7 +64,7 @@ fn handle_input(
             animation_commands.write(SpineAnimationCommand::clear_track(entity, 0));
         } else {
             animation_commands.write(
-                SpineAnimationCommand::set(entity, 0, "spin", true)
+                SpineAnimationCommand::set_animation(entity, 0, "spin", true)
                     .with_entry_settings(SpineTrackEntrySettings::new().with_mix_duration(0.2)),
             );
         }

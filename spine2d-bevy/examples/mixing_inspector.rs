@@ -212,12 +212,18 @@ fn inspector_panel(
             ui.horizontal(|ui| {
                 if ui.button("Queue A").clicked() {
                     animation_commands.write(
-                        SpineAnimationCommand::add(entity, 0, assets.first.clone(), false, 0.0)
-                            .with_entry_settings(entry_settings(&controls, controls.queued_mix)),
+                        SpineAnimationCommand::add_animation(
+                            entity,
+                            0,
+                            assets.first.clone(),
+                            false,
+                            0.0,
+                        )
+                        .with_entry_settings(entry_settings(&controls, controls.queued_mix)),
                     );
                 }
                 if ui.button("Fade to setup").clicked() {
-                    animation_commands.write(SpineAnimationCommand::set_empty(
+                    animation_commands.write(SpineAnimationCommand::set_empty_animation(
                         entity,
                         0,
                         controls.empty_mix,
@@ -254,7 +260,7 @@ fn write_set(
     controls: &MixingControls,
 ) {
     animation_commands.write(
-        SpineAnimationCommand::set(entity, 0, animation.to_owned(), true)
+        SpineAnimationCommand::set_animation(entity, 0, animation.to_owned(), true)
             .with_entry_settings(entry_settings(controls, controls.entry_mix)),
     );
 }

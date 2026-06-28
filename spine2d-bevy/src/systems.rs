@@ -329,7 +329,7 @@ pub fn apply_spine_animation_commands(
         };
 
         match &message.command {
-            SpineAnimationCommandKind::Set {
+            SpineAnimationCommandKind::SetAnimation {
                 track_index,
                 animation,
                 looped,
@@ -346,7 +346,7 @@ pub fn apply_spine_animation_commands(
                     instance.set_loop(*looped);
                 }
             }
-            SpineAnimationCommandKind::Add {
+            SpineAnimationCommandKind::AddAnimation {
                 track_index,
                 animation,
                 looped,
@@ -361,7 +361,7 @@ pub fn apply_spine_animation_commands(
                 );
                 settings.apply(instance.get_animation_state_mut(), handle);
             }
-            SpineAnimationCommandKind::SetEmpty {
+            SpineAnimationCommandKind::SetEmptyAnimation {
                 track_index,
                 mix_duration,
                 settings,
@@ -375,7 +375,7 @@ pub fn apply_spine_animation_commands(
                     instance.set_loop(false);
                 }
             }
-            SpineAnimationCommandKind::AddEmpty {
+            SpineAnimationCommandKind::AddEmptyAnimation {
                 track_index,
                 mix_duration,
                 delay,
@@ -1470,7 +1470,9 @@ mod tests {
 
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
-            .write(SpineAnimationCommand::set(entity, 0, "first", true));
+            .write(SpineAnimationCommand::set_animation(
+                entity, 0, "first", true,
+            ));
         app.update();
 
         let key = *app.world().get::<SpineInstanceKey>(entity).unwrap();
@@ -1507,7 +1509,9 @@ mod tests {
 
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
-            .write(SpineAnimationCommand::set(entity, 0, "second", true));
+            .write(SpineAnimationCommand::set_animation(
+                entity, 0, "second", true,
+            ));
         app.update();
 
         assert_eq!(current_track_mix_duration(&app, entity), 0.2);
@@ -1536,7 +1540,9 @@ mod tests {
         assert_eq!(animation_state_default_mix(&mut app, entity), 0.45);
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
-            .write(SpineAnimationCommand::set(entity, 0, "second", true));
+            .write(SpineAnimationCommand::set_animation(
+                entity, 0, "second", true,
+            ));
         app.update();
 
         assert_eq!(current_track_mix_duration(&app, entity), 0.45);
@@ -1586,7 +1592,9 @@ mod tests {
             messages.write(SpineAnimationCommand::set_mix(
                 entity, "first", "second", 0.2,
             ));
-            messages.write(SpineAnimationCommand::set(entity, 0, "second", true));
+            messages.write(SpineAnimationCommand::set_animation(
+                entity, 0, "second", true,
+            ));
         }
         app.update();
 
@@ -1605,7 +1613,7 @@ mod tests {
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
             .write(
-                SpineAnimationCommand::set(entity, 0, "first", true).with_entry_settings(
+                SpineAnimationCommand::set_animation(entity, 0, "first", true).with_entry_settings(
                     SpineTrackEntrySettings::new()
                         .with_alpha(0.5)
                         .with_loop(false)
@@ -1649,15 +1657,16 @@ mod tests {
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
             .write(
-                SpineAnimationCommand::add(entity, 0, "second", false, 0.0).with_entry_settings(
-                    SpineTrackEntrySettings::new()
-                        .with_delay(0.3)
-                        .with_track_end(0.8)
-                        .with_mix_duration(0.4)
-                        .with_animation_start(0.1)
-                        .with_animation_end(0.9)
-                        .with_animation_last(0.2),
-                ),
+                SpineAnimationCommand::add_animation(entity, 0, "second", false, 0.0)
+                    .with_entry_settings(
+                        SpineTrackEntrySettings::new()
+                            .with_delay(0.3)
+                            .with_track_end(0.8)
+                            .with_mix_duration(0.4)
+                            .with_animation_start(0.1)
+                            .with_animation_end(0.9)
+                            .with_animation_last(0.2),
+                    ),
             );
         app.update();
 
@@ -1692,11 +1701,12 @@ mod tests {
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
             .write(
-                SpineAnimationCommand::add(entity, 0, "second", false, 0.0).with_entry_settings(
-                    SpineTrackEntrySettings::new()
-                        .with_delay(0.0)
-                        .with_mix_duration(mix_duration),
-                ),
+                SpineAnimationCommand::add_animation(entity, 0, "second", false, 0.0)
+                    .with_entry_settings(
+                        SpineTrackEntrySettings::new()
+                            .with_delay(0.0)
+                            .with_mix_duration(mix_duration),
+                    ),
             );
         app.update();
 
@@ -1720,7 +1730,7 @@ mod tests {
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
             .write(
-                SpineAnimationCommand::set_empty(entity, 0, 0.5).with_entry_settings(
+                SpineAnimationCommand::set_empty_animation(entity, 0, 0.5).with_entry_settings(
                     SpineTrackEntrySettings::new()
                         .with_track_end(0.7)
                         .with_alpha_attachment_threshold(0.2)
@@ -1754,11 +1764,12 @@ mod tests {
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
             .write(
-                SpineAnimationCommand::set(entity, 0, "missing", true).with_entry_settings(
-                    SpineTrackEntrySettings::new()
-                        .with_alpha(0.25)
-                        .with_additive(true),
-                ),
+                SpineAnimationCommand::set_animation(entity, 0, "missing", true)
+                    .with_entry_settings(
+                        SpineTrackEntrySettings::new()
+                            .with_alpha(0.25)
+                            .with_additive(true),
+                    ),
             );
         assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| app.update())).is_err());
 
@@ -1793,7 +1804,9 @@ mod tests {
 
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
-            .write(SpineAnimationCommand::set(entity, 0, "second", true));
+            .write(SpineAnimationCommand::set_animation(
+                entity, 0, "second", true,
+            ));
         app.update();
         assert_eq!(current_track_mix_duration(&app, entity), 0.1);
 
@@ -2014,11 +2027,12 @@ mod tests {
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
             .write(
-                SpineAnimationCommand::set(entity, 0, "second", false).with_entry_settings(
-                    SpineTrackEntrySettings::new()
-                        .with_alpha(0.5)
-                        .with_mix_duration(0.25),
-                ),
+                SpineAnimationCommand::set_animation(entity, 0, "second", false)
+                    .with_entry_settings(
+                        SpineTrackEntrySettings::new()
+                            .with_alpha(0.5)
+                            .with_mix_duration(0.25),
+                    ),
             );
         app.update();
 
@@ -2084,7 +2098,9 @@ mod tests {
             let mut messages = app
                 .world_mut()
                 .resource_mut::<Messages<SpineAnimationCommand>>();
-            messages.write(SpineAnimationCommand::add(entity, 1, "second", false, 0.0));
+            messages.write(SpineAnimationCommand::add_animation(
+                entity, 1, "second", false, 0.0,
+            ));
             messages.write(SpineAnimationCommand::clear_track(entity, 0));
         }
         app.update();

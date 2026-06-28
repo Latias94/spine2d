@@ -247,7 +247,9 @@ fn handle_keyboard(
             return;
         };
         for entity in &ready_query {
-            animation_commands.write(SpineAnimationCommand::set(entity, 0, animation, true));
+            animation_commands.write(SpineAnimationCommand::set_animation(
+                entity, 0, animation, true,
+            ));
         }
     }
 }

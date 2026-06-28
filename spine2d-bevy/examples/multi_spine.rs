@@ -61,7 +61,9 @@ fn toggle_all_spines(
         if paused.0 {
             animation_commands.write(SpineAnimationCommand::clear_track(entity, 0));
         } else {
-            animation_commands.write(SpineAnimationCommand::set(entity, 0, "spin", true));
+            animation_commands.write(SpineAnimationCommand::set_animation(
+                entity, 0, "spin", true,
+            ));
         }
     }
 }

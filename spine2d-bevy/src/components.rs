@@ -641,10 +641,10 @@ pub enum SpineSkeletonCommandKind {
 impl SpineAnimationCommand {
     pub fn with_entry_settings(mut self, settings: SpineTrackEntrySettings) -> Self {
         match &mut self.command {
-            SpineAnimationCommandKind::Set { settings: slot, .. }
-            | SpineAnimationCommandKind::Add { settings: slot, .. }
-            | SpineAnimationCommandKind::SetEmpty { settings: slot, .. }
-            | SpineAnimationCommandKind::AddEmpty { settings: slot, .. } => {
+            SpineAnimationCommandKind::SetAnimation { settings: slot, .. }
+            | SpineAnimationCommandKind::AddAnimation { settings: slot, .. }
+            | SpineAnimationCommandKind::SetEmptyAnimation { settings: slot, .. }
+            | SpineAnimationCommandKind::AddEmptyAnimation { settings: slot, .. } => {
                 *slot = settings;
             }
             SpineAnimationCommandKind::ClearTrack { .. }
@@ -657,7 +657,7 @@ impl SpineAnimationCommand {
         self
     }
 
-    pub fn set(
+    pub fn set_animation(
         entity: Entity,
         track_index: usize,
         animation: impl Into<String>,
@@ -665,7 +665,7 @@ impl SpineAnimationCommand {
     ) -> Self {
         Self {
             entity,
-            command: SpineAnimationCommandKind::Set {
+            command: SpineAnimationCommandKind::SetAnimation {
                 track_index,
                 animation: animation.into(),
                 looped,
@@ -674,7 +674,7 @@ impl SpineAnimationCommand {
         }
     }
 
-    pub fn add(
+    pub fn add_animation(
         entity: Entity,
         track_index: usize,
         animation: impl Into<String>,
@@ -683,7 +683,7 @@ impl SpineAnimationCommand {
     ) -> Self {
         Self {
             entity,
-            command: SpineAnimationCommandKind::Add {
+            command: SpineAnimationCommandKind::AddAnimation {
                 track_index,
                 animation: animation.into(),
                 looped,
@@ -693,10 +693,10 @@ impl SpineAnimationCommand {
         }
     }
 
-    pub fn set_empty(entity: Entity, track_index: usize, mix_duration: f32) -> Self {
+    pub fn set_empty_animation(entity: Entity, track_index: usize, mix_duration: f32) -> Self {
         Self {
             entity,
-            command: SpineAnimationCommandKind::SetEmpty {
+            command: SpineAnimationCommandKind::SetEmptyAnimation {
                 track_index,
                 mix_duration,
                 settings: SpineTrackEntrySettings::default(),
@@ -704,10 +704,15 @@ impl SpineAnimationCommand {
         }
     }
 
-    pub fn add_empty(entity: Entity, track_index: usize, mix_duration: f32, delay: f32) -> Self {
+    pub fn add_empty_animation(
+        entity: Entity,
+        track_index: usize,
+        mix_duration: f32,
+        delay: f32,
+    ) -> Self {
         Self {
             entity,
-            command: SpineAnimationCommandKind::AddEmpty {
+            command: SpineAnimationCommandKind::AddEmptyAnimation {
                 track_index,
                 mix_duration,
                 delay,
@@ -770,25 +775,25 @@ impl SpineAnimationCommand {
 
 #[derive(Clone, Debug)]
 pub enum SpineAnimationCommandKind {
-    Set {
+    SetAnimation {
         track_index: usize,
         animation: String,
         looped: bool,
         settings: SpineTrackEntrySettings,
     },
-    Add {
+    AddAnimation {
         track_index: usize,
         animation: String,
         looped: bool,
         delay: f32,
         settings: SpineTrackEntrySettings,
     },
-    SetEmpty {
+    SetEmptyAnimation {
         track_index: usize,
         mix_duration: f32,
         settings: SpineTrackEntrySettings,
     },
-    AddEmpty {
+    AddEmptyAnimation {
         track_index: usize,
         mix_duration: f32,
         delay: f32,

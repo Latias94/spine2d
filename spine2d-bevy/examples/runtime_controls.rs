@@ -61,7 +61,7 @@ fn handle_input(
     for entity in &query {
         if keyboard.just_pressed(KeyCode::Digit1) {
             animation_commands.write(
-                SpineAnimationCommand::set(entity, 0, "spin", true).with_entry_settings(
+                SpineAnimationCommand::set_animation(entity, 0, "spin", true).with_entry_settings(
                     SpineTrackEntrySettings::new()
                         .with_mix_duration(0.2)
                         .with_alpha(1.0),
@@ -69,7 +69,7 @@ fn handle_input(
             );
         }
         if keyboard.just_pressed(KeyCode::Digit2) {
-            animation_commands.write(SpineAnimationCommand::set_empty(entity, 0, 0.25));
+            animation_commands.write(SpineAnimationCommand::set_empty_animation(entity, 0, 0.25));
         }
         if keyboard.just_pressed(KeyCode::Digit3) {
             skeleton_commands.write(SpineSkeletonCommand::set_physics(

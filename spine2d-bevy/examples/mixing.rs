@@ -381,7 +381,7 @@ fn run_preset(
         PresetAction::Idle => {
             clear_secondary_track(entity, animation_commands);
             animation_commands.write(
-                SpineAnimationCommand::set(entity, 0, assets.idle.clone(), true)
+                SpineAnimationCommand::set_animation(entity, 0, assets.idle.clone(), true)
                     .with_entry_settings(SpineTrackEntrySettings::new().with_mix_duration(0.2)),
             );
         }
@@ -389,7 +389,7 @@ fn run_preset(
             clear_secondary_track(entity, animation_commands);
             set_loop_immediate(entity, &assets.idle, animation_commands);
             animation_commands.write(
-                SpineAnimationCommand::set(entity, 0, assets.walk.clone(), true)
+                SpineAnimationCommand::set_animation(entity, 0, assets.walk.clone(), true)
                     .with_entry_settings(SpineTrackEntrySettings::new().with_mix_duration(0.35)),
             );
         }
@@ -397,7 +397,7 @@ fn run_preset(
             clear_secondary_track(entity, animation_commands);
             set_loop_immediate(entity, &assets.walk, animation_commands);
             animation_commands.write(
-                SpineAnimationCommand::set(entity, 0, assets.run.clone(), true)
+                SpineAnimationCommand::set_animation(entity, 0, assets.run.clone(), true)
                     .with_entry_settings(SpineTrackEntrySettings::new().with_mix_duration(0.25)),
             );
         }
@@ -405,7 +405,7 @@ fn run_preset(
             clear_secondary_track(entity, animation_commands);
             set_loop_immediate(entity, &assets.run, animation_commands);
             animation_commands.write(
-                SpineAnimationCommand::set(entity, 0, assets.idle.clone(), true)
+                SpineAnimationCommand::set_animation(entity, 0, assets.idle.clone(), true)
                     .with_entry_settings(SpineTrackEntrySettings::new().with_mix_duration(0.45)),
             );
         }
@@ -413,7 +413,7 @@ fn run_preset(
             clear_secondary_track(entity, animation_commands);
             set_loop_immediate(entity, &assets.run, animation_commands);
             animation_commands.write(
-                SpineAnimationCommand::set(entity, 0, assets.idle.clone(), true)
+                SpineAnimationCommand::set_animation(entity, 0, assets.idle.clone(), true)
                     .with_entry_settings(SpineTrackEntrySettings::new().with_mix_duration(0.03)),
             );
         }
@@ -421,7 +421,7 @@ fn run_preset(
             clear_secondary_track(entity, animation_commands);
             set_loop_immediate(entity, &assets.run, animation_commands);
             animation_commands.write(
-                SpineAnimationCommand::set(entity, 0, assets.action.clone(), false)
+                SpineAnimationCommand::set_animation(entity, 0, assets.action.clone(), false)
                     .with_entry_settings(
                         SpineTrackEntrySettings::new()
                             .with_track_end(1.0)
@@ -429,7 +429,7 @@ fn run_preset(
                     ),
             );
             animation_commands.write(
-                SpineAnimationCommand::add(entity, 0, assets.run.clone(), true, 0.0)
+                SpineAnimationCommand::add_animation(entity, 0, assets.run.clone(), true, 0.0)
                     .with_entry_settings(SpineTrackEntrySettings::new().with_mix_duration(0.25)),
             );
         }
@@ -447,7 +447,7 @@ fn set_loop_immediate(
     animation_commands: &mut MessageWriter<SpineAnimationCommand>,
 ) {
     animation_commands.write(
-        SpineAnimationCommand::set(entity, 0, animation.to_owned(), true)
+        SpineAnimationCommand::set_animation(entity, 0, animation.to_owned(), true)
             .with_entry_settings(SpineTrackEntrySettings::new().with_mix_duration(0.0)),
     );
 }
