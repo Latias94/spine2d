@@ -652,7 +652,7 @@ impl SpineAnimationCommand {
             | SpineAnimationCommandKind::SetEmptyAnimations { .. }
             | SpineAnimationCommandKind::SetDefaultMix { .. }
             | SpineAnimationCommandKind::SetMix { .. }
-            | SpineAnimationCommandKind::ClearMixes => {}
+            | SpineAnimationCommandKind::ClearMixData => {}
         }
         self
     }
@@ -760,10 +760,10 @@ impl SpineAnimationCommand {
         }
     }
 
-    pub fn clear_mixes(entity: Entity) -> Self {
+    pub fn clear_mix_data(entity: Entity) -> Self {
         Self {
             entity,
-            command: SpineAnimationCommandKind::ClearMixes,
+            command: SpineAnimationCommandKind::ClearMixData,
         }
     }
 }
@@ -809,7 +809,7 @@ pub enum SpineAnimationCommandKind {
         to: String,
         duration: f32,
     },
-    ClearMixes,
+    ClearMixData,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

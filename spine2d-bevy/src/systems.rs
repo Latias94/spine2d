@@ -419,7 +419,7 @@ pub fn apply_spine_animation_commands(
                     message.entity,
                 );
             }
-            SpineAnimationCommandKind::ClearMixes => {
+            SpineAnimationCommandKind::ClearMixData => {
                 instance.get_animation_state_mut().get_data().clear();
             }
         }
@@ -1770,7 +1770,7 @@ mod tests {
     }
 
     #[test]
-    fn mix_set_and_clear_commands_update_state_data() {
+    fn mix_set_and_clear_mix_data_commands_update_state_data() {
         let mut app = app_with_lifecycle_systems();
         let (skeleton, atlas) = event_handles(&mut app);
 
@@ -1799,7 +1799,7 @@ mod tests {
 
         app.world_mut()
             .resource_mut::<Messages<SpineAnimationCommand>>()
-            .write(SpineAnimationCommand::clear_mixes(entity));
+            .write(SpineAnimationCommand::clear_mix_data(entity));
         app.update();
         assert_eq!(animation_state_default_mix(&mut app, entity), 0.0);
     }
