@@ -25,19 +25,19 @@ impl Spine {
         }
     }
 
-    pub fn get_skeleton(&self) -> &Handle<SpineSkeletonAsset> {
+    pub fn get_skeleton_handle(&self) -> &Handle<SpineSkeletonAsset> {
         &self.skeleton
     }
 
-    pub fn set_skeleton(&mut self, skeleton: Handle<SpineSkeletonAsset>) {
+    pub fn set_skeleton_handle(&mut self, skeleton: Handle<SpineSkeletonAsset>) {
         self.skeleton = skeleton;
     }
 
-    pub fn get_atlas(&self) -> &Handle<SpineAtlasAsset> {
+    pub fn get_atlas_handle(&self) -> &Handle<SpineAtlasAsset> {
         &self.atlas
     }
 
-    pub fn set_atlas(&mut self, atlas: Handle<SpineAtlasAsset>) {
+    pub fn set_atlas_handle(&mut self, atlas: Handle<SpineAtlasAsset>) {
         self.atlas = atlas;
     }
 

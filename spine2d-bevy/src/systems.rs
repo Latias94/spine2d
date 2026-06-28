@@ -125,10 +125,10 @@ pub fn spawn_spine_instances(
                 .remove::<SpineDrawSignatureCache>();
         }
 
-        let Some(skeleton_asset) = skeletons.get(spine.get_skeleton()) else {
+        let Some(skeleton_asset) = skeletons.get(spine.get_skeleton_handle()) else {
             continue;
         };
-        let Some(atlas_asset) = atlases.get(spine.get_atlas()) else {
+        let Some(atlas_asset) = atlases.get(spine.get_atlas_handle()) else {
             continue;
         };
 
@@ -291,8 +291,8 @@ pub fn reload_modified_spine_assets(
         if key.is_none() {
             continue;
         }
-        if !changed_skeletons.contains(&spine.get_skeleton().id())
-            && !changed_atlases.contains(&spine.get_atlas().id())
+        if !changed_skeletons.contains(&spine.get_skeleton_handle().id())
+            && !changed_atlases.contains(&spine.get_atlas_handle().id())
         {
             continue;
         }

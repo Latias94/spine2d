@@ -266,14 +266,14 @@ fn sync_viewer_selection(
     if state.is_changed() {
         let skeleton = asset_server.load(example.skeleton.clone());
         let atlas = asset_server.load(example.atlas.clone());
-        if spine.get_skeleton() != &skeleton || spine.get_atlas() != &atlas {
-            spine.set_skeleton(skeleton);
-            spine.set_atlas(atlas);
+        if spine.get_skeleton_handle() != &skeleton || spine.get_atlas_handle() != &atlas {
+            spine.set_skeleton_handle(skeleton);
+            spine.set_atlas_handle(atlas);
             spine.set_changed();
         }
     }
 
-    let Some(asset) = skeleton_assets.get(spine.get_skeleton()) else {
+    let Some(asset) = skeleton_assets.get(spine.get_skeleton_handle()) else {
         animation.set_time_scale(0.0);
         return;
     };
@@ -396,9 +396,9 @@ fn current_skeleton_asset<'a>(
     skeleton_assets: &'a Assets<SpineSkeletonAsset>,
 ) -> Option<&'a SpineSkeletonAsset> {
     let spine = spine_query.single().ok()?;
-    let asset = skeleton_assets.get(spine.get_skeleton())?;
+    let asset = skeleton_assets.get(spine.get_skeleton_handle())?;
     let expected = state.current_example();
-    let path = spine.get_skeleton().path()?.path().to_string_lossy();
+    let path = spine.get_skeleton_handle().path()?.path().to_string_lossy();
     (path == expected.skeleton).then_some(asset)
 }
 
