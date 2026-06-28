@@ -133,6 +133,7 @@ fn animation_apply_collects_events_across_loop_wrap() {
 }
 
 #[test]
+#[cfg(feature = "json")]
 fn animation_apply_uses_previous_time_for_physics_reset() {
     let data = crate::SkeletonData::from_json_str(
         r#"
@@ -266,6 +267,7 @@ fn animation_apply_writes_applied_pose_for_slider_rebuilds() {
 }
 
 #[test]
+#[cfg(feature = "json")]
 fn animation_apply_updates_slider_and_draw_order_in_out_mix() {
     let data = slider_draw_order_skeleton_data();
     let animation = data.find_animation("anim").unwrap().clone();
@@ -457,6 +459,7 @@ fn skeleton_data_with_attachment_slot() -> Arc<SkeletonData> {
     })
 }
 
+#[cfg(feature = "json")]
 fn slider_draw_order_skeleton_data() -> Arc<SkeletonData> {
     SkeletonData::from_json_str(
         r#"

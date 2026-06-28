@@ -1,17 +1,17 @@
-use crate::runtime::MixBlend;
-use crate::{PositionMode, Skeleton, SkeletonData, apply_animation};
+use crate::{PositionMode, SkeletonData};
+#[cfg(feature = "upstream-smoke")]
+use crate::{Skeleton, apply_animation, runtime::MixBlend};
+#[cfg(feature = "upstream-smoke")]
 use std::path::PathBuf;
+#[cfg(feature = "upstream-smoke")]
 use std::sync::Arc;
 
+#[cfg(feature = "upstream-smoke")]
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .canonicalize()
         .expect("repo root")
-}
-
-fn load_bytes(rel: &str) -> Vec<u8> {
-    std::fs::read(repo_root().join(rel)).expect(rel)
 }
 
 #[cfg(feature = "upstream-smoke")]
@@ -438,17 +438,13 @@ fn binary_animation_preserves_parse_order_in_timeline_order() {
     );
 }
 
-#[cfg(feature = "json")]
-fn load_string(rel: &str) -> String {
-    std::fs::read_to_string(repo_root().join(rel)).expect(rel)
-}
-
 #[cfg(all(feature = "json", feature = "upstream-smoke"))]
 fn load_example_string(rel: &str) -> String {
     let path = upstream_examples_root().join(rel);
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 
+#[cfg(feature = "upstream-smoke")]
 fn pose_at(data: Arc<SkeletonData>, animation_name: &str, time: f32) -> Skeleton {
     let anim = data
         .find_animation(animation_name)
@@ -460,7 +456,7 @@ fn pose_at(data: Arc<SkeletonData>, animation_name: &str, time: f32) -> Skeleton
     skeleton
 }
 
-#[cfg(all(feature = "json", feature = "binary"))]
+#[cfg(all(feature = "json", feature = "binary", feature = "upstream-smoke"))]
 fn slot_index(data: &SkeletonData, name: &str) -> usize {
     data.slots
         .iter()
@@ -474,7 +470,7 @@ fn assert_approx(a: f32, b: f32, eps: f32, ctx: &str) {
     }
 }
 
-#[cfg(feature = "json")]
+#[cfg(all(feature = "json", feature = "upstream-smoke"))]
 fn bone_name(s: &Skeleton, data_index: usize) -> &str {
     s.data
         .bones
@@ -483,7 +479,7 @@ fn bone_name(s: &Skeleton, data_index: usize) -> &str {
         .unwrap_or("?")
 }
 
-#[cfg(feature = "json")]
+#[cfg(all(feature = "json", feature = "upstream-smoke"))]
 fn assert_pose_close(a: &Skeleton, b: &Skeleton, eps: f32, ctx: &str) {
     assert_eq!(a.bones.len(), b.bones.len(), "bones length");
     assert_eq!(a.slots.len(), b.slots.len(), "slots length");
@@ -826,8 +822,8 @@ fn skel_tank_treads_path_attachment_matches_json() {
 #[test]
 #[cfg(all(feature = "json", feature = "binary", feature = "upstream-smoke"))]
 fn skel_tank_treads_path_constraint_matches_json() {
-    let skel = load_bytes("assets/spine-runtimes/examples/tank/export/tank-pro.skel");
-    let json = load_string("assets/spine-runtimes/examples/tank/export/tank-pro.json");
+    let skel = load_example_bytes("tank/export/tank-pro.skel");
+    let json = load_example_string("tank/export/tank-pro.json");
 
     let data_skel = SkeletonData::from_skel_bytes(&skel).expect("parse skel");
     let data_json = SkeletonData::from_json_str(&json).expect("parse json");
