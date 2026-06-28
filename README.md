@@ -114,10 +114,13 @@ fn main() {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(Spine::new(
-        asset_server.load("demo.json"),
-        asset_server.load("demo.atlas"),
-    ).with_animation("spin", true));
+    commands.spawn(
+        Spine::new(
+            asset_server.load("demo.json"),
+            asset_server.load("demo.atlas"),
+        )
+        .with_animation_name("spin", true),
+    );
 }
 ```
 
@@ -131,7 +134,7 @@ commands.spawn((
         asset_server.load("character.json"),
         asset_server.load("character.atlas"),
     )
-    .with_animation("idle", true),
+    .with_animation_name("idle", true),
     SpineAnimationStateConfig::new()
         .with_default_mix(0.2)
         .with_mix("run", "walk", 0.1),
@@ -144,7 +147,7 @@ Use `SpineSkeletonControl` for durable skeleton-level controls such as physics m
 use spine2d_bevy::{SpineAnimationCommand, SpineTrackEntrySettings};
 
 animation_commands.write(
-    SpineAnimationCommand::set(entity, 0, "run", true).with_entry_settings(
+    SpineAnimationCommand::set_animation(entity, 0, "run", true).with_entry_settings(
         SpineTrackEntrySettings::new()
             .with_mix_duration(0.2)
             .with_alpha(0.85),
@@ -153,8 +156,6 @@ animation_commands.write(
 ```
 
 Use the public `SpineReady` marker or `SpineLifecycleEvent` messages to observe when an entity has an active runtime instance. `SpineLifecycleEvent` also reports when that instance is released because the component was removed, the entity was despawned, or a skeleton/atlas asset reload invalidated the runtime. The backend maintains public `SpineBounds` and `SpineRuntimeState` components with the current Bevy local-space bounds, active tracks, skeleton time, physics mode, wind, and gravity for camera fitting, hit areas, and gameplay queries.
-
-Migration note: the temporary `SpineAnimationMixes` API has been replaced by `SpineAnimationStateConfig`. Mix commands remain available through `SpineAnimationCommand::set_default_mix`, `set_mix`, `remove_mix`, and `clear_mixes`. Per-entry options should move to `SpineTrackEntrySettings` rather than storing raw runtime handles.
 
 Use `SpineFlipY(true)` when your project uses a Y-down space and you want the backend to mirror Spine geometry for you.
 

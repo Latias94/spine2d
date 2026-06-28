@@ -7,12 +7,33 @@ Version numbers follow SemVer, but the public API is expected to change rapidly 
 
 TBD
 
-## 0.4.0
+## v0.4.0
 
-- Breaking Bevy API: replace the temporary `SpineAnimationMixes` surface with `SpineAnimationStateConfig`, add settings-bearing `SpineAnimationCommand` paths, and expose `SpineTrackEntrySettings` for per-entry playback controls.
-- Bevy: add `SpineSkeletonControl`, `SpineSkeletonCommand`, and `SpineRuntimeState` so gameplay code can configure physics/wind/gravity/time and observe active tracks without accessing internal runtime handles.
-- Runtime: make `AnimationStateData` mix configuration a validated API, add `set_empty_animations`, expose queued/current track snapshots, and add skeleton wind/gravity getters.
-- Examples: add `spine2d-bevy --example runtime_controls`, a gameplay-style `spine2d-bevy --example mixing` demo for locomotion, one-shot actions, queued recovery, and empty-animation fades, plus an egui-powered `spine2d-bevy --example mixing_inspector` for live mix tuning.
+### Migration notes
+
+- Bevy animation-state configuration now uses `SpineAnimationStateConfig` instead of the temporary `SpineAnimationMixes`; mix data is configured through `SpineAnimationStateConfig` or `SpineAnimationCommand::{set_default_mix,set_mix,clear_mix_data}`, and the Rust-only `remove_mix` command was removed.
+- Per-entry playback options now use `SpineTrackEntrySettings` through settings-bearing animation commands, so gameplay code no longer needs to store raw runtime track-entry handles.
+- Bevy wrapper names now make names, handles, and runtime objects explicit:
+
+| Old API | New API |
+| --- | --- |
+| `Spine::with_animation(...)` | `Spine::with_animation_name(...)` |
+| `Spine::with_skin(...)` | `Spine::with_skin_name(...)` |
+| `Spine::get_animation()` | `Spine::get_animation_name()` |
+| `Spine::get_skin()` | `Spine::get_skin_name()` |
+| `Spine::get_skeleton()` / `set_skeleton(...)` | `Spine::get_skeleton_handle()` / `set_skeleton_handle(...)` |
+| `Spine::get_atlas()` / `set_atlas(...)` | `Spine::get_atlas_handle()` / `set_atlas_handle(...)` |
+| `SpineAnimationCommand::set(...)` / `add(...)` | `SpineAnimationCommand::set_animation(...)` / `add_animation(...)` |
+| `SpineAnimationCommand::set_empty(...)` / `add_empty(...)` | `SpineAnimationCommand::set_empty_animation(...)` / `add_empty_animation(...)` |
+| `SpineAnimationCommand::clear_mixes(...)` | `SpineAnimationCommand::clear_mix_data(...)` |
+| `SpineSkeletonControl::with_time(...)` | `SpineSkeletonControl::with_time_override(...)` |
+| `SpineTrackEntrySettings::with_looped(...)` | `SpineTrackEntrySettings::with_loop(...)` |
+
+### Added
+
+- Bevy: add `SpineSkeletonControl`, `SpineSkeletonCommand`, `SpineRuntimeState`, `SpineReady`, and `SpineLifecycleEvent` so gameplay code can configure skeleton controls and observe runtime lifecycle/track state without touching internal handles.
+- Runtime: add validated `AnimationStateData` mix configuration, `set_empty_animations`, queued/current track snapshots, and skeleton wind/gravity getters.
+- Examples: add `runtime_controls`, `mixing`, and `mixing_inspector` for skeleton controls, gameplay-style animation mixing, queued recovery, empty-animation fades, and live mix tuning.
 
 ## 0.3.0
 
