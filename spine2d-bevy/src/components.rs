@@ -854,7 +854,7 @@ impl SpineTrackEntrySettings {
         self
     }
 
-    pub fn with_looped(mut self, looped: bool) -> Self {
+    pub fn with_loop(mut self, looped: bool) -> Self {
         self.looped = Some(looped);
         self
     }

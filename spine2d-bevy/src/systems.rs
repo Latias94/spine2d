@@ -1612,7 +1612,7 @@ mod tests {
                 SpineAnimationCommand::set(entity, 0, "first", true).with_entry_settings(
                     SpineTrackEntrySettings::new()
                         .with_alpha(0.5)
-                        .with_looped(false)
+                        .with_loop(false)
                         .with_additive(true)
                         .with_mix_interpolation(spine2d::MixInterpolation::Smooth)
                         .with_reverse(true)
