@@ -22,7 +22,7 @@ source_session: "manual"
 
 # Verification
 
-- `rg -n "instance\.(animation_state|skeleton|draw_list|atlas|atlas_directory|animation_name|loop_animation|time_scale|skin_name|flip_y|skeleton_control)" spine2d-bevy/src/systems.rs spine2d-bevy/src/systems/render.rs spine2d-bevy/src/spine_world.rs`
+- `rg -n "instance\.(animation_state|skeleton|draw_list|atlas|atlas_directory|animation_name|looped|time_scale|skin_name|flip_y|skeleton_control)" spine2d-bevy/src/systems.rs spine2d-bevy/src/systems/render.rs spine2d-bevy/src/spine_world.rs`
 - `cargo fmt --all -- --check`
 - `cargo nextest run -p spine2d-bevy --no-fail-fast --status-level fail` (`43 passed, 0 skipped`)
 - `cargo test -p spine2d-bevy --example viewer --no-run`

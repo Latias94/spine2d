@@ -8,7 +8,7 @@ pub struct Spine {
     skeleton: Handle<SpineSkeletonAsset>,
     atlas: Handle<SpineAtlasAsset>,
     animation: Option<String>,
-    loop_animation: bool,
+    looped: bool,
     time_scale: f32,
     skin: Option<String>,
 }
@@ -19,7 +19,7 @@ impl Spine {
             skeleton,
             atlas,
             animation: None,
-            loop_animation: true,
+            looped: true,
             time_scale: 1.0,
             skin: None,
         }
@@ -49,12 +49,12 @@ impl Spine {
         self.animation = animation.map(Into::into);
     }
 
-    pub fn get_loop_animation(&self) -> bool {
-        self.loop_animation
+    pub fn get_loop(&self) -> bool {
+        self.looped
     }
 
-    pub fn set_loop_animation(&mut self, loop_animation: bool) {
-        self.loop_animation = loop_animation;
+    pub fn set_loop(&mut self, looped: bool) {
+        self.looped = looped;
     }
 
     pub fn get_time_scale(&self) -> f32 {
@@ -73,9 +73,9 @@ impl Spine {
         self.skin = skin.map(Into::into);
     }
 
-    pub fn with_animation(mut self, animation: impl Into<String>, loop_animation: bool) -> Self {
+    pub fn with_animation(mut self, animation: impl Into<String>, looped: bool) -> Self {
         self.set_animation_name(Some(animation));
-        self.set_loop_animation(loop_animation);
+        self.set_loop(looped);
         self
     }
 
@@ -111,7 +111,7 @@ impl SpineFlipY {
 #[derive(Component, Clone, Debug, PartialEq)]
 pub struct SpineAnimation {
     name: Option<String>,
-    loop_animation: bool,
+    looped: bool,
     time_scale: f32,
 }
 
@@ -119,7 +119,7 @@ impl SpineAnimation {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: Some(name.into()),
-            loop_animation: true,
+            looped: true,
             time_scale: 1.0,
         }
     }
@@ -137,16 +137,16 @@ impl SpineAnimation {
         self
     }
 
-    pub fn get_loop_animation(&self) -> bool {
-        self.loop_animation
+    pub fn get_loop(&self) -> bool {
+        self.looped
     }
 
-    pub fn set_loop_animation(&mut self, loop_animation: bool) {
-        self.loop_animation = loop_animation;
+    pub fn set_loop(&mut self, looped: bool) {
+        self.looped = looped;
     }
 
-    pub fn with_loop_animation(mut self, loop_animation: bool) -> Self {
-        self.loop_animation = loop_animation;
+    pub fn with_loop(mut self, looped: bool) -> Self {
+        self.looped = looped;
         self
     }
 
@@ -168,7 +168,7 @@ impl Default for SpineAnimation {
     fn default() -> Self {
         Self {
             name: None,
-            loop_animation: true,
+            looped: true,
             time_scale: 1.0,
         }
     }
@@ -440,7 +440,7 @@ pub struct SpineTrackState {
     animation_name: String,
     track_time: f32,
     animation_time: f32,
-    loop_animation: bool,
+    looped: bool,
     delay: f32,
     mix_duration: f32,
     mix_time: f32,
@@ -456,7 +456,7 @@ pub struct SpineTrackStateParts {
     pub animation_name: String,
     pub track_time: f32,
     pub animation_time: f32,
-    pub loop_animation: bool,
+    pub looped: bool,
     pub delay: f32,
     pub mix_duration: f32,
     pub mix_time: f32,
@@ -473,7 +473,7 @@ impl SpineTrackState {
             animation_name: parts.animation_name,
             track_time: parts.track_time,
             animation_time: parts.animation_time,
-            loop_animation: parts.loop_animation,
+            looped: parts.looped,
             delay: parts.delay,
             mix_duration: parts.mix_duration,
             mix_time: parts.mix_time,
@@ -500,8 +500,8 @@ impl SpineTrackState {
         self.animation_time
     }
 
-    pub fn get_loop_animation(&self) -> bool {
-        self.loop_animation
+    pub fn get_loop(&self) -> bool {
+        self.looped
     }
 
     pub fn get_delay(&self) -> f32 {
@@ -661,14 +661,14 @@ impl SpineAnimationCommand {
         entity: Entity,
         track_index: usize,
         animation: impl Into<String>,
-        loop_animation: bool,
+        looped: bool,
     ) -> Self {
         Self {
             entity,
             command: SpineAnimationCommandKind::Set {
                 track_index,
                 animation: animation.into(),
-                loop_animation,
+                looped,
                 settings: SpineTrackEntrySettings::default(),
             },
         }
@@ -678,7 +678,7 @@ impl SpineAnimationCommand {
         entity: Entity,
         track_index: usize,
         animation: impl Into<String>,
-        loop_animation: bool,
+        looped: bool,
         delay: f32,
     ) -> Self {
         Self {
@@ -686,7 +686,7 @@ impl SpineAnimationCommand {
             command: SpineAnimationCommandKind::Add {
                 track_index,
                 animation: animation.into(),
-                loop_animation,
+                looped,
                 delay,
                 settings: SpineTrackEntrySettings::default(),
             },
@@ -773,13 +773,13 @@ pub enum SpineAnimationCommandKind {
     Set {
         track_index: usize,
         animation: String,
-        loop_animation: bool,
+        looped: bool,
         settings: SpineTrackEntrySettings,
     },
     Add {
         track_index: usize,
         animation: String,
-        loop_animation: bool,
+        looped: bool,
         delay: f32,
         settings: SpineTrackEntrySettings,
     },

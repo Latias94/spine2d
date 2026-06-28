@@ -285,11 +285,11 @@ fn sync_viewer_selection(
     let speed = if state.playing { state.speed } else { 0.0 };
 
     if animation.get_name() != animation_name.as_deref()
-        || !animation.get_loop_animation()
+        || !animation.get_loop()
         || (animation.get_time_scale() - speed).abs() > f32::EPSILON
     {
         animation.set_name(animation_name);
-        animation.set_loop_animation(true);
+        animation.set_loop(true);
         animation.set_time_scale(speed);
         animation.set_changed();
     }

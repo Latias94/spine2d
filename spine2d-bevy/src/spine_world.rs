@@ -15,7 +15,7 @@ pub(crate) struct SpineInstance {
     atlas: Atlas,
     atlas_directory: String,
     animation_name: Option<String>,
-    loop_animation: bool,
+    looped: bool,
     time_scale: f32,
     skin_name: Option<String>,
     flip_y: bool,
@@ -29,7 +29,7 @@ pub(crate) struct SpineInstanceParts {
     atlas: Atlas,
     atlas_directory: String,
     animation_name: Option<String>,
-    loop_animation: bool,
+    looped: bool,
     time_scale: f32,
     skin_name: Option<String>,
     flip_y: bool,
@@ -49,7 +49,7 @@ impl SpineInstanceParts {
             atlas,
             atlas_directory,
             animation_name: None,
-            loop_animation: false,
+            looped: false,
             time_scale: 1.0,
             skin_name: None,
             flip_y: false,
@@ -62,8 +62,8 @@ impl SpineInstanceParts {
         self
     }
 
-    pub fn with_loop_animation(mut self, loop_animation: bool) -> Self {
-        self.loop_animation = loop_animation;
+    pub fn with_loop(mut self, looped: bool) -> Self {
+        self.looped = looped;
         self
     }
 
@@ -97,7 +97,7 @@ impl SpineInstance {
             atlas: parts.atlas,
             atlas_directory: parts.atlas_directory,
             animation_name: parts.animation_name,
-            loop_animation: parts.loop_animation,
+            looped: parts.looped,
             time_scale: parts.time_scale,
             skin_name: parts.skin_name,
             flip_y: parts.flip_y,
@@ -147,12 +147,12 @@ impl SpineInstance {
         self.animation_name = animation_name;
     }
 
-    pub fn get_loop_animation(&self) -> bool {
-        self.loop_animation
+    pub fn get_loop(&self) -> bool {
+        self.looped
     }
 
-    pub fn set_loop_animation(&mut self, loop_animation: bool) {
-        self.loop_animation = loop_animation;
+    pub fn set_loop(&mut self, looped: bool) {
+        self.looped = looped;
     }
 
     pub fn get_time_scale(&self) -> f32 {
@@ -358,7 +358,7 @@ mod tests {
                 String::new(),
             )
             .with_animation_name(Some("spin".to_owned()))
-            .with_loop_animation(true),
+            .with_loop(true),
         )
     }
 

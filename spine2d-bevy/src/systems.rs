@@ -135,7 +135,7 @@ pub fn spawn_spine_instances(
         let animation_component = animation.cloned().unwrap_or_else(|| {
             let mut component = SpineAnimation::default();
             component.set_name(spine.get_animation().map(str::to_owned));
-            component.set_loop_animation(spine.get_loop_animation());
+            component.set_loop(spine.get_loop());
             component.set_time_scale(spine.get_time_scale());
             component
         });
@@ -166,7 +166,7 @@ pub fn spawn_spine_instances(
                 atlas_asset.get_directory().to_owned(),
             )
             .with_animation_name(animation_component.get_name().map(str::to_owned))
-            .with_loop_animation(animation_component.get_loop_animation())
+            .with_loop(animation_component.get_loop())
             .with_time_scale(animation_component.get_time_scale())
             .with_skin_name(skin_component.get_name().map(str::to_owned))
             .with_flip_y(flip_y)
@@ -177,7 +177,7 @@ pub fn spawn_spine_instances(
             instance.get_animation_state_mut().set_animation(
                 0,
                 animation_name,
-                animation_component.get_loop_animation(),
+                animation_component.get_loop(),
             );
         }
         rebuild_pose(&mut instance, 0.0);
@@ -332,31 +332,31 @@ pub fn apply_spine_animation_commands(
             SpineAnimationCommandKind::Set {
                 track_index,
                 animation,
-                loop_animation,
+                looped,
                 settings,
             } => {
                 let handle = instance.get_animation_state_mut().set_animation(
                     *track_index,
                     animation,
-                    *loop_animation,
+                    *looped,
                 );
                 settings.apply(instance.get_animation_state_mut(), handle);
                 if *track_index == 0 {
                     instance.set_animation_name(Some(animation.clone()));
-                    instance.set_loop_animation(*loop_animation);
+                    instance.set_loop(*looped);
                 }
             }
             SpineAnimationCommandKind::Add {
                 track_index,
                 animation,
-                loop_animation,
+                looped,
                 delay,
                 settings,
             } => {
                 let handle = instance.get_animation_state_mut().add_animation(
                     *track_index,
                     animation,
-                    *loop_animation,
+                    *looped,
                     *delay,
                 );
                 settings.apply(instance.get_animation_state_mut(), handle);
@@ -372,7 +372,7 @@ pub fn apply_spine_animation_commands(
                 settings.apply(instance.get_animation_state_mut(), handle);
                 if *track_index == 0 {
                     instance.set_animation_name(None);
-                    instance.set_loop_animation(false);
+                    instance.set_loop(false);
                 }
             }
             SpineAnimationCommandKind::AddEmpty {
@@ -393,19 +393,19 @@ pub fn apply_spine_animation_commands(
                     .get_animation_state_mut()
                     .set_empty_animations(*mix_duration);
                 instance.set_animation_name(None);
-                instance.set_loop_animation(false);
+                instance.set_loop(false);
             }
             SpineAnimationCommandKind::ClearTrack { track_index } => {
                 instance.get_animation_state_mut().clear_track(*track_index);
                 if *track_index == 0 {
                     instance.set_animation_name(None);
-                    instance.set_loop_animation(false);
+                    instance.set_loop(false);
                 }
             }
             SpineAnimationCommandKind::ClearTracks => {
                 instance.get_animation_state_mut().clear_tracks();
                 instance.set_animation_name(None);
-                instance.set_loop_animation(false);
+                instance.set_loop(false);
             }
             SpineAnimationCommandKind::SetDefaultMix { default_mix } => {
                 apply_default_mix(instance.get_animation_state_mut().get_data(), *default_mix);
@@ -502,18 +502,18 @@ pub fn update_spine_animations(
             instance.set_time_scale(animation_ref.get_time_scale());
             if animation_ref.is_changed()
                 && (instance.get_animation_name() != animation_ref.get_name()
-                    || instance.get_loop_animation() != animation_ref.get_loop_animation())
+                    || instance.get_loop() != animation_ref.get_loop())
             {
                 instance.get_animation_state_mut().clear_tracks();
                 if let Some(animation_name) = animation_ref.get_name() {
                     instance.get_animation_state_mut().set_animation(
                         0,
                         animation_name,
-                        animation_ref.get_loop_animation(),
+                        animation_ref.get_loop(),
                     );
                 }
                 instance.set_animation_name(animation_ref.get_name().map(str::to_owned));
-                instance.set_loop_animation(animation_ref.get_loop_animation());
+                instance.set_loop(animation_ref.get_loop());
             }
         }
 
@@ -592,7 +592,7 @@ fn runtime_state_from_instance(instance: &SpineInstance, bounds: SpineBounds) ->
                         animation_name: entry.get_animation().get_name().to_string(),
                         track_time: entry.get_track_time(),
                         animation_time: entry.get_animation_time(),
-                        loop_animation: entry.get_loop(),
+                        looped: entry.get_loop(),
                         delay: entry.get_delay(),
                         mix_duration: entry.get_mix_duration(),
                         mix_time: entry.get_mix_time(),
@@ -818,14 +818,10 @@ mod tests {
         (skeleton, atlas)
     }
 
-    fn animation_component(
-        name: Option<&str>,
-        loop_animation: bool,
-        time_scale: f32,
-    ) -> SpineAnimation {
+    fn animation_component(name: Option<&str>, looped: bool, time_scale: f32) -> SpineAnimation {
         let mut component = SpineAnimation::default();
         component.set_name(name);
-        component.set_loop_animation(loop_animation);
+        component.set_loop(looped);
         component.set_time_scale(time_scale);
         component
     }
@@ -957,7 +953,7 @@ mod tests {
         let spine_world = app.world().non_send::<SpineWorld>();
         let instance = spine_world.get(key.0).unwrap();
         assert_eq!(instance.get_animation_name(), Some("spin"));
-        assert!(instance.get_loop_animation());
+        assert!(instance.get_loop());
         assert_eq!(instance.get_time_scale(), 1.0);
 
         assert_eq!(
@@ -989,7 +985,7 @@ mod tests {
 
         let animation = app.world().get::<SpineAnimation>(entity).unwrap();
         assert_eq!(animation.get_name(), None);
-        assert!(!animation.get_loop_animation());
+        assert!(!animation.get_loop());
         assert_eq!(animation.get_time_scale(), 2.0);
         assert_eq!(
             app.world().get::<SpineSkin>(entity).unwrap().get_name(),
@@ -1000,7 +996,7 @@ mod tests {
         let spine_world = app.world().non_send::<SpineWorld>();
         let instance = spine_world.get(key.0).unwrap();
         assert_eq!(instance.get_animation_name(), None);
-        assert!(!instance.get_loop_animation());
+        assert!(!instance.get_loop());
         assert_eq!(instance.get_skin_name(), None);
     }
 
@@ -1481,7 +1477,7 @@ mod tests {
         let spine_world = app.world().non_send::<SpineWorld>();
         let instance = spine_world.get(key.0).unwrap();
         assert_eq!(instance.get_animation_name(), Some("first"));
-        assert!(instance.get_loop_animation());
+        assert!(instance.get_loop());
 
         let events = drain_animation_events(&mut app);
         assert!(events.iter().any(|event| {
@@ -2001,7 +1997,7 @@ mod tests {
         assert_eq!(state.get_tracks().len(), 1);
         assert_eq!(state.get_tracks()[0].get_track_index(), 0);
         assert_eq!(state.get_tracks()[0].get_animation_name(), "first");
-        assert!(state.get_tracks()[0].get_loop_animation());
+        assert!(state.get_tracks()[0].get_loop());
     }
 
     #[test]
@@ -2029,7 +2025,7 @@ mod tests {
         let state = app.world().get::<SpineRuntimeState>(entity).unwrap();
         assert_eq!(state.get_tracks().len(), 1);
         assert_eq!(state.get_tracks()[0].get_animation_name(), "second");
-        assert!(!state.get_tracks()[0].get_loop_animation());
+        assert!(!state.get_tracks()[0].get_loop());
         assert_eq!(state.get_tracks()[0].get_alpha(), 0.5);
         assert_eq!(state.get_tracks()[0].get_mix_duration(), 0.25);
     }
