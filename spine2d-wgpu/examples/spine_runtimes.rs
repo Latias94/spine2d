@@ -572,7 +572,7 @@ impl App {
                 return;
             }
         };
-        let atlas = match Atlas::parse(&atlas_text) {
+        let atlas = match atlas_text.parse::<Atlas>() {
             Ok(a) => a,
             Err(e) => {
                 self.last_error = Some(format!("parse atlas {atlas_path:?}: {e}"));
@@ -750,11 +750,7 @@ fn choose_default_skin(example: &str, data: &SkeletonData) -> Option<String> {
     // Fallback: pick the skin with the most attachments.
     let mut best: Option<(&str, usize)> = None;
     for skin in data.get_skins() {
-        let count = skin
-            .get_attachments()
-            .iter()
-            .map(|m| m.len())
-            .sum::<usize>();
+        let count = skin.get_attachments().count();
         if count == 0 {
             continue;
         }
@@ -804,7 +800,7 @@ impl ApplicationHandler for App {
                 return;
             }
         };
-        let atlas = match Atlas::parse(&atlas_text) {
+        let atlas = match atlas_text.parse::<Atlas>() {
             Ok(a) => a,
             Err(e) => {
                 eprintln!("parse atlas {:?}: {e}", self.atlas_path);

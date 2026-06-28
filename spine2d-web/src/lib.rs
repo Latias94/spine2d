@@ -139,7 +139,8 @@ mod web {
                     log::warn!("falling back to embedded demo assets: {e:?}");
                     ExampleBundle {
                         example_name: "embedded".to_string(),
-                        atlas: Atlas::parse(ATLAS)
+                        atlas: ATLAS
+                            .parse::<Atlas>()
                             .map_err(|e| JsValue::from_str(&format!("{e:?}")))?,
                         data: SkeletonData::from_json_str(SKELETON_JSON)
                             .map_err(|e| JsValue::from_str(&format!("{e:?}")))?,
@@ -330,11 +331,7 @@ mod web {
         // default (e.g. mix-and-match).
         let mut best: Option<(&str, usize)> = None;
         for skin in data.get_skins() {
-            let count = skin
-                .get_attachments()
-                .iter()
-                .map(|m| m.len())
-                .sum::<usize>();
+            let count = skin.get_attachments().count();
             if count == 0 {
                 continue;
             }
@@ -403,7 +400,9 @@ mod web {
         let atlas_text = fetch_text(atlas_url).await?;
         let json_text = fetch_text(skeleton_url).await?;
 
-        let atlas = Atlas::parse(&atlas_text).map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
+        let atlas = atlas_text
+            .parse::<Atlas>()
+            .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
         let data = SkeletonData::from_json_str(&json_text)
             .map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
 
