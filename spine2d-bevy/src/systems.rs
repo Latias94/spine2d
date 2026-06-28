@@ -466,7 +466,7 @@ pub fn apply_spine_skeleton_commands(
             }
             SpineSkeletonCommandKind::SetTime(time) => {
                 let mut skeleton_control = instance.get_skeleton_control();
-                skeleton_control.set_time(time);
+                skeleton_control.set_time_override(time);
                 instance.set_skeleton_control(skeleton_control);
                 instance.get_skeleton_mut().set_time(time);
             }
@@ -569,7 +569,7 @@ fn apply_skeleton_control_to_skeleton(skeleton: &mut Skeleton, control: SpineSke
     skeleton.set_wind_y(control.get_wind().y);
     skeleton.set_gravity_x(control.get_gravity().x);
     skeleton.set_gravity_y(control.get_gravity().y);
-    if let Some(time) = control.get_time() {
+    if let Some(time) = control.get_time_override() {
         skeleton.set_time(time);
     }
 }
@@ -1817,7 +1817,7 @@ mod tests {
                     .with_physics(spine2d::Physics::Update)
                     .with_wind(Vec2::new(2.0, 3.0))
                     .with_gravity(Vec2::new(4.0, 5.0))
-                    .with_time(1.25),
+                    .with_time_override(1.25),
             ))
             .id();
         app.update();

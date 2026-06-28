@@ -270,7 +270,7 @@ pub struct SpineSkeletonControl {
     physics: spine2d::Physics,
     wind: Vec2,
     gravity: Vec2,
-    time: Option<f32>,
+    time_override: Option<f32>,
 }
 
 impl SpineSkeletonControl {
@@ -317,17 +317,17 @@ impl SpineSkeletonControl {
         self.gravity = gravity;
     }
 
-    pub fn get_time(&self) -> Option<f32> {
-        self.time
+    pub fn get_time_override(&self) -> Option<f32> {
+        self.time_override
     }
 
-    pub fn with_time(mut self, time: f32) -> Self {
-        self.set_time(time);
+    pub fn with_time_override(mut self, time: f32) -> Self {
+        self.set_time_override(time);
         self
     }
 
-    pub fn set_time(&mut self, time: f32) {
-        self.time = Some(time);
+    pub fn set_time_override(&mut self, time: f32) {
+        self.time_override = Some(time);
     }
 }
 
@@ -337,7 +337,7 @@ impl Default for SpineSkeletonControl {
             physics: spine2d::Physics::None,
             wind: Vec2::new(1.0, 0.0),
             gravity: Vec2::new(0.0, 1.0),
-            time: None,
+            time_override: None,
         }
     }
 }
