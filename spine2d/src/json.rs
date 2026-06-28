@@ -9,7 +9,7 @@ use crate::{
     ScaleTimeline, ScaleXTimeline, ScaleYTimeline, ShearTimeline, ShearXTimeline, ShearYTimeline,
     SkeletonData, SkinData, SliderConstraintData, SliderConstraintTimeline, SlotData, TimelineKind,
     TransformFromProperty, TransformProperty, TransformToProperty, TranslateTimeline,
-    TranslateXTimeline, TranslateYTimeline, Vec2Frame,
+    TranslateXTimeline, TranslateYTimeline, Vec2Frame, export_version,
 };
 use indexmap::IndexMap;
 use serde::Deserialize;
@@ -828,7 +828,10 @@ impl SkeletonData {
         ) = match root.skeleton {
             Some(s) => {
                 let spine_version = s.spine;
-                validate_spine_version(spine_version.as_deref().unwrap_or(""))?;
+                export_version::validate_spine_version(
+                    spine_version.as_deref().unwrap_or(""),
+                    |value| Error::JsonSpineVersion { value },
+                )?;
                 (
                     spine_version,
                     s.hash.unwrap_or_default(),
@@ -4494,13 +4497,4 @@ fn find_linked_mesh_attachment_name<'a>(
                 .find(|(_, attachment)| attachment.get_name() == source)
         })
     })
-}
-
-fn validate_spine_version(value: &str) -> Result<(), Error> {
-    if !value.starts_with("4.3") {
-        return Err(Error::JsonSpineVersion {
-            value: value.to_string(),
-        });
-    }
-    Ok(())
 }

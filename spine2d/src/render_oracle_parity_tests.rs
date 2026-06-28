@@ -880,7 +880,7 @@ fn assert_render_parity(case: &RenderCase, golden_path: &Path) {
     let atlas_path = example_path(case.atlas);
     let skeleton_path = example_path(case.skeleton);
     let atlas_text = read_to_string(&atlas_path);
-    let atlas = (&atlas_text)
+    let atlas = atlas_text
         .parse::<Atlas>()
         .unwrap_or_else(|e| panic!("parse atlas {atlas_path:?}: {e}"));
 
@@ -1021,7 +1021,7 @@ fn assert_render_scenario_parity(case: &RenderScenarioCase, golden_path: &Path) 
     let atlas_path = example_path(case.atlas);
     let skeleton_path = example_path(case.skeleton);
     let atlas_text = read_to_string(&atlas_path);
-    let atlas = (&atlas_text)
+    let atlas = atlas_text
         .parse::<Atlas>()
         .unwrap_or_else(|e| panic!("parse atlas {atlas_path:?}: {e}"));
 

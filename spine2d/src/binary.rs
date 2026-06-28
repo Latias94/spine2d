@@ -16,7 +16,7 @@ use crate::{
     SequenceTimeline, ShearTimeline, ShearXTimeline, ShearYTimeline, SkinData, SlotData,
     SpacingMode, TimelineKind, TransformConstraintData, TransformConstraintTimeline,
     TransformFrame, TranslateTimeline, TranslateXTimeline, TranslateYTimeline, Vec2Frame,
-    VertexWeight,
+    VertexWeight, export_version,
 };
 use byteorder::{BigEndian, ByteOrder};
 use indexmap::IndexMap;
@@ -377,15 +377,6 @@ struct PendingLinkedMesh {
 struct ReadVertices {
     vertices: MeshVertices,
     world_vertices_length: usize,
-}
-
-fn validate_spine_version(value: &str) -> Result<(), Error> {
-    if !value.starts_with("4.3") {
-        return Err(Error::BinarySpineVersion {
-            value: value.to_string(),
-        });
-    }
-    Ok(())
 }
 
 fn map_inherit(v: i32) -> Inherit {
@@ -981,7 +972,9 @@ impl crate::SkeletonData {
         };
 
         let spine_version = input.read_string()?;
-        validate_spine_version(spine_version.as_deref().unwrap_or(""))?;
+        export_version::validate_spine_version(spine_version.as_deref().unwrap_or(""), |value| {
+            Error::BinarySpineVersion { value }
+        })?;
 
         // x, y, width, height, referenceScale
         let x = input.read_f32_be()?;

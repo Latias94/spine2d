@@ -7,6 +7,8 @@
 
 mod atlas;
 mod error;
+#[cfg(any(feature = "json", feature = "binary"))]
+mod export_version;
 mod geometry;
 #[cfg(any(feature = "json", feature = "binary"))]
 mod ids;
