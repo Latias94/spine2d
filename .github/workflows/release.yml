@@ -156,7 +156,9 @@ jobs:
 
       - name: Extract release notes
         id: notes
-        uses: ffurrer2/extract-release-notes@v3
+        # Supports headings like `## v0.4.0`, `## 0.4.0`, and bracketed variants.
+        # Fails the release if the section is missing or empty.
+        run: python3 scripts/extract_release_notes.py --changelog CHANGELOG.md --tag "${GITHUB_REF_NAME}" --github-output release_notes
 
       - name: Create release
         uses: softprops/action-gh-release@v3
