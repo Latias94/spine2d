@@ -62,22 +62,22 @@ const JSON: &str = r#"
       "path": {
         "pc_fixed": {
           "position": [
-            { "time": 0.0, "position": 2.0 },
-            { "time": 1.0, "position": 4.0 }
+            { "time": 0.0, "value": 2.0 },
+            { "time": 1.0, "value": 4.0 }
           ],
           "spacing": [
-            { "time": 0.0, "spacing": 3.0 },
-            { "time": 1.0, "spacing": 5.0 }
+            { "time": 0.0, "value": 3.0 },
+            { "time": 1.0, "value": 5.0 }
           ]
         },
         "pc_percent": {
           "position": [
-            { "time": 0.0, "position": 0.25 },
-            { "time": 1.0, "position": 0.50 }
+            { "time": 0.0, "value": 0.25 },
+            { "time": 1.0, "value": 0.50 }
           ],
           "spacing": [
-            { "time": 0.0, "spacing": 0.1 },
-            { "time": 1.0, "spacing": 0.2 }
+            { "time": 0.0, "value": 0.1 },
+            { "time": 1.0, "value": 0.2 }
           ]
         }
       }

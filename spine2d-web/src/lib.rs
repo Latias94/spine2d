@@ -7,7 +7,7 @@ mod web {
     use spine2d::{AnimationState, AnimationStateData, Atlas, DrawList, Skeleton, SkeletonData};
     use spine2d_wgpu::{
         HashMapTextureProvider, SpineRenderer, create_sampler_for_atlas_page,
-        create_texture_bind_group,
+        create_texture_bind_group, present_surface_texture, wgpu,
     };
     use wasm_bindgen::JsCast;
     use wasm_bindgen::prelude::*;
@@ -70,7 +70,7 @@ mod web {
         canvas.set_width(width);
         canvas.set_height(height);
 
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
         let surface = instance
             .create_surface(wgpu::SurfaceTarget::Canvas(canvas.clone()))
             .map_err(|e| JsValue::from_str(&format!("create_surface: {e:?}")))?;
@@ -80,6 +80,8 @@ mod web {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 compatible_surface: Some(&surface),
                 force_fallback_adapter: false,
+                #[cfg(feature = "wgpu-30")]
+                apply_limit_buckets: false,
             })
             .await
             .map_err(|e| JsValue::from_str(&format!("request_adapter: {e:?}")))?;
@@ -99,6 +101,8 @@ mod web {
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format,
+            #[cfg(feature = "wgpu-30")]
+            color_space: wgpu::SurfaceColorSpace::Auto,
             width,
             height,
             desired_maximum_frame_latency: 2,
@@ -180,6 +184,7 @@ mod web {
 
         let state = Rc::new(RefCell::new(WebState {
             canvas,
+            instance,
             surface,
             device,
             queue,
@@ -210,7 +215,9 @@ mod web {
             let mut st = state.borrow_mut();
             if let Err(e) = st.render(ts_ms) {
                 log::error!("render: {e:?}");
+                return;
             }
+            drop(st);
 
             let window = web_sys::window().expect("missing window");
             window
@@ -258,10 +265,10 @@ mod web {
                 continue;
             }
             let v = v.replace('+', " ");
-            if let Ok(v) = js_sys::decode_uri_component(&v) {
-                if let Some(v) = v.as_string() {
-                    return Some(v);
-                }
+            if let Ok(v) = js_sys::decode_uri_component(&v)
+                && let Some(v) = v.as_string()
+            {
+                return Some(v);
             }
             return Some(v);
         }
@@ -275,19 +282,19 @@ mod web {
         if manifest.examples.is_empty() {
             return None;
         }
-        if let Some(name) = requested {
-            if let Some(found) = manifest.examples.iter().find(|e| e.name == name) {
-                return Some(found);
-            }
+        if let Some(name) = requested
+            && let Some(found) = manifest.examples.iter().find(|e| e.name == name)
+        {
+            return Some(found);
         }
         manifest.examples.first()
     }
 
     fn pick_default_animation(data: &SkeletonData, requested: Option<&str>) -> String {
-        if let Some(name) = requested {
-            if data.find_animation(name).is_some() {
-                return name.to_string();
-            }
+        if let Some(name) = requested
+            && data.find_animation(name).is_some()
+        {
+            return name.to_string();
         }
 
         if let Some(name) = recommended_animation(data) {
@@ -508,7 +515,7 @@ mod web {
         for y in 0..h {
             for x in 0..w {
                 let i = ((y * w + x) * 4) as usize;
-                pixels[i + 0] = (x * 255 / (w - 1)) as u8;
+                pixels[i] = (x * 255 / (w - 1)) as u8;
                 pixels[i + 1] = (y * 255 / (h - 1)) as u8;
                 pixels[i + 2] = 200;
                 pixels[i + 3] = 255;
@@ -859,6 +866,7 @@ mod web {
 
     struct WebState {
         canvas: web_sys::HtmlCanvasElement,
+        instance: wgpu::Instance,
         surface: wgpu::Surface<'static>,
         device: wgpu::Device,
         queue: wgpu::Queue,
@@ -949,7 +957,7 @@ mod web {
             self.state.set_animation(0, name.as_str(), true);
         }
 
-        fn render(&mut self, ts_ms: f64) -> Result<(), wgpu::SurfaceError> {
+        fn render(&mut self, ts_ms: f64) -> Result<(), String> {
             self.resize_if_needed();
 
             let mut dt = if let Some(prev) = self.last_ts_ms {
@@ -977,13 +985,23 @@ mod web {
                 .upload(&self.device, &self.queue, &self.draw_list);
             self.update_fit_bounds();
 
-            let frame = match self.surface.get_current_texture() {
-                Ok(f) => f,
-                Err(wgpu::SurfaceError::Outdated | wgpu::SurfaceError::Lost) => {
+            let (frame, reconfigure_surface) = match self.surface.get_current_texture() {
+                wgpu::CurrentSurfaceTexture::Success(frame) => (frame, false),
+                wgpu::CurrentSurfaceTexture::Suboptimal(frame) => (frame, true),
+                wgpu::CurrentSurfaceTexture::Outdated => {
                     self.surface.configure(&self.device, &self.config);
                     return Ok(());
                 }
-                Err(e) => return Err(e),
+                wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
+                    return Ok(());
+                }
+                wgpu::CurrentSurfaceTexture::Lost => {
+                    self.recreate_surface()?;
+                    return Ok(());
+                }
+                wgpu::CurrentSurfaceTexture::Validation => {
+                    return Err("surface validation failed".to_string());
+                }
             };
             let view = frame
                 .texture
@@ -1009,13 +1027,27 @@ mod web {
                     depth_stencil_attachment: None,
                     timestamp_writes: None,
                     occlusion_query_set: None,
+                    multiview_mask: None,
                 });
                 self.renderer
                     .render(&mut pass, &self.draw_list, &self.textures);
             }
 
             self.queue.submit([encoder.finish()]);
-            frame.present();
+            present_surface_texture(&self.queue, frame);
+            if reconfigure_surface {
+                self.surface.configure(&self.device, &self.config);
+            }
+            Ok(())
+        }
+
+        fn recreate_surface(&mut self) -> Result<(), String> {
+            let surface = self
+                .instance
+                .create_surface(wgpu::SurfaceTarget::Canvas(self.canvas.clone()))
+                .map_err(|error| format!("recreate surface: {error:?}"))?;
+            surface.configure(&self.device, &self.config);
+            self.surface = surface;
             Ok(())
         }
 

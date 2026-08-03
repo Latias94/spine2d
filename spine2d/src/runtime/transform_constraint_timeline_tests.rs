@@ -34,6 +34,38 @@ const SKELETON_TRANSFORM_WITH_TIMELINE: &str = r#"
 }
 "#;
 
+const SKELETON_TRANSFORM_TIMELINE_DEFAULTS: &str = r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [
+    { "name": "root" },
+    { "name": "b", "parent": "root" },
+    { "name": "t", "parent": "root" }
+  ],
+  "slots": [],
+  "constraints": [
+    {
+      "type": "transform",
+      "name": "tc",
+      "source": "t",
+      "bones": ["b"],
+      "properties": { "rotate": { "to": { "rotate": {} } } },
+      "mixScaleX": 0,
+      "mixScaleY": 0
+    }
+  ],
+  "animations": {
+    "anim": {
+      "transform": {
+        "tc": [
+          { "mixScaleX": 0.25 }
+        ]
+      }
+    }
+  }
+}
+"#;
+
 fn shortest_rotation(mut degrees: f32) -> f32 {
     degrees = degrees.rem_euclid(360.0);
     if degrees > 180.0 {
@@ -91,4 +123,17 @@ fn transform_timeline_applies_negative_alpha_like_cpp() {
     apply_animation(anim, &mut skeleton, 0.5, false, -0.5, MixBlend::Replace);
 
     assert_angle_approx(skeleton.transform_constraints[0].get_mix_rotate(), -0.25);
+}
+
+#[test]
+fn transform_timeline_mix_scale_y_uses_official_default_value() {
+    let data = SkeletonData::from_json_str(SKELETON_TRANSFORM_TIMELINE_DEFAULTS).unwrap();
+    let animation = data.find_animation("anim").unwrap();
+    let mut skeleton = Skeleton::new(data.clone());
+
+    skeleton.setup_pose();
+    apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
+
+    assert_eq!(skeleton.transform_constraints[0].get_mix_scale_x(), 0.25);
+    assert_eq!(skeleton.transform_constraints[0].get_mix_scale_y(), 1.0);
 }

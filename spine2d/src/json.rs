@@ -412,11 +412,11 @@ struct AnimationDef {
     #[serde(default)]
     transform: IndexMap<String, Vec<TransformTimelineKey>>,
     #[serde(default)]
-    path: IndexMap<String, IndexMap<String, Vec<PathTimelineKey>>>,
+    path: IndexMap<String, IndexMap<String, Value>>,
     #[serde(default)]
-    physics: IndexMap<String, IndexMap<String, Vec<PhysicsTimelineKey>>>,
+    physics: IndexMap<String, IndexMap<String, Value>>,
     #[serde(default)]
-    slider: IndexMap<String, IndexMap<String, Vec<FloatKey>>>,
+    slider: IndexMap<String, IndexMap<String, Value>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -468,10 +468,6 @@ struct PathTimelineKey {
     time: Option<serde_json::Value>,
     #[serde(default, rename = "value")]
     value: Option<serde_json::Value>,
-    #[serde(default)]
-    position: Option<serde_json::Value>,
-    #[serde(default)]
-    spacing: Option<serde_json::Value>,
     #[serde(default, rename = "mixRotate")]
     mix_rotate: Option<serde_json::Value>,
     #[serde(default, rename = "mixX")]
@@ -490,6 +486,12 @@ struct PhysicsTimelineKey {
     value: Option<f32>,
     #[serde(default)]
     curve: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PhysicsResetKey {
+    #[serde(default)]
+    time: Option<f32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -515,32 +517,32 @@ struct BoneAnimDef {
     rotate: Option<Vec<RotateKey>>,
     #[serde(default)]
     translate: Option<Vec<Vec2Key>>,
-    #[serde(rename = "translatex", alias = "translateX")]
+    #[serde(rename = "translatex")]
     translate_x: Option<Vec<FloatKey>>,
-    #[serde(rename = "translatey", alias = "translateY")]
+    #[serde(rename = "translatey")]
     translate_y: Option<Vec<FloatKey>>,
     #[serde(default)]
     scale: Option<Vec<Vec2Key>>,
-    #[serde(rename = "scalex", alias = "scaleX")]
+    #[serde(rename = "scalex")]
     scale_x: Option<Vec<FloatKey>>,
-    #[serde(rename = "scaley", alias = "scaleY")]
+    #[serde(rename = "scaley")]
     scale_y: Option<Vec<FloatKey>>,
     #[serde(default)]
     shear: Option<Vec<Vec2Key>>,
-    #[serde(rename = "shearx", alias = "shearX")]
+    #[serde(rename = "shearx")]
     shear_x: Option<Vec<FloatKey>>,
-    #[serde(rename = "sheary", alias = "shearY")]
+    #[serde(rename = "sheary")]
     shear_y: Option<Vec<FloatKey>>,
     #[serde(default)]
     inherit: Option<Vec<InheritKey>>,
+    #[serde(flatten)]
+    unknown_timelines: IndexMap<String, Value>,
 }
 
 #[derive(Debug, Deserialize)]
 struct RotateKey {
     #[serde(default)]
     time: Option<f32>,
-    #[serde(default)]
-    angle: Option<f32>,
     #[serde(default)]
     value: Option<f32>,
     #[serde(default)]
@@ -669,6 +671,8 @@ struct SlotAnimDef {
     rgba2: Option<Vec<SlotTwoColorKey>>,
     #[serde(default, rename = "rgb2")]
     rgb2: Option<Vec<SlotTwoColorKey>>,
+    #[serde(flatten)]
+    unknown_timelines: IndexMap<String, Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2237,7 +2241,8 @@ impl SkeletonData {
 
         let mut animations = Vec::new();
         for (name, def_value) in root.animations {
-            let def: AnimationDef = from_json_value(&def_value, &format!("animation '{name}'"))?;
+            let def: AnimationDef =
+                from_json_value(def_value.clone(), &format!("animation '{name}'"))?;
             let animation_color = def.color;
             let events_def = def.events;
             let bones_def = def.bones;
@@ -2300,14 +2305,26 @@ impl SkeletonData {
                     }
                 })?;
 
-                if let Some(keys) = bone_anim.rotate {
+                if let Some((timeline, _)) = bone_anim
+                    .unknown_timelines
+                    .iter()
+                    .find(|(_, value)| !value.as_array().is_some_and(Vec::is_empty))
+                {
+                    return Err(Error::JsonUnknownBoneTimeline {
+                        animation: name.clone(),
+                        bone: bone_name.clone(),
+                        timeline: timeline.clone(),
+                    });
+                }
+
+                if let Some(keys) = bone_anim.rotate.filter(|keys| !keys.is_empty()) {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.rotate curve");
                     let mut frames = Vec::with_capacity(keys.len());
                     for k in keys {
                         frames.push(RotateFrame {
                             time: k.time.unwrap_or(0.0),
-                            angle: k.angle.or(k.value).unwrap_or(0.0),
+                            angle: k.value.unwrap_or(0.0),
                             curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
                         });
                     }
@@ -2321,7 +2338,7 @@ impl SkeletonData {
                     }));
                 }
 
-                if let Some(keys) = bone_anim.translate {
+                if let Some(keys) = bone_anim.translate.filter(|keys| !keys.is_empty()) {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.translate curve");
                     let mut frames = Vec::with_capacity(keys.len());
@@ -2343,7 +2360,7 @@ impl SkeletonData {
                     }));
                 }
 
-                if let Some(keys) = bone_anim.translate_x {
+                if let Some(keys) = bone_anim.translate_x.filter(|keys| !keys.is_empty()) {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.translatex curve");
                     let mut frames = Vec::with_capacity(keys.len());
@@ -2364,7 +2381,7 @@ impl SkeletonData {
                     }));
                 }
 
-                if let Some(keys) = bone_anim.translate_y {
+                if let Some(keys) = bone_anim.translate_y.filter(|keys| !keys.is_empty()) {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.translatey curve");
                     let mut frames = Vec::with_capacity(keys.len());
@@ -2385,7 +2402,7 @@ impl SkeletonData {
                     }));
                 }
 
-                if let Some(keys) = bone_anim.scale {
+                if let Some(keys) = bone_anim.scale.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.bones.{bone_name}.scale curve");
                     let mut frames = Vec::with_capacity(keys.len());
                     for k in keys {
@@ -2406,7 +2423,7 @@ impl SkeletonData {
                     }));
                 }
 
-                if let Some(keys) = bone_anim.scale_x {
+                if let Some(keys) = bone_anim.scale_x.filter(|keys| !keys.is_empty()) {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.scalex curve");
                     let mut frames = Vec::with_capacity(keys.len());
@@ -2427,7 +2444,7 @@ impl SkeletonData {
                     }));
                 }
 
-                if let Some(keys) = bone_anim.scale_y {
+                if let Some(keys) = bone_anim.scale_y.filter(|keys| !keys.is_empty()) {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.scaley curve");
                     let mut frames = Vec::with_capacity(keys.len());
@@ -2448,7 +2465,7 @@ impl SkeletonData {
                     }));
                 }
 
-                if let Some(keys) = bone_anim.shear {
+                if let Some(keys) = bone_anim.shear.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.bones.{bone_name}.shear curve");
                     let mut frames = Vec::with_capacity(keys.len());
                     for k in keys {
@@ -2469,7 +2486,7 @@ impl SkeletonData {
                     }));
                 }
 
-                if let Some(keys) = bone_anim.shear_x {
+                if let Some(keys) = bone_anim.shear_x.filter(|keys| !keys.is_empty()) {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.shearx curve");
                     let mut frames = Vec::with_capacity(keys.len());
@@ -2490,7 +2507,7 @@ impl SkeletonData {
                     }));
                 }
 
-                if let Some(keys) = bone_anim.shear_y {
+                if let Some(keys) = bone_anim.shear_y.filter(|keys| !keys.is_empty()) {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.sheary curve");
                     let mut frames = Vec::with_capacity(keys.len());
@@ -2511,7 +2528,7 @@ impl SkeletonData {
                     }));
                 }
 
-                if let Some(keys) = bone_anim.inherit {
+                if let Some(keys) = bone_anim.inherit.filter(|keys| !keys.is_empty()) {
                     let mut frames = Vec::with_capacity(keys.len());
                     for k in keys {
                         frames.push(InheritFrame {
@@ -2733,7 +2750,19 @@ impl SkeletonData {
                     }
                 })?;
 
-                if let Some(keys) = slot_anim.attachment {
+                if let Some((timeline, _)) = slot_anim
+                    .unknown_timelines
+                    .iter()
+                    .find(|(_, value)| !value.as_array().is_some_and(Vec::is_empty))
+                {
+                    return Err(Error::JsonUnknownSlotTimeline {
+                        animation: name.clone(),
+                        slot: slot_name.clone(),
+                        timeline: timeline.clone(),
+                    });
+                }
+
+                if let Some(keys) = slot_anim.attachment.filter(|keys| !keys.is_empty()) {
                     let mut frames = keys
                         .into_iter()
                         .map(|k| AttachmentFrame {
@@ -2751,7 +2780,7 @@ impl SkeletonData {
                     });
                 }
 
-                if let Some(keys) = slot_anim.rgba {
+                if let Some(keys) = slot_anim.rgba.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.slots.{slot_name}.color curve");
                     let mut frames = Vec::with_capacity(keys.len());
                     for key in keys {
@@ -2775,7 +2804,7 @@ impl SkeletonData {
                     });
                 }
 
-                if let Some(keys) = slot_anim.rgb {
+                if let Some(keys) = slot_anim.rgb.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.slots.{slot_name}.rgb curve");
                     let mut frames = Vec::with_capacity(keys.len());
                     for key in keys {
@@ -2799,7 +2828,7 @@ impl SkeletonData {
                     });
                 }
 
-                if let Some(keys) = slot_anim.alpha {
+                if let Some(keys) = slot_anim.alpha.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.slots.{slot_name}.alpha curve");
                     let mut frames = Vec::with_capacity(keys.len());
                     for key in keys {
@@ -2807,7 +2836,7 @@ impl SkeletonData {
                         duration = duration.max(time);
                         frames.push(AlphaFrame {
                             time,
-                            alpha: key.value.unwrap_or(1.0),
+                            alpha: key.value.unwrap_or(0.0),
                             curve: parse_curve_1(key.curve.as_ref(), 1.0, &curve_context)?,
                         });
                     }
@@ -2818,19 +2847,7 @@ impl SkeletonData {
                     });
                 }
 
-                if let Some(keys) = slot_anim.rgba2 {
-                    if !slots
-                        .get(s_index)
-                        .map(|s| s.setup_pose.has_dark)
-                        .unwrap_or(false)
-                    {
-                        return Err(Error::JsonTwoColorTimelineRequiresDarkSlot {
-                            animation: name.clone(),
-                            slot: slot_name.clone(),
-                            timeline: "rgba2".to_string(),
-                        });
-                    }
-
+                if let Some(keys) = slot_anim.rgba2.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.slots.{slot_name}.rgba2 curve");
                     let mut frames = Vec::with_capacity(keys.len());
                     for key in keys {
@@ -2866,19 +2883,7 @@ impl SkeletonData {
                     });
                 }
 
-                if let Some(keys) = slot_anim.rgb2 {
-                    if !slots
-                        .get(s_index)
-                        .map(|s| s.setup_pose.has_dark)
-                        .unwrap_or(false)
-                    {
-                        return Err(Error::JsonTwoColorTimelineRequiresDarkSlot {
-                            animation: name.clone(),
-                            slot: slot_name.clone(),
-                            timeline: "rgb2".to_string(),
-                        });
-                    }
-
+                if let Some(keys) = slot_anim.rgb2.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.slots.{slot_name}.rgb2 curve");
                     let mut frames = Vec::with_capacity(keys.len());
                     for key in keys {
@@ -2996,6 +3001,9 @@ impl SkeletonData {
 
             let mut ik_constraint_timelines = Vec::new();
             for (constraint_name, keys) in ik_def {
+                if keys.is_empty() {
+                    continue;
+                }
                 let constraint_index =
                     *ik_constraint_index.get(&constraint_name).ok_or_else(|| {
                         Error::JsonUnknownIkConstraintTimeline {
@@ -3033,6 +3041,9 @@ impl SkeletonData {
 
             let mut transform_constraint_timelines = Vec::new();
             for (constraint_name, keys) in transform_def {
+                if keys.is_empty() {
+                    continue;
+                }
                 let constraint_index = *transform_constraint_index
                     .get(&constraint_name)
                     .ok_or_else(|| Error::JsonUnknownTransformConstraintTimeline {
@@ -3050,7 +3061,7 @@ impl SkeletonData {
                     let mix_x = k.mix_x.unwrap_or(1.0);
                     let mix_y = k.mix_y.unwrap_or(mix_x);
                     let mix_scale_x = k.mix_scale_x.unwrap_or(1.0);
-                    let mix_scale_y = k.mix_scale_y.unwrap_or(mix_scale_x);
+                    let mix_scale_y = k.mix_scale_y.unwrap_or(1.0);
                     let mix_shear_y = k.mix_shear_y.unwrap_or(1.0);
 
                     frames.push(crate::TransformFrame {
@@ -3103,7 +3114,14 @@ impl SkeletonData {
                     1.0
                 };
 
-                for (timeline_name, keys) in timelines {
+                for (timeline_name, keys_value) in timelines {
+                    if !matches!(timeline_name.as_str(), "position" | "spacing" | "mix") {
+                        continue;
+                    }
+                    let keys: Vec<PathTimelineKey> = from_json_value(
+                        keys_value,
+                        &format!("animation '{name}'.path.{constraint_name}.{timeline_name}"),
+                    )?;
                     if keys.is_empty() {
                         continue;
                     }
@@ -3114,12 +3132,7 @@ impl SkeletonData {
                             let mut frames = Vec::with_capacity(keys.len());
                             for k in keys {
                                 let time = k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
-                                let value = k
-                                    .value
-                                    .as_ref()
-                                    .or(k.position.as_ref())
-                                    .and_then(curve_number)
-                                    .unwrap_or(0.0)
+                                let value = k.value.as_ref().and_then(curve_number).unwrap_or(0.0)
                                     * position_scale;
                                 frames.push(crate::FloatFrame {
                                     time,
@@ -3150,12 +3163,7 @@ impl SkeletonData {
                             let mut frames = Vec::with_capacity(keys.len());
                             for k in keys {
                                 let time = k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
-                                let value = k
-                                    .value
-                                    .as_ref()
-                                    .or(k.spacing.as_ref())
-                                    .and_then(curve_number)
-                                    .unwrap_or(0.0)
+                                let value = k.value.as_ref().and_then(curve_number).unwrap_or(0.0)
                                     * spacing_scale;
                                 frames.push(crate::FloatFrame {
                                     time,
@@ -3232,12 +3240,15 @@ impl SkeletonData {
                         })? as i32
                 };
 
-                for (timeline_name, keys) in timelines {
-                    if keys.is_empty() {
-                        continue;
-                    }
-
+                for (timeline_name, keys_value) in timelines {
                     if timeline_name == "reset" {
+                        let keys_context =
+                            format!("animation '{name}'.physics.{constraint_name}.reset");
+                        let keys: Vec<PhysicsResetKey> =
+                            from_json_value(keys_value, &keys_context)?;
+                        if keys.is_empty() {
+                            continue;
+                        }
                         let mut frames = keys
                             .iter()
                             .map(|k| k.time.unwrap_or(0.0))
@@ -3253,13 +3264,36 @@ impl SkeletonData {
                         continue;
                     }
 
+                    let (default_value, wrap): (
+                        f32,
+                        fn(
+                            crate::PhysicsConstraintFloatTimeline,
+                        ) -> crate::PhysicsConstraintTimeline,
+                    ) = match timeline_name.as_str() {
+                        "inertia" => (0.0, crate::PhysicsConstraintTimeline::Inertia),
+                        "strength" => (0.0, crate::PhysicsConstraintTimeline::Strength),
+                        "damping" => (0.0, crate::PhysicsConstraintTimeline::Damping),
+                        "mass" => (0.0, crate::PhysicsConstraintTimeline::Mass),
+                        "wind" => (0.0, crate::PhysicsConstraintTimeline::Wind),
+                        "gravity" => (0.0, crate::PhysicsConstraintTimeline::Gravity),
+                        "mix" => (1.0, crate::PhysicsConstraintTimeline::Mix),
+                        _ => continue,
+                    };
+
+                    let keys_context =
+                        format!("animation '{name}'.physics.{constraint_name}.{timeline_name}");
+                    let keys: Vec<PhysicsTimelineKey> = from_json_value(keys_value, &keys_context)?;
+                    if keys.is_empty() {
+                        continue;
+                    }
+
                     let curve_context = format!(
                         "animation '{name}'.physics.{constraint_name}.{timeline_name} curve"
                     );
                     let mut frames = Vec::with_capacity(keys.len());
                     for k in keys {
                         let time = k.time.unwrap_or(0.0);
-                        let value = k.value.unwrap_or(0.0);
+                        let value = k.value.unwrap_or(default_value);
                         frames.push(crate::FloatFrame {
                             time,
                             value,
@@ -3275,17 +3309,7 @@ impl SkeletonData {
                         constraint_index,
                         frames,
                     };
-                    let wrapped = match timeline_name.as_str() {
-                        "inertia" => crate::PhysicsConstraintTimeline::Inertia(timeline),
-                        "strength" => crate::PhysicsConstraintTimeline::Strength(timeline),
-                        "damping" => crate::PhysicsConstraintTimeline::Damping(timeline),
-                        "mass" => crate::PhysicsConstraintTimeline::Mass(timeline),
-                        "wind" => crate::PhysicsConstraintTimeline::Wind(timeline),
-                        "gravity" => crate::PhysicsConstraintTimeline::Gravity(timeline),
-                        "mix" => crate::PhysicsConstraintTimeline::Mix(timeline),
-                        _ => continue,
-                    };
-                    physics_constraint_timelines.push(wrapped);
+                    physics_constraint_timelines.push(wrap(timeline));
                 }
             }
 
@@ -3299,7 +3323,16 @@ impl SkeletonData {
                             animation: name.clone(),
                             constraint: constraint_name.clone(),
                         })?;
-                for (timeline_name, keys) in timelines {
+                for (timeline_name, keys_value) in timelines {
+                    let is_time = match timeline_name.as_str() {
+                        "time" => true,
+                        "mix" => false,
+                        _ => continue,
+                    };
+                    let keys: Vec<FloatKey> = from_json_value(
+                        keys_value,
+                        &format!("animation '{name}'.slider.{constraint_name}.{timeline_name}"),
+                    )?;
                     if keys.is_empty() {
                         continue;
                     }
@@ -3328,10 +3361,10 @@ impl SkeletonData {
                         constraint_index,
                         frames,
                     };
-                    match timeline_name.as_str() {
-                        "time" => slider_time_timelines.push(timeline),
-                        "mix" => slider_mix_timelines.push(timeline),
-                        _ => {}
+                    if is_time {
+                        slider_time_timelines.push(timeline);
+                    } else {
+                        slider_mix_timelines.push(timeline);
                     }
                 }
             }
@@ -3451,24 +3484,12 @@ impl SkeletonData {
 }
 
 fn from_json_value<T: DeserializeOwned>(
-    value: &serde_json::Value,
+    value: serde_json::Value,
     context: &str,
 ) -> Result<T, Error> {
-    serde_json::from_value(value.clone()).map_err(|e| Error::JsonParse {
+    serde_json::from_value(value).map_err(|e| Error::JsonParse {
         message: format!("{context}: {e}"),
     })
-}
-
-fn normalize_bone_timeline_name(name: &str) -> &str {
-    match name {
-        "translateX" => "translatex",
-        "translateY" => "translatey",
-        "scaleX" => "scalex",
-        "scaleY" => "scaley",
-        "shearX" => "shearx",
-        "shearY" => "sheary",
-        _ => name,
-    }
 }
 
 fn push_json_timeline_order(
@@ -3789,7 +3810,7 @@ fn build_json_timeline_order(
                     timelines,
                     JsonTimelineRef::Bone {
                         bone: bone.clone(),
-                        timeline: normalize_bone_timeline_name(timeline).to_string(),
+                        timeline: timeline.to_string(),
                     },
                 );
             }

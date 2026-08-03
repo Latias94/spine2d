@@ -62,6 +62,23 @@ const SKELETON_SLOT_RGBA2_TIMELINE: &str = r#"
 }
 "#;
 
+const SKELETON_SLOT_ALPHA_DEFAULT_TIMELINE: &str = r#"
+{
+  "skeleton": { "spine": "4.3.00" },
+  "bones": [{ "name": "root" }],
+  "slots": [{ "name": "slot0", "bone": "root" }],
+  "animations": {
+    "anim": {
+      "slots": {
+        "slot0": {
+          "alpha": [{}]
+        }
+      }
+    }
+  }
+}
+"#;
+
 fn assert_approx(actual: f32, expected: f32) {
     let diff = (actual - expected).abs();
     assert!(
@@ -141,4 +158,57 @@ fn slot_rgba2_timeline_applies_negative_alpha_to_dark_color_like_cpp() {
     assert_approx(skeleton.slots[0].get_dark_color()[0], -0.5);
     assert_approx(skeleton.slots[0].get_dark_color()[1], 0.0);
     assert_approx(skeleton.slots[0].get_dark_color()[2], 1.5);
+}
+
+#[test]
+fn slot_alpha_timeline_uses_official_default_value() {
+    let data = SkeletonData::from_json_str(SKELETON_SLOT_ALPHA_DEFAULT_TIMELINE).unwrap();
+    let animation = data.find_animation("anim").unwrap();
+    let mut skeleton = Skeleton::new(data.clone());
+
+    skeleton.setup_pose();
+    apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
+
+    assert_approx(skeleton.slots[0].color[3], 0.0);
+}
+
+#[test]
+fn two_color_timelines_do_not_require_setup_dark_color() {
+    for (timeline_name, frame) in [
+        (
+            "rgba2",
+            serde_json::json!({ "light": "FF0000FF", "dark": "00FF00" }),
+        ),
+        (
+            "rgb2",
+            serde_json::json!({ "light": "FF0000", "dark": "00FF00" }),
+        ),
+    ] {
+        let mut json = serde_json::json!({
+            "skeleton": { "spine": "4.3.00" },
+            "bones": [{ "name": "root" }],
+            "slots": [{ "name": "slot0", "bone": "root" }],
+            "animations": {
+                "anim": {
+                    "slots": {
+                        "slot0": {}
+                    }
+                }
+            }
+        });
+        json["animations"]["anim"]["slots"]["slot0"][timeline_name] = serde_json::json!([frame]);
+
+        let data = SkeletonData::from_json_str(&json.to_string())
+            .expect("two-color timeline without setup dark color");
+        let animation = data.find_animation("anim").unwrap();
+        let mut skeleton = Skeleton::new(data.clone());
+
+        skeleton.setup_pose();
+        apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
+
+        assert!(skeleton.slots[0].has_dark_color());
+        assert_approx(skeleton.slots[0].get_dark_color()[0], 0.0);
+        assert_approx(skeleton.slots[0].get_dark_color()[1], 1.0);
+        assert_approx(skeleton.slots[0].get_dark_color()[2], 0.0);
+    }
 }
