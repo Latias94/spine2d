@@ -20,6 +20,7 @@ Version numbers follow SemVer, but the public API is expected to change rapidly 
 
 - Decode an omitted physics `mix` timeline value as `1` for named and global physics constraints, matching the official C++ and TypeScript runtimes and fixing interpolation through the restored default ([#5](https://github.com/Latias94/spine2d/issues/5)).
 - Match Spine 4.3 JSON timeline defaults and dispatch semantics for slot alpha, transform scale mixing, unknown path/physics/slider timelines, empty timelines, and two-color timelines without a setup dark color.
+- Preserve JSON timeline frame order and last-frame duration, ignore the final frame's unused `curve`, and use official input-order searches during playback for hand-authored and malformed input.
 - Keep native renderer examples alive across transient surface states, recreate lost web surfaces, and stop the web animation loop after fatal surface failures.
 
 ### Tooling

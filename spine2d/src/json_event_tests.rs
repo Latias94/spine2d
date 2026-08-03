@@ -75,8 +75,7 @@ fn json_events_parse_defaults_and_key_overrides() {
 
 #[test]
 fn json_events_keep_file_order_for_same_time() {
-    // Upstream runtimes preserve file order for events at the same time.
-    // We still sort by time for timeline search, but must not reorder equal-time events.
+    // Upstream runtimes preserve file order for all event keys.
     let json = r#"
 {
   "skeleton": { "spine": "4.3.00" },
