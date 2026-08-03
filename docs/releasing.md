@@ -7,8 +7,10 @@ depend on `spine2d`.
 
 - Bump versions (`spine2d`, `spine2d-wgpu`, `spine2d-bevy`, workspace consumers).
 - Update `CHANGELOG.md`.
+- Validate release notes: `python3 scripts/extract_release_notes.py --changelog CHANGELOG.md --tag vX.Y.Z`.
 - Run tests:
   - `cargo test -p spine2d --features json,binary,upstream-smoke`
+  - `cargo test -p spine2d-web`
   - `cargo check -p spine2d-bevy`
 - Dry-run publish:
   - `cargo publish -p spine2d --dry-run`

@@ -46,12 +46,16 @@ jobs:
               "spine2d": read_version("spine2d/Cargo.toml"),
               "spine2d-wgpu": read_version("spine2d-wgpu/Cargo.toml"),
               "spine2d-bevy": read_version("spine2d-bevy/Cargo.toml"),
+              "spine2d-web": read_version("spine2d-web/Cargo.toml"),
           }
           bad = {k: v for k, v in crates.items() if v != version}
           if bad:
               raise SystemExit(f"Tag v{version} does not match crate versions: {bad}")
           print(f"OK: v{version} matches {crates}")
           PY
+
+      - name: Validate release notes
+        run: python3 scripts/extract_release_notes.py --changelog CHANGELOG.md --tag "${GITHUB_REF_NAME}"
 
   test:
     name: Test before publish
@@ -90,6 +94,9 @@ jobs:
 
       - name: Clippy (spine2d-web, wgpu 30)
         run: cargo clippy -p spine2d-web --target wasm32-unknown-unknown --no-default-features --features wgpu-30 -- -D warnings
+
+      - name: Test (spine2d-web)
+        run: cargo test -p spine2d-web
 
       - name: Test (spine2d)
         run: cargo test -p spine2d --features json,binary

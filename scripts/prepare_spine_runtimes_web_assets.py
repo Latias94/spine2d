@@ -161,8 +161,10 @@ def main(argv: list[str]) -> int:
     if args.repo_url.strip():
         cmd += ["--repo-url", args.repo_url.strip()]
 
+    print("Fetching and importing upstream Spine examples...", flush=True)
     run(cmd, cwd=root)
 
+    print("Generating web manifest...", flush=True)
     entries = generate_manifest(dest)
     manifest_path = dest / "web_manifest.json"
     manifest_path.write_text(

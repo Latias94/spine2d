@@ -62,16 +62,33 @@ class GitInfo:
     commit: str
 
 
-def run(argv: list[str], *, cwd: Path | None = None) -> str:
-    p = subprocess.run(
-        argv,
-        cwd=str(cwd) if cwd is not None else None,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
+def run(
+    argv: list[str], *, cwd: Path | None = None, stream_output: bool = False
+) -> str:
+    if stream_output:
+        p = subprocess.run(
+            argv,
+            cwd=str(cwd) if cwd is not None else None,
+            text=True,
+            check=False,
+        )
+    else:
+        p = subprocess.run(
+            argv,
+            cwd=str(cwd) if cwd is not None else None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
     if p.returncode != 0:
+        if stream_output:
+            raise RuntimeError(
+                "Command failed:\n"
+                f"  cwd: {cwd}\n"
+                f"  cmd: {' '.join(argv)}\n"
+                f"  code: {p.returncode}\n"
+            )
         raise RuntimeError(
             "Command failed:\n"
             f"  cwd: {cwd}\n"
@@ -80,7 +97,7 @@ def run(argv: list[str], *, cwd: Path | None = None) -> str:
             f"  stdout:\n{p.stdout}\n"
             f"  stderr:\n{p.stderr}\n"
         )
-    return p.stdout.strip()
+    return p.stdout.strip() if p.stdout is not None else ""
 
 
 def ensure_dir(path: Path) -> None:
@@ -108,35 +125,67 @@ def git_info(repo_dir: Path) -> GitInfo:
 
 
 def clone_or_update_repo(repo_url: str, dest: Path, *, rev: str | None, depth: int) -> GitInfo:
+    fetched_requested_rev = False
     if dest.exists() and (dest / ".git").is_dir():
-        fetch = ["git", "-C", str(dest), "fetch", "--depth", str(depth), "origin"]
+        print(f"Updating upstream cache: {dest}", flush=True)
+        fetch = [
+            "git",
+            "-C",
+            str(dest),
+            "fetch",
+            "--progress",
+            "--depth",
+            str(depth),
+            "origin",
+        ]
         if rev is not None and rev.strip():
             fetch.append(rev.strip())
-        run(fetch)
+            fetched_requested_rev = True
+        run(fetch, stream_output=True)
     elif dest.exists():
         raise RuntimeError(f"Destination exists but is not a git repo: {dest}")
     else:
+        print(f"Cloning upstream repository into: {dest}", flush=True)
         ensure_dir(dest.parent)
         # Use sparse checkout to avoid pulling the full repository content.
         run(
             [
                 "git",
                 "clone",
+                "--progress",
                 "--depth",
                 str(depth),
                 "--sparse",
                 repo_url,
                 str(dest),
-            ]
+            ],
+            stream_output=True,
         )
 
     # Ensure we only checkout what we need.
+    print("Configuring sparse checkout...", flush=True)
     run(["git", "-C", str(dest), "sparse-checkout", "set", *SPARSE_CHECKOUT_DIRS])
 
     if rev is not None and rev.strip():
         # Ensure the requested rev exists in a shallow clone (clone --depth only fetches the default branch).
         # Note: `git fetch origin <rev>` may only update FETCH_HEAD (not create a named ref), so we detach at FETCH_HEAD.
-        run(["git", "-C", str(dest), "fetch", "--depth", str(depth), "origin", rev.strip()])
+        if not fetched_requested_rev:
+            print(f"Fetching requested revision: {rev.strip()}", flush=True)
+            run(
+                [
+                    "git",
+                    "-C",
+                    str(dest),
+                    "fetch",
+                    "--progress",
+                    "--depth",
+                    str(depth),
+                    "origin",
+                    rev.strip(),
+                ],
+                stream_output=True,
+            )
+        print(f"Checking out revision: {rev.strip()}", flush=True)
         run(["git", "-C", str(dest), "checkout", "--detach", "FETCH_HEAD"])
     else:
         # Make sure HEAD is checked out (clone --sparse can leave things minimal).
@@ -175,7 +224,7 @@ def import_examples(
 
     ensure_dir(import_dest / "examples")
 
-    copied = 0
+    files_to_copy: list[tuple[Path, Path]] = []
     if scope == "tests":
         if mode == "json":
             for rel in TEST_JSON_FILES:
@@ -183,21 +232,19 @@ def import_examples(
                 if not src.is_file():
                     raise RuntimeError(f"Missing upstream file: {src}")
                 dst = import_dest / "examples" / rel
-                copy_file(src, dst)
-                copied += 1
+                files_to_copy.append((src, dst))
         elif mode == "export":
             examples = sorted({rel.split("/", 1)[0] for rel in TEST_JSON_FILES})
             for ex in examples:
                 src_dir = src_examples / ex / "export"
                 if not src_dir.is_dir():
                     raise RuntimeError(f"Missing upstream directory: {src_dir}")
-                for file in src_dir.rglob("*"):
+                for file in sorted(src_dir.rglob("*")):
                     if not file.is_file():
                         continue
                     rel = file.relative_to(repo_dir)
                     dst = import_dest / rel
-                    copy_file(file, dst)
-                    copied += 1
+                    files_to_copy.append((file, dst))
         else:
             raise RuntimeError(f"Invalid mode: {mode}")
     elif scope == "all":
@@ -207,7 +254,7 @@ def import_examples(
             exts = {".json", ".skel", ".atlas", ".png"}
         else:
             raise RuntimeError(f"Invalid mode: {mode}")
-        for file in src_examples.rglob("*"):
+        for file in sorted(src_examples.rglob("*")):
             if not file.is_file():
                 continue
             if "export" not in file.parts:
@@ -216,12 +263,19 @@ def import_examples(
                 continue
             rel = file.relative_to(repo_dir)
             dst = import_dest / rel
-            copy_file(file, dst)
-            copied += 1
+            files_to_copy.append((file, dst))
     else:
         raise RuntimeError(f"Invalid scope: {scope}")
 
-    return copied
+    total = len(files_to_copy)
+    print(f"Importing {total} example files...", flush=True)
+    progress_interval = max(1, total // 10)
+    for copied, (src, dst) in enumerate(files_to_copy, start=1):
+        copy_file(src, dst)
+        if copied == 1 or copied == total or copied % progress_interval == 0:
+            print(f"  imported {copied}/{total} files", flush=True)
+
+    return total
 
 
 def try_import_license(repo_dir: Path, import_dest: Path) -> None:

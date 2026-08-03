@@ -20,8 +20,8 @@
       "bones": {
         "root": {
           "rotate": [
-            { "time": 0, "angle": 0 },
-            { "time": 1, "angle": 360 }
+            { "time": 0, "value": 0 },
+            { "time": 1, "value": 360 }
           ]
         }
       }

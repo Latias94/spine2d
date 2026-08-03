@@ -20,8 +20,8 @@ serde_json.workspace = true
 
 [features]
 default = ["wgpu-29"]
-wgpu-29 = ["spine2d-wgpu/wgpu-29"]
-wgpu-30 = ["spine2d-wgpu/wgpu-30"]
+wgpu-29 = ["spine2d-wgpu/wgpu-29", "spine2d-wgpu/webgl"]
+wgpu-30 = ["spine2d-wgpu/wgpu-30", "spine2d-wgpu/webgl"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"

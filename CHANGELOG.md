@@ -14,6 +14,7 @@ Version numbers follow SemVer, but the public API is expected to change rapidly 
 ### Renderer compatibility
 
 - Upgrade `spine2d-wgpu` from wgpu 27 to wgpu 29 by default and add an opt-in wgpu 30 backend. Exactly one backend feature must be enabled: builds that disable default features must explicitly select `wgpu-29` or `wgpu-30`, and renderer checks must test them separately instead of using `--all-features`. `spine2d-web` mirrors the same selection.
+- Add an opt-in `spine2d-wgpu/webgl` backend and enable it in `spine2d-web`, allowing the web viewer to fall back to WebGL2 when a browser exposes WebGPU but cannot create an adapter.
 - Upgrade the viewer ecosystem to egui 0.35, bevy_egui 0.41, and pollster 1.0 while keeping Bevy 0.19; refresh compatible direct and transitive dependency patches across the workspace.
 
 ### Fixed
@@ -21,11 +22,15 @@ Version numbers follow SemVer, but the public API is expected to change rapidly 
 - Decode an omitted physics `mix` timeline value as `1` for named and global physics constraints, matching the official C++ and TypeScript runtimes and fixing interpolation through the restored default ([#5](https://github.com/Latias94/spine2d/issues/5)).
 - Match Spine 4.3 JSON timeline defaults and dispatch semantics for slot alpha, transform scale mixing, unknown path/physics/slider timelines, empty timelines, and two-color timelines without a setup dark color.
 - Preserve JSON timeline frame order and last-frame duration, ignore the final frame's unused `curve`, and use official input-order searches during playback for hand-authored and malformed input.
+- Use the official rotate `value` field in the bundled web demo so its `spin` animation changes the root pose instead of silently decoding to zero rotation.
+- Correct the `spine2d-bevy` package metadata so its documentation link opens the Bevy integration API.
 - Keep native renderer examples alive across transient surface states, recreate lost web surfaces, and stop the web animation loop after fatal surface failures.
 
 ### Tooling
 
 - Validate both wgpu 29 and 30 renderer paths plus both real `wasm32-unknown-unknown` web builds in CI and before tagged releases.
+- Stream Git transfer progress and report file import progress while preparing official web example assets.
+- Run the bundled web demo regression test in CI and validate version/release-note metadata before publishing a tag.
 
 ## v0.4.0
 

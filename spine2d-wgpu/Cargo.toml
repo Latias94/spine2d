@@ -22,6 +22,7 @@ bytemuck.workspace = true
 [features]
 default = ["wgpu-29"]
 json = ["spine2d/json"]
+webgl = ["wgpu-29?/webgl", "wgpu-30?/webgl"]
 wgpu-29 = ["dep:wgpu-29"]
 wgpu-30 = ["dep:wgpu-30"]
 
