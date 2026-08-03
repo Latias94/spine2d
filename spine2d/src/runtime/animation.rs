@@ -191,29 +191,50 @@ pub(crate) fn apply_animation_public(
     }
 }
 
-fn collect_animation_events(
+fn search_next_frame<T>(frames: &[T], target: f32, frame_time: impl Fn(&T) -> f32) -> usize {
+    for (frame_index, frame) in frames.iter().enumerate().skip(1) {
+        if frame_time(frame) > target {
+            return frame_index;
+        }
+    }
+    frames.len()
+}
+
+pub(super) fn collect_animation_events(
     timeline: &EventTimeline,
-    last_time: f32,
+    mut last_time: f32,
     time: f32,
     out: &mut Vec<Event>,
 ) {
-    if timeline.get_events().is_empty() {
+    let events = timeline.get_events();
+    if events.is_empty() {
         return;
     }
 
-    let mut emit_range = |from: f32, to: f32| {
-        for ev in timeline.get_events() {
-            if ev.get_time() > from && ev.get_time() <= to {
-                out.push(ev.clone());
-            }
+    if last_time > time {
+        collect_animation_events(timeline, last_time, f32::MAX, out);
+        last_time = -1.0;
+    } else if last_time >= events[events.len() - 1].get_time() {
+        return;
+    }
+    if time < events[0].get_time() {
+        return;
+    }
+
+    let mut frame_index = if last_time < events[0].get_time() {
+        0
+    } else {
+        let mut index = search_next_frame(events, last_time, Event::get_time);
+        let frame_time = events[index].get_time();
+        while index > 0 && events[index - 1].get_time() == frame_time {
+            index -= 1;
         }
+        index
     };
 
-    if last_time > time {
-        emit_range(last_time, f32::MAX);
-        emit_range(-1.0, time);
-    } else {
-        emit_range(last_time, time);
+    while frame_index < events.len() && time >= events[frame_index].get_time() {
+        out.push(events[frame_index].clone());
+        frame_index += 1;
     }
 }
 
@@ -1872,13 +1893,10 @@ pub(crate) fn apply_physics_reset_timeline(
     let crossed = if last_time < timeline.frames[0] {
         true
     } else {
-        let idx = timeline
-            .frames
-            .partition_point(|t| *t <= last_time)
-            .saturating_sub(1);
+        let next_frame = search_next_frame(&timeline.frames, last_time, |frame| *frame);
         let next = timeline
             .frames
-            .get(idx + 1)
+            .get(next_frame)
             .copied()
             .unwrap_or(f32::INFINITY);
         time >= next
@@ -2223,7 +2241,7 @@ fn apply_path_mix_timeline(
 }
 
 fn sample_float(frames: &[crate::FloatFrame], time: f32) -> f32 {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         return frames[0].value;
     }
@@ -2242,7 +2260,7 @@ fn sample_float(frames: &[crate::FloatFrame], time: f32) -> f32 {
 }
 
 fn sample_path_mix(frames: &[crate::PathMixFrame], time: f32) -> (f32, f32, f32) {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         let f = &frames[0];
         return (f.mix_rotate, f.mix_x, f.mix_y);
@@ -2378,7 +2396,7 @@ fn sample_transform_mix(
     frames: &[crate::TransformFrame],
     time: f32,
 ) -> (f32, f32, f32, f32, f32, f32) {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         let f = &frames[0];
         return (
@@ -2538,10 +2556,8 @@ pub(crate) fn apply_ik_constraint_timeline(
         }
     }
 
-    let frame_index = timeline
-        .frames
-        .partition_point(|f| f.time <= time)
-        .saturating_sub(1);
+    let frame_index =
+        search_next_frame(&timeline.frames, time, |frame| frame.time).saturating_sub(1);
     let f = &timeline.frames[frame_index];
     constraint.bend_direction = f.bend_direction;
     constraint.compress = f.compress;
@@ -2549,7 +2565,7 @@ pub(crate) fn apply_ik_constraint_timeline(
 }
 
 fn sample_ik(frames: &[crate::IkFrame], time: f32) -> (f32, f32) {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         let f = &frames[0];
         return (f.mix, f.softness);
@@ -2986,10 +3002,8 @@ pub(crate) fn apply_attachment(
         return;
     }
 
-    let frame_index = timeline
-        .frames
-        .partition_point(|f| f.time <= time)
-        .saturating_sub(1);
+    let frame_index =
+        search_next_frame(&timeline.frames, time, |frame| frame.time).saturating_sub(1);
 
     set_attachment(
         skeleton,
@@ -3097,10 +3111,8 @@ pub(crate) fn apply_draw_order(
         return;
     }
 
-    let frame_index = timeline
-        .frames
-        .partition_point(|f| f.time <= time)
-        .saturating_sub(1);
+    let frame_index =
+        search_next_frame(&timeline.frames, time, |frame| frame.time).saturating_sub(1);
     if let Some(order) = timeline.frames[frame_index]
         .draw_order_to_setup_index
         .as_ref()
@@ -3137,10 +3149,8 @@ pub(crate) fn apply_draw_order_folder(
         return;
     }
 
-    let frame_index = timeline
-        .frames
-        .partition_point(|f| f.time <= time)
-        .saturating_sub(1);
+    let frame_index =
+        search_next_frame(&timeline.frames, time, |frame| frame.time).saturating_sub(1);
     if let Some(draw_order) = timeline.frames[frame_index].folder_draw_order.as_ref() {
         apply_draw_order_folder_frame(timeline, skeleton, draw_order, applied_pose);
     } else {
@@ -3352,10 +3362,8 @@ fn apply_deform_to_slot(
         return;
     }
 
-    let frame_index = timeline
-        .frames
-        .partition_point(|f| f.time <= time)
-        .saturating_sub(1);
+    let frame_index =
+        search_next_frame(&timeline.frames, time, |frame| frame.time).saturating_sub(1);
     let prev = &timeline.frames[frame_index];
     let next = &timeline.frames[frame_index + 1];
     let denom = next.time - prev.time;
@@ -3537,10 +3545,8 @@ fn sequence_timeline_index(
             _ => None,
         })?;
 
-    let frame_index = timeline
-        .frames
-        .partition_point(|f| f.time <= time)
-        .saturating_sub(1);
+    let frame_index =
+        search_next_frame(&timeline.frames, time, |frame| frame.time).saturating_sub(1);
     let before = timeline.frames[frame_index].time;
     let mode = timeline.frames[frame_index].mode;
     let delay = timeline.frames[frame_index].delay;
@@ -4429,7 +4435,7 @@ pub(crate) fn apply_inherit(
         return;
     }
 
-    let idx = timeline.frames.partition_point(|f| f.time <= time);
+    let idx = search_next_frame(&timeline.frames, time, |frame| frame.time);
     let frame = timeline
         .frames
         .get(idx.saturating_sub(1))
@@ -4438,7 +4444,7 @@ pub(crate) fn apply_inherit(
 }
 
 fn sample_rotate(frames: &[RotateFrame], time: f32) -> f32 {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         return frames[0].angle;
     }
@@ -4457,7 +4463,7 @@ fn sample_rotate(frames: &[RotateFrame], time: f32) -> f32 {
 }
 
 fn sample_color(frames: &[crate::ColorFrame], time: f32) -> [f32; 4] {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         return frames[0].color;
     }
@@ -4507,7 +4513,7 @@ fn sample_color(frames: &[crate::ColorFrame], time: f32) -> [f32; 4] {
 }
 
 fn sample_rgb(frames: &[crate::RgbFrame], time: f32) -> [f32; 3] {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         return frames[0].color;
     }
@@ -4549,7 +4555,7 @@ fn sample_rgb(frames: &[crate::RgbFrame], time: f32) -> [f32; 3] {
 }
 
 fn sample_alpha(frames: &[crate::AlphaFrame], time: f32) -> f32 {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         return frames[0].alpha;
     }
@@ -4568,7 +4574,7 @@ fn sample_alpha(frames: &[crate::AlphaFrame], time: f32) -> f32 {
 }
 
 fn sample_rgba2(frames: &[crate::Rgba2Frame], time: f32) -> ([f32; 4], [f32; 3]) {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         let f = &frames[0];
         return (f.light, f.dark);
@@ -4648,7 +4654,7 @@ fn sample_rgba2(frames: &[crate::Rgba2Frame], time: f32) -> ([f32; 4], [f32; 3])
 }
 
 fn sample_rgb2(frames: &[crate::Rgb2Frame], time: f32) -> ([f32; 3], [f32; 3]) {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         let f = &frames[0];
         return (f.light, f.dark);
@@ -4720,7 +4726,7 @@ fn sample_rgb2(frames: &[crate::Rgb2Frame], time: f32) -> ([f32; 3], [f32; 3]) {
 }
 
 fn sample_vec2(frames: &[Vec2Frame], time: f32) -> (f32, f32) {
-    let index = frames.partition_point(|f| f.time <= time);
+    let index = search_next_frame(frames, time, |frame| frame.time);
     if index == 0 {
         let f = &frames[0];
         return (f.x, f.y);

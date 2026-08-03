@@ -2180,25 +2180,7 @@ pub(super) fn collect_events(
     time: f32,
     out: &mut Vec<Event>,
 ) {
-    if timeline.get_events().is_empty() {
-        return;
-    }
-
-    let mut emit_range = |from: f32, to: f32| {
-        for ev in timeline.get_events() {
-            // Match upstream EventTimeline::apply: events fire for frames > lastTime and <= time.
-            if ev.get_time() > from && ev.get_time() <= to {
-                out.push(ev.clone());
-            }
-        }
-    };
-
-    if last_time > time {
-        emit_range(last_time, f32::MAX);
-        emit_range(-1.0, time);
-    } else {
-        emit_range(last_time, time);
-    }
+    super::animation::collect_animation_events(timeline, last_time, time, out);
 }
 pub(super) fn collect_events_reverse(
     timeline: &crate::EventTimeline,

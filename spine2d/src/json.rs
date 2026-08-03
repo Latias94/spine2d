@@ -2259,9 +2259,8 @@ impl SkeletonData {
             let mut duration: f32 = 0.0;
 
             let timeline = if let Some(keys) = events_def {
-                // Preserve file order for events that share the same `time` (matches upstream runtimes).
                 let mut event_frames = Vec::with_capacity(keys.len());
-                for (source_index, k) in keys.into_iter().enumerate() {
+                for k in keys {
                     let event_data =
                         events
                             .get(k.name.as_str())
@@ -2272,7 +2271,6 @@ impl SkeletonData {
                     let setup = event_data.get_setup_pose();
                     let has_audio = !event_data.get_audio_path().is_empty();
                     let time = k.time.unwrap_or(0.0);
-                    duration = duration.max(time);
                     let mut event = Event::new(time, Arc::clone(event_data));
                     event.set_int(k.int_value.unwrap_or(setup.get_int()));
                     event.set_float(k.float_value.unwrap_or(setup.get_float()));
@@ -2284,14 +2282,12 @@ impl SkeletonData {
                         event.set_volume(k.volume.unwrap_or(setup.get_volume()));
                         event.set_balance(k.balance.unwrap_or(setup.get_balance()));
                     }
-                    event_frames.push((source_index, event));
+                    event_frames.push(event);
                 }
-                event_frames.sort_by(|(ia, a), (ib, b)| {
-                    a.get_time().total_cmp(&b.get_time()).then(ia.cmp(ib))
-                });
-                Some(EventTimeline::from_events(
-                    event_frames.into_iter().map(|(_, e)| e).collect(),
-                ))
+                if let Some(last) = event_frames.last() {
+                    duration = duration.max(last.get_time());
+                }
+                Some(EventTimeline::from_events(event_frames))
             } else {
                 None
             };
@@ -2321,14 +2317,18 @@ impl SkeletonData {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.rotate curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         frames.push(RotateFrame {
                             time: k.time.unwrap_or(0.0),
                             angle: k.value.unwrap_or(0.0),
-                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                            curve: parse_curve_1(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                1.0,
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2342,15 +2342,19 @@ impl SkeletonData {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.translate curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         frames.push(Vec2Frame {
                             time: k.time.unwrap_or(0.0),
                             x: k.x.unwrap_or(0.0) * scale,
                             y: k.y.unwrap_or(0.0) * scale,
-                            curve: parse_curve_n(k.curve.as_ref(), [scale, scale], &curve_context)?,
+                            curve: parse_curve_n(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                [scale, scale],
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2364,14 +2368,18 @@ impl SkeletonData {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.translatex curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         frames.push(FloatFrame {
                             time: k.time.unwrap_or(0.0),
                             value: k.value.unwrap_or(0.0) * scale,
-                            curve: parse_curve_1(k.curve.as_ref(), scale, &curve_context)?,
+                            curve: parse_curve_1(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                scale,
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2385,14 +2393,18 @@ impl SkeletonData {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.translatey curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         frames.push(FloatFrame {
                             time: k.time.unwrap_or(0.0),
                             value: k.value.unwrap_or(0.0) * scale,
-                            curve: parse_curve_1(k.curve.as_ref(), scale, &curve_context)?,
+                            curve: parse_curve_1(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                scale,
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2405,15 +2417,19 @@ impl SkeletonData {
                 if let Some(keys) = bone_anim.scale.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.bones.{bone_name}.scale curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         frames.push(Vec2Frame {
                             time: k.time.unwrap_or(0.0),
                             x: k.x.unwrap_or(1.0),
                             y: k.y.unwrap_or(1.0),
-                            curve: parse_curve_n(k.curve.as_ref(), [1.0, 1.0], &curve_context)?,
+                            curve: parse_curve_n(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                [1.0, 1.0],
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2427,14 +2443,18 @@ impl SkeletonData {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.scalex curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         frames.push(FloatFrame {
                             time: k.time.unwrap_or(0.0),
                             value: k.value.unwrap_or(1.0),
-                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                            curve: parse_curve_1(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                1.0,
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2448,14 +2468,18 @@ impl SkeletonData {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.scaley curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         frames.push(FloatFrame {
                             time: k.time.unwrap_or(0.0),
                             value: k.value.unwrap_or(1.0),
-                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                            curve: parse_curve_1(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                1.0,
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2468,15 +2492,19 @@ impl SkeletonData {
                 if let Some(keys) = bone_anim.shear.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.bones.{bone_name}.shear curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         frames.push(Vec2Frame {
                             time: k.time.unwrap_or(0.0),
                             x: k.x.unwrap_or(0.0),
                             y: k.y.unwrap_or(0.0),
-                            curve: parse_curve_n(k.curve.as_ref(), [1.0, 1.0], &curve_context)?,
+                            curve: parse_curve_n(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                [1.0, 1.0],
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2490,14 +2518,18 @@ impl SkeletonData {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.shearx curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         frames.push(FloatFrame {
                             time: k.time.unwrap_or(0.0),
                             value: k.value.unwrap_or(0.0),
-                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                            curve: parse_curve_1(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                1.0,
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2511,14 +2543,18 @@ impl SkeletonData {
                     let curve_context =
                         format!("animation '{name}'.bones.{bone_name}.sheary curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         frames.push(FloatFrame {
                             time: k.time.unwrap_or(0.0),
                             value: k.value.unwrap_or(0.0),
-                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                            curve: parse_curve_1(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                1.0,
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2536,7 +2572,6 @@ impl SkeletonData {
                             inherit: parse_inherit(k.inherit.as_deref()),
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2634,12 +2669,15 @@ impl SkeletonData {
                                     "animation '{name}'.attachments.{skin_name}.{slot_name}.{attachment_name}.deform curve"
                                 );
                                 let mut frames = Vec::with_capacity(keys.len());
-                                for key in keys {
+                                for (key, has_next_frame) in timeline_keys_with_next(keys) {
                                     let time = key.time.unwrap_or(0.0);
-                                    duration = duration.max(time);
 
-                                    let curve =
-                                        parse_curve_1(key.curve.as_ref(), 1.0, &curve_context)?;
+                                    let curve = parse_curve_1(
+                                        key.curve.as_ref(),
+                                        has_next_frame,
+                                        1.0,
+                                        &curve_context,
+                                    )?;
                                     let vertices = build_deform_vertices(
                                         attachment_vertices,
                                         setup_vertices.as_deref(),
@@ -2658,7 +2696,9 @@ impl SkeletonData {
                                         curve,
                                     });
                                 }
-                                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                                if let Some(last) = frames.last() {
+                                    duration = duration.max(last.time);
+                                }
 
                                 deform_timelines.push(DeformTimeline {
                                     skin: skin_name.clone(),
@@ -2691,7 +2731,6 @@ impl SkeletonData {
                                 let mut last_delay = 0.0f32;
                                 for key in keys {
                                     let time = key.time.unwrap_or(0.0);
-                                    duration = duration.max(time);
                                     let delay = key.delay.unwrap_or(last_delay);
                                     last_delay = delay;
 
@@ -2718,7 +2757,9 @@ impl SkeletonData {
                                         delay,
                                     });
                                 }
-                                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                                if let Some(last) = frames.last() {
+                                    duration = duration.max(last.time);
+                                }
 
                                 sequence_timelines.push(crate::SequenceTimeline {
                                     skin: skin_name.clone(),
@@ -2763,14 +2804,13 @@ impl SkeletonData {
                 }
 
                 if let Some(keys) = slot_anim.attachment.filter(|keys| !keys.is_empty()) {
-                    let mut frames = keys
+                    let frames = keys
                         .into_iter()
                         .map(|k| AttachmentFrame {
                             time: k.time.unwrap_or(0.0),
                             name: k.name,
                         })
                         .collect::<Vec<_>>();
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -2783,9 +2823,8 @@ impl SkeletonData {
                 if let Some(keys) = slot_anim.rgba.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.slots.{slot_name}.color curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for key in keys {
+                    for (key, has_next_frame) in timeline_keys_with_next(keys) {
                         let time = key.time.unwrap_or(0.0);
-                        duration = duration.max(time);
                         let color_str = key.color.unwrap_or_else(|| "FFFFFFFF".to_string());
                         let color = parse_hex_color_rgba(
                             &color_str,
@@ -2794,10 +2833,17 @@ impl SkeletonData {
                         frames.push(ColorFrame {
                             time,
                             color,
-                            curve: parse_curve_n(key.curve.as_ref(), [1.0; 4], &curve_context)?,
+                            curve: parse_curve_n(
+                                key.curve.as_ref(),
+                                has_next_frame,
+                                [1.0; 4],
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
                     slot_color_timelines.push(ColorTimeline {
                         slot_index: s_index,
                         frames,
@@ -2807,9 +2853,8 @@ impl SkeletonData {
                 if let Some(keys) = slot_anim.rgb.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.slots.{slot_name}.rgb curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for key in keys {
+                    for (key, has_next_frame) in timeline_keys_with_next(keys) {
                         let time = key.time.unwrap_or(0.0);
-                        duration = duration.max(time);
                         let color_str = key.color.unwrap_or_else(|| "FFFFFF".to_string());
                         let color = parse_hex_color_rgb(
                             &color_str,
@@ -2818,10 +2863,17 @@ impl SkeletonData {
                         frames.push(RgbFrame {
                             time,
                             color,
-                            curve: parse_curve_n(key.curve.as_ref(), [1.0; 3], &curve_context)?,
+                            curve: parse_curve_n(
+                                key.curve.as_ref(),
+                                has_next_frame,
+                                [1.0; 3],
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
                     slot_rgb_timelines.push(RgbTimeline {
                         slot_index: s_index,
                         frames,
@@ -2831,16 +2883,22 @@ impl SkeletonData {
                 if let Some(keys) = slot_anim.alpha.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.slots.{slot_name}.alpha curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for key in keys {
+                    for (key, has_next_frame) in timeline_keys_with_next(keys) {
                         let time = key.time.unwrap_or(0.0);
-                        duration = duration.max(time);
                         frames.push(AlphaFrame {
                             time,
                             alpha: key.value.unwrap_or(0.0),
-                            curve: parse_curve_1(key.curve.as_ref(), 1.0, &curve_context)?,
+                            curve: parse_curve_1(
+                                key.curve.as_ref(),
+                                has_next_frame,
+                                1.0,
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
                     slot_alpha_timelines.push(AlphaTimeline {
                         slot_index: s_index,
                         frames,
@@ -2850,9 +2908,8 @@ impl SkeletonData {
                 if let Some(keys) = slot_anim.rgba2.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.slots.{slot_name}.rgba2 curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for key in keys {
+                    for (key, has_next_frame) in timeline_keys_with_next(keys) {
                         let time = key.time.unwrap_or(0.0);
-                        duration = duration.max(time);
                         let light_str = key.light.unwrap_or_else(|| "FFFFFFFF".to_string());
                         let dark_str = key.dark.unwrap_or_else(|| "000000".to_string());
                         let light = parse_hex_color_rgba(
@@ -2873,10 +2930,17 @@ impl SkeletonData {
                             time,
                             light,
                             dark,
-                            curve: parse_curve_n(key.curve.as_ref(), [1.0; 7], &curve_context)?,
+                            curve: parse_curve_n(
+                                key.curve.as_ref(),
+                                has_next_frame,
+                                [1.0; 7],
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
                     slot_rgba2_timelines.push(Rgba2Timeline {
                         slot_index: s_index,
                         frames,
@@ -2886,9 +2950,8 @@ impl SkeletonData {
                 if let Some(keys) = slot_anim.rgb2.filter(|keys| !keys.is_empty()) {
                     let curve_context = format!("animation '{name}'.slots.{slot_name}.rgb2 curve");
                     let mut frames = Vec::with_capacity(keys.len());
-                    for key in keys {
+                    for (key, has_next_frame) in timeline_keys_with_next(keys) {
                         let time = key.time.unwrap_or(0.0);
-                        duration = duration.max(time);
                         let light_str = key.light.unwrap_or_else(|| "FFFFFF".to_string());
                         let dark_str = key.dark.unwrap_or_else(|| "000000".to_string());
                         let light = parse_hex_color_rgb(
@@ -2909,10 +2972,17 @@ impl SkeletonData {
                             time,
                             light,
                             dark,
-                            curve: parse_curve_n(key.curve.as_ref(), [1.0; 6], &curve_context)?,
+                            curve: parse_curve_n(
+                                key.curve.as_ref(),
+                                has_next_frame,
+                                [1.0; 6],
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                    if let Some(last) = frames.last() {
+                        duration = duration.max(last.time);
+                    }
                     slot_rgb2_timelines.push(Rgb2Timeline {
                         slot_index: s_index,
                         frames,
@@ -2924,7 +2994,6 @@ impl SkeletonData {
                 let mut frames = Vec::with_capacity(keys.len());
                 for key in keys {
                     let time = key.time.unwrap_or(0.0);
-                    duration = duration.max(time);
 
                     let draw_order_to_setup_index = match key.offsets.as_deref() {
                         Some(offsets) => Some(build_draw_order_to_setup_index(
@@ -2940,7 +3009,9 @@ impl SkeletonData {
                         draw_order_to_setup_index,
                     });
                 }
-                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                if let Some(last) = frames.last() {
+                    duration = duration.max(last.time);
+                }
                 Some(DrawOrderTimeline { frames })
             } else {
                 None
@@ -2976,7 +3047,6 @@ impl SkeletonData {
                 let mut frames = Vec::with_capacity(keys.len());
                 for key in keys {
                     let time = key.time.unwrap_or(0.0);
-                    duration = duration.max(time);
                     let folder_draw_order = match key.offsets.as_deref() {
                         Some(offsets) => Some(build_draw_order_to_setup_index(
                             offsets,
@@ -2991,7 +3061,9 @@ impl SkeletonData {
                         folder_draw_order,
                     });
                 }
-                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
+                if let Some(last) = frames.last() {
+                    duration = duration.max(last.time);
+                }
                 draw_order_folder_names.push(folder_name);
                 draw_order_folder_timelines.push(DrawOrderFolderTimeline {
                     slots: folder_slots,
@@ -3014,7 +3086,7 @@ impl SkeletonData {
 
                 let curve_context = format!("animation '{name}'.ik.{constraint_name} curve");
                 let mut frames = Vec::with_capacity(keys.len());
-                for k in keys {
+                for (k, has_next_frame) in timeline_keys_with_next(keys) {
                     frames.push(IkFrame {
                         time: k.time.unwrap_or(0.0),
                         mix: k.mix.unwrap_or(1.0),
@@ -3026,10 +3098,14 @@ impl SkeletonData {
                         },
                         compress: k.compress.unwrap_or(false),
                         stretch: k.stretch.unwrap_or(false),
-                        curve: parse_curve_n(k.curve.as_ref(), [1.0, scale], &curve_context)?,
+                        curve: parse_curve_n(
+                            k.curve.as_ref(),
+                            has_next_frame,
+                            [1.0, scale],
+                            &curve_context,
+                        )?,
                     });
                 }
-                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                 if let Some(last) = frames.last() {
                     duration = duration.max(last.time);
                 }
@@ -3053,9 +3129,8 @@ impl SkeletonData {
 
                 let mut frames = Vec::with_capacity(keys.len());
                 let curve_context = format!("animation '{name}'.transform.{constraint_name} curve");
-                for k in keys {
+                for (k, has_next_frame) in timeline_keys_with_next(keys) {
                     let time = k.time.unwrap_or(0.0);
-                    duration = duration.max(time);
 
                     let mix_rotate = k.mix_rotate.unwrap_or(1.0);
                     let mix_x = k.mix_x.unwrap_or(1.0);
@@ -3072,10 +3147,14 @@ impl SkeletonData {
                         mix_scale_x,
                         mix_scale_y,
                         mix_shear_y,
-                        curve: parse_curve_n(k.curve.as_ref(), [1.0; 6], &curve_context)?,
+                        curve: parse_curve_n(
+                            k.curve.as_ref(),
+                            has_next_frame,
+                            [1.0; 6],
+                            &curve_context,
+                        )?,
                     });
                 }
-                frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                 if let Some(last) = frames.last() {
                     duration = duration.max(last.time);
                 }
@@ -3130,7 +3209,7 @@ impl SkeletonData {
                             let curve_context =
                                 format!("animation '{name}'.path.{constraint_name}.position curve");
                             let mut frames = Vec::with_capacity(keys.len());
-                            for k in keys {
+                            for (k, has_next_frame) in timeline_keys_with_next(keys) {
                                 let time = k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
                                 let value = k.value.as_ref().and_then(curve_number).unwrap_or(0.0)
                                     * position_scale;
@@ -3139,12 +3218,12 @@ impl SkeletonData {
                                     value,
                                     curve: parse_curve_1(
                                         k.curve.as_ref(),
+                                        has_next_frame,
                                         position_scale,
                                         &curve_context,
                                     )?,
                                 });
                             }
-                            frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                             if let Some(last) = frames.last() {
                                 duration = duration.max(last.time);
                             }
@@ -3161,7 +3240,7 @@ impl SkeletonData {
                             let curve_context =
                                 format!("animation '{name}'.path.{constraint_name}.spacing curve");
                             let mut frames = Vec::with_capacity(keys.len());
-                            for k in keys {
+                            for (k, has_next_frame) in timeline_keys_with_next(keys) {
                                 let time = k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
                                 let value = k.value.as_ref().and_then(curve_number).unwrap_or(0.0)
                                     * spacing_scale;
@@ -3170,12 +3249,12 @@ impl SkeletonData {
                                     value,
                                     curve: parse_curve_1(
                                         k.curve.as_ref(),
+                                        has_next_frame,
                                         spacing_scale,
                                         &curve_context,
                                     )?,
                                 });
                             }
-                            frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                             if let Some(last) = frames.last() {
                                 duration = duration.max(last.time);
                             }
@@ -3190,9 +3269,8 @@ impl SkeletonData {
                             let curve_context =
                                 format!("animation '{name}'.path.{constraint_name}.mix curve");
                             let mut frames = Vec::with_capacity(keys.len());
-                            for k in keys {
+                            for (k, has_next_frame) in timeline_keys_with_next(keys) {
                                 let time = k.time.as_ref().and_then(curve_number).unwrap_or(0.0);
-                                duration = duration.max(time);
                                 let mix_rotate =
                                     k.mix_rotate.as_ref().and_then(curve_number).unwrap_or(1.0);
                                 let mix_x = k.mix_x.as_ref().and_then(curve_number).unwrap_or(1.0);
@@ -3205,12 +3283,12 @@ impl SkeletonData {
                                     mix_y,
                                     curve: parse_curve_n(
                                         k.curve.as_ref(),
+                                        has_next_frame,
                                         [1.0; 3],
                                         &curve_context,
                                     )?,
                                 });
                             }
-                            frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                             if let Some(last) = frames.last() {
                                 duration = duration.max(last.time);
                             }
@@ -3249,11 +3327,10 @@ impl SkeletonData {
                         if keys.is_empty() {
                             continue;
                         }
-                        let mut frames = keys
-                            .iter()
+                        let frames = keys
+                            .into_iter()
                             .map(|k| k.time.unwrap_or(0.0))
                             .collect::<Vec<_>>();
-                        frames.sort_by(|a, b| a.total_cmp(b));
                         if let Some(last) = frames.last() {
                             duration = duration.max(*last);
                         }
@@ -3291,16 +3368,20 @@ impl SkeletonData {
                         "animation '{name}'.physics.{constraint_name}.{timeline_name} curve"
                     );
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         let time = k.time.unwrap_or(0.0);
                         let value = k.value.unwrap_or(default_value);
                         frames.push(crate::FloatFrame {
                             time,
                             value,
-                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                            curve: parse_curve_1(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                1.0,
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -3343,16 +3424,20 @@ impl SkeletonData {
                         "animation '{name}'.slider.{constraint_name}.{timeline_name} curve"
                     );
                     let mut frames = Vec::with_capacity(keys.len());
-                    for k in keys {
+                    for (k, has_next_frame) in timeline_keys_with_next(keys) {
                         let time = k.time.unwrap_or(0.0);
                         let value = k.value.unwrap_or(default_value);
                         frames.push(crate::FloatFrame {
                             time,
                             value,
-                            curve: parse_curve_1(k.curve.as_ref(), 1.0, &curve_context)?,
+                            curve: parse_curve_1(
+                                k.curve.as_ref(),
+                                has_next_frame,
+                                1.0,
+                                &curve_context,
+                            )?,
                         });
                     }
-                    frames.sort_by(|a, b| a.time.total_cmp(&b.time));
                     if let Some(last) = frames.last() {
                         duration = duration.max(last.time);
                     }
@@ -4253,11 +4338,23 @@ fn parse_spine_cpp_style_number_to_f32(input: &str) -> f32 {
     result as f32
 }
 
+fn timeline_keys_with_next<T>(keys: Vec<T>) -> impl Iterator<Item = (T, bool)> {
+    let frame_count = keys.len();
+    keys.into_iter()
+        .enumerate()
+        .map(move |(frame_index, key)| (key, frame_index + 1 < frame_count))
+}
+
 fn parse_curve_1(
     value: Option<&serde_json::Value>,
+    has_next_frame: bool,
     scale: f32,
     context: &str,
 ) -> Result<Curve, Error> {
+    if !has_next_frame {
+        return Ok(Curve::Linear);
+    }
+
     let Some(value) = value else {
         return Ok(Curve::Linear);
     };
@@ -4302,9 +4399,14 @@ fn parse_curve_1(
 
 fn parse_curve_n<const N: usize>(
     value: Option<&serde_json::Value>,
+    has_next_frame: bool,
     scales: [f32; N],
     context: &str,
 ) -> Result<[Curve; N], Error> {
+    if !has_next_frame {
+        return Ok([Curve::Linear; N]);
+    }
+
     let Some(value) = value else {
         return Ok([Curve::Linear; N]);
     };
