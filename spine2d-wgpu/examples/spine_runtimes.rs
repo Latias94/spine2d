@@ -3,7 +3,8 @@ use egui_wgpu::RendererOptions as EguiRendererOptions;
 use egui_wgpu::ScreenDescriptor as EguiScreenDescriptor;
 use spine2d::{AnimationState, AnimationStateData, Atlas, DrawList, Skeleton, SkeletonData};
 use spine2d_wgpu::{
-    HashMapTextureProvider, SpineRenderer, create_sampler_for_atlas_page, create_texture_bind_group,
+    HashMapTextureProvider, SpineRenderer, create_sampler_for_atlas_page,
+    create_texture_bind_group, present_surface_texture, wgpu,
 };
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -1055,6 +1056,7 @@ impl ApplicationHandler for App {
                 }
                 window_ref.request_redraw();
             }
+            WindowEvent::Occluded(false) => window_ref.request_redraw(),
             WindowEvent::RedrawRequested => {
                 self.apply_pending_reload();
 
@@ -1091,7 +1093,7 @@ impl ApplicationHandler for App {
                     shapes,
                     pixels_per_point,
                     ..
-                } = egui_ctx.run(raw_input, |ctx| self.ui_panel(ctx));
+                } = egui_ctx.run_ui(raw_input, |ui| self.ui_panel(ui.ctx()));
                 if let Some(egui_state) = self.egui_state.as_mut() {
                     egui_state.handle_platform_output(window_ref, platform_output);
                 }
@@ -1140,10 +1142,27 @@ impl ApplicationHandler for App {
                     egui_renderer.free_texture(id);
                 }
 
-                let frame = match surface.get_current_texture() {
-                    Ok(frame) => frame,
-                    Err(_) => {
+                let (frame, reconfigure_surface) = match surface.get_current_texture() {
+                    wgpu::CurrentSurfaceTexture::Success(frame) => (frame, false),
+                    wgpu::CurrentSurfaceTexture::Suboptimal(frame) => (frame, true),
+                    wgpu::CurrentSurfaceTexture::Outdated => {
                         surface.configure(device, config);
+                        window_ref.request_redraw();
+                        return;
+                    }
+                    wgpu::CurrentSurfaceTexture::Timeout => {
+                        window_ref.request_redraw();
+                        return;
+                    }
+                    wgpu::CurrentSurfaceTexture::Occluded => return,
+                    wgpu::CurrentSurfaceTexture::Lost => {
+                        eprintln!("surface lost");
+                        event_loop.exit();
+                        return;
+                    }
+                    wgpu::CurrentSurfaceTexture::Validation => {
+                        eprintln!("surface validation failed");
+                        event_loop.exit();
                         return;
                     }
                 };
@@ -1181,6 +1200,7 @@ impl ApplicationHandler for App {
                         depth_stencil_attachment: None,
                         timestamp_writes: None,
                         occlusion_query_set: None,
+                        multiview_mask: None,
                     });
                     renderer.render(&mut pass, &self.draw_list, &self.textures);
                 }
@@ -1200,6 +1220,7 @@ impl ApplicationHandler for App {
                         depth_stencil_attachment: None,
                         timestamp_writes: None,
                         occlusion_query_set: None,
+                        multiview_mask: None,
                     };
                     let mut pass = encoder.begin_render_pass(&desc).forget_lifetime();
                     egui_renderer.render(&mut pass, &clipped_primitives, &egui_screen_descriptor);
@@ -1210,7 +1231,10 @@ impl ApplicationHandler for App {
                         .into_iter()
                         .chain(std::iter::once(encoder.finish())),
                 );
-                frame.present();
+                present_surface_texture(queue, frame);
+                if reconfigure_surface {
+                    surface.configure(device, config);
+                }
 
                 window_ref.request_redraw();
             }

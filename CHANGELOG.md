@@ -3,9 +3,28 @@
 This project follows a pragmatic changelog format during early development.
 Version numbers follow SemVer, but the public API is expected to change rapidly until `1.0`.
 
-## Unreleased
+## v0.5.0
 
-TBD
+### Migration notes
+
+- JSON animation loading now accepts only the official Spine 4.3 timeline names and fields. Replace Rust-only camel-case bone timeline aliases with the official lowercase names, rotate `angle` with `value`, and path key `position`/`spacing` with `value`; unknown non-empty bone and slot timelines now return contextual errors.
+- Remove the unused `spine2d/glam` feature. It exposed no API or runtime behavior, so consumers should delete it from their feature lists.
+- Remove `Error::JsonTwoColorTimelineRequiresDarkSlot` because the official loader accepts two-color timelines without a setup dark color; unknown non-empty bone and slot timelines now use `JsonUnknownBoneTimeline` and `JsonUnknownSlotTimeline`.
+
+### Renderer compatibility
+
+- Upgrade `spine2d-wgpu` from wgpu 27 to wgpu 29 by default and add an opt-in wgpu 30 backend. Exactly one backend feature must be enabled: builds that disable default features must explicitly select `wgpu-29` or `wgpu-30`, and renderer checks must test them separately instead of using `--all-features`. `spine2d-web` mirrors the same selection.
+- Upgrade the viewer ecosystem to egui 0.35, bevy_egui 0.41, and pollster 1.0 while keeping Bevy 0.19; refresh compatible direct and transitive dependency patches across the workspace.
+
+### Fixed
+
+- Decode an omitted physics `mix` timeline value as `1` for named and global physics constraints, matching the official C++ and TypeScript runtimes and fixing interpolation through the restored default ([#5](https://github.com/Latias94/spine2d/issues/5)).
+- Match Spine 4.3 JSON timeline defaults and dispatch semantics for slot alpha, transform scale mixing, unknown path/physics/slider timelines, empty timelines, and two-color timelines without a setup dark color.
+- Keep native renderer examples alive across transient surface states, recreate lost web surfaces, and stop the web animation loop after fatal surface failures.
+
+### Tooling
+
+- Validate both wgpu 29 and 30 renderer paths plus both real `wasm32-unknown-unknown` web builds in CI and before tagged releases.
 
 ## v0.4.0
 

@@ -1,3 +1,4 @@
+use crate::wgpu;
 use spine2d::{BlendMode, DrawList};
 use wgpu::util::DeviceExt;
 
@@ -93,8 +94,11 @@ impl SpineRenderer {
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("spine2d-wgpu pipeline layout"),
-            bind_group_layouts: &[&globals_bind_group_layout, &texture_bind_group_layout],
-            push_constant_ranges: &[],
+            bind_group_layouts: &[
+                Some(&globals_bind_group_layout),
+                Some(&texture_bind_group_layout),
+            ],
+            immediate_size: 0,
         });
 
         let pipelines = create_pipelines(device, &pipeline_layout, &shader, color_format, false);
@@ -308,6 +312,21 @@ fn create_pipeline(
         (BlendMode::Screen, true) => "spine2d-wgpu pipeline screen pma",
     };
 
+    let vertex_layout = wgpu::VertexBufferLayout {
+        array_stride: std::mem::size_of::<GpuVertex>() as u64,
+        step_mode: wgpu::VertexStepMode::Vertex,
+        attributes: &wgpu::vertex_attr_array![
+            0 => Float32x2,
+            1 => Float32x2,
+            2 => Float32x4,
+            3 => Float32x4
+        ],
+    };
+    #[cfg(feature = "wgpu-29")]
+    let vertex_buffers = [vertex_layout];
+    #[cfg(feature = "wgpu-30")]
+    let vertex_buffers = [Some(vertex_layout)];
+
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some(label),
         layout: Some(layout),
@@ -315,16 +334,7 @@ fn create_pipeline(
             module: shader,
             entry_point: Some("vs_main"),
             compilation_options: Default::default(),
-            buffers: &[wgpu::VertexBufferLayout {
-                array_stride: std::mem::size_of::<GpuVertex>() as u64,
-                step_mode: wgpu::VertexStepMode::Vertex,
-                attributes: &wgpu::vertex_attr_array![
-                    0 => Float32x2,
-                    1 => Float32x2,
-                    2 => Float32x4,
-                    3 => Float32x4
-                ],
-            }],
+            buffers: &vertex_buffers,
         },
         fragment: Some(wgpu::FragmentState {
             module: shader,
@@ -345,7 +355,7 @@ fn create_pipeline(
         },
         depth_stencil: None,
         multisample: wgpu::MultisampleState::default(),
-        multiview: None,
+        multiview_mask: None,
         cache: None,
     })
 }
@@ -467,22 +477,26 @@ fn to_wgpu_mag_filter(filter: &spine2d::AtlasFilter) -> wgpu::FilterMode {
 
 fn to_wgpu_min_mipmap_filter(
     filter: &spine2d::AtlasFilter,
-) -> (wgpu::FilterMode, wgpu::FilterMode) {
+) -> (wgpu::FilterMode, wgpu::MipmapFilterMode) {
     match filter {
-        spine2d::AtlasFilter::Unknown => (wgpu::FilterMode::Nearest, wgpu::FilterMode::Nearest),
-        spine2d::AtlasFilter::Nearest => (wgpu::FilterMode::Nearest, wgpu::FilterMode::Nearest),
-        spine2d::AtlasFilter::Linear => (wgpu::FilterMode::Linear, wgpu::FilterMode::Nearest),
+        spine2d::AtlasFilter::Unknown => {
+            (wgpu::FilterMode::Nearest, wgpu::MipmapFilterMode::Nearest)
+        }
+        spine2d::AtlasFilter::Nearest => {
+            (wgpu::FilterMode::Nearest, wgpu::MipmapFilterMode::Nearest)
+        }
+        spine2d::AtlasFilter::Linear => (wgpu::FilterMode::Linear, wgpu::MipmapFilterMode::Nearest),
         spine2d::AtlasFilter::MipMap | spine2d::AtlasFilter::MipMapLinearLinear => {
-            (wgpu::FilterMode::Linear, wgpu::FilterMode::Linear)
+            (wgpu::FilterMode::Linear, wgpu::MipmapFilterMode::Linear)
         }
         spine2d::AtlasFilter::MipMapNearestNearest => {
-            (wgpu::FilterMode::Nearest, wgpu::FilterMode::Nearest)
+            (wgpu::FilterMode::Nearest, wgpu::MipmapFilterMode::Nearest)
         }
         spine2d::AtlasFilter::MipMapNearestLinear => {
-            (wgpu::FilterMode::Nearest, wgpu::FilterMode::Linear)
+            (wgpu::FilterMode::Nearest, wgpu::MipmapFilterMode::Linear)
         }
         spine2d::AtlasFilter::MipMapLinearNearest => {
-            (wgpu::FilterMode::Linear, wgpu::FilterMode::Nearest)
+            (wgpu::FilterMode::Linear, wgpu::MipmapFilterMode::Nearest)
         }
     }
 }

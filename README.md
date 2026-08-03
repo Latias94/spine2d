@@ -29,6 +29,23 @@ Experimental, pure Rust runtime for Spine 4.3 (unofficial).
 - `spine2d-bevy`: Bevy `Material2d` backend built on top of the core runtime.
 - `spine2d-web`: Trunk + wgpu web demo/viewer (`wasm32-unknown-unknown`).
 
+## wgpu version selection
+
+`spine2d-wgpu` defaults to wgpu 29, matching Bevy 0.19 and egui 0.35. It re-exports the selected crate as `spine2d_wgpu::wgpu` so renderer-facing types always use the active backend version.
+
+```toml
+# Default wgpu 29 backend.
+spine2d-wgpu = { version = "0.5", features = ["json"] }
+
+# Explicit wgpu 29 backend when default features are disabled.
+spine2d-wgpu = { version = "0.5", default-features = false, features = ["json", "wgpu-29"] }
+
+# Opt-in wgpu 30 backend.
+spine2d-wgpu = { version = "0.5", default-features = false, features = ["json", "wgpu-30"] }
+```
+
+Exactly one of `wgpu-29` and `wgpu-30` must be enabled. Consequently, `--all-features` is not a valid renderer build; test the two backends separately. The egui-based `spine_runtimes` viewer currently requires wgpu 29, while the renderer library, basic example, and `spine2d-web` support both versions.
+
 
 ## Assets / redistribution
 

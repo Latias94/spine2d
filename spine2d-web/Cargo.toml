@@ -1,6 +1,6 @@
 [package]
 name = "spine2d-web"
-version = "0.4.0"
+version = "0.5.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -13,15 +13,19 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-spine2d = { path = "../spine2d", version = "0.4.0", default-features = false, features = ["json"] }
-spine2d-wgpu = { path = "../spine2d-wgpu", version = "0.4.0", default-features = false, features = ["json"] }
-wgpu.workspace = true
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+spine2d = { path = "../spine2d", version = "0.5.0", default-features = false, features = ["json"] }
+spine2d-wgpu = { path = "../spine2d-wgpu", version = "0.5.0", default-features = false, features = ["json"] }
+serde.workspace = true
+serde_json.workspace = true
+
+[features]
+default = ["wgpu-29"]
+wgpu-29 = ["spine2d-wgpu/wgpu-29"]
+wgpu-30 = ["spine2d-wgpu/wgpu-30"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"
-console_log = "1.0"
+console_log = "1.1"
 image = { version = "0.25", default-features = false, features = ["png"] }
 js-sys = "0.3"
 log = "0.4"

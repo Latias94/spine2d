@@ -1,6 +1,7 @@
 use spine2d::{Atlas, SkeletonData};
 use spine2d_wgpu::{
-    HashMapTextureProvider, SpineRenderer, create_sampler_for_atlas_page, create_texture_bind_group,
+    HashMapTextureProvider, SpineRenderer, create_sampler_for_atlas_page,
+    create_texture_bind_group, present_surface_texture, wgpu,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -85,6 +86,8 @@ impl ApplicationHandler for App {
             compatible_surface: Some(&surface),
             power_preference: wgpu::PowerPreference::HighPerformance,
             force_fallback_adapter: false,
+            #[cfg(feature = "wgpu-30")]
+            apply_limit_buckets: false,
         }))
         .unwrap();
 
@@ -104,6 +107,8 @@ impl ApplicationHandler for App {
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format,
+            #[cfg(feature = "wgpu-30")]
+            color_space: wgpu::SurfaceColorSpace::Auto,
             width: size.width,
             height: size.height,
             present_mode: wgpu::PresentMode::Fifo,
@@ -221,6 +226,7 @@ impl ApplicationHandler for App {
                 }
                 window.request_redraw();
             }
+            WindowEvent::Occluded(false) => window.request_redraw(),
             WindowEvent::RedrawRequested => {
                 let Some(surface) = self.surface.as_ref() else {
                     return;
@@ -238,10 +244,27 @@ impl ApplicationHandler for App {
                     return;
                 };
 
-                let frame = match surface.get_current_texture() {
-                    Ok(frame) => frame,
-                    Err(_) => {
+                let (frame, reconfigure_surface) = match surface.get_current_texture() {
+                    wgpu::CurrentSurfaceTexture::Success(frame) => (frame, false),
+                    wgpu::CurrentSurfaceTexture::Suboptimal(frame) => (frame, true),
+                    wgpu::CurrentSurfaceTexture::Outdated => {
                         surface.configure(device, config);
+                        window.request_redraw();
+                        return;
+                    }
+                    wgpu::CurrentSurfaceTexture::Timeout => {
+                        window.request_redraw();
+                        return;
+                    }
+                    wgpu::CurrentSurfaceTexture::Occluded => return,
+                    wgpu::CurrentSurfaceTexture::Lost => {
+                        eprintln!("surface lost");
+                        event_loop.exit();
+                        return;
+                    }
+                    wgpu::CurrentSurfaceTexture::Validation => {
+                        eprintln!("surface validation failed");
+                        event_loop.exit();
                         return;
                     }
                 };
@@ -272,12 +295,16 @@ impl ApplicationHandler for App {
                         depth_stencil_attachment: None,
                         timestamp_writes: None,
                         occlusion_query_set: None,
+                        multiview_mask: None,
                     });
                     renderer.render(&mut pass, &self.draw_list, &self.textures);
                 }
 
                 queue.submit(Some(encoder.finish()));
-                frame.present();
+                present_surface_texture(queue, frame);
+                if reconfigure_surface {
+                    surface.configure(device, config);
+                }
             }
             _ => {}
         }

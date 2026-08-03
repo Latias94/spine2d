@@ -65,6 +65,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
 
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
@@ -76,13 +77,22 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy (spine2d)
-        run: cargo clippy -p spine2d --all-targets --features json,binary,glam -- -D warnings
+        run: cargo clippy -p spine2d --all-targets --features json,binary -- -D warnings
 
-      - name: Clippy (spine2d-wgpu)
+      - name: Clippy (spine2d-wgpu, wgpu 29)
         run: cargo clippy -p spine2d-wgpu --all-targets --features json -- -D warnings
 
+      - name: Clippy (spine2d-wgpu, wgpu 30)
+        run: cargo clippy -p spine2d-wgpu --no-default-features --features json,wgpu-30 --lib --example basic -- -D warnings
+
+      - name: Clippy (spine2d-web, wgpu 29)
+        run: cargo clippy -p spine2d-web --target wasm32-unknown-unknown -- -D warnings
+
+      - name: Clippy (spine2d-web, wgpu 30)
+        run: cargo clippy -p spine2d-web --target wasm32-unknown-unknown --no-default-features --features wgpu-30 -- -D warnings
+
       - name: Test (spine2d)
-        run: cargo test -p spine2d --features json,binary,glam
+        run: cargo test -p spine2d --features json,binary
 
       - name: Check (spine2d-bevy)
         run: cargo check -p spine2d-bevy

@@ -1,6 +1,6 @@
 [package]
 name = "spine2d-wgpu"
-version = "0.4.0"
+version = "0.5.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
@@ -14,21 +14,24 @@ keywords = ["spine", "spine2d", "wgpu", "animation", "skeletal"]
 categories = ["game-development", "rendering"]
 
 [dependencies]
-spine2d = { path = "../spine2d", version = "0.4.0", default-features = false }
-wgpu.workspace = true
+spine2d = { path = "../spine2d", version = "0.5.0", default-features = false }
+wgpu-29 = { workspace = true, optional = true }
+wgpu-30 = { workspace = true, optional = true }
 bytemuck.workspace = true
 
 [features]
-default = []
+default = ["wgpu-29"]
 json = ["spine2d/json"]
+wgpu-29 = ["dep:wgpu-29"]
+wgpu-30 = ["dep:wgpu-30"]
 
 [dev-dependencies]
 winit = "0.30"
-pollster = "0.4"
+pollster = "1.0"
 image = { version = "0.25", default-features = false, features = ["png"] }
-egui = "0.33.3"
-egui-winit = "0.33.3"
-egui-wgpu = { version = "0.33.3", features = ["winit"] }
+egui = "0.35"
+egui-winit = "0.35"
+egui-wgpu = { version = "0.35", features = ["winit"] }
 
 [[example]]
 name = "basic"
@@ -36,10 +39,10 @@ required-features = ["json"]
 
 [[example]]
 name = "spine_runtimes"
-required-features = ["json"]
+required-features = ["json", "wgpu-29"]
 
 [package.metadata.docs.rs]
 no-default-features = true
 all-features = false
-features = []
+features = ["wgpu-29"]
 rustdoc-args = ["--cfg", "docsrs"]
