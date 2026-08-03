@@ -28,7 +28,7 @@ fn json_animation_preserves_object_order_in_timeline_order() {
                 {"time": 0.0, "x": 1.0, "y": 2.0}
               ],
               "rotate": [
-                {"time": 0.0, "angle": 3.0}
+                {"time": 0.0, "value": 3.0}
               ]
             }
           },

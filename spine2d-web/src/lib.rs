@@ -1,3 +1,8 @@
+#[cfg(any(target_arch = "wasm32", test))]
+const DEMO_SKELETON_JSON: &str = include_str!("../assets/demo.json");
+#[cfg(target_arch = "wasm32")]
+const DEMO_ATLAS: &str = include_str!("../assets/demo.atlas");
+
 #[cfg(target_arch = "wasm32")]
 mod web {
     use std::cell::RefCell;
@@ -15,6 +20,48 @@ mod web {
     use wasm_bindgen_futures::spawn_local;
 
     const UPSTREAM_MANIFEST_URL: &str = "assets/spine-runtimes/web_manifest.json";
+    const RENDERER_INIT_ERROR: &str = "Renderer initialization failed. Enable hardware acceleration or use a browser with WebGPU or WebGL2 support, then reload.";
+    const VIEWER_INIT_ERROR: &str =
+        "Viewer initialization failed. Reload the page or check the browser console for details.";
+
+    enum InitError {
+        Renderer(JsValue),
+        Viewer(JsValue),
+    }
+
+    impl InitError {
+        fn renderer(message: impl AsRef<str>) -> Self {
+            Self::Renderer(JsValue::from_str(message.as_ref()))
+        }
+
+        fn user_message(&self) -> &'static str {
+            match self {
+                Self::Renderer(_) => RENDERER_INIT_ERROR,
+                Self::Viewer(_) => VIEWER_INIT_ERROR,
+            }
+        }
+
+        fn source(&self) -> &JsValue {
+            match self {
+                Self::Renderer(source) | Self::Viewer(source) => source,
+            }
+        }
+    }
+
+    impl From<JsValue> for InitError {
+        fn from(value: JsValue) -> Self {
+            Self::Viewer(value)
+        }
+    }
+
+    #[derive(Debug)]
+    struct BrowserDisplayHandle;
+
+    impl wgpu::rwh::HasDisplayHandle for BrowserDisplayHandle {
+        fn display_handle(&self) -> Result<wgpu::rwh::DisplayHandle<'_>, wgpu::rwh::HandleError> {
+            Ok(wgpu::rwh::DisplayHandle::web())
+        }
+    }
 
     #[derive(Clone, Debug, Deserialize)]
     struct WebManifest {
@@ -50,9 +97,15 @@ mod web {
 
         let canvas: web_sys::HtmlCanvasElement = element_by_id(&document, "spine2d-canvas")?;
 
+        let error_document = document.clone();
         spawn_local(async move {
             if let Err(e) = run(document, canvas).await {
-                log::error!("spine2d-web init failed: {e:?}");
+                log::error!("spine2d-web init failed: {:?}", e.source());
+                if let Err(status_error) =
+                    set_renderer_status(&error_document, Some(e.user_message()))
+                {
+                    log::error!("failed to show renderer error: {status_error:?}");
+                }
             }
         });
 
@@ -62,7 +115,7 @@ mod web {
     async fn run(
         document: web_sys::Document,
         canvas: web_sys::HtmlCanvasElement,
-    ) -> Result<(), JsValue> {
+    ) -> Result<(), InitError> {
         let window = web_sys::window().ok_or_else(|| JsValue::from_str("missing window"))?;
         // Keep the CSS size (logical pixels) controlled by CSS, and set the backing buffer size
         // (physical pixels) based on `devicePixelRatio`.
@@ -70,10 +123,13 @@ mod web {
         canvas.set_width(width);
         canvas.set_height(height);
 
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
+        let instance = wgpu::util::new_instance_with_webgpu_detection(
+            wgpu::InstanceDescriptor::new_with_display_handle(Box::new(BrowserDisplayHandle)),
+        )
+        .await;
         let surface = instance
             .create_surface(wgpu::SurfaceTarget::Canvas(canvas.clone()))
-            .map_err(|e| JsValue::from_str(&format!("create_surface: {e:?}")))?;
+            .map_err(|e| InitError::renderer(format!("create_surface: {e:?}")))?;
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -84,19 +140,34 @@ mod web {
                 apply_limit_buckets: false,
             })
             .await
-            .map_err(|e| JsValue::from_str(&format!("request_adapter: {e:?}")))?;
+            .map_err(|e| InitError::renderer(format!("request_adapter: {e:?}")))?;
 
+        let required_limits =
+            wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits());
         let (device, queue) = adapter
-            .request_device(&wgpu::DeviceDescriptor::default())
+            .request_device(&wgpu::DeviceDescriptor {
+                required_limits,
+                ..Default::default()
+            })
             .await
-            .map_err(|e| JsValue::from_str(&format!("request_device: {e:?}")))?;
+            .map_err(|e| InitError::renderer(format!("request_device: {e:?}")))?;
 
         let caps = surface.get_capabilities(&adapter);
         let format = caps
             .formats
             .first()
             .copied()
-            .ok_or_else(|| JsValue::from_str("surface has no formats"))?;
+            .ok_or_else(|| InitError::renderer("surface has no formats"))?;
+        let present_mode = caps
+            .present_modes
+            .first()
+            .copied()
+            .ok_or_else(|| InitError::renderer("surface has no present modes"))?;
+        let alpha_mode = caps
+            .alpha_modes
+            .first()
+            .copied()
+            .ok_or_else(|| InitError::renderer("surface has no alpha modes"))?;
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -106,8 +177,8 @@ mod web {
             width,
             height,
             desired_maximum_frame_latency: 2,
-            present_mode: caps.present_modes[0],
-            alpha_mode: caps.alpha_modes[0],
+            present_mode,
+            alpha_mode,
             view_formats: vec![],
         };
         surface.configure(&device, &config);
@@ -143,10 +214,10 @@ mod web {
                     log::warn!("falling back to embedded demo assets: {e:?}");
                     ExampleBundle {
                         example_name: "embedded".to_string(),
-                        atlas: ATLAS
+                        atlas: super::DEMO_ATLAS
                             .parse::<Atlas>()
                             .map_err(|e| JsValue::from_str(&format!("{e:?}")))?,
-                        data: SkeletonData::from_json_str(SKELETON_JSON)
+                        data: SkeletonData::from_json_str(super::DEMO_SKELETON_JSON)
                             .map_err(|e| JsValue::from_str(&format!("{e:?}")))?,
                         page_images: vec![],
                     }
@@ -208,6 +279,7 @@ mod web {
         }));
 
         init_ui(&document, state.clone())?;
+        set_renderer_status(&document, None)?;
 
         let raf = Rc::new(RefCell::new(None::<Closure<dyn FnMut(f64)>>));
         let raf2 = raf.clone();
@@ -250,6 +322,22 @@ mod web {
             .ok_or_else(|| JsValue::from_str(&format!("missing element #{id}")))?;
         el.dyn_into::<T>()
             .map_err(|_| JsValue::from_str(&format!("element #{id} has unexpected type")))
+    }
+
+    fn set_renderer_status(
+        document: &web_sys::Document,
+        message: Option<&str>,
+    ) -> Result<(), JsValue> {
+        let status = document
+            .get_element_by_id("renderer-status")
+            .ok_or_else(|| JsValue::from_str("missing element #renderer-status"))?;
+        if let Some(message) = message {
+            status.set_text_content(Some(message));
+            status.remove_attribute("hidden")?;
+        } else {
+            status.set_attribute("hidden", "")?;
+        }
+        Ok(())
     }
 
     fn query_param(window: &web_sys::Window, key: &str) -> Option<String> {
@@ -1098,49 +1186,6 @@ mod web {
         }
     }
 
-    const SKELETON_JSON: &str = r#"
-{
-  "skeleton": { "spine": "4.3.00" },
-  "bones": [ { "name": "root" } ],
-  "slots": [ { "name": "slot0", "bone": "root", "attachment": "mesh0" } ],
-  "skins": {
-    "default": {
-      "slot0": {
-        "mesh0": {
-          "type": "mesh",
-          "path": "mesh0",
-          "uvs": [0,0, 1,0, 1,1, 0,1],
-          "vertices": [-128,-128, 128,-128, 128,128, -128,128],
-          "triangles": [0,1,2, 2,3,0]
-        }
-      }
-    }
-  },
-  "animations": {
-    "spin": {
-      "bones": {
-        "root": {
-          "rotate": [
-            { "time": 0, "angle": 0 },
-            { "time": 1, "angle": 360 }
-          ]
-        }
-      }
-    }
-  }
-}
-"#;
-
-    const ATLAS: &str = r#"
-page.png
-size: 64,64
-
-mesh0
-  rotate: false
-  xy: 0, 0
-  size: 64, 64
-"#;
-
     async fn fetch_text(path: &str) -> Result<String, JsValue> {
         let bytes = fetch_bytes(path).await?;
         let text = String::from_utf8(bytes).map_err(|e| JsValue::from_str(&format!("{e:?}")))?;
@@ -1240,4 +1285,28 @@ mesh0
 mod web {
     // This crate is intended to be built via Trunk for `wasm32-unknown-unknown`.
     // Keep a tiny native stub so `cargo test` for the workspace stays green.
+}
+
+#[cfg(test)]
+mod tests {
+    use spine2d::{AnimationState, AnimationStateData, Skeleton, SkeletonData};
+
+    use super::DEMO_SKELETON_JSON;
+
+    #[test]
+    fn demo_spin_changes_root_rotation() {
+        let data = SkeletonData::from_json_str(DEMO_SKELETON_JSON).expect("parse demo skeleton");
+        let mut skeleton = Skeleton::new(data.clone());
+        let mut state = AnimationState::new(AnimationStateData::new(data));
+        state.set_animation(0, "spin", true);
+
+        state.update(0.25);
+        assert!(state.apply(&mut skeleton));
+
+        let rotation = skeleton.get_bones()[0].get_rotation();
+        assert!(
+            rotation.abs() > 1.0,
+            "spin left root rotation at {rotation}"
+        );
+    }
 }

@@ -7,7 +7,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-documentation.workspace = true
+documentation = "https://docs.rs/spine2d-bevy"
 description = "Bevy integration backend for the spine2d runtime"
 readme = "../README.md"
 

@@ -51,6 +51,9 @@ jobs:
       - name: Clippy (spine2d-web, wgpu 30)
         run: cargo clippy -p spine2d-web --target wasm32-unknown-unknown --no-default-features --features wgpu-30 -- -D warnings
 
+      - name: Test (spine2d-web)
+        run: cargo test -p spine2d-web
+
       - name: Test (no features)
         run: cargo test -p spine2d
 
