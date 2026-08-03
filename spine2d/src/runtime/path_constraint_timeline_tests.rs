@@ -61,6 +61,14 @@ const SKELETON_WITH_PATH_CONSTRAINT_AND_TIMELINES: &str = r#"
           ]
         }
       }
+    },
+    "nonofficial-aliases": {
+      "path": {
+        "pc": {
+          "position": [{ "position": 7 }],
+          "spacing": [{ "spacing": 9 }]
+        }
+      }
     }
   }
 }
@@ -104,4 +112,36 @@ fn path_constraint_timelines_apply_negative_alpha_like_cpp() {
     assert_approx(skeleton.path_constraints[0].mix_y, -0.25);
     assert_approx(skeleton.path_constraints[0].position, -2.5);
     assert_approx(skeleton.path_constraints[0].spacing, -1.25);
+}
+
+#[test]
+fn path_constraint_timeline_keys_only_read_official_value_field() {
+    let data = SkeletonData::from_json_str(SKELETON_WITH_PATH_CONSTRAINT_AND_TIMELINES).unwrap();
+    let animation = data.find_animation("nonofficial-aliases").unwrap();
+    let mut skeleton = Skeleton::new(data.clone());
+
+    skeleton.setup_pose();
+    apply_animation(animation, &mut skeleton, 0.0, false, 1.0, MixBlend::Replace);
+
+    assert_approx(skeleton.path_constraints[0].position, 0.0);
+    assert_approx(skeleton.path_constraints[0].spacing, 0.0);
+}
+
+#[test]
+fn unknown_path_timeline_is_ignored_before_decoding_keys() {
+    let mut json: serde_json::Value =
+        serde_json::from_str(SKELETON_WITH_PATH_CONSTRAINT_AND_TIMELINES).unwrap();
+    json["animations"]["unknown"] = serde_json::json!({
+        "path": {
+            "pc": {
+                "future": { "opaque": true }
+            }
+        }
+    });
+
+    let data =
+        SkeletonData::from_json_str(&json.to_string()).expect("unknown path timeline is ignored");
+    let animation = data.find_animation("unknown").unwrap();
+
+    assert_eq!(animation.get_timelines().count(), 0);
 }

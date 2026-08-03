@@ -113,3 +113,21 @@ fn slider_animation_name_only_binding_still_drives_runtime() {
     skeleton.update_world_transform_with_physics(crate::Physics::None);
     assert_eq!(skeleton.get_draw_order(), &[1, 0]);
 }
+
+#[test]
+fn unknown_slider_timeline_is_ignored_before_decoding_keys() {
+    let mut json: serde_json::Value = serde_json::from_str(SKELETON_WITH_SLIDER_TIMELINES).unwrap();
+    json["animations"]["unknown"] = serde_json::json!({
+        "slider": {
+            "slider": {
+                "future": { "opaque": true }
+            }
+        }
+    });
+
+    let data =
+        SkeletonData::from_json_str(&json.to_string()).expect("unknown slider timeline is ignored");
+    let animation = data.find_animation("unknown").unwrap();
+
+    assert_eq!(animation.get_timelines().count(), 0);
+}

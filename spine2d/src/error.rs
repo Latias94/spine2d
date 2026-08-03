@@ -41,6 +41,14 @@ pub enum Error {
     JsonUnknownAnimationBone { animation: String, bone: String },
 
     #[cfg(feature = "json")]
+    #[error("unknown bone timeline '{timeline}' for bone '{bone}' in animation '{animation}'")]
+    JsonUnknownBoneTimeline {
+        animation: String,
+        bone: String,
+        timeline: String,
+    },
+
+    #[cfg(feature = "json")]
     #[error("unknown bone '{bone}' referenced by slot '{slot}'")]
     JsonUnknownSlotBone { slot: String, bone: String },
 
@@ -175,6 +183,14 @@ pub enum Error {
     JsonUnknownSlotTimelineSlot { animation: String, slot: String },
 
     #[cfg(feature = "json")]
+    #[error("unknown slot timeline '{timeline}' for slot '{slot}' in animation '{animation}'")]
+    JsonUnknownSlotTimeline {
+        animation: String,
+        slot: String,
+        timeline: String,
+    },
+
+    #[cfg(feature = "json")]
     #[error("unknown event '{event}' referenced by animation '{animation}'")]
     JsonUnknownEvent { animation: String, event: String },
 
@@ -267,15 +283,5 @@ pub enum Error {
         slot: String,
         attachment: String,
         message: String,
-    },
-
-    #[cfg(feature = "json")]
-    #[error(
-        "slot '{slot}' referenced by animation '{animation}' has a '{timeline}' timeline but no setup 'dark' color"
-    )]
-    JsonTwoColorTimelineRequiresDarkSlot {
-        animation: String,
-        slot: String,
-        timeline: String,
     },
 }
